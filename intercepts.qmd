@@ -14,15 +14,24 @@ author:
 date: last-modified
 date-modified: last-modified
 description: |
-  This document provides a template based on the [`quarto`](https://quarto.org/) system for contributions to Computo, using the [`quarto journal extension`](https://github.com/computorg/computo-quarto-extension), the Julia 1-10 Jupyter and the Julia `Pkg` manager to set-up the dependencies.
+  This document provides a template based on the
+  [`quarto`](https://quarto.org/) system for contributions to Computo, using
+  the [`quarto journal
+  extension`](https://github.com/computorg/computo-quarto-extension), the Julia
+  1-10 Jupyter and the Julia `Pkg` manager to set-up the dependencies.
 abstract: >+
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur posuere vestibulum facilisis. Aenean pretium orci augue, quis lobortis libero accumsan eu. Nam mollis lorem sit amet pellentesque ullamcorper. Curabitur lobortis libero eget malesuada vestibulum. Nam nec nibh massa. Pellentesque porttitor cursus tellus. Mauris urna erat, rhoncus sed faucibus sit amet, venenatis eu ipsum.
-keywords: [key1, key2, key3]
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur posuere
+  vestibulum facilisis. Aenean pretium orci augue, quis lobortis libero
+  accumsan eu. Nam mollis lorem sit amet pellentesque ullamcorper. Curabitur
+  lobortis libero eget malesuada vestibulum. Nam nec nibh massa. Pellentesque
+  porttitor cursus tellus. Mauris urna erat, rhoncus sed faucibus sit amet,
+  venenatis eu ipsum.
+keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib
-github-user: computorg
+github-user: jolars
 repo: "template-computo-julia"
-draft: true # set to false once the build is running
-published: false # will be set to true once accepted
+draft: true
+published: false
 format:
   computo-html: default
   computo-pdf: default
@@ -39,19 +48,35 @@ LIBLINEAR uses a Newton step, and blitz uses an exact update (based on Newton st
 
 ## About this document
 
-This document, accompanied with the [hopefully finely tuned git repos](https://github.com/computorg/template-computo-julia/), provides a template for writing contributions to **Computo** [@computo]. We show how `Julia` code can be included and how the repository can be set up for triggering github actions for rendering the document, with dependencies handled by the built-in `Pkg` manager.
+This document, accompanied with the [hopefully finely tuned git
+repos](https://github.com/computorg/template-computo-julia/), provides a
+template for writing contributions to **Computo** [@computo]. We show how
+`Julia` code can be included and how the repository can be set up for
+triggering github actions for rendering the document, with dependencies handled
+by the built-in `Pkg` manager.
 
 ## Setup a github repository for preparing your submission
 
-You can start by clicking the "use this template" button, on the top of the page of the [github repository associated to this document](https://github.com/computorg/template-computo-julia/). Of course, you can set your repository private during the preparation of your manuscript.
+You can start by clicking the "use this template" button, on the top of the
+page of the [github repository associated to this
+document](https://github.com/computorg/template-computo-julia/). Of course, you
+can set your repository private during the preparation of your manuscript.
 
 ## Quarto
 
-[Quarto](https://quarto.org/) is a versatile formatting system for authoring documents integrating markdown, LaTeX and code blocks interpreted either via Jupyter or Knitr (thus supporting Python, R and Julia). It relies on the [Pandoc](https://pandoc.org/MANUAL.html) document converter.
+[Quarto](https://quarto.org/) is a versatile formatting system for authoring
+documents integrating markdown, LaTeX and code blocks interpreted either via
+Jupyter or Knitr (thus supporting Python, R and Julia). It relies on the
+[Pandoc](https://pandoc.org/MANUAL.html) document converter.
 
 ## Requirements
 
-You need [quarto](https://quarto.org/) installed on your system and the [Computo extension](https://github.com/computorg/computo-quarto-extension) to prepare your document. For the latter, once quarto is installed,  run the following to install the extension in the current directory (it creates a `_extension` directory which is ignored by git thanks to `.gitignore` by default):
+You need [quarto](https://quarto.org/) installed on your system and the
+[Computo extension](https://github.com/computorg/computo-quarto-extension) to
+prepare your document. For the latter, once quarto is installed,  run the
+following to install the extension in the current directory (it creates a
+`_extension` directory which is ignored by git thanks to `.gitignore` by
+default):
 
 ```.bash
 quarto add computorg/computo-quarto-extension
@@ -61,9 +86,20 @@ quarto add computorg/computo-quarto-extension
 
 ## Link with your usual tools
 
-Quarto is expecting a `.qmd` markdown file, but will also works with a standard [Jupyter notebook](https://quarto.org/docs/get-started/hello/jupyter.html) file if you are used to it (it will just require to add the proper YAML metadata^[the same metadata as in the [`template-computo-julia.qmd` file](https://github.com/computorg/template-computo-julia/blob/main/template-computo-julia.qmd) in the first cell, type "Raw", of the notebook]).
+Quarto is expecting a `.qmd` markdown file, but will also works with a standard
+[Jupyter notebook](https://quarto.org/docs/get-started/hello/jupyter.html) file
+if you are used to it (it will just require to add the proper YAML
+metadata^[the same metadata as in the [`template-computo-julia.qmd`
+file](https://github.com/computorg/template-computo-julia/blob/main/template-computo-julia.qmd)
+in the first cell, type "Raw", of the notebook]).
 
-**Note**: _More advanced Jupyter-related functionality like Myst/Jupyter book are not supported in this Quarto setup. The markdown syntax inside the Jupyter notebook should follow the Quarto syntax (c.f. [below](#formatting)). If you are more comfortable with using Myst/Jupyter book, we provide a [specific template](https://github.com/computorg/template-computo-myst) but it will requires more formatting work for Computo editorial team, thus highly encourage authors to use the Quarto templates._
+**Note**: _More advanced Jupyter-related functionality like Myst/Jupyter book
+are not supported in this Quarto setup. The markdown syntax inside the Jupyter
+notebook should follow the Quarto syntax (c.f. [below](#formatting)). If you
+are more comfortable with using Myst/Jupyter book, we provide a [specific
+template](https://github.com/computorg/template-computo-myst) but it will
+requires more formatting work for Computo editorial team, thus highly encourage
+authors to use the Quarto templates._
 
 # Formatting
 
@@ -235,15 +271,25 @@ Advanced formatting features are possible and documented (including interactive 
 
 ## Handle `Julia` dependencies with `Pkg`
 
-To make your work reproducible, you need to fix the packages and environment used to run your analysis. In `Julia`, the built-in `Pkg` package manager is a method of choice. [https://towardsdatascience.com/how-to-setup-project-environments-in-julia-ec8ae73afe9c](This simple tutorial shows how to set up a project).
+To make your work reproducible, you need to fix the packages and environment
+used to run your analysis. In `Julia`, the built-in `Pkg` package manager is a
+method of choice.
+[https://towardsdatascience.com/how-to-setup-project-environments-in-julia-ec8ae73afe9c](This
+simple tutorial shows how to set up a project).
 
-In this tutorial, we simply need to add the `Plots` library and its dependencies. It is important that you also add `IJulia` to your project, since it is a required dependency for quarto to correclty render your document via Jupyter.
+In this tutorial, we simply need to add the `Plots` library and its
+dependencies. It is important that you also add `IJulia` to your project, since
+it is a required dependency for quarto to correclty render your document via
+Jupyter.
 
-Once added via the `Pkg` manager of Julia (`add Plots; add IJulia`), the files `Project.toml` and `Manifest.toml` in the current project directory contains all the information required.
+Once added via the `Pkg` manager of Julia (`add Plots; add IJulia`), the files
+`Project.toml` and `Manifest.toml` in the current project directory contains
+all the information required.
 
 ## Continuous integration
 
-The repository associated with this template is pre-configure to trigger an action on push that performs the following:
+The repository associated with this template is pre-configure to trigger an
+action on push that performs the following:
 
 1. Check out repository on the `ubuntu-latest` machine
 2. Install quarto and dependencies, including the Computo extension
@@ -252,21 +298,29 @@ The repository associated with this template is pre-configure to trigger an acti
 
 The file [.github/workflows/build_n_publish.yml](https://github.com/computorg/template-computo-python/blob/main/.github/workflows/build_n_publish.yml) is largely inspired from [this file](https://quarto.org/docs/publishing/github-pages.html#example-jupyter-with-venv).
 
-Once this is successful, you are ready to submit your manuscript to the [Computo submission platform](https://computo.scholasticahq.com/).
+Once this is successful, you are ready to submit your manuscript to the
+[Computo submission platform](https://computo.scholasticahq.com/).
 
 ::: {.callout-warning}
-The first time, you possibly need to create the branch for the action to work. This can be done by running the following command from your computer, in your git repository:
+The first time, you possibly need to create the branch for the action to work.
+This can be done by running the following command from your computer, in your
+git repository:
 
 ```.bash
 quarto publish gh-pages
 ```
 
-Then, set the branch `gh-page` as the source of your github page, and trigger the action to check that everything works fine.
+Then, set the branch `gh-page` as the source of your github page, and trigger
+the action to check that everything works fine.
 :::
 
 ## Data and large files
 
-If your submission materials contain files larger than 50MB, **especially data files**, they won’t fit on a git repository as is. For this reason, we encourage you to put your data or any materials you deem necessary on an external “open data” centered repository hub such a [Zenodo](https://zenodo.org/) or [OSF](https://osf.io/).
+If your submission materials contain files larger than 50MB, **especially data
+files**, they won’t fit on a git repository as is. For this reason, we
+encourage you to put your data or any materials you deem necessary on an
+external “open data” centered repository hub such a
+[Zenodo](https://zenodo.org/) or [OSF](https://osf.io/).
 
 # References {.unnumbered}
 
