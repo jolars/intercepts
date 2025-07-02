@@ -81,6 +81,10 @@ function cdsolver(
       grad = dot(x[:, j], gradient(lossfun, η, y))
       hess = dot(x[:, j], x[:, j] .* hessian(lossfun, η, y))
 
+      if hess == 0
+        hess = 1e-10
+      end
+
       coef[j] = st(coef_j - grad / hess, λ / hess)
 
       diff = coef_j - coef[j]
