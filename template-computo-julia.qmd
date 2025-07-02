@@ -1,23 +1,15 @@
 ---
-title: "Template for contribution to Computo"
+title: "How to Train Your Intercept"
 subtitle: "Example dedicated to `Julia` users"
 author:
-  - name: Jane Doe
+  - name: Johan Larsson
     corresponding: true
-    email: janedoe@nowhere.moon
-    url: https://janedoe.someplace.themoon.org
+    email: jola@math.ku.dk
+    url: https://jolars.co
     orcid: 0000-0000-0000-0000
     affiliations:
-      - name: Name of Affiliation one
-        department: Statistics
-        url: https://someplace.themoon.org
-  - name: John Doe
-    email: johndoe@nowhere.moon
-    url: https://johndoe.someplace.themoon.org
-    orcid: 0000-0000-0000-0000
-    affiliations:
-      - name: Name of Afficiliation two
-        department: Computer Science
+      - name: University of Copenhagen
+        department: Department of Mathematical Sciences
         url: https://someplace.themoon.org
 date: last-modified
 date-modified: last-modified
@@ -34,10 +26,16 @@ published: false # will be set to true once accepted
 format:
   computo-html: default
   computo-pdf: default
-jupyter: julia-1.10
+engine: julia
 ---
 
 # Introduction
+
+Intercept updating is a overlooked issue in the field of statistical learning.
+For regularized regression, coordinate descent is the dominating algorithm, yet
+it is not clear how to best update the intercept term. Implementations
+differ in how they handle this, for instance skglm uses a gradient step,
+LIBLINEAR uses a Newton step, and blitz uses an exact update (based on Newton steps).
 
 ## About this document
 
@@ -152,9 +150,9 @@ jupyter: julia-1.10
 
 `julia` code chunks may be embedded as follows:
 
-```{julia julia-code}
+```{julia}
 using Random
-rng = MersenneTwister(1234)
+rng = MersenneTwister(1231)
 x = randn(rng, ComplexF32, (10,1))
 x
 ```
@@ -163,18 +161,14 @@ x
 
 Plots can be generated as follows:
 
-```{julia stem-plot}
+```{julia}
 #| label: fig-parametric
-#| fig-cap: "Parametric Plots"
+#| fig-cap: "Parametric Plos"
+#| fig-show: true
 
-using Plots
+using CairoMakie
 
-plot(sin, 
-     x->sin(2x), 
-     0, 
-     2π, 
-     leg=false, 
-     fill=(0,:lavender))
+scatter([1, 9, 3], [1, 2, 3])
 ```
 
 It is also possible to create figures from static images:
@@ -241,7 +235,7 @@ Advanced formatting features are possible and documented (including interactive 
 
 ## Handle `Julia` dependencies with `Pkg`
 
-To make your work reproducible, you need to fix the packages and environment used to run your analysis. In `Julia`, the built-in `Pkg` package manager is a method of choice. [https://towardsdatascience.com/how-to-setup-project-environments-in-julia-ec8ae73afe9c](This simple tutorial shows how to set up a project). 
+To make your work reproducible, you need to fix the packages and environment used to run your analysis. In `Julia`, the built-in `Pkg` package manager is a method of choice. [https://towardsdatascience.com/how-to-setup-project-environments-in-julia-ec8ae73afe9c](This simple tutorial shows how to set up a project).
 
 In this tutorial, we simply need to add the `Plots` library and its dependencies. It is important that you also add `IJulia` to your project, since it is a required dependency for quarto to correclty render your document via Jupyter.
 
@@ -268,7 +262,7 @@ quarto publish gh-pages
 ```
 
 Then, set the branch `gh-page` as the source of your github page, and trigger the action to check that everything works fine.
-::: 
+:::
 
 ## Data and large files
 
@@ -278,4 +272,3 @@ If your submission materials contain files larger than 50MB, **especially data
 
 ::: {#refs}
 :::
-
