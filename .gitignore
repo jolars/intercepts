@@ -1,0 +1,9 @@
+*_files/
+template-computo-julia.html
+logo_text_white.pdf
+template-computo-julia.pdf
+template-computo-julia.tex
+_extensions/
+/.quarto/
+/.joblib
+/_extensions/

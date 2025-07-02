@@ -1,0 +1,59 @@
+name: build
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' 
+  workflow_dispatch:
+  push:
+    branches: main
+
+permissions:
+  actions: write
+  contents: write
+  pages: write
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          version: pre-release
+          tinytex: true
+
+      - name: register tinytex globally for diagram.lua
+        run: |
+          mkdir -p ~/.local/bin
+          ~/.TinyTeX/bin/x86_64-linux/tlmgr update --self
+          ~/.TinyTeX/bin/x86_64-linux/tlmgr option sys_bin ~/.local/bin
+          ~/.TinyTeX/bin/x86_64-linux/tlmgr path add
+          ~/.TinyTeX/bin/x86_64-linux/tlmgr install libertinus-fonts
+  
+      - name: Install Computo extension for Quarto
+        run: |
+            quarto add --no-prompt computorg/computo-quarto-extension
+
+      - name: Install Jupyter
+        run: sudo apt-get install -y jupyter librsvg2-bin
+
+      - name: Install Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+      - uses: julia-actions/cache@v1
+        with:
+          cache-registries: "true"
+
+      - name: Install Julia Dependencies
+        uses: julia-actions/julia-buildpkg@v1
+
+      - name: Render and Publish
+        uses: quarto-dev/quarto-actions/publish@v2
+        with:
+          target: gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
