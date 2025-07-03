@@ -189,7 +189,7 @@ function cdsolver(
     gaps=gaps,
     time=times,
     passes=it,
-    coefs=coefs,
+    coefs=reduce(hcat, coefs),
     intercepts=intercepts,
     λ=λ,
     λmax=λmax,
