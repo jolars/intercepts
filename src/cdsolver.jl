@@ -24,7 +24,7 @@ function cdsolver(
   r = zeros(n)
   η = zeros(n)
 
-  intercept = linkfun(link, mean(y))
+  intercept = link(lossfun, mean(y))
   η .+= intercept
 
   λmax = lambdamax(lossfun, x, y)
