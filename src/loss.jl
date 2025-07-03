@@ -12,7 +12,6 @@ end
 end
 
 # Quadratic loss
-
 function loss(::Quadratic, η::AbstractVector, ::AbstractVector)
   0.5 * norm(η)^2
 end
@@ -41,8 +40,10 @@ function hessian(::Quadratic, η::AbstractVector, y::AbstractVector)
   ones(length(η))
 end
 
-# Logistic regression
+function validateresponse(::Quadratic, y::AbstractVector)
+end
 
+# Logistic regression
 function loss(::Logistic, η::AbstractVector, y::AbstractVector)
   sum(log1p.(exp.(η)) .- η .* y)
 end
@@ -84,4 +85,11 @@ end
 
 function workingresponse(f::LossFunction, η::AbstractVector, y::AbstractVector, w::AbstractVector)
   η + (y - invlink(f, η)) ./ w
+end
+
+function validateresponse(::Logistic, y::AbstractVector)
+  ok = unique(y) ⊆ (0.0, 1.0)
+  if !ok
+    throw(ArgumentError("Response variable for logistic regression must be binary (0 or 1)"))
+  end
 end

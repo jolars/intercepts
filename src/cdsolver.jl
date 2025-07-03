@@ -18,6 +18,8 @@ function cdsolver(
 
   y = Float64.(y)
 
+  validateresponse(lossfun, y)
+
   intercept = 0.0
 
   update_when = floor(size(x, 2) / update_freq)
