@@ -82,9 +82,17 @@ function cdsolver(
     push!(duals, dua)
     push!(times, time() - t0)
 
+    intercept_rescaled, coef_rescaled = rescalecoefs(
+      coef,
+      intercept,
+      x_centers,
+      x_scales;
+      fit_intercept=fit_intercept,
+    )
+
     if save_history
-      push!(intercepts, intercept)
-      push!(coefs, copy(coef))
+      push!(intercepts, intercept_rescaled)
+      push!(coefs, coef_rescaled)
     end
 
     rel_gap = gap / max(abs(primal), 1e-15)
@@ -165,9 +173,17 @@ function cdsolver(
     end
   end
 
+  intercept_rescaled, coef_rescaled = rescalecoefs(
+    coef,
+    intercept,
+    x_centers,
+    x_scales;
+    fit_intercept=fit_intercept,
+  )
+
   return (
-    intercept=intercept,
-    coef=coef,
+    intercept=intercept_rescaled,
+    coef=coef_rescaled,
     primals=primals,
     duals=duals,
     gaps=gaps,

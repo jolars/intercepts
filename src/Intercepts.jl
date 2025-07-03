@@ -17,6 +17,7 @@ export NewtonStrategy
 export ExactStrategy
 export update_intercept
 export geomspace
+export rescalecoefs
 export hessian
 export dual
 export lambdamax
