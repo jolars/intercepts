@@ -41,7 +41,7 @@ function generatedata(
       x = x * chol.L
     end
   elseif x_type == :binary
-    x = Int.(sprand(Bool, n, p, x_density))
+    x = Int.(sprand(Bool, n, p, Float64(x_density)))
 
     if ρ != 0
       for j in 2:p
