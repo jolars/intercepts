@@ -11,7 +11,8 @@ function cdsolver(
   update_freq::Int=1,
   tol::Real=1e-10,
   maxit::Int=1000,
-  randomize::Bool=true
+  randomize::Bool=true,
+  save_history::Bool=false,
 )
   n, p = size(x)
 
@@ -32,6 +33,9 @@ function cdsolver(
   λmax = norm(x' * r, Inf)
 
   λ = reg * λmax
+
+  intercepts = Vector{Float64}(undef, 0)
+  coefs = Vector{Vector{Float64}}(undef, 0)
 
   primals = Float64[]
   duals = Float64[]
@@ -57,6 +61,11 @@ function cdsolver(
     push!(primals, primal)
     push!(duals, dua)
     push!(times, time() - t0)
+
+    if save_history
+      push!(intercepts, intercept)
+      push!(coefs, copy(coef))
+    end
 
     rel_gap = gap / max(abs(primal), 1e-15)
 
@@ -121,5 +130,15 @@ function cdsolver(
     end
   end
 
-  return (intercept=intercept, coef=coef, primals=primals, duals=duals, gaps=gaps, time=times, passes=it)
+  return (
+    intercept=intercept,
+    coef=coef,
+    primals=primals,
+    duals=duals,
+    gaps=gaps,
+    time=times,
+    passes=it,
+    coefs=coefs,
+    intercepts=intercepts,
+  )
 end
