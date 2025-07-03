@@ -14,6 +14,8 @@ function normalizefeatures(x::AbstractMatrix, normalization::Symbol=:standardize
 
   x_out = copy(x)
 
+  scales[scales.==0] .= 1.0  # Avoid division by zero
+
   if issparse(x)
     for j in 1:p
       x_out[:, j] ./= scales[j]
