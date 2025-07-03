@@ -29,20 +29,14 @@ function cdsolver(
 
   fit_intercept = !(intercept_strategy isa NoIntercept)
 
-  intercept = 0.0
-
   update_when = floor(size(x, 2) / update_freq)
-
-  coef = zeros(p)
-  r = zeros(n)
-  η = zeros(n)
-
-  intercept = link(lossfun, mean(y))
-  η .+= intercept
 
   λmax = lambdamax(lossfun, x, y)
   λ = reg * λmax
 
+  intercept = 0.0
+  coef = zeros(p)
+  η = zeros(n)
   r = residual(lossfun, η, y)
 
   intercepts = Vector{Float64}(undef, 0)
