@@ -1,8 +1,8 @@
 *_files/
-template-computo-julia.html
+intercepts.html
 logo_text_white.pdf
-template-computo-julia.pdf
-template-computo-julia.tex
+intercepts.pdf
+intercepts.tex
 _extensions/
 /.quarto/
 /.joblib
