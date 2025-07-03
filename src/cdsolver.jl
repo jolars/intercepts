@@ -16,6 +16,8 @@ function cdsolver(
 )
   n, p = size(x)
 
+  y = Float64.(y)
+
   intercept = 0.0
 
   update_when = floor(size(x, 2) / update_freq)
