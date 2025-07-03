@@ -11,6 +11,7 @@ function generatedata(
   μ0::Real=0,
   x_density::Real=0.1,
   x_type=:normal,
+  means::Union{AbstractVector,Symbol,Nothing}=nothing,
   ρ::Real=0,
   s::Int=5,
   type::Symbol=:constant,
@@ -33,6 +34,18 @@ function generatedata(
 
   if x_type == :normal
     x = randn(n, p)
+
+    if means isa AbstractVector
+      if length(means) != p
+        throw(ArgumentError("Length of means vector must match number of features (p)."))
+      end
+      x .+= means'
+    end
+
+    if means == :random
+      ms = randn(p) * 100
+      x .+= ms'
+    end
 
     if ρ != 0
       inds = 1:p
