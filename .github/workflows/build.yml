@@ -37,7 +37,7 @@ jobs:
         run: |
           quarto add --no-prompt computorg/computo-quarto-extension
 
-      - name: Install Jupyter
+      - name: Install rsvg
         run: sudo apt-get install -y librsvg2-bin
 
       - name: Install Julia
