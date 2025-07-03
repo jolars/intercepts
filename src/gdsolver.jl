@@ -67,7 +67,6 @@ function gdsolver(
     push!(gaps, gap)
 
     if rel_gap <= tol
-      @info "Converged with gap: $rel_gap"
       break
     end
 
