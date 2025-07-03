@@ -25,10 +25,6 @@ res_grad = cdsolver(X, y, reg, lossfun=Logistic(), intercept_strategy=GradientSt
 res_newt = cdsolver(X, y, reg, lossfun=Logistic(), intercept_strategy=NewtonStrategy(), maxit=maxit, randomize=randomize, update_freq=freq)
 res_exact = cdsolver(X, y, reg, lossfun=Logistic(), intercept_strategy=ExactStrategy(), maxit=maxit, randomize=randomize, update_freq=freq)
 
-CairoMakie.activate!(type="svg")
-
-# opt = minimum(hcat(res_grad.primals, res_newt.primals, res_exact.primals))
-
 fig = Figure()
 ax = Axis(
   fig[1, 1],
