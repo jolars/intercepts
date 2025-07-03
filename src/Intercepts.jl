@@ -16,6 +16,7 @@ export GradientStrategy
 export NewtonStrategy
 export ExactStrategy
 export update_intercept
+export geomspace
 export hessian
 export dual
 export gradient

@@ -23,3 +23,11 @@ function lambdamax(f::LossFunction, x::AbstractMatrix, y::AbstractVector)
 
   return norm(x' * r, Inf)
 end
+
+function geomspace(start::Real, stop::Real, num::Int)
+  if start <= 0 || stop <= 0 || num <= 0
+    throw(ArgumentError("start, stop, and num must be positive"))
+  end
+  return exp.(range(log(start), log(stop), length=num))
+end
+
