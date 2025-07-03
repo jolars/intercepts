@@ -1,10 +1,8 @@
-using Test
 using Intercepts
 using Random
 using GLM
 using Statistics
 using CairoMakie
-using LinearAlgebra
 
 n = 100
 p = 10000

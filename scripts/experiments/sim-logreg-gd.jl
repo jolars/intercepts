@@ -1,10 +1,7 @@
-using Test
 using Intercepts
 using Random
 using GLM
-using Statistics
 using CairoMakie
-using LinearAlgebra
 
 n = 100
 p = 1000
@@ -12,7 +9,7 @@ k = 10
 
 Random.seed!(1234)
 
-μ0 = 0.99
+μ0 = 0.9
 
 X, y = generatedata(
   n, p; response=:binomial, μ0=μ0, x_type=:binary, x_density=1, ρ=0.9, s=k, amplitude=0.1
@@ -24,8 +21,6 @@ maxit = 10000
 res_grad = gdsolver(X, y, reg, lossfun=Logistic(), intercept_strategy=GradientStrategy(), maxit=maxit)
 res_newt = gdsolver(X, y, reg, lossfun=Logistic(), intercept_strategy=NewtonStrategy(), maxit=maxit)
 res_exact = gdsolver(X, y, reg, lossfun=Logistic(), intercept_strategy=ExactStrategy(), maxit=maxit)
-
-CairoMakie.activate!(type="svg")
 
 fig = Figure()
 ax = Axis(
@@ -39,8 +34,3 @@ lines!(ax, res_exact.time, res_exact.gaps, label="Exact")
 fig[1, 2] = Legend(fig, ax)
 
 fig
-
-hcat(res_newt.primals[end], res_exact.primals[end], res_grad.primals[end])
-hcat(res_newt.duals[end], res_exact.duals[end], res_grad.duals[end])
-
-svd_res = svds(X, nsv=1)[1].S[1]
