@@ -191,5 +191,7 @@ function cdsolver(
     passes=it,
     coefs=coefs,
     intercepts=intercepts,
+    λ=λ,
+    λmax=λmax,
   )
 end
