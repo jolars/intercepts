@@ -39,6 +39,10 @@
               "QuartoNotebookRunner"
             ])
           ];
+
+          shellHook = ''
+            export JULIA_PROJECT="."
+          '';
         };
       }
     );
