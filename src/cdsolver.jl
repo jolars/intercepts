@@ -20,21 +20,17 @@ function cdsolver(
 
   update_when = floor(size(x, 2) / update_freq)
 
-  link = canonicallink(lossfun)
-
   coef = zeros(p)
   r = zeros(n)
   η = zeros(n)
 
   intercept = linkfun(link, mean(y))
-
   η .+= intercept
 
-  r = residual(lossfun, η, y)
-
-  λmax = norm(x' * r, Inf)
-
+  λmax = lambdamax(lossfun, x, y)
   λ = reg * λmax
+
+  r = residual(lossfun, η, y)
 
   intercepts = Vector{Float64}(undef, 0)
   coefs = Vector{Vector{Float64}}(undef, 0)

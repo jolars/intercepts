@@ -26,8 +26,7 @@ function gdsolver(
 
   r = residual(lossfun, η, y)
 
-  λmax = norm(x' * r, Inf)
-
+  λmax = lambdamax(lossfun, x, y)
   λ = reg * λmax
 
   if issparse(x)
