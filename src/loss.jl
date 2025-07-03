@@ -21,7 +21,7 @@ function dual(::Quadratic, θ::AbstractVector, y::AbstractVector)
   0.5 * (norm(y)^2 - norm(θ .+ y)^2)
 end
 
-function link(::Quadratic, μ::AbstractVector)
+function link(::Quadratic, μ::Union{Real,AbstractVector})
   μ
 end
 
@@ -51,6 +51,10 @@ function dual(f::Logistic, θ::AbstractVector, y::AbstractVector)
   η = link(f, θ .+ y)
 
   return loss(f, η, y) - dot(θ, η)
+end
+
+function link(::Logistic, μ::Real)
+  logit(μ)
 end
 
 function link(::Logistic, μ::AbstractVector)
