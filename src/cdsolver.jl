@@ -75,6 +75,9 @@ function cdsolver(
       1:p
     end
 
+    coef_old = copy(coef)
+    intercept_old = intercept
+
     for (inner_it, j) in enumerate(ind)
       coef_j = coef[j]
 
@@ -93,10 +96,28 @@ function cdsolver(
       end
 
       if inner_it % update_when == 0
-        intercept_old = intercept
-        intercept = update_intercept(intercept_strategy, lossfun, intercept_old, η, y)
-        η .+= intercept - intercept_old
+        intercept_prev = intercept
+        intercept = update_intercept(intercept_strategy, lossfun, intercept_prev, η, y)
+        η .+= intercept - intercept_prev
       end
+    end
+
+    old_primal = primal
+    primal = loss(lossfun, η, y) + λ * norm(coef, 1)
+
+    coef_diff = coef - coef_old
+    intercept_diff = intercept - intercept_old
+
+    alpha = 1.0
+
+    while primal > old_primal && alpha > 1e-4
+      alpha *= 0.1
+
+      coef = coef_old + alpha * coef_diff
+      intercept = intercept_old + alpha * intercept_diff
+
+      η = x * coef .+ intercept
+      primal = loss(lossfun, η, y) + λ * norm(coef, 1)
     end
   end
 
