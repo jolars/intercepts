@@ -6,6 +6,7 @@ include("cdsolver.jl")
 include("gdsolver.jl")
 include("math.jl")
 include("data.jl")
+include("normalize.jl")
 
 export cdsolver
 export gdsolver
@@ -18,6 +19,7 @@ export update_intercept
 export hessian
 export dual
 export gradient
+export normalizefeatures
 export LossFunction
 export Quadratic
 export Logistic
