@@ -19,6 +19,7 @@ export update_intercept
 export geomspace
 export hessian
 export dual
+export lambdamax
 export gradient
 export normalizefeatures
 export LossFunction
