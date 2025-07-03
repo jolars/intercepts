@@ -20,11 +20,13 @@ function cdsolver(
 
   update_when = floor(size(x, 2) / update_freq)
 
+  link = canonicallink(lossfun)
+
   coef = zeros(p)
   r = zeros(n)
   η = zeros(n)
 
-  intercept = update_intercept(intercept_strategy, lossfun, intercept, η, y)
+  intercept = linkfun(link, mean(y))
 
   η .+= intercept
 
