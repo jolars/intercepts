@@ -10,13 +10,13 @@ k = 10
 
 Random.seed!(1234)
 
-μ0 = 0.94
+μ0 = 0.95
 
 X, y = generatedata(
-  n, p; response=:binomial, μ0=μ0, x_type=:normal, x_density=0.9, ρ=0.99, s=k, amplitude=1
+  n, p; response=:binomial, μ0=μ0, x_type=:normal, x_density=0.9, ρ=0.3, s=k, amplitude=1, means=:random
 )
 
-reg = 0.05
+reg = 0.01
 randomize = false
 freq = 1
 maxit = 1000
@@ -32,7 +32,7 @@ ax = Axis(
 )
 
 lines!(ax, res_grad.time, res_grad.gaps, label="Gradient")
-lines!(ax, res_newt.time, res_newt.gaps, label="Newton")
+lines!(ax, res_newt.time, res_newt.gaps .+ 1e-13, label="Newton")
 lines!(ax, res_exact.time, res_exact.gaps, label="Exact")
 fig[1, 2] = Legend(fig, ax)
 
