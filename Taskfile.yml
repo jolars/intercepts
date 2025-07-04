@@ -1,0 +1,24 @@
+version: "3"
+
+vars:
+  JULIA: julia
+
+tasks:
+  default:
+    deps: [install]
+
+  install:
+    desc: Install and instantiate Julia package
+    cmds:
+      - "{{.JULIA}} -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+
+  test:
+    desc: Run Julia package tests
+    cmds:
+      - "{{.JULIA}} --project=. -e 'using Pkg; Pkg.test()'"
+
+  docs:
+    desc: Build documentation
+    cmds:
+      - "{{.JULIA}} --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "{{.JULIA}} --project=docs/ docs/make.jl"

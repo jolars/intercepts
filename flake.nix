@@ -19,6 +19,7 @@
           packages = [
             pkgs.bashInteractive
             pkgs.quartoMinimal
+            pkgs.go-task
             pkgs.librsvg
             (pkgs.julia-bin.withPackages [
               "Test"
