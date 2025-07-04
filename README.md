@@ -50,7 +50,7 @@ Many of the results have already been computed and are included in the <results/
 by running the scripts in the <scripts/> directory. For example, to reproduce the results for the `intercepts` module, you can run:
 
 ```bash
-julia --project=. scripts/sim-logreg-cd.jl
+julia --project=. experiments/sim-logreg-cd.jl
 ```
 
 ### Render the Quarto document
