@@ -2,7 +2,7 @@
 
 julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "2b491768674dbaef557ad4902ba2ba12169721ad"
+project_hash = "8ba5ab0a9fc9a9b7ff2b64b4928bf8973d471572"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -47,6 +47,12 @@ deps = ["Colors"]
 git-tree-sha1 = "e092fa223bf66a3c41f9c022bd074d916dc303e7"
 uuid = "27a7e980-b3e6-11e9-2bcd-0b925532e340"
 version = "0.4.2"
+
+[[deps.Aqua]]
+deps = ["Compat", "Pkg", "Test"]
+git-tree-sha1 = "622d6ee5f093951e2e08ed88aa3fcdebec091bcf"
+uuid = "4c88cf16-eb10-579e-8560-4a9242c79595"
+version = "0.8.13"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
