@@ -5,12 +5,12 @@ using Statistics
 using CairoMakie
 
 n = 100
-p = 10000
+p = 1000
 k = 10
 
 Random.seed!(1234)
 
-μ0 = 0.95
+μ0 = 0.9
 
 X, y = generatedata(
     n,
@@ -18,14 +18,14 @@ X, y = generatedata(
     response = :binomial,
     μ0 = μ0,
     x_type = :normal,
-    x_density = 0.9,
-    ρ = 0.3,
+    x_density = 1,
+    ρ = 0.6,
     s = k,
     amplitude = 1,
     means = :random,
 )
 
-reg = 0.01
+reg = 0.02
 randomize = false
 freq = 1
 maxit = 1000
@@ -65,7 +65,7 @@ fig = Figure()
 ax = Axis(fig[1, 1], yscale = log)
 
 lines!(ax, res_grad.time, res_grad.gaps, label = "Gradient")
-lines!(ax, res_newt.time, res_newt.gaps .+ 1e-13, label = "Newton")
+lines!(ax, res_newt.time, res_newt.gaps, label = "Newton")
 lines!(ax, res_exact.time, res_exact.gaps, label = "Exact")
 fig[1, 2] = Legend(fig, ax)
 
@@ -73,3 +73,4 @@ fig
 
 hcat(res_newt.primals[end], res_exact.primals[end], res_grad.primals[end])
 hcat(res_newt.duals[end], res_exact.duals[end], res_grad.duals[end])
+hcat(res_newt.gaps[end], res_exact.gaps[end], res_grad.gaps[end])
