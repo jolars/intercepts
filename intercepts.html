@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.14">
+<meta name="generator" content="quarto-1.8.16">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Johan Larsson">
-<meta name="dcterms.date" content="2025-07-06">
+<meta name="dcterms.date" content="2025-07-14">
 <meta name="keywords" content="intercepts, coordinate descent, optimization, regularization">
 <meta name="description" content="This document explores different strategies for updating intercepts in coordinate descent algorithms, comparing gradient, Newton, and exact strategies.">
 
@@ -89,10 +89,10 @@ div.csl-indent {
 <script src="intercepts_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="intercepts_files/libs/quarto-html/anchor.min.js"></script>
 <link href="intercepts_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="intercepts_files/libs/quarto-html/quarto-syntax-highlighting-6189859f80153d0aeab70023af215a12.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="intercepts_files/libs/quarto-html/quarto-syntax-highlighting-48a67b8a3f4081896fa7798b81e7b76c.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="intercepts_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="intercepts_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="intercepts_files/libs/bootstrap/bootstrap-1cadf46b74d86a4677fbfc639f94477c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="intercepts_files/libs/bootstrap/bootstrap-320991a77a9b59430931c04b4b87aa95.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="intercepts_files/libs/quarto-contrib/pseudocode-2.4.1/pseudocode.min.js"></script>
 <link href="intercepts_files/libs/quarto-contrib/pseudocode-2.4.1/pseudocode.min.css" rel="stylesheet">
 <style>
@@ -159,14 +159,14 @@ ISSN 2824-7795</p>
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">July 6, 2025</p>
+        <p class="date">July 14, 2025</p>
       </div>
     </div>
                                     
       <div>
       <div class="quarto-title-meta-heading">Modified</div>
       <div class="quarto-title-meta-contents">
-        <p class="date-modified">July 6, 2025</p>
+        <p class="date-modified">July 14, 2025</p>
       </div>
     </div>
       
@@ -213,239 +213,239 @@ ISSN 2824-7795</p>
 <div id="cell-setup" class="cell" data-results="hide" data-execution_count="1">
 <details class="code-fold">
 <summary>Hide/Show the code</summary>
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CairoMakie</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CairoMakie</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="bu">Random</span>.<span class="fu">seed!</span>(<span class="fl">14</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="bu">Random</span>.<span class="fu">seed!</span>(<span class="fl">14</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <div class="ansi-escaped-output">
 <pre><span class="ansi-bright-green-fg ansi-bold">Precompiling</span> CairoMakie...
-    498.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">RangeArrays</span>
-    905.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AbstractFFTs</span>
-    665.0 ms<span class="ansi-green-fg">  ✓ </span>LaTeXStrings
-    442.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IndirectArrays</span>
-    527.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PolygonOps</span>
-    554.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IteratorInterfaceExtensions</span>
-    779.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TensorCore</span>
-    627.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GeoFormatTypes</span>
-    599.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsAPI</span>
-    627.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Contour</span>
-    598.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CEnum</span>
-    814.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TriplotBase</span>
-   2105.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OffsetArrays</span>
-   2276.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Format</span>
-   1827.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FillArrays</span>
-    781.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InverseFunctions</span>
-    890.3 ms<span class="ansi-green-fg">  ✓ </span>Statistics
-   8346.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">BaseDirs</span>
-   1074.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OrderedCollections</span>
-   1588.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Grisu</span>
-    705.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Observables</span>
-    879.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Requires</span>
-    676.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DataValueInterfaces</span>
-    596.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">EnumX</span>
-    477.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Reexport</span>
-    767.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StableRNGs</span>
-    837.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DocStringExtensions</span>
-   1155.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AbstractTrees</span>
-   5699.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MacroTools</span>
-    799.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalSets</span>
-    997.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">RoundingEmulator</span>
-    731.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Extents</span>
-   2246.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IrrationalConstants</span>
-    763.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PtrArrays</span>
-    839.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TranscodingStreams</span>
-    771.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">NaNMath</span>
-    734.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LazyModules</span>
-    633.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Inflate</span>
-    821.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ConstructionBase</span>
-    677.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DataAPI</span>
-   2754.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AdaptivePredicates</span>
-    751.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StaticArraysCore</span>
-    684.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MappedArrays</span>
-   1062.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SuiteSparse</span>
-   1072.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WoodburyMatrices</span>
-   1519.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ProgressMeter</span>
-   2847.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ChainRulesCore</span>
-   2842.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">UnicodeFun</span>
-   1053.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenSSL_jll</span>
-    986.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Graphite2_jll</span>
-    913.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LLVMOpenMP_jll</span>
-   1156.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libmount_jll</span>
-    992.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Bzip2_jll</span>
-    973.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Rmath_jll</span>
-    905.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libXau_jll</span>
-   1279.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libpng_jll</span>
-    839.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libfdk_aac_jll</span>
-    920.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Imath_jll</span>
-    926.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Giflib_jll</span>
-    957.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LAME_jll</span>
-    962.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LERC_jll</span>
-   1031.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">EarCut_jll</span>
-    971.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CRlibm_jll</span>
-   1087.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">JpegTurbo_jll</span>
-   1126.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">XZ_jll</span>
-    821.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Ogg_jll</span>
-   1104.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">oneTBB_jll</span>
-    975.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libXdmcp_jll</span>
-    821.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">x265_jll</span>
-    968.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">x264_jll</span>
-   1051.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libaom_jll</span>
-   1049.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Zstd_jll</span>
-   1017.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Expat_jll</span>
-   1019.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LZO_jll</span>
-   1149.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Opus_jll</span>
-    863.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_xtrans_jll</span>
-    982.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libffi_jll</span>
-    847.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">isoband_jll</span>
-   1106.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FFTW_jll</span>
-   1017.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenSpecFun_jll</span>
-    936.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FriBidi_jll</span>
-   1053.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libuuid_jll</span>
-   1032.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenBLASConsistentFPCSR_jll</span>
-   2251.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FilePathsBase</span>
-   2053.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PkgVersion</span>
-   1160.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GettextRuntime_jll</span>
-   3235.1 ms<span class="ansi-green-fg">  ✓ </span>JSON
-   2098.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntelOpenMP_jll</span>
-   2589.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AbstractFFTs → AbstractFFTsTestExt</span>
-    688.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TableTraits</span>
-    757.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StackViews</span>
-    828.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PaddedViews</span>
-   1024.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FillArrays → FillArraysSparseArraysExt</span>
-    963.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InverseFunctions → InverseFunctionsTestExt</span>
-    806.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InverseFunctions → InverseFunctionsDatesExt</span>
-    705.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SignedDistanceFields</span>
-  21495.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SIMD</span>
-   1089.4 ms<span class="ansi-green-fg">  ✓ </span>Statistics → SparseArraysExt
-    922.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FillArrays → FillArraysStatisticsExt</span>
-   5598.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FixedPointNumbers</span>
-    714.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Showoff</span>
-   3546.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DataStructures</span>
-   1224.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ComputePipeline</span>
-    653.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Ratios</span>
-    931.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Adapt</span>
-   1486.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SimpleTraits</span>
-    665.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalSets → IntervalSetsRandomExt</span>
-    545.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalSets → IntervalSetsStatisticsExt</span>
-    992.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LogExpFunctions</span>
-    637.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AliasTables</span>
-  53496.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Unitful</span>
-    536.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ConstructionBase → ConstructionBaseIntervalSetsExt</span>
-    713.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ConstructionBase → ConstructionBaseLinearAlgebraExt</span>
-    676.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Missings</span>
-   2200.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GeoInterface</span>
-   1489.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PDMats</span>
-  10154.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FileIO</span>
-    986.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AxisAlgorithms</span>
-   1042.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ChainRulesCore → ChainRulesCoreSparseArraysExt</span>
-    886.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AbstractFFTs → AbstractFFTsChainRulesCoreExt</span>
-   1020.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Pixman_jll</span>
-   1138.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FreeType2_jll</span>
-   1510.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Rmath</span>
-   1368.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenEXR_jll</span>
-   1162.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CRlibm</span>
-   1188.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libsixel_jll</span>
-   1245.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libvorbis_jll</span>
-   1103.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libtiff_jll</span>
-    927.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Isoband</span>
-   3202.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libxcb_jll</span>
-    943.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FilePathsBase → FilePathsBaseMmapExt</span>
-   2254.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FilePathsBase → FilePathsBaseTestExt</span>
-   1446.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FilePaths</span>
-   1548.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Glib_jll</span>
-   1303.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Tables</span>
-  16812.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StaticArrays</span>
-    744.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MosaicViews</span>
-   2599.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorTypes</span>
-   1083.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SortingAlgorithms</span>
-   7784.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MKL_jll</span>
-    643.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Ratios → RatiosFixedPointNumbersExt</span>
-   1941.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">QuadGK</span>
-   1010.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Adapt → AdaptSparseArraysExt</span>
-    672.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OffsetArrays → OffsetArraysAdaptExt</span>
-    540.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LogExpFunctions → LogExpFunctionsInverseFunctionsExt</span>
-   1667.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AxisArrays</span>
-   2247.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LogExpFunctions → LogExpFunctionsChainRulesCoreExt</span>
-    946.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Unitful → ConstructionBaseUnitfulExt</span>
-   1082.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Unitful → InverseFunctionsUnitfulExt</span>
-   1117.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Unitful → PrintfExt</span>
-   5104.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SpecialFunctions</span>
-    836.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FillArrays → FillArraysPDMatsExt</span>
-   1518.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Fontconfig_jll</span>
-   1923.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FreeType</span>
-   1237.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libX11_jll</span>
-   1452.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays</span>
-   1296.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StaticArrays → StaticArraysChainRulesCoreExt</span>
-   4814.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalArithmetic</span>
-   1299.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StaticArrays → StaticArraysStatisticsExt</span>
-   1306.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ConstructionBase → ConstructionBaseStaticArraysExt</span>
-   1172.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Adapt → AdaptStaticArraysExt</span>
-   2408.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">QOI</span>
-   5199.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorVectorSpace</span>
-  37070.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Automa</span>
-    854.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorTypes → StyledStringsExt</span>
-  12125.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Colors</span>
-  32159.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GeometryBasics</span>
-   4181.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsBase</span>
-   3114.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SpecialFunctions → SpecialFunctionsChainRulesCoreExt</span>
-   1846.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">HypergeometricFunctions</span>
-    929.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libXrender_jll</span>
-   1120.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libXext_jll</span>
-    803.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays → StructArraysAdaptExt</span>
-   1371.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays → StructArraysSparseArraysExt</span>
-   1566.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays → StructArraysStaticArraysExt</span>
-    706.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays → StructArraysLinearAlgebraExt</span>
-   1186.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalArithmetic → IntervalArithmeticSparseArraysExt</span>
-    787.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalArithmetic → IntervalArithmeticIntervalSetsExt</span>
-   1195.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalArithmetic → IntervalArithmeticLinearAlgebraExt</span>
-   3605.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Interpolations</span>
-   1381.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorVectorSpace → SpecialFunctionsExt</span>
-   1001.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Graphics</span>
-    998.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Animations</span>
-   2399.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenEXR</span>
-    957.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorBrewer</span>
-  30865.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FFTW</span>
-   6676.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorSchemes</span>
-  17624.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GridLayoutBase</span>
-   2038.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Packing</span>
-   2581.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ShaderAbstractions</span>
-   5118.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FreeTypeAbstraction</span>
-   3622.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsFuns</span>
-   1252.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Cairo_jll</span>
-   1463.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libglvnd_jll</span>
-  46825.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageCore</span>
-   1916.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Interpolations → InterpolationsUnitfulExt</span>
- 101592.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TiffImages</span>
-   9151.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ExactPredicates</span>
-    870.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsFuns → StatsFunsInverseFunctionsExt</span>
-   2611.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsFuns → StatsFunsChainRulesCoreExt</span>
-  15404.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MathTeXEngine</span>
-   9778.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Distributions</span>
-   1529.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">HarfBuzz_jll</span>
-   1621.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libwebp_jll</span>
-   4582.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageBase</span>
-  28520.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PlotUtils</span>
-   5422.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Sixel</span>
-  11126.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PNGFiles</span>
-   2079.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Distributions → DistributionsTestExt</span>
-   5851.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">JpegTurbo</span>
-   1778.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Distributions → DistributionsChainRulesCoreExt</span>
-   1261.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libass_jll</span>
-   1219.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Pango_jll</span>
-   8601.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DelaunayTriangulation</span>
-   4159.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WebP</span>
-   3565.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageAxes</span>
-   3071.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">KernelDensity</span>
-   2064.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FFMPEG_jll</span>
-   2192.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Cairo</span>
-   1533.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageMetadata</span>
-   1481.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Netpbm</span>
-    915.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageIO</span>
- 228754.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Makie</span>
-  67429.7 ms<span class="ansi-green-fg">  ✓ </span>CairoMakie
-  224 dependencies successfully precompiled in 560 seconds. 49 already precompiled.
+    726.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">RangeArrays</span>
+   1094.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AbstractFFTs</span>
+    707.6 ms<span class="ansi-green-fg">  ✓ </span>LaTeXStrings
+    647.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IndirectArrays</span>
+    650.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PolygonOps</span>
+    532.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IteratorInterfaceExtensions</span>
+    757.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TensorCore</span>
+    810.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GeoFormatTypes</span>
+    630.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Contour</span>
+    914.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsAPI</span>
+    793.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CEnum</span>
+   1024.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TriplotBase</span>
+   2403.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OffsetArrays</span>
+   1841.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FillArrays</span>
+   2623.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Format</span>
+   8320.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">BaseDirs</span>
+    918.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InverseFunctions</span>
+   1095.9 ms<span class="ansi-green-fg">  ✓ </span>Statistics
+   1225.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OrderedCollections</span>
+   1602.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Grisu</span>
+    852.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Observables</span>
+    833.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Requires</span>
+    477.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DataValueInterfaces</span>
+    739.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">EnumX</span>
+    595.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StableRNGs</span>
+    800.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Reexport</span>
+    832.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DocStringExtensions</span>
+    925.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AbstractTrees</span>
+   6320.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MacroTools</span>
+    829.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalSets</span>
+    665.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Extents</span>
+    934.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">RoundingEmulator</span>
+   2684.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IrrationalConstants</span>
+    641.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PtrArrays</span>
+    822.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TranscodingStreams</span>
+    628.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LazyModules</span>
+   1102.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">NaNMath</span>
+    780.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ConstructionBase</span>
+    852.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Inflate</span>
+    648.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StaticArraysCore</span>
+    712.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DataAPI</span>
+   2847.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AdaptivePredicates</span>
+    774.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MappedArrays</span>
+   1042.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SuiteSparse</span>
+   1576.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ProgressMeter</span>
+   1210.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WoodburyMatrices</span>
+   2780.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ChainRulesCore</span>
+   2789.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">UnicodeFun</span>
+    903.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenSSL_jll</span>
+   1121.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Graphite2_jll</span>
+    854.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libmount_jll</span>
+    997.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LLVMOpenMP_jll</span>
+   1001.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Bzip2_jll</span>
+    930.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Rmath_jll</span>
+   1093.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libXau_jll</span>
+   1054.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libpng_jll</span>
+   1126.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libfdk_aac_jll</span>
+    934.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Imath_jll</span>
+   1028.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Giflib_jll</span>
+    974.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LAME_jll</span>
+   1008.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LERC_jll</span>
+   1135.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">EarCut_jll</span>
+   1089.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CRlibm_jll</span>
+   1159.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">JpegTurbo_jll</span>
+   1182.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">XZ_jll</span>
+    968.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Ogg_jll</span>
+   1128.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">oneTBB_jll</span>
+   1111.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libXdmcp_jll</span>
+   1165.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">x265_jll</span>
+   1190.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">x264_jll</span>
+   1053.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Zstd_jll</span>
+   1287.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libaom_jll</span>
+    918.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LZO_jll</span>
+   1184.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Expat_jll</span>
+   1088.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Opus_jll</span>
+   1026.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_xtrans_jll</span>
+    960.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">isoband_jll</span>
+   1143.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libffi_jll</span>
+   1079.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FFTW_jll</span>
+   1163.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenSpecFun_jll</span>
+    897.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libuuid_jll</span>
+   1252.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FriBidi_jll</span>
+    996.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenBLASConsistentFPCSR_jll</span>
+   2261.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FilePathsBase</span>
+   2376.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PkgVersion</span>
+   1291.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GettextRuntime_jll</span>
+   3365.1 ms<span class="ansi-green-fg">  ✓ </span>JSON
+   2143.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntelOpenMP_jll</span>
+   2766.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AbstractFFTs → AbstractFFTsTestExt</span>
+    711.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TableTraits</span>
+    668.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StackViews</span>
+    854.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PaddedViews</span>
+   1219.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FillArrays → FillArraysSparseArraysExt</span>
+   1182.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InverseFunctions → InverseFunctionsTestExt</span>
+    813.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InverseFunctions → InverseFunctionsDatesExt</span>
+    609.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SignedDistanceFields</span>
+  22474.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SIMD</span>
+   1262.9 ms<span class="ansi-green-fg">  ✓ </span>Statistics → SparseArraysExt
+    768.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FillArrays → FillArraysStatisticsExt</span>
+   6206.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FixedPointNumbers</span>
+    813.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Showoff</span>
+   3553.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DataStructures</span>
+    622.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Ratios</span>
+   1180.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ComputePipeline</span>
+    811.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Adapt</span>
+   1429.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SimpleTraits</span>
+    670.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalSets → IntervalSetsRandomExt</span>
+    577.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalSets → IntervalSetsStatisticsExt</span>
+   1307.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LogExpFunctions</span>
+    864.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AliasTables</span>
+    564.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ConstructionBase → ConstructionBaseIntervalSetsExt</span>
+    688.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ConstructionBase → ConstructionBaseLinearAlgebraExt</span>
+  58320.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Unitful</span>
+   2210.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GeoInterface</span>
+    800.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Missings</span>
+  10951.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FileIO</span>
+   1546.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PDMats</span>
+   1100.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AxisAlgorithms</span>
+    646.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AbstractFFTs → AbstractFFTsChainRulesCoreExt</span>
+   1378.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ChainRulesCore → ChainRulesCoreSparseArraysExt</span>
+    935.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Pixman_jll</span>
+   1368.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FreeType2_jll</span>
+   1671.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Rmath</span>
+   1242.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenEXR_jll</span>
+   1320.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CRlibm</span>
+   1144.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libsixel_jll</span>
+   1063.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libvorbis_jll</span>
+   1365.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libtiff_jll</span>
+    870.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Isoband</span>
+   3028.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libxcb_jll</span>
+    982.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FilePathsBase → FilePathsBaseMmapExt</span>
+   1376.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FilePaths</span>
+   2397.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FilePathsBase → FilePathsBaseTestExt</span>
+   1605.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Glib_jll</span>
+  18164.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StaticArrays</span>
+   1262.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Tables</span>
+    608.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MosaicViews</span>
+   3139.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorTypes</span>
+    850.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SortingAlgorithms</span>
+   8314.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MKL_jll</span>
+   1896.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">QuadGK</span>
+    846.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Ratios → RatiosFixedPointNumbersExt</span>
+    925.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Adapt → AdaptSparseArraysExt</span>
+    965.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OffsetArrays → OffsetArraysAdaptExt</span>
+    627.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LogExpFunctions → LogExpFunctionsInverseFunctionsExt</span>
+   1284.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">AxisArrays</span>
+   2393.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LogExpFunctions → LogExpFunctionsChainRulesCoreExt</span>
+   1118.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Unitful → ConstructionBaseUnitfulExt</span>
+   1335.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Unitful → InverseFunctionsUnitfulExt</span>
+   5099.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SpecialFunctions</span>
+   1370.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Unitful → PrintfExt</span>
+   1135.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FillArrays → FillArraysPDMatsExt</span>
+   1566.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Fontconfig_jll</span>
+   2006.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FreeType</span>
+   1146.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libX11_jll</span>
+   1282.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StaticArrays → StaticArraysChainRulesCoreExt</span>
+   1231.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StaticArrays → StaticArraysStatisticsExt</span>
+   4798.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalArithmetic</span>
+   1267.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ConstructionBase → ConstructionBaseStaticArraysExt</span>
+   1243.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Adapt → AdaptStaticArraysExt</span>
+   1434.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays</span>
+   2732.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">QOI</span>
+   5529.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorVectorSpace</span>
+  41172.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Automa</span>
+    898.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorTypes → StyledStringsExt</span>
+  12723.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Colors</span>
+  33701.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GeometryBasics</span>
+   5064.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsBase</span>
+   3496.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SpecialFunctions → SpecialFunctionsChainRulesCoreExt</span>
+   1956.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">HypergeometricFunctions</span>
+   1313.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libXrender_jll</span>
+   1140.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Xorg_libXext_jll</span>
+   1042.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalArithmetic → IntervalArithmeticSparseArraysExt</span>
+    893.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalArithmetic → IntervalArithmeticIntervalSetsExt</span>
+   1236.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">IntervalArithmetic → IntervalArithmeticLinearAlgebraExt</span>
+   3832.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Interpolations</span>
+    703.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays → StructArraysAdaptExt</span>
+   1162.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays → StructArraysSparseArraysExt</span>
+   1536.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays → StructArraysStaticArraysExt</span>
+    957.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StructArrays → StructArraysLinearAlgebraExt</span>
+   1255.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorVectorSpace → SpecialFunctionsExt</span>
+   1133.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Graphics</span>
+   1140.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Animations</span>
+   2956.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">OpenEXR</span>
+   1261.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorBrewer</span>
+  34747.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FFTW</span>
+   7321.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ColorSchemes</span>
+  18900.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">GridLayoutBase</span>
+   2215.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Packing</span>
+   2636.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ShaderAbstractions</span>
+   5310.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FreeTypeAbstraction</span>
+   3712.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsFuns</span>
+  98698.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">TiffImages</span>
+   1216.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Cairo_jll</span>
+   1706.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Libglvnd_jll</span>
+   2237.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Interpolations → InterpolationsUnitfulExt</span>
+  50584.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageCore</span>
+  10153.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ExactPredicates</span>
+    844.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsFuns → StatsFunsInverseFunctionsExt</span>
+   2922.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsFuns → StatsFunsChainRulesCoreExt</span>
+  15210.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">MathTeXEngine</span>
+   1593.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">HarfBuzz_jll</span>
+  10744.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Distributions</span>
+   1507.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libwebp_jll</span>
+   4990.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageBase</span>
+  31331.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PlotUtils</span>
+   5521.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Sixel</span>
+  11231.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PNGFiles</span>
+   1250.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">libass_jll</span>
+   1210.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Pango_jll</span>
+   1867.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Distributions → DistributionsTestExt</span>
+   6764.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">JpegTurbo</span>
+   1885.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Distributions → DistributionsChainRulesCoreExt</span>
+   8632.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">DelaunayTriangulation</span>
+   3299.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageAxes</span>
+   2082.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">FFMPEG_jll</span>
+   4794.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WebP</span>
+   2319.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Cairo</span>
+   2103.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageMetadata</span>
+   2755.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">KernelDensity</span>
+   1614.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Netpbm</span>
+    986.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ImageIO</span>
+ 230017.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Makie</span>
+  68171.9 ms<span class="ansi-green-fg">  ✓ </span>CairoMakie
+  224 dependencies successfully precompiled in 576 seconds. 49 already precompiled.
   <span class="ansi-yellow-fg">1</span> dependency had output during precompilation:<span class="ansi-yellow-fg">
 ┌ </span>MKL_jll<span class="ansi-yellow-fg">
 │  </span><span class="ansi-green-fg ansi-bold"> Downloading</span> artifact: IntelOpenMP<span class="ansi-yellow-fg">
@@ -463,7 +463,7 @@ ISSN 2824-7795</p>
 <div id="cell-fig-parametric" class="cell" data-fig-show="true" data-execution_count="1">
 <details class="code-fold">
 <summary>Hide/Show the code</summary>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Intercepts</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Intercepts</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GLM</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LinearAlgebra</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
@@ -526,33 +526,34 @@ ISSN 2824-7795</p>
 <span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a>fig[<span class="fl">1</span>, <span class="fl">2</span>] <span class="op">=</span> <span class="fu">Legend</span>(fig, ax)</span>
 <span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>fig</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a>fig</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <div class="ansi-escaped-output">
 <pre><span class="ansi-bright-green-fg ansi-bold">Precompiling</span> Intercepts...
-    896.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Compiler</span>
-    842.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WorkerUtilities</span>
-    897.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ShiftedArrays</span>
-    684.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CodecZlib</span>
-   1016.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PooledArrays</span>
-   1261.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InlineStrings</span>
-   1250.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Arpack_jll</span>
-   1539.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CodeTracking</span>
-    911.5 ms<span class="ansi-green-fg">  ✓ </span>ProjectRoot
-   3491.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SentinelArrays</span>
-    723.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InlineStrings → ParsersExt</span>
-   1459.4 ms<span class="ansi-green-fg">  ✓ </span>Arpack
-   1371.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WeakRefStrings</span>
-   4638.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsModels</span>
-   4603.6 ms<span class="ansi-green-fg">  ✓ </span>GLM
-  29431.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">JuliaInterpreter</span>
-  31718.6 ms<span class="ansi-green-fg">  ✓ </span>CSV
-  11829.5 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LoweredCodeUtils</span>
-  19085.4 ms<span class="ansi-green-fg">  ✓ </span>Revise
-    821.6 ms<span class="ansi-green-fg">  ✓ </span>Revise → DistributedExt
-   1115.2 ms<span class="ansi-green-fg">  ✓ </span>Intercepts
-  21 dependencies successfully precompiled in 68 seconds. 283 already precompiled.
+    772.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">ShiftedArrays</span>
+    833.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WorkerUtilities</span>
+   1019.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Compiler</span>
+    819.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CodecZlib</span>
+   1038.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">PooledArrays</span>
+   1391.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InlineStrings</span>
+   1187.3 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Arpack_jll</span>
+   1714.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CodeTracking</span>
+    962.6 ms<span class="ansi-green-fg">  ✓ </span>ProjectRoot
+   3206.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">SentinelArrays</span>
+    813.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InlineStrings → ParsersExt</span>
+   1321.9 ms<span class="ansi-green-fg">  ✓ </span>Arpack
+   4643.0 ms<span class="ansi-green-fg">  ✓ </span>Aqua
+   4362.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsModels</span>
+   1551.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WeakRefStrings</span>
+   4714.6 ms<span class="ansi-green-fg">  ✓ </span>GLM
+  29068.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">JuliaInterpreter</span>
+  31423.1 ms<span class="ansi-green-fg">  ✓ </span>CSV
+  11830.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">LoweredCodeUtils</span>
+  19169.4 ms<span class="ansi-green-fg">  ✓ </span>Revise
+    867.2 ms<span class="ansi-green-fg">  ✓ </span>Revise → DistributedExt
+   1168.8 ms<span class="ansi-green-fg">  ✓ </span>Intercepts
+  22 dependencies successfully precompiled in 69 seconds. 283 already precompiled.
 </pre>
 </div>
 </div>
@@ -1036,7 +1037,7 @@ Figure&nbsp;1: Parametric Plos
     }
   });
   </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
-<div class="sourceCode" id="cb4" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "How to Train Your Intercept"</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "A Comparison of Intercept Update Strategies in Coordinate Descent"</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span></span>
@@ -1162,7 +1163,7 @@ Figure&nbsp;1: Parametric Plos
 <span id="cb4-128"><a href="#cb4-128" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-129"><a href="#cb4-129" aria-hidden="true" tabindex="-1"></a>::: {#refs}</span>
 <span id="cb4-130"><a href="#cb4-130" aria-hidden="true" tabindex="-1"></a>:::</span>
-</code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+</code></pre></div><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></div>
 </div></div></div></div></div>
 </div> <!-- /content -->
     <script type="text/javascript">
