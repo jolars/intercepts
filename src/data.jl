@@ -7,7 +7,7 @@ function generatedata(
     n::Int,
     p::Int;
     response::Symbol = :normal,
-    μ0::Real = 0,
+    μ0::Real = 0.5,
     x_density::Real = 0.1,
     x_type = :normal,
     means::Union{AbstractVector,Symbol,Nothing} = nothing,
