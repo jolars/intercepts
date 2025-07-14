@@ -186,7 +186,7 @@ function cdsolver(
         gaps = gaps,
         time = times,
         passes = it,
-        coefs = reduce(hcat, coefs),
+        coefs = save_history ? reduce(hcat, coefs) : Matrix{Float64}(undef, 0, 0),
         intercepts = intercepts,
         λ = λ,
         λmax = λmax,
