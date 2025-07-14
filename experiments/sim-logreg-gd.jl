@@ -16,14 +16,14 @@ X, y = generatedata(
     p;
     response = :binomial,
     μ0 = μ0,
-    x_type = :binary,
+    x_type = :normal,
     x_density = 1,
-    ρ = 0.9,
+    ρ = 0.1,
     s = k,
     amplitude = 0.1,
 )
 
-reg = 0.05
+reg = 0.5
 maxit = 10000
 
 res_grad = gdsolver(

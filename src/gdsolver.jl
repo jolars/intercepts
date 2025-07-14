@@ -10,24 +10,28 @@ function gdsolver(
     lossfun::LossFunction = Quadratic(),
     intercept_strategy::InterceptStrategy = GradientStrategy(),
     tol::Real = 1e-10,
+    normalization::Symbol = :standardize,
     maxit::Int = 1000,
 )
     n, p = size(x)
 
-    intercept = 0.0
+    validateresponse(lossfun, y)
 
-    coef = zeros(p)
-    r = zeros(n)
-    η = zeros(n)
+    x, x_centers, x_scales = normalizefeatures(x, normalization)
 
-    intercept = update_intercept(intercept_strategy, lossfun, intercept, η, y)
+    if issparse(x) && normalization != :none
+        throw(ArgumentError("Sparse matrices with normalization are not supported."))
+    end
 
-    η .+= intercept
-
-    r = residual(lossfun, η, y)
+    fit_intercept = !(intercept_strategy isa NoIntercept)
 
     λmax = lambdamax(lossfun, x, y)
     λ = reg * λmax
+
+    intercept = 0.0
+    coef = zeros(p)
+    η = zeros(n)
+    r = residual(lossfun, η, y)
 
     if issparse(x)
         L = svds(x, nsv = 1)[1].S[1]
@@ -83,9 +87,12 @@ function gdsolver(
         η .+= intercept - old_intercept
     end
 
+    intercept_rescaled, coef_rescaled =
+        rescalecoefs(coef, intercept, x_centers, x_scales; fit_intercept = fit_intercept)
+
     return (
-        intercept = intercept,
-        coef = coef,
+        intercept = intercept_rescaled,
+        coef = coef_rescaled,
         primals = primals,
         duals = duals,
         gaps = gaps,
