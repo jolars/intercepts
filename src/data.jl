@@ -46,7 +46,7 @@ function generatedata(
         end
 
         if means == :random
-            ms = randn(p) * 100
+            ms = randn(p)
             x .+= ms'
         end
 
