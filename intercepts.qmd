@@ -35,7 +35,7 @@ engine: julia
 
 ```{julia}
 #| label: setup
-#| results: hide
+#| output: false
 using CairoMakie
 using Random
 
