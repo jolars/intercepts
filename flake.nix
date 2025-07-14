@@ -33,7 +33,6 @@
               "PkgTemplates"
               "SparseArrays"
               "LIBSVMdata"
-              "Aqua"
               "Random"
               "LaTeXStrings"
               "JSON"
