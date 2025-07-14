@@ -1,4 +1,4 @@
-# How to Train Your Intercepts
+# How to Train Your Intercept
 
 [![build and deploy](https://github.com/jolars/intercepts/actions/workflows/build.yml/badge.svg)](https://github.com/jolars/intercepts/actions/workflows/build.yml)
 
