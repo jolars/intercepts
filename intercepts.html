@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.8.19">
+<meta name="generator" content="quarto-1.8.20">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Johan Larsson">
-<meta name="dcterms.date" content="2025-08-10">
+<meta name="dcterms.date" content="2025-08-17">
 <meta name="keywords" content="intercepts, coordinate descent, optimization, regularization">
 <meta name="description" content="This document explores different strategies for updating intercepts in coordinate descent algorithms, comparing gradient, Newton, and exact strategies.">
 
@@ -89,7 +89,7 @@ div.csl-indent {
 <script src="intercepts_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="intercepts_files/libs/quarto-html/anchor.min.js"></script>
 <link href="intercepts_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="intercepts_files/libs/quarto-html/quarto-syntax-highlighting-89cddb112380b3222562b561b148d341.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="intercepts_files/libs/quarto-html/quarto-syntax-highlighting-fd9d6c30cab5d2c8203bafff536ddc12.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="intercepts_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="intercepts_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="intercepts_files/libs/bootstrap/bootstrap-8a82565685b142033e2aa9dc07ace261.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
@@ -159,14 +159,14 @@ ISSN 2824-7795</p>
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">August 10, 2025</p>
+        <p class="date">August 17, 2025</p>
       </div>
     </div>
                                     
       <div>
       <div class="quarto-title-meta-heading">Modified</div>
       <div class="quarto-title-meta-contents">
-        <p class="date-modified">August 10, 2025</p>
+        <p class="date-modified">August 17, 2025</p>
       </div>
     </div>
       
@@ -290,11 +290,31 @@ ISSN 2824-7795</p>
 <span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>fig</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
+<div class="cell-output cell-output-stdout">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-bright-green-fg ansi-bold">Precompiling</span> Intercepts...
+    849.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Arpack_jll</span>
+   1081.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StringEncodings</span>
+    909.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">InlineStrings → ParsersExt</span>
+   4627.1 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">StatsModels</span>
+   1164.3 ms<span class="ansi-green-fg">  ✓ </span>Arpack
+   2302.8 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">YAML</span>
+   1666.0 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">WeakRefStrings</span>
+   4916.4 ms<span class="ansi-green-fg">  ✓ </span>GLM
+  21347.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">JSON3</span>
+  26747.6 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">CommonMark</span>
+  31961.3 ms<span class="ansi-green-fg">  ✓ </span>CSV
+  29290.3 ms<span class="ansi-green-fg">  ✓ </span>QuartoNotebookRunner
+   1111.8 ms<span class="ansi-green-fg">  ✓ </span>Intercepts
+  13 dependencies successfully precompiled in 57 seconds. 291 already precompiled.
+</pre>
+</div>
+</div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <div id="fig-parametric" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-parametric-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-<img src="intercepts_files/figure-html/fig-parametric-output-1.svg" class="img-fluid figure-img">
+<img src="intercepts_files/figure-html/fig-parametric-output-2.svg" class="img-fluid figure-img">
 </div>
 <figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-parametric-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Figure&nbsp;1: Parametric Plos
