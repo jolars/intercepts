@@ -2,7 +2,7 @@ name: build
 
 on:
   schedule:
-    - cron: "0 0 * * 0"
+    - cron: "0 8 * * 0"
   workflow_dispatch:
   push:
     branches:
@@ -38,13 +38,13 @@ jobs:
         run: |
           quarto add --no-prompt computorg/computo-quarto-extension
 
-      - name: Install rsvg
+      - name: Install System dependencies
         run: sudo apt-get install -y librsvg2-bin
 
       - name: Install Julia
         uses: julia-actions/setup-julia@v2
         with:
-          version: "1.11.5"
+          version: "1.11.6"
       - uses: julia-actions/cache@v2
         with:
           cache-registries: "true"
