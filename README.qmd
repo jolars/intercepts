@@ -20,7 +20,7 @@ meta github-user >}}/{{< meta repo >}}/actions/workflows/build.yml)
 
 ## Project structure
 
-This project is structure for the
+This project is structured for the
 [Compute journal](https://computo.sfds.asso.fr/), a journal for reproducible
 research in computational science. It is built around a
 [Quarto](https://quarto.org/) notebook, which is a document format that allows
