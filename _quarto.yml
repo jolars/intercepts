@@ -1,2 +1,39 @@
 project:
-  title: "template-computo-julia"
+  type: default
+  render:
+    - intercepts.qmd
+    - README.qmd
+
+title: "How to Train Your Intercept"
+subtitle: "A Comparison of Intercept Update Strategies in Coordinate Descent"
+author:
+  - name: Johan Larsson
+    corresponding: true
+    email: jola@math.ku.dk
+    url: https://jolars.co
+    orcid: 0000-0000-0000-0000
+    affiliations:
+      - name: University of Copenhagen
+        department: Department of Mathematical Sciences
+        url: https://someplace.themoon.org
+date: last-modified
+date-modified: last-modified
+description: >
+  This document explores different strategies for updating intercepts in coordinate
+  descent algorithms, comparing gradient, Newton, and exact strategies.
+abstract: >
+  Training intercepts in regularized regression is a common problem, yet it is often
+  overlooked in the literature. This document explores different strategies for updating
+  intercepts in coordinate descent algorithms, comparing gradient, Newton, and exact
+  strategies.
+
+keywords: [intercepts, coordinate descent, optimization, regularization]
+bibliography: references.bib
+github-user: jolars
+repo: "intercepts"
+draft: true
+published: false
+format:
+  computo-html: default
+  computo-pdf: default
+engines: ["julia"]
