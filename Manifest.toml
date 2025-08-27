@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "3141c598bc8ac1c3395f1872865929932b9168cc"
+project_hash = "f945acf1a023bbca4a831de452b4ed31ea0a118e"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -746,6 +746,12 @@ git-tree-sha1 = "aaafe88dccbd957a8d82f7d05be9b69172e0cee3"
 uuid = "88015f11-f218-50d7-93a8-a6af411a945d"
 version = "4.0.1+0"
 
+[[deps.LIBSVMdata]]
+deps = ["Downloads", "OrderedCollections", "Printf", "ProgressBars", "SparseArrays"]
+git-tree-sha1 = "6550b7e27eea45bb9303c8952edb87bca2ed2cf3"
+uuid = "e26130ba-f664-4e1e-a986-1cbf7dd5bec7"
+version = "0.1.4"
+
 [[deps.LLVMOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "eb62a3deb62fc6d8822c0c4bef73e4412419c5d8"
@@ -1109,6 +1115,12 @@ version = "1.4.3"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 version = "1.11.0"
+
+[[deps.ProgressBars]]
+deps = ["Printf"]
+git-tree-sha1 = "b437cdb0385ed38312d91d9c00c20f3798b30256"
+uuid = "49802e3a-d2f1-5c88-81d8-b72133a6f568"
+version = "1.5.1"
 
 [[deps.ProgressLogging]]
 deps = ["Logging", "SHA", "UUIDs"]
