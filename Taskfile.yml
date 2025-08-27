@@ -20,10 +20,16 @@ tasks:
   docs:
     desc: Build documentation
     cmds:
-      - "{{.JULIA}} --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "{{.JULIA}} --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
+        Pkg.instantiate()'"
       - "{{.JULIA}} --project=docs/ docs/make.jl"
 
   paper-preview:
     desc: Preview the paper
     cmds:
       - quarto preview intercepts.qmd
+
+  render:
+    desc: Render the paper and READM
+    cmds:
+      - quarto render
