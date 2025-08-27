@@ -9,13 +9,13 @@ subtitle: "A Comparison of Intercept Update Strategies in Coordinate Descent"
 author:
   - name: Johan Larsson
     corresponding: true
-    email: jola@math.ku.dk
+    email: mail@jolars.co
     url: https://jolars.co
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0002-4029-5945
     affiliations:
       - name: University of Copenhagen
         department: Department of Mathematical Sciences
-        url: https://someplace.themoon.org
+        url: https://math.ku.dk
 date: last-modified
 date-modified: last-modified
 description: >
@@ -31,9 +31,12 @@ keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib
 github-user: jolars
 repo: "intercepts"
+
 draft: true
 published: false
+
 format:
   computo-html: default
   computo-pdf: default
+
 engines: ["julia"]
