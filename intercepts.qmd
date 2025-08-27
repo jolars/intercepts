@@ -16,9 +16,9 @@ date-modified: last-modified
 description: |
   This document explores different strategies for updating intercepts in
   coordinate descent algorithms, comparing gradient, Newton, and exact strategies.
-abstract: >+
-  Training intercepts in regularized regression is a common problem, yet
-  it is often overlooked in the literature. This document explores different
+abstract: |
+  Training intercepts in regularized regression is a common problem, yet it is
+  often overlooked in the literature. This document explores different
   strategies for updating intercepts in coordinate descent algorithms, comparing
   gradient, Newton, and exact strategies.
 keywords: [intercepts, coordinate descent, optimization, regularization]
@@ -46,9 +46,9 @@ Random.seed!(14)
 
 Intercept updating is a overlooked issue in the field of statistical learning.
 For regularized regression, coordinate descent is the dominating algorithm, yet
-it is not clear how to best update the intercept term. Implementations
-differ in how they handle this, for instance skglm uses a gradient step,
-LIBLINEAR uses a Newton step, and blitz uses an exact update (based on Newton steps).
+it is not clear how to best update the intercept term. Implementations differ in
+how they handle this, for instance skglm uses a gradient step, LIBLINEAR uses a
+Newton step, and blitz uses an exact update (based on Newton steps).
 
 ```{julia}
 #| label: fig-parametric
@@ -122,5 +122,4 @@ fig
 
 # References {.unnumbered}
 
-::: {#refs}
-:::
+::: {#refs} :::
