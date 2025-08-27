@@ -48,7 +48,7 @@ do this by running the following command in the root directory of the project:
 
 ```julia
 ]activate .
-]resolve
+]instantiate
 ```
 
 This will use the `Project.toml` and `Manifest.toml` files to set up the Julia
