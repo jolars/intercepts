@@ -122,4 +122,6 @@ fig
 
 # References {.unnumbered}
 
-::: {#refs} :::
+::: {#refs}
+
+:::
