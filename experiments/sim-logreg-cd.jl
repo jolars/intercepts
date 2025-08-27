@@ -3,74 +3,120 @@ using Random
 using GLM
 using Statistics
 using CairoMakie
+using DrWatson
+using ProjectRoot
+using JLD2
 
-n = 100
-p = 1000
-k = 10
+Random.seed!(1234);
 
-Random.seed!(1234)
-
-μ0 = 0.9
-
-X, y = generatedata(
-    n,
-    p;
+function simulated_experiment(
+    n = 100,
+    p = 10000;
     response = :binomial,
-    μ0 = μ0,
-    x_type = :normal,
-    x_density = 1,
+    strategy = :gradient,
+    μ0 = 0.9,
+    s = 10,
+    reg = 0.01,
+    randomize = false,
+    update_freq = 1,
+    maxit = 1000,
+    maxtime = Inf,
     ρ = 0.6,
-    s = k,
-    amplitude = 1,
+    amplitude = 1.0,
+    x_density = 1.0,
+    x_type = :normal,
     means = :random,
 )
+    X, y = generatedata(
+        n,
+        p;
+        response = response,
+        μ0 = μ0,
+        x_type = x_type,
+        x_density = x_density,
+        ρ = ρ,
+        s = s,
+        amplitude = amplitude,
+        means = means,
+    )
 
-reg = 0.02
-randomize = false
-freq = 1
-maxit = 1000
+    lossfun = Quadratic()
 
-res_grad = cdsolver(
-    X,
-    y,
-    reg,
-    lossfun = Logistic(),
-    intercept_strategy = GradientStrategy(),
-    maxit = maxit,
-    randomize = randomize,
-    update_freq = freq,
-)
-res_newt = cdsolver(
-    X,
-    y,
-    reg,
-    lossfun = Logistic(),
-    intercept_strategy = NewtonStrategy(),
-    maxit = maxit,
-    randomize = randomize,
-    update_freq = freq,
-)
-res_exact = cdsolver(
-    X,
-    y,
-    reg,
-    lossfun = Logistic(),
-    intercept_strategy = ExactStrategy(),
-    maxit = maxit,
-    randomize = randomize,
-    update_freq = freq,
-)
+    if response == :binomial
+        lossfun = Logistic()
+    else
+        error("Unknown response type: $response")
+    end
 
-fig = Figure()
-ax = Axis(fig[1, 1], yscale = log)
+    if strategy == :gradient
+        intercept_strategy = GradientStrategy()
+    elseif strategy == :newton
+        intercept_strategy = NewtonStrategy()
+    elseif strategy == :exact
+        intercept_strategy = ExactStrategy()
+    else
+        error("Unknown strategy: $strategy")
+    end
 
-lines!(ax, res_grad.time, res_grad.gaps, label = "Gradient")
-lines!(ax, res_newt.time, res_newt.gaps, label = "Newton")
-lines!(ax, res_exact.time, res_exact.gaps, label = "Exact")
-fig[1, 2] = Legend(fig, ax)
+    res = cdsolver(
+        X,
+        y,
+        reg,
+        lossfun = lossfun,
+        intercept_strategy = intercept_strategy,
+        maxit = maxit,
+        maxtime = maxtime,
+        randomize = randomize,
+        update_freq = update_freq,
+    )
 
-fig
+    return (
+        time = res.time,
+        gaps = res.gaps,
+        relgaps = res.relgaps,
+        primals = res.primals,
+        duals = res.duals,
+    )
+end;
 
-hcat(res_newt.primals[end], res_exact.primals[end], res_grad.primals[end])
-hcat(res_newt.duals[end], res_exact.duals[end], res_grad.duals[end])
-hcat(res_newt.gaps[end], res_exact.gaps[end], res_grad.gaps[end])
+param_dict = Dict{String,Any}(
+    "it" => collect(1:1),
+    "n" => [100],
+    "p" => [1000],
+    "s" => [10],
+    "reg" => [0.02],
+    "μ0" => [0.5],
+    "strategy" => [:gradient, :newton, :exact],
+);
+
+params = dict_list(param_dict);
+
+results = [];
+
+for (i, d) in enumerate(params)
+    @unpack it, n, p, s, reg, μ0, strategy = d
+
+    Random.seed!(it)
+
+    res = simulated_experiment(
+        n,
+        p;
+        response = :binomial,
+        strategy = strategy,
+        μ0 = μ0,
+        s = s,
+        reg = reg,
+    )
+
+    d_exp = Dict{String,Any}(copy(d))
+    d_exp["time"] = res.time
+    d_exp["gaps"] = res.gaps
+    d_exp["relgaps"] = res.relgaps
+    d_exp["primals"] = res.primals
+
+    push!(results, d_exp)
+end
+
+outfile = @projectroot("results", "sim-logreg-cd.jld2");
+
+@save outfile results

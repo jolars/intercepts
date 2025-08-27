@@ -22,23 +22,25 @@
             pkgs.go-task
             pkgs.librsvg
             (pkgs.julia-bin.withPackages [
-              "Test"
               "Arpack"
+              "CSV"
               "CairoMakie"
+              "DataFrames"
+              "Distributions"
+              "DrWatson"
+              "GLM"
+              "JLD2"
+              "LIBSVMdata"
+              "LaTeXStrings"
               "LanguageServer"
               "LinearAlgebra"
-              "Distributions"
-              "Revise"
-              "ProjectRoot"
               "PkgTemplates"
-              "SparseArrays"
-              "LIBSVMdata"
-              "Random"
-              "LaTeXStrings"
-              "JSON"
-              "CSV"
-              "GLM"
+              "ProjectRoot"
               "QuartoNotebookRunner"
+              "Random"
+              "Revise"
+              "SparseArrays"
+              "Test"
             ])
           ];
 

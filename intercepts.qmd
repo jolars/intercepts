@@ -3,27 +3,31 @@
 #| output: false
 using CairoMakie
 using Random
+using ProjectRoot
+using JLD2
+using GLM
+using LinearAlgebra
+using DataFrames
 
 Random.seed!(14)
 ```
 
 # Introduction
 
-Intercept updating is a overlooked issue in the field of statistical learning.
-For regularized regression, coordinate descent is the dominating algorithm, yet
-it is not clear how to best update the intercept term. Implementations differ in
-how they handle this, for instance skglm uses a gradient step, LIBLINEAR uses a
-Newton step, and blitz uses an exact update (based on Newton steps).
+Intercept updating is a overlooked issue in the field of statistics and machine
+learning. For regularized regression, coordinate descent is the dominating
+algorithm, yet it is not clear how to best update the intercept term.
+Implementations differ in how they handle this, for instance skglm uses a
+gradient step, LIBLINEAR uses a Newton step, and blitz uses an exact update
+(based on Newton steps).
 
 ```{julia}
 #| label: fig-parametric
 #| fig-cap: "Parametric Plos"
 #| fig-show: true
+#| message: false
 using Intercepts
-using GLM
-using LinearAlgebra
 
-Random.seed!(134)
 n = 100
 p = 1
 k = 10
@@ -79,6 +83,33 @@ contour!(β0, β, primal_values, levels=levels, colormap=:grays)
 for (res, s) in zip(results, strategies)
   scatterlines!(res.intercepts, dropdims(res.coefs, dims=1), label=s.name)
 end
+
+fig[1, 2] = Legend(fig, ax)
+
+fig
+```
+
+## Results
+
+### Simulated Data
+
+```{julia}
+#| label: fig-simulated
+data = JLD2.load(@projectroot("results", "sim-logreg-cd.jld2"))
+
+df = DataFrame(data["results"])
+df = subset(df, :reg => r -> r .== 0.02)
+
+res_grad = df[df.strategy .== :gradient, :]
+res_newt = df[df.strategy .== :newton, :]
+res_exact = df[df.strategy .== :exact, :]
+
+fig = Figure()
+ax = Axis(fig[1, 1], yscale = log10)
+
+lines!(ax, res_grad.time[1], res_grad.relgaps[1], label = "Gradient")
+lines!(ax, res_newt.time[1], res_newt.relgaps[1], label = "Newton")
+lines!(ax, res_exact.time[1], res_exact.relgaps[1], label = "Exact")
 
 fig[1, 2] = Legend(fig, ax)
 

@@ -11,6 +11,7 @@ function cdsolver(
     update_freq::Int = 1,
     tol::Real = 1e-10,
     maxit::Int = 1000,
+    maxtime::Real = Inf,
     randomize::Bool = true,
     normalization::Symbol = :standardize,
     save_history::Bool = false,
@@ -45,13 +46,14 @@ function cdsolver(
     primals = Float64[]
     duals = Float64[]
     gaps = Float64[]
+    relgaps = Float64[]
 
     times = Float64[]
     t0 = time()
 
     it = 0
 
-    while it < maxit
+    while it < maxit && (time() - t0) < maxtime
         it += 1
 
         primal = loss(lossfun, η, y) + λ * norm(coef, 1)
@@ -97,6 +99,7 @@ function cdsolver(
 
         rel_gap = gap / max(abs(primal), 1e-15)
 
+        push!(relgaps, gap / max(abs(primal), 1e-10))
         push!(gaps, gap)
 
         if rel_gap <= tol
@@ -184,6 +187,7 @@ function cdsolver(
         primals = primals,
         duals = duals,
         gaps = gaps,
+        relgaps = relgaps,
         time = times,
         passes = it,
         coefs = save_history ? reduce(hcat, coefs) : Matrix{Float64}(undef, 0, 0),
