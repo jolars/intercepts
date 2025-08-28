@@ -1,6 +1,6 @@
 # How to Train Your Intercept
 Johan Larsson
-2025-08-27
+2025-08-28
 
 *This document explores different strategies for updating intercepts in
 coordinate descent algorithms, comparing gradient, Newton, and exact
@@ -24,7 +24,7 @@ algorithms, comparing gradient, Newton, and exact strategies.
 
 ## Project structure
 
-This project is structure for the [Compute
+This project is structured for the [Compute
 journal](https://computo.sfds.asso.fr/), a journal for reproducible
 research in computational science. It is built around a
 [Quarto](https://quarto.org/) notebook, which is a document format that
@@ -81,7 +81,7 @@ scripts in the <scripts/> directory. For example, to reproduce the
 results for the `intercepts` module, you can run:
 
 ``` bash
-julia --project=. experiments/sim-logreg-cd.jl
+julia --project=. experiments/sim-logreg-reg.jl
 ```
 
 ### Render the Quarto document
@@ -90,18 +90,17 @@ To render the Quarto document, you can run the following command in the
 root directory of the project:
 
 ``` .bash
-quarto render
+quarto render intercepts.qmd
 ```
 
 This will generate the HTML and PDF versions of the document in the
 `_site/` directory.
 
-### (Optional) Reproduce using nixos
+### (Optional) Reproduce using nix
 
-If you are using [NixOS](https://nixos.org/) or the [Nix package
-manager](https://nixos.org/download.html), then we have provided a
-`flake.nix` file that can be used to reproduce the environment for the
-project. To use it, simply run:
+If you are using [Nix](https://nixos.org/), then we have provided a
+development flake (`flake.nix` file) that can be used to reproduce the
+environment for the project. To use it, simply run:
 
 ``` bash
 nix develop
