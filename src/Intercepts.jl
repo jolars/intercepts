@@ -7,6 +7,7 @@ include("gdsolver.jl")
 include("math.jl")
 include("data.jl")
 include("normalize.jl")
+include("experiment.jl")
 
 export cdsolver
 export gdsolver
@@ -33,5 +34,7 @@ export weight
 export loss
 export workingresponse
 export generatedata
+export simulated_experiment
+export real_experiment
 
 end

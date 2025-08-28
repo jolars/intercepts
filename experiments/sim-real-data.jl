@@ -1,63 +1,39 @@
-using Test
 using Intercepts
 using Random
 using GLM
+using DrWatson
+using ProjectRoot
+using JLD2
 using Statistics
-using CairoMakie
 using LinearAlgebra
-using LIBSVMdata
 
-x, y = load_dataset("w1a", verbose = false)
+Random.seed!(42);
 
-y = Int.(y .== 1)
+param_dict = Dict{String,Any}(
+    "dataset" => ["w1a", "a1a"],
+    "reg" => [0.02],
+    "strategy" => [:gradient, :newton, :exact],
+);
 
-reg = 0.1
-randomize = false
-freq = 1
-maxit = 1000
+params = dict_list(param_dict);
 
-res_grad = cdsolver(
-    x,
-    y,
-    reg,
-    lossfun = Logistic(),
-    intercept_strategy = GradientStrategy(),
-    maxit = maxit,
-    randomize = randomize,
-    update_freq = freq,
-)
-res_newt = cdsolver(
-    x,
-    y,
-    reg,
-    lossfun = Logistic(),
-    intercept_strategy = NewtonStrategy(),
-    maxit = maxit,
-    randomize = randomize,
-    update_freq = freq,
-)
-res_exact = cdsolver(
-    x,
-    y,
-    reg,
-    lossfun = Logistic(),
-    intercept_strategy = ExactStrategy(),
-    maxit = maxit,
-    randomize = randomize,
-    update_freq = freq,
-)
+results = [];
 
-# opt = minimum(hcat(res_grad.primals, res_newt.primals, res_exact.primals))
+for (i, d) in enumerate(params)
+    @unpack dataset, reg, strategy = d
 
-fig = Figure()
-ax = Axis(fig[1, 1], yscale = log)
+    res = real_experiment(dataset, strategy = strategy, reg = reg, response = :binomial)
 
-lines!(ax, res_grad.time, res_grad.gaps, label = "Gradient")
-lines!(ax, res_newt.time, res_newt.gaps, label = "Newton")
-lines!(ax, res_exact.time, res_exact.gaps, label = "Exact")
-fig[1, 2] = Legend(fig, ax)
+    d_exp = Dict{String,Any}(copy(d))
+    d_exp["time"] = res.time
+    d_exp["gaps"] = res.gaps
+    d_exp["relgaps"] = res.relgaps
+    d_exp["primals"] = res.primals
 
-fig
+    push!(results, d_exp)
+end
 
-hcat(res_newt.primals[end], res_exact.primals[end], res_grad.primals[end])
-hcat(res_newt.duals[end], res_exact.duals[end], res_grad.duals[end])
+outfile = @projectroot("results", "real-logreg.jld2");
+
+@save outfile results
+
