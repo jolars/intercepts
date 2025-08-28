@@ -32,6 +32,7 @@
               "JLD2"
               "LIBSVMdata"
               "LaTeXStrings"
+              "AlgebraOfGraphics"
               "LanguageServer"
               "LinearAlgebra"
               "PkgTemplates"
