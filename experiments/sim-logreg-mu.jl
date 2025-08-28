@@ -11,11 +11,11 @@ Random.seed!(1234);
 
 param_dict = Dict{String,Any}(
     "it" => collect(1:1),
-    "n" => [100],
+    "n" => [500],
     "p" => [1000],
     "s" => [10],
-    "reg" => [0.02],
-    "μ0" => [0.5],
+    "reg" => [0.05],
+    "μ0" => [0.5, 0.7, 0.9],
     "strategy" => [:gradient, :newton, :exact],
 );
 
@@ -47,6 +47,6 @@ for (i, d) in enumerate(params)
     push!(results, d_exp)
 end
 
-outfile = @projectroot("results", "sim-logreg-cd.jld2");
+outfile = @projectroot("results", "sim-logreg-mu.jld2");
 
 @save outfile results

@@ -1,9 +1,11 @@
 ```{julia}
 #| label: setup
 #| output: false
+using AlgebraOfGraphics
 using CairoMakie
 using Random
 using ProjectRoot
+using LaTeXStrings
 using JLD2
 using GLM
 using LinearAlgebra
@@ -95,25 +97,49 @@ fig
 
 ```{julia}
 #| label: fig-simulated
-data = JLD2.load(@projectroot("results", "sim-logreg-cd.jld2"))
+dd = JLD2.load(@projectroot("results", "sim-logreg-mu.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
+μ0 = df.μ0
+df.μ0 = "μₒ = " .*  string.(df.μ0)
 
-df = DataFrame(data["results"])
-df = subset(df, :reg => r -> r .== 0.02)
+df.relgaps .= max.(df.relgaps, 1e-20)
 
-res_grad = df[df.strategy .== :gradient, :]
-res_newt = df[df.strategy .== :newton, :]
-res_exact = df[df.strategy .== :exact, :]
+spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
 
-fig = Figure()
-ax = Axis(fig[1, 1], yscale = log10)
+layers = visual(Lines)
 
-lines!(ax, res_grad.time[1], res_grad.relgaps[1], label = "Gradient")
-lines!(ax, res_newt.time[1], res_newt.relgaps[1], label = "Newton")
-lines!(ax, res_exact.time[1], res_exact.relgaps[1], label = "Exact")
+draw(
+  layers * spec,
+  axis=(yscale=log10,),
+  facet = (; linkxaxes = :none),
+  figure = (; size = (800, 300),)
+)
+```
 
-fig[1, 2] = Legend(fig, ax)
+### Real Data
 
-fig
+```{julia}
+#| label: fig-real-logreg
+#| fig-cap: Experiment on convergence for $\ell_1$-regularized logistic
+#|   regression on real datasets. $n = 500$, $p = 1000$, and
+#|   $\lambda = \lambda_{\max}/50$.
+dd = JLD2.load(@projectroot("results", "real-logreg.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
+
+df.relgaps .= max.(df.relgaps, 1e-20)
+
+spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :dataset)
+
+layers = visual(Lines)
+
+draw(
+  layers * spec,
+  axis=(yscale=log10,),
+  facet = (; linkxaxes = :none),
+  figure = (; size = (800, 300),)
+)
 ```
 
 # References {.unnumbered}

@@ -27,6 +27,7 @@ tasks:
   paper-preview:
     desc: Preview the paper
     cmds:
+      - rm -rf /run/user/1000/julia/Project.toml
       - quarto preview intercepts.qmd
 
   render:
