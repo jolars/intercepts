@@ -14,18 +14,63 @@ using DataFrames
 Random.seed!(14)
 ```
 
+\DeclareMathOperator*{\argmin}{\arg\!\min}
+\DeclareMathOperator*{\minimize}{minimize}
+
 # Introduction
 
-Intercept updating is a overlooked issue in the field of statistics and machine
-learning. For regularized regression, coordinate descent is the dominating
-algorithm, yet it is not clear how to best update the intercept term.
-Implementations differ in how they handle this, for instance skglm uses a
-gradient step, LIBLINEAR uses a Newton step, and blitz uses an exact update
-(based on Newton steps).
+The dominating method for fitting regularized regression models is proximal
+coordinate descent, which serves as the default optimization method in a range
+of software packages, such as glmnet [@friedman2010], skglm [@bertrand2022],
+LIBLINEAR [@fan2008], and Blitz [@johnson2015]. Yet, although coordinate descent
+methods have been investigated extensively throughout a large body of academic
+work with respect to a wide range of topics, such as acceleration,
+parallelization, and block methods, one aspect that has so far not been
+investigated, is the strategy or fitting the intercept.
+
+Specifically, the problem we are studying is the following convex optimization
+problem:
+$$
+  \minimize_{\beta_0 \in \mathbb{R},\beta \in \mathbb{R}^p}
+  \Big(
+  P(\beta_0,\beta)
+  = F(\beta_0, \beta) + \alpha J_{\lambda}(\beta)
+  \Big)
+$$
+where $P$ is the primal problem, $F$ is the loss function, which attempts to
+optimize the fit to the data, and $G$ is the penalty function that penalized
+solutions with large coefficients. $\beta_j$ is a coefficent and $\beta_0$ is
+the intercept. Throughout the paper, we shall assume that $G$ is separable and
+that $F$ is of the form
+$$
+F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta, y_i),
+$$
+where $f$ is a smooth, twice differentiable, and convex function. For clarity,
+we use the convention of denoting the $i$th row and $j$th column of the design
+matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}_0,
+\hat{\beta})$ denote a solution to the problem in.
+
+Intercepts are necessary when fitting regularized regression models, since the
+results will otherwise depend on the locations (means) of both the response
+vector, $y$, and the design matrix, $X$. Only in few cases, where strong
+assumptions can be made about the data, can the intercept be omitted without
+leading to unwanted results.
+
+Fitting the intercept may seem like a trivial issue in coordinate descent,
+which may help to explain why existing state-of-the art implementations of
+coordinate descent for regularized regression differ in how they handle this.
+The aforementioned packages, glmnet, skglm, blitz, and LIBLINEAR, for instance,
+all take different approaches to fitting the intercept. This seeming triviality
+is, however, deceptive. As we will show in this paper, the choice of strategy
+may have a remarkable effect on overall convergence of the model. For a first
+illustration of this, see @fig-parametric, which shows how three different
+methods behave.
 
 ```{julia}
 #| label: fig-parametric
-#| fig-cap: "Parametric Plos"
+#| fig-cap: Example illustrating the three main intercept fitting strategies
+#|   considered in our paper on a simple problem with one feature and 
+#|   an intercept.
 #| fig-show: true
 #| message: false
 using Intercepts
@@ -90,6 +135,34 @@ fig[1, 2] = Legend(fig, ax)
 
 fig
 ```
+
+Because of this lack of research into fitting intercepts, there is
+no consensus on what the best strategy is. In this paper, we
+will rectify this, by studying three different strategies for fitting
+the intercept in coordinate descent methods for regularized regression:
+
+1. **Gradient strategy**: The intercept is updated using a single
+   gradient step before each pass over the coordinates.
+2. **Newton strategy**: The intercept is updated using a single
+    Newton step before each pass over the coordinates.
+3. **Exact strategy**: The intercept is updated by solving the
+    optimization problem in the intercept exactly before each pass
+    over the coordinates.
+
+We will show that the Newton strategy is the most reliable and efficient 
+of the three. The gradient strategy simply converges slowly if
+the response vector is unbalanced.
+
+Our contributions are as follows:
+
+1. We introduce and formalize the three strategies for fitting
+   intercepts in coordinate descent methods for regularized regression.
+2. We provide an extensive empirical study of the three strategies
+   on both simulated and real data.
+3. We provide theoretical results that explain the empirical
+   findings.
+
+## Theory
 
 ## Results
 

@@ -37,6 +37,11 @@ published: false
 
 format:
   computo-html: default
-  computo-pdf: default
+  computo-pdf:
+    keep-tex: true
+    include-in-header:
+      - text: |
+          \usepackage{mathtools}
+          \DeclareMathOperator*{\argmin}{\arg\,\min}
 
 engines: ["julia"]
