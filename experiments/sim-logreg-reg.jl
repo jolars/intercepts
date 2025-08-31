@@ -1,18 +1,21 @@
 using Intercepts
 using Random
 using GLM
+using Statistics
+using CairoMakie
 using DrWatson
 using ProjectRoot
-using DataFrames
 using JLD2
-using Statistics
-using LinearAlgebra
 
-Random.seed!(42);
+Random.seed!(1234);
 
 param_dict = Dict{String,Any}(
-    "dataset" => ["a1a", "leukemia", "gisette"],
-    "reg" => [0.05],
+    "it" => collect(1:1),
+    "n" => [200],
+    "p" => [1000],
+    "s" => [10],
+    "reg" => [0.1, 0.05, 0.01],
+    "μ0" => [0.8],
     "strategy" => [:gradient, :newton, :exact],
 );
 
@@ -21,14 +24,18 @@ params = dict_list(param_dict);
 results = [];
 
 for (i, d) in enumerate(params)
-    @unpack dataset, reg, strategy = d
+    @unpack it, n, p, s, reg, μ0, strategy = d
 
-    res = real_experiment(
-        dataset,
-        strategy = strategy,
-        reg = reg,
+    Random.seed!(it)
+
+    res = simulated_experiment(
+        n,
+        p;
         response = :binomial,
-        randomize = true,
+        strategy = strategy,
+        μ0 = μ0,
+        s = s,
+        reg = reg,
     )
 
     d_exp = Dict{String,Any}(copy(d))
@@ -40,7 +47,6 @@ for (i, d) in enumerate(params)
     push!(results, d_exp)
 end
 
-outfile = @projectroot("results", "real-logreg.jld2");
+outfile = @projectroot("results", "sim-logreg-reg.jld2");
 
 @save outfile results
-
