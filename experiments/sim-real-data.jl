@@ -13,7 +13,7 @@ Random.seed!(42);
 param_dict = Dict{String,Any}(
     "dataset" => ["a1a", "leukemia", "gisette"],
     "reg" => [0.05],
-    "strategy" => [:gradient, :newton, :exact],
+    "strategy" => [:gradient, :newton, :full],
 );
 
 params = dict_list(param_dict);

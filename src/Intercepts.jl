@@ -15,7 +15,7 @@ export NoIntercept
 export InterceptStrategy
 export GradientStrategy
 export NewtonStrategy
-export ExactStrategy
+export FullStrategy
 export update_intercept
 export geomspace
 export rescalecoefs

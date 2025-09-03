@@ -42,17 +42,17 @@ using GLM
         intercept_strategy = NewtonStrategy(),
         maxit = maxit,
     )
-    res_exact = cdsolver(
+    res_full = cdsolver(
         X,
         y,
         reg,
         lossfun = Logistic(),
-        intercept_strategy = ExactStrategy(),
+        intercept_strategy = FullStrategy(),
         maxit = maxit,
     )
 
     @test isapprox(res_grad.coef, res_newt.coef; atol = 1e-4)
-    @test isapprox(res_grad.coef, res_exact.coef; atol = 1e-4)
-    @test isapprox(res_grad.intercept, res_exact.intercept; atol = 1e-4)
+    @test isapprox(res_grad.coef, res_full.coef; atol = 1e-4)
+    @test isapprox(res_grad.intercept, res_full.intercept; atol = 1e-4)
     @test isapprox(res_grad.intercept, res_newt.intercept; atol = 1e-4)
 end
