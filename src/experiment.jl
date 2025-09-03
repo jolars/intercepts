@@ -2,7 +2,11 @@ using LIBSVMdata
 
 function get_lossfun(response)
     if response == :binomial
-        return Logistic()
+        return LogisticLoss()
+    elseif response == :gaussian
+        return QuadraticLoss()
+    elseif response == :poisson
+        return PoissonLoss()
     else
         error("Unknown response type: $response")
     end
