@@ -30,7 +30,7 @@ res_grad = gdsolver(
     X,
     y,
     reg,
-    lossfun = Logistic(),
+    lossfun = LogisticLoss(),
     intercept_strategy = GradientStrategy(),
     maxit = maxit,
 )
@@ -38,7 +38,7 @@ res_newt = gdsolver(
     X,
     y,
     reg,
-    lossfun = Logistic(),
+    lossfun = LogisticLoss(),
     intercept_strategy = NewtonStrategy(),
     maxit = maxit,
 )
@@ -46,7 +46,7 @@ res_exact = gdsolver(
     X,
     y,
     reg,
-    lossfun = Logistic(),
+    lossfun = LogisticLoss(),
     intercept_strategy = ExactStrategy(),
     maxit = maxit,
 )
