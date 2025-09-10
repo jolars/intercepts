@@ -30,7 +30,7 @@ using GLM
         X,
         y,
         reg,
-        lossfun = Logistic(),
+        lossfun = LogisticLoss(),
         intercept_strategy = GradientStrategy(),
         maxit = maxit,
     )
@@ -38,7 +38,7 @@ using GLM
         X,
         y,
         reg,
-        lossfun = Logistic(),
+        lossfun = LogisticLoss(),
         intercept_strategy = NewtonStrategy(),
         maxit = maxit,
     )
@@ -46,7 +46,7 @@ using GLM
         X,
         y,
         reg,
-        lossfun = Logistic(),
+        lossfun = LogisticLoss(),
         intercept_strategy = ConvergenceStrategy(),
         maxit = maxit,
     )
