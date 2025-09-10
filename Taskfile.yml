@@ -30,7 +30,12 @@ tasks:
       - rm -rf /run/user/1000/julia/Project.toml
       - quarto preview intercepts.qmd
 
-  render:
-    desc: Render the paper and READM
+  readme:
+    desc: Render the README
     cmds:
-      - quarto render
+      - quarto render README.qmd
+
+  paper-render:
+    desc: Render the README
+    cmds:
+      - quarto render intercepts.qmd

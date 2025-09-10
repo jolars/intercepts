@@ -3,8 +3,7 @@ Johan Larsson
 2025-08-28
 
 *This document explores different strategies for updating intercepts in
-coordinate descent algorithms, comparing gradient, Newton, and exact
-strategies.*
+coordinate descent algorithms.*
 
 [![build and
 publish](https://github.com/jolars/intercepts/actions/workflows/build.yml/badge.svg)](https://github.com/jolars/intercepts/actions/workflows/build.yml)
@@ -20,7 +19,7 @@ License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommo
 Training intercepts in regularized regression is a common problem, yet
 it is often overlooked in the literature. This document explores
 different strategies for updating intercepts in coordinate descent
-algorithms, comparing gradient, Newton, and exact strategies.
+algorithms.
 
 ## Project structure
 

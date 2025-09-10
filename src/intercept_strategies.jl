@@ -5,7 +5,7 @@ abstract type InterceptStrategy end
 struct NoIntercept <: InterceptStrategy end
 struct GradientStrategy <: InterceptStrategy end
 struct NewtonStrategy <: InterceptStrategy end
-struct ExactStrategy <: InterceptStrategy end
+struct ConvergenceStrategy <: InterceptStrategy end
 
 function update_intercept(
     ::NoIntercept,
@@ -42,7 +42,7 @@ end
 
 # Iteratively update the intercept until convergence
 function update_intercept(
-    ::ExactStrategy,
+    ::ConvergenceStrategy,
     f::LossFunction,
     intercept::Real,
     η::AbstractVector{<:Real},

@@ -19,13 +19,12 @@ author:
 date: last-modified
 date-modified: last-modified
 description: >
-  This document explores different strategies for updating intercepts in coordinate
-  descent algorithms, comparing gradient, Newton, and exact strategies.
+  This document explores different strategies for updating intercepts in
+  coordinate descent algorithms.
 abstract: >
-  Training intercepts in regularized regression is a common problem, yet it is often
-  overlooked in the literature. This document explores different strategies for updating
-  intercepts in coordinate descent algorithms, comparing gradient, Newton, and exact
-  strategies.
+  Training intercepts in regularized regression is a common problem, yet it is
+  often overlooked in the literature. This document explores different
+  strategies for updating intercepts in coordinate descent algorithms.
 
 keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib
@@ -37,6 +36,11 @@ published: false
 
 format:
   computo-html: default
-  computo-pdf: default
+  computo-pdf:
+    keep-tex: true
+    include-in-header:
+      - text: |
+          \usepackage{mathtools}
+          \DeclareMathOperator*{\argmin}{\arg\,\min}
 
 engines: ["julia"]
