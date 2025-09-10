@@ -151,4 +151,10 @@ function validateresponse(::PoissonLoss, y::AbstractVector)
     if any(y .< 0)
         throw(ArgumentError("Response must be non-negative"))
     end
+    if !all(isinteger.(y))
+        throw(ArgumentError("Response variable for Poisson regression must be integer-valued counts"))
+    end
+    if length(unique(y)) < 2
+        throw(ArgumentError("Response variable for Poisson regression must contain at least two distinct values"))
+    end
 end
