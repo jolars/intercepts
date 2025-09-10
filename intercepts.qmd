@@ -22,14 +22,12 @@ Random.seed!(14)
 The dominating method for fitting regularized regression models is proximal
 coordinate descent, which serves as the default optimization method in a range
 of software packages, such as glmnet [@friedman2010], skglm [@bertrand2022],
-LIBLINEAR [@fan2008], and Blitz [@johnson2015]. Yet, although coordinate
-descent methods have been investigated extensively throughout a large body of
-academic work with respect to a wide range of topics, such as acceleration,
-parallelization, and block methods, one aspect that has so far not been
-investigated, is the strategy or fitting the intercept.
+LIBLINEAR [@fan2008], and Blitz [@johnson2015]. Coordinate descent has been
+investigated extensively, for instance with respect to acceleration and
+parallelization. Yet, one aspect that has so far not been investigated is the
+strategy or fitting the intercept.
 
-Specifically, the problem we are studying is the following convex optimization
-problem:
+In this paper, we are interested in the following convex optimization problem:
 $$
   \minimize_{\beta_0 \in \mathbb{R},\beta \in \mathbb{R}^p}
   \Big(
@@ -37,13 +35,13 @@ $$
   = F(\beta_0, \beta) + \alpha J_{\lambda}(\beta)
   \Big)
 $$
-where $P$ is the primal problem, $F$ is the loss function, which attempts to
+where $P$ is the primal objective, $F$ is the loss function, which attempts to
 optimize the fit to the data, and $G$ is the penalty function that penalized
 solutions with large coefficients. $\beta_j$ is a coefficent and $\beta_0$ is
 the intercept. Throughout the paper, we shall assume that $G$ is separable and
 that $F$ is of the form
 $$
-F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta, y_i),
+  F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta, y_i),
 $$
 where $f$ is a smooth, twice differentiable, and convex function. For clarity,
 we use the convention of denoting the $i$th row and $j$th column of the design
