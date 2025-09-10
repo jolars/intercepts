@@ -42,12 +42,12 @@ res_newt = gdsolver(
     intercept_strategy = NewtonStrategy(),
     maxit = maxit,
 )
-res_complete = gdsolver(
+res_conv = gdsolver(
     X,
     y,
     reg,
     lossfun = Logistic(),
-    intercept_strategy = CompleteStrategy(),
+    intercept_strategy = ConvergenceStrategy(),
     maxit = maxit,
 )
 
@@ -56,7 +56,7 @@ ax = Axis(fig[1, 1], yscale = log)
 
 lines!(ax, res_grad.time, res_grad.gaps, label = "Gradient")
 lines!(ax, res_newt.time, res_newt.gaps, label = "Newton")
-lines!(ax, res_complete.time, res_complete.gaps, label = "Complete")
+lines!(ax, res_conv.time, res_conv.gaps, label = "Convergence")
 fig[1, 2] = Legend(fig, ax)
 
 fig

@@ -11,9 +11,9 @@ using LinearAlgebra
 Random.seed!(42);
 
 param_dict = Dict{String,Any}(
-    "dataset" => ["a1a", "leukemia", "gisette_scale"],
+    "dataset" => ["a1a", "leukemia"],
     "reg" => [0.05],
-    "strategy" => [:gradient, :newton, :complete],
+    "strategy" => [:gradient, :newton, :convergence],
 );
 
 params = dict_list(param_dict);

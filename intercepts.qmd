@@ -69,9 +69,9 @@ The three main strategies that we will consider in this paper are:
    before each pass over the coordinates.
 2. **Newton strategy**: The intercept is updated using a single Newton step
    before each pass over the coordinates.
-3. **Complete strategy**: The intercept is updated by solving the optimization
-   problem in the intercept convergence before each pass over the coordinates,
-   using either gradient or Newton steps.
+3. **Convergence strategy**: The intercept is updated by solving the
+   optimization problem in the intercept convergence before each pass over the
+   coordinates, using either gradient or Newton steps.
 
 For a first illustration of this, see @fig-parametric, which shows how the three
 different methods behave for a simple problem.
@@ -97,7 +97,7 @@ X, y = generatedata(
 strategies = [
   (strategy=GradientStrategy(), name="Gradient"),
   (strategy=NewtonStrategy(), name="Newton"),
-  (strategy=CompleteStrategy(), name="Complete")
+  (strategy=ConvergenceStrategy(), name="Convergence")
 ]
 
 reg = 0.2
