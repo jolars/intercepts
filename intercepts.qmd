@@ -34,7 +34,7 @@ $$
   P(\beta_0,\beta)
   = F(\beta_0, \beta) + \alpha J_{\lambda}(\beta)
   \Big)
-$$
+$$ {#eq-primal-problem}
 where $P$ is the primal objective, $F$ is the loss function, which attempts to
 optimize the fit to the data, and $G$ is the penalty function that penalized
 solutions with large coefficients. $\beta_j$ is a coefficent and $\beta_0$ is
@@ -46,7 +46,7 @@ $$
 where $f$ is a smooth, twice differentiable, and convex function. For clarity,
 we use the convention of denoting the $i$th row and $j$th column of the design
 matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}_0,
-\hat{\beta})$ denote a solution to the problem in.
+\hat{\beta})$ denote a solution to the problem in @eq-primal-problem.
 
 Intercepts are necessary when fitting regularized regression models, since the
 results will otherwise depend on the locations (means) of both the response
