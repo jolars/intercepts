@@ -25,8 +25,9 @@ export lambdamax
 export gradient
 export normalizefeatures
 export LossFunction
-export Quadratic
-export Logistic
+export QuadraticLoss
+export LogisticLoss
+export PoissonLoss
 export residual
 export link
 export invlink
