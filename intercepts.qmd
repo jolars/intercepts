@@ -14,8 +14,10 @@ using DataFrames
 Random.seed!(14)
 ```
 
+::: {.content-hidden when-format="latex"}
 \DeclareMathOperator*{\argmin}{\arg\!\min}
 \DeclareMathOperator*{\minimize}{minimize}
+:::
 
 # Introduction
 
