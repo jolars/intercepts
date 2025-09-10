@@ -42,12 +42,12 @@ res_newt = gdsolver(
     intercept_strategy = NewtonStrategy(),
     maxit = maxit,
 )
-res_full = gdsolver(
+res_complete = gdsolver(
     X,
     y,
     reg,
     lossfun = Logistic(),
-    intercept_strategy = FulStrategy(),
+    intercept_strategy = CompleteStrategy(),
     maxit = maxit,
 )
 
@@ -56,7 +56,7 @@ ax = Axis(fig[1, 1], yscale = log)
 
 lines!(ax, res_grad.time, res_grad.gaps, label = "Gradient")
 lines!(ax, res_newt.time, res_newt.gaps, label = "Newton")
-lines!(ax, res_full.time, res_full.gaps, label = "Full")
+lines!(ax, res_complete.time, res_complete.gaps, label = "Complete")
 fig[1, 2] = Legend(fig, ax)
 
 fig

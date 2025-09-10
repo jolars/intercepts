@@ -13,8 +13,8 @@ function get_intercept_strategy(strategy)
         return GradientStrategy()
     elseif strategy == :newton
         return NewtonStrategy()
-    elseif strategy == :full
-        return FullStrategy()
+    elseif strategy == :complete
+        return CompleteStrategy()
     else
         error("Unknown strategy: $strategy")
     end
