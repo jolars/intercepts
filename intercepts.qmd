@@ -109,7 +109,7 @@ results = [
     X,
     y,
     reg,
-    lossfun=Logistic(),
+    lossfun=LogisticLoss(),
     intercept_strategy=s.strategy,
     save_history=true,
   ) for s in strategies
@@ -125,7 +125,7 @@ primal_values = zeros(size(grid))
 
 for (i, (b0, b)) in enumerate(grid)
   η = b0 .+ X[:, 1] * b
-  primal_values[i] = loss(Logistic(), η, y) + λ * abs(b)
+  primal_values[i] = loss(LogisticLoss(), η, y) + λ * abs(b)
 end
 
 fig = Figure()
