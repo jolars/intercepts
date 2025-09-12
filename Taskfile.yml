@@ -10,7 +10,8 @@ tasks:
   install:
     desc: Install and instantiate Julia package
     cmds:
-      - "{{.JULIA}} -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
+      - "{{.JULIA}} -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
+        Pkg.instantiate()'"
 
   test:
     desc: Run Julia package tests
@@ -20,8 +21,8 @@ tasks:
   docs:
     desc: Build documentation
     cmds:
-      - "{{.JULIA}} --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
-        Pkg.instantiate()'"
+      - "{{.JULIA}} --project=docs/ -e 'using Pkg;
+        Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'"
       - "{{.JULIA}} --project=docs/ docs/make.jl"
 
   paper-preview:
