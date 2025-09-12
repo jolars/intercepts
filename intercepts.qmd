@@ -115,6 +115,11 @@ Newton strategy is both reliable and efficient. Our main contributions are as fo
 3. We provide theoretical results that explain the empirical findings.
 
 ## Theory
+To enhance the generalizability of the study, we chose to investigate L1 regularized Gengerlized Linear Model (Lasso GLM)
+For Lasso GLM, the parameters have
+$$
+\hat{\beta}=arg \max_\beta[\mathbb{l}(\beta)-\lamda\sum^{p}_{j=1}|\beta_j|]
+$$
 
 ```{julia}
 #| label: fig-parametric
