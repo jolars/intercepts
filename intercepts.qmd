@@ -27,7 +27,7 @@ of software packages, such as glmnet [@friedman2010], skglm [@bertrand2022],
 LIBLINEAR [@fan2008], and Blitz [@johnson2015]. Coordinate descent has been
 investigated extensively, for instance with respect to acceleration and
 parallelization. Yet, one aspect that has so far not been investigated is the
-strategy or fitting the intercept.
+strategy of fitting the intercept.
 
 In this paper, we are interested in the following convex optimization problem:
 $$
