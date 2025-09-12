@@ -40,8 +40,8 @@ $$ {#eq-primal-problem}
 where $P$ is the primal objective, $F$ is the loss function, which attempts to
 optimize the fit to the data, and $G$ is the penalty function that penalizes
 solutions with large coefficients. $\beta_j$ is a coefficent and $\beta_0$ is
-the intercept. Throughout the paper, we shall assume that $G$ is separable and
-that $F$ is of the form
+the intercept. Throughout the paper, we assume that $G$ is separable and that
+$F$ is of the form
 $$
   F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta, y_i),
 $$
