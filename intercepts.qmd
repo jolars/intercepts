@@ -61,7 +61,9 @@ update the intercept has not been studied in the literature. This may also
 serve to explain why many existing implementations of coordinate descent for
 regularized regression differ in their strategies for updating the intercept.
 The aforementioned packages, glmnet, skglm, blitz, and LIBLINEAR, for instance,
-all take different approaches.
+all take different approaches. As we show in this paper, however, the choice of
+strategy for updating the intercept can have a significant impact on convergence
+speed of the overall algorithm.
 
 The three main strategies that we will consider in this paper are:
 
@@ -73,8 +75,46 @@ The three main strategies that we will consider in this paper are:
    optimization problem in the intercept convergence before each pass over the
    coordinates, using either gradient or Newton steps.
 
-For a first illustration of this, see @fig-parametric, which shows how the three
-different methods behave for a simple problem.
+For a first illustration of this, see @fig-first-example, which shows how the three
+different methods affect overall convergence on $\ell_1$-regularized logistic regression on the
+w1a dataset. Only the Newton strategy converges reliably and quickly to the
+optimal solution. The gradient strategy converges slowly, while the convergence
+strategy altogether fails to converge.^[Here we use cyclic coordinate descent,
+which is the most common variant in practice. But, if we change to a
+_permuted_ variant here, the convergence strategy will also converge.]
+
+```{julia}
+#| label: fig-first-example
+#| fig-cap: Overall convergence for $\ell_1$-regularized logistic
+#|   regression on the real dataset w1a.
+dd = JLD2.load(@projectroot("results", "first-example.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
+
+df.relgaps .= max.(df.relgaps, 1e-20)
+
+spec = data(df) * mapping(:time, :relgaps, color = :strategy)
+
+layers = visual(Lines)
+
+draw(
+  layers * spec,
+  axis=(; yscale=log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
+  figure = (; size = (500, 300),)
+)
+```
+
+@fig-first-example illustrates the main message of this paper:
+the gradient strategy is slow, the convergence strategy is unreliable, and the
+Newton strategy is both reliable and efficient. Our main contributions are as follows:
+
+1. We introduce and formalize the three strategies for fitting intercepts in
+   coordinate descent methods for regularized regression.
+2. We provide an extensive empirical study of the three strategies on both
+   simulated and real data.
+3. We provide theoretical results that explain the empirical findings.
+
+## Theory
 
 ```{julia}
 #| label: fig-parametric
@@ -145,20 +185,6 @@ fig[1, 2] = Legend(fig, ax)
 
 fig
 ```
-
-We will show that the Newton strategy is the most reliable and efficient of
-the three. The gradient strategy simply converges slowly if the response vector
-is unbalanced.
-
-Our contributions are as follows:
-
-1. We introduce and formalize the three strategies for fitting intercepts in
-   coordinate descent methods for regularized regression.
-2. We provide an extensive empirical study of the three strategies on both
-   simulated and real data.
-3. We provide theoretical results that explain the empirical findings.
-
-## Theory
 
 ## Results
 

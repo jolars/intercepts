@@ -7,11 +7,13 @@ using DataFrames
 using JLD2
 using Statistics
 using LinearAlgebra
+using AlgebraOfGraphics
+using CairoMakie
 
 Random.seed!(42);
 
 param_dict = Dict{String,Any}(
-    "dataset" => ["w1a", "leukemia", "breast-cancer"],
+    "dataset" => ["w1a", "breast-cancer"],
     "reg" => [0.05],
     "strategy" => [:gradient, :newton, :convergence],
 );
@@ -40,7 +42,19 @@ for (i, d) in enumerate(params)
     push!(results, d_exp)
 end
 
-outfile = @projectroot("results", "real-logreg.jld2");
+df = DataFrame(results)
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-@save outfile results
+df.relgaps .= max.(df.relgaps, 1e-20)
+
+spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :dataset)
+
+layers = visual(Lines)
+
+draw(
+  layers * spec,
+  axis=(yscale=log10,),
+  facet = (; linkxaxes = :none),
+  figure = (; size = (800, 300),)
+)
 
