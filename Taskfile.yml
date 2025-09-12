@@ -37,6 +37,6 @@ tasks:
       - quarto render README.qmd
 
   paper-render:
-    desc: Render the README
+    desc: Render the paper
     cmds:
       - quarto render intercepts.qmd
