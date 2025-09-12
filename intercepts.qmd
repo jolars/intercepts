@@ -52,9 +52,8 @@ matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}_0,
 
 Intercepts are necessary when fitting regularized regression models, since the
 results will otherwise depend on the locations (means) of both the response
-vector, $y$, and the design matrix, $X$. Only in few cases, where strong
-assumptions can be made about the data, can the intercept be omitted without
-leading to unwanted results.
+vector, $y$, and the design matrix, $X$. Only under strong assumptions can the
+intercept be omitted without leading to unwanted results.
 
 Despite the importance of the intercept and maturity of coordinate descent as
 a method for fitting regularized regression models, the issue of how to update
