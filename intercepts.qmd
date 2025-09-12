@@ -55,14 +55,13 @@ results will otherwise depend on the locations (means) of both the response
 vector, $y$, and the design matrix, $X$. Only under strong assumptions can the
 intercept be omitted without leading to unwanted results.
 
-Despite the importance of the intercept and maturity of coordinate descent as
-a method for fitting regularized regression models, the issue of how to update
-the intercept has not been studied in the literature. This may also serve to
-explain why existing state-of-the art implementations of coordinate descent for
+Despite the importance of the intercept and maturity of coordinate descent
+as a method for fitting regularized regression models, the issue of how to
+update the intercept has not been studied in the literature. This may also
+serve to explain why many existing implementations of coordinate descent for
 regularized regression differ in their strategies for updating the intercept.
 The aforementioned packages, glmnet, skglm, blitz, and LIBLINEAR, for instance,
-all take different approaches. As we will show in the paper, however, the choice
-of strategy may have a remarkable effect on overall convergence of the model.
+all take different approaches.
 
 The three main strategies that we will consider in this paper are:
 
