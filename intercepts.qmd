@@ -15,8 +15,11 @@ Random.seed!(14)
 ```
 
 ::: {.content-hidden when-format="latex"}
+\DeclareMathOperator{\E}{\mathrm{E}}
 \DeclareMathOperator*{\argmin}{\arg\!\min}
 \DeclareMathOperator*{\minimize}{minimize}
+\newcommand{\link}{g}
+\newcommand{\ilink}{g^{-1}}
 :::
 
 # Introduction
@@ -116,6 +119,50 @@ strategy is both reliable and efficient. Our main contributions are as follows:
 3. We provide theoretical results that explain the empirical findings.
 
 ## Theory
+
+In this work, we consider generalized linear models (GLMs), where the loss function
+is of the form
+$$
+  F(\beta_0, \beta) = \frac{1}{n} \sum_{i=1}^n f(\eta, y_i),
+$$
+letting $\eta_i = x_i^\intercal \beta + \beta_0$ be the linear predictor. The
+response $y_i$ is modelled as a random variable from an exponential family,
+and is assumed to depend conditionally on the linear predictor $\eta_i$ via
+$\E(y_i \mid \eta_i) = \ilink(\eta_i)$, where $\ilink$ is the inverse link
+function.
+
+To estimate the parameters of the model, $(\beta_0, \beta)$, we form a loss
+function from the negative log-likelihood of the target distribution, modeling
+its mean parameter through the inverse link function applied to the linear
+predictor. A special property of the resulting loss function is that its
+partial derivative with respect to $\eta$ is
+$$
+  \frac{\partial}{\partial \eta_i} f(\eta_i, y_i) = \ilink(\eta_i) - y_i = r_i,
+$$
+where we define $r_i$ to be the _generalized residual_. As a
+consequence, the gradient of the loss function with respect to $\beta$ can be
+expressed as
+$$
+  \frac{\partial}{\partial \beta_j} F(\beta_0,\beta)
+  = \frac{1}{n} \sum_{i=1}^n x_{ij} \frac{\partial}{\partial \eta_i} f(\eta_i, y_i)
+  = \frac{1}{n} \sum_{i=1}^n x_{ij} r_i.
+$$
+
+We summarize the loss, link, and inverse link functions for the GLMs supported
+by the SLOPE packages in @tbl-glm.
+
+: Loss functions, link functions, and inverse link functions for generalized
+linear models in the SLOPE package. Note that in the case of multinomial
+logistic regression, the input is vector-valued, and we allow $\log$ and
+$\exp$ to be overloaded to apply element-wise in these cases. {#tbl-glm}
+
+| Model       | $f(\eta, y)$                                                                                       | $\link(\mu)$                            | $\ilink(\eta)$                                        |
+|:------------|:---------------------------------------------------------------------------------------------------|:----------------------------------------|:------------------------------------------------------|
+| Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                          | $\mu$                                   | $\eta$                                                |
+| Binomial    | $\log(1 + e^\eta) - \eta y$                                                                        | $\log \left(\frac{\mu}{1 - \mu}\right)$ | $\frac{e^\eta}{1 + e^\eta}$                           |
+| Poisson     | $e^\eta - \eta y$                                                                                  | $\log(\mu)$                             | $e^\eta$                                              |
+| Multinomial | $\sum_{k=1}^{m-1}\left( \log \left( 1 +  \sum_{j=1}^{m-1} e^{\eta_j}\right) - y_k \eta_k  \right)$ | $\log\left(\frac{\mu}{1 - \mu}\right) $ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$  |
+
 
 ```{julia}
 #| label: fig-parametric
