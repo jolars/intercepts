@@ -31,7 +31,7 @@ strategy of fitting the intercept.
 
 In this paper, we are interested in the following convex optimization problem:
 $$
-  \minimize_{\beta_0 \in \mathbb{R},\beta \in \mathbb{R}^p}
+\minimize_{\beta_0 \in \mathbb{R},\beta \in \mathbb{R}^p}
   \Big(
   P(\beta_0,\beta)
   = F(\beta_0, \beta) + \alpha J_{\lambda}(\beta)
@@ -43,7 +43,7 @@ solutions with large coefficients. $\beta_j$ is a coefficent and $\beta_0$ is
 the intercept. Throughout the paper, we assume that $G$ is separable and that
 $F$ is of the form
 $$
-  F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta, y_i),
+F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta, y_i),
 $$
 where $f$ is a smooth, twice differentiable, and convex function. For clarity,
 we use the convention of denoting the $i$th row and $j$th column of the design
@@ -75,13 +75,14 @@ The three main strategies that we will consider in this paper are:
    optimization problem in the intercept convergence before each pass over the
    coordinates, using either gradient or Newton steps.
 
-For a first illustration of this, see @fig-first-example, which shows how the three
-different methods affect overall convergence on $\ell_1$-regularized logistic regression on the
-w1a dataset. Only the Newton strategy converges reliably and quickly to the
-optimal solution. The gradient strategy converges slowly, while the convergence
-strategy altogether fails to converge.^[Here we use cyclic coordinate descent,
-which is the most common variant in practice. But, if we change to a
-_permuted_ variant here, the convergence strategy will also converge.]
+For a first illustration of this, see @fig-first-example, which shows how the
+three different methods affect overall convergence on $\ell_1$-regularized
+logistic regression on the w1a dataset. Only the Newton strategy converges
+reliably and quickly to the optimal solution. The gradient strategy converges
+slowly, while the convergence strategy altogether fails to converge.^[Here we
+use cyclic coordinate descent, which is the most common variant in practice.
+But, if we change to a _permuted_ variant here, the convergence strategy will
+also converge.]
 
 ```{julia}
 #| label: fig-first-example
@@ -104,9 +105,9 @@ draw(
 )
 ```
 
-@fig-first-example illustrates the main message of this paper:
-the gradient strategy is slow, the convergence strategy is unreliable, and the
-Newton strategy is both reliable and efficient. Our main contributions are as follows:
+@fig-first-example illustrates the main message of this paper: the gradient
+strategy is slow, the convergence strategy is unreliable, and the Newton
+strategy is both reliable and efficient. Our main contributions are as follows:
 
 1. We introduce and formalize the three strategies for fitting intercepts in
    coordinate descent methods for regularized regression.
