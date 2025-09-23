@@ -159,9 +159,9 @@ $\exp$ to be overloaded to apply element-wise in these cases. {#tbl-glm}
 | Model       | $f(\eta, y)$                                                                                       | $\link(\mu)$                            | $\ilink(\eta)$                                        |
 |:------------|:---------------------------------------------------------------------------------------------------|:----------------------------------------|:------------------------------------------------------|
 | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                          | $\mu$                                   | $\eta$                                                |
-| Binomial    | $\log(1 + e^\eta) - \eta y$                                                                        | $\log \left(\frac{\mu}{1 - \mu}\right)$ | $\frac{e^\eta}{1 + e^\eta}$                           |
+| Binomial    | $\log(1 + e^\eta) - \eta y$                                                                        | $\log\left(\frac{\mu}{1 - \mu}\right)$  | $\frac{e^\eta}{1 + e^\eta}$                           |
 | Poisson     | $e^\eta - \eta y$                                                                                  | $\log(\mu)$                             | $e^\eta$                                              |
-| Multinomial | $\sum_{k=1}^{m-1}\left( \log \left( 1 +  \sum_{j=1}^{m-1} e^{\eta_j}\right) - y_k \eta_k  \right)$ | $\log\left(\frac{\mu}{1 - \mu}\right) $ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$  |
+| Multinomial | $\sum_{k=1}^{m-1}\left( \log \left( 1 +  \sum_{j=1}^{m-1} e^{\eta_j}\right) - y_k \eta_k  \right)$ | $\log\left(\frac{\mu}{1 - \mu}\right)$  | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$  |
 
 
 ```{julia}
