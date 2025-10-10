@@ -148,8 +148,8 @@ $$
   = \frac{1}{n} \sum_{i=1}^n x_{ij} r_i.
 $$
 
-We summarize the loss, link, and inverse link functions for the GLMs supported
-by the SLOPE packages in @tbl-glm.
+We summarize the loss, link, and inverse link functions for the
+loss functions we will consider in this paper in @tbl-glm.
 
 : Loss functions, link functions, and inverse link functions for generalized
 linear models in the SLOPE package. Note that in the case of multinomial
