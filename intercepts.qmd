@@ -139,7 +139,7 @@ partial derivative with respect to $\eta$ is
 $$
   \frac{\partial}{\partial \eta_i} f(\eta_i, y_i) = \ilink(\eta_i) - y_i = r_i,
 $$
-where we define $r_i$ to be the _generalized residual_. As a
+where we define $r$ to be the _generalized residual_. As a
 consequence, the gradient of the loss function with respect to $\beta$ can be
 expressed as
 $$
