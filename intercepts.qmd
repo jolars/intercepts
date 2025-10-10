@@ -123,7 +123,7 @@ strategy is both reliable and efficient. Our main contributions are as follows:
 In this work, we consider generalized linear models (GLMs), where the loss function
 is of the form
 $$
-  F(\beta_0, \beta) = \frac{1}{n} \sum_{i=1}^n f(\eta, y_i),
+  F(\beta_0, \beta) = \frac{1}{n} \sum_{i=1}^n f(\eta_i, y_i),
 $$
 letting $\eta_i = x_i^\intercal \beta + \beta_0$ be the linear predictor. The
 response $y_i$ is modelled as a random variable from an exponential family,
