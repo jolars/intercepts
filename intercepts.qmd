@@ -152,7 +152,7 @@ We summarize the loss, link, and inverse link functions for the
 loss functions we will consider in this paper in @tbl-glm.
 
 : Loss functions, link functions, and inverse link functions for generalized
-linear models in the SLOPE package. Note that in the case of multinomial
+linear models. Note that in the case of multinomial
 logistic regression, the input is vector-valued, and we allow $\log$ and
 $\exp$ to be overloaded to apply element-wise in these cases. {#tbl-glm}
 
