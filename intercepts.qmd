@@ -95,16 +95,16 @@ dd = JLD2.load(@projectroot("results", "first-example.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-20)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy)
 
 layers = visual(Lines)
 
 draw(
-  layers * spec,
-  axis=(; yscale=log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
-  figure = (; size = (500, 300),)
+    layers * spec,
+    axis = (; yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
+    figure = (; size = (500, 300))
 )
 ```
 
@@ -167,7 +167,7 @@ $\exp$ to be overloaded to apply element-wise in these cases. {#tbl-glm}
 ```{julia}
 #| label: fig-parametric
 #| fig-cap: Example illustrating the three main intercept fitting strategies
-#|   considered in our paper on a simple problem with one feature and 
+#|   considered in our paper on a simple problem with one feature and
 #|   an intercept.
 #| fig-show: true
 #| message: false
@@ -179,54 +179,54 @@ k = 10
 μ0 = 0.9
 
 X, y = generatedata(
-  n, p; response=:binomial, μ0=μ0, x_type=:normal, x_density=0.9, ρ=0.99, s=k, amplitude=1,
+    n, p; response = :binomial, μ0 = μ0, x_type = :normal, x_density = 0.9, ρ = 0.99, s = k, amplitude = 1,
 )
 
 strategies = [
-  (strategy=GradientStrategy(), name="Gradient"),
-  (strategy=NewtonStrategy(), name="Newton"),
-  (strategy=ConvergenceStrategy(), name="Convergence")
+    (strategy = GradientStrategy(), name = "Gradient"),
+    (strategy = NewtonStrategy(), name = "Newton"),
+    (strategy = ConvergenceStrategy(), name = "Convergence"),
 ]
 
 reg = 0.2
 
 results = [
-  cdsolver(
-    X,
-    y,
-    reg,
-    lossfun=LogisticLoss(),
-    intercept_strategy=s.strategy,
-    save_history=true,
-  ) for s in strategies
+    cdsolver(
+            X,
+            y,
+            reg,
+            lossfun = LogisticLoss(),
+            intercept_strategy = s.strategy,
+            save_history = true,
+        ) for s in strategies
 ]
 
 λ = results[1].λ
 
-β0 = range(-0.5, 3.5, length=100)
-β = range(-0.5, 1.2, length=100)
+β0 = range(-0.5, 3.5, length = 100)
+β = range(-0.5, 1.2, length = 100)
 grid = [(b0, b) for b0 in β0, b in β]
 
 primal_values = zeros(size(grid))
 
 for (i, (b0, b)) in enumerate(grid)
-  η = b0 .+ X[:, 1] * b
-  primal_values[i] = loss(LogisticLoss(), η, y) + λ * abs(b)
+    η = b0 .+ X[:, 1] * b
+    primal_values[i] = loss(LogisticLoss(), η, y) + λ * abs(b)
 end
 
 fig = Figure()
 ax = Axis(
-  fig[1, 1],
-  xlabel="Intercept (β₀)",
-  ylabel="Coefficient (β₁)",
+    fig[1, 1],
+    xlabel = "Intercept (β₀)",
+    ylabel = "Coefficient (β₁)",
 )
 
 levels = geomspace(minimum(primal_values), maximum(primal_values), 20)
 
-contour!(β0, β, primal_values, levels=levels, colormap=:grays)
+contour!(β0, β, primal_values, levels = levels, colormap = :grays)
 
 for (res, s) in zip(results, strategies)
-  scatterlines!(res.intercepts, dropdims(res.coefs, dims=1), label=s.name)
+    scatterlines!(res.intercepts, dropdims(res.coefs, dims = 1), label = s.name)
 end
 
 fig[1, 2] = Legend(fig, ax)
@@ -244,19 +244,19 @@ dd = JLD2.load(@projectroot("results", "sim-logreg-mu.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 μ0 = df.μ0
-df.μ0 = "μₒ = " .*  string.(df.μ0)
+df.μ0 = "μₒ = " .* string.(df.μ0)
 
-df.relgaps .= max.(df.relgaps, 1e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-20)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
 
 layers = visual(Lines)
 
 draw(
-  layers * spec,
-  axis=(yscale=log10,),
-  facet = (; linkxaxes = :none),
-  figure = (; size = (800, 300),)
+    layers * spec,
+    axis = (yscale = log10,),
+    facet = (; linkxaxes = :none),
+    figure = (; size = (800, 300))
 )
 ```
 
@@ -271,17 +271,17 @@ dd = JLD2.load(@projectroot("results", "real-logreg.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-20)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :dataset)
 
 layers = visual(Lines)
 
 draw(
-  layers * spec,
-  axis=(yscale=log10,),
-  facet = (; linkxaxes = :none),
-  figure = (; size = (800, 300),)
+    layers * spec,
+    axis = (yscale = log10,),
+    facet = (; linkxaxes = :none),
+    figure = (; size = (800, 300))
 )
 ```
 
