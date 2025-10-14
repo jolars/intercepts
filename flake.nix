@@ -42,6 +42,7 @@
               "Revise"
               "SparseArrays"
               "Test"
+              "Runic"
             ])
           ];
 
