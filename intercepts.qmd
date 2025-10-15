@@ -37,7 +37,7 @@ $$
 \minimize_{\beta_0 \in \mathbb{R},\beta \in \mathbb{R}^p}
   \Big(
   P(\beta_0,\beta)
-  = F(\beta_0, \beta) + \alpha J_{\lambda}(\beta)
+  = F(\beta_0, \beta) + \alpha G_{\lambda}(\beta)
   \Big)
 $$ {#eq-primal-problem}
 where $P$ is the primal objective, $F$ is the loss function, which attempts to
@@ -46,7 +46,7 @@ solutions with large coefficients. $\beta_j$ is a coefficent and $\beta_0$ is
 the intercept. Throughout the paper, we assume that $G$ is separable and that
 $F$ is of the form
 $$
-F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta, y_i),
+F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
 where $f$ is a smooth, twice differentiable, and convex function. For clarity,
 we use the convention of denoting the $i$th row and $j$th column of the design
@@ -123,9 +123,9 @@ strategy is both reliable and efficient. Our main contributions are as follows:
 In this work, we consider generalized linear models (GLMs), where the loss function
 is of the form
 $$
-  F(\beta_0, \beta) = \frac{1}{n} \sum_{i=1}^n f(\eta_i, y_i),
+F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i).
 $$
-letting $\eta_i = x_i^\intercal \beta + \beta_0$ be the linear predictor. The
+We let $\eta_i = x_i^\intercal \beta + \beta_0$ be the linear predictor. The
 response $y_i$ is modelled as a random variable from an exponential family,
 and is assumed to depend conditionally on the linear predictor $\eta_i$ via
 $\E(y_i \mid \eta_i) = \ilink(\eta_i)$, where $\ilink$ is the inverse link
@@ -137,14 +137,14 @@ its mean parameter through the inverse link function applied to the linear
 predictor. A special property of the resulting loss function is that its
 partial derivative with respect to $\eta$ is
 $$
-  \frac{\partial}{\partial \eta_i} f(\eta_i, y_i) = \ilink(\eta_i) - y_i = r_i,
+  f(\eta; y) = \ilink(\eta_i) - y_i = r_i,
 $$
-where we define $r$ to be the _generalized residual_. As a
+where we define $r_i$ to be the _generalized residual_. As a
 consequence, the gradient of the loss function with respect to $\beta_j$ can be
 expressed as
 $$
   \frac{\partial}{\partial \beta_j} F(\beta_0,\beta)
-  = \frac{1}{n} \sum_{i=1}^n x_{ij} \frac{\partial}{\partial \eta_i} f(\eta_i, y_i)
+  = \frac{1}{n} \sum_{i=1}^n x_{ij} \frac{\partial}{\partial \eta_i} f(\eta_i; y_i)
   = \frac{1}{n} \sum_{i=1}^n x_{ij} r_i.
 $$
 
@@ -156,7 +156,7 @@ linear models. Note that in the case of multinomial
 logistic regression, the input is vector-valued, and we allow $\log$ and
 $\exp$ to be overloaded to apply element-wise in these cases. {#tbl-glm}
 
-| Model       | $f(\eta, y)$                                                                                       | $\link(\mu)$                            | $\ilink(\eta)$                                        |
+| Model       | $f(\eta; y)$                                                                                       | $\link(\mu)$                            | $\ilink(\eta)$                                        |
 |:------------|:---------------------------------------------------------------------------------------------------|:----------------------------------------|:------------------------------------------------------|
 | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                          | $\mu$                                   | $\eta$                                                |
 | Binomial    | $\log(1 + e^\eta) - \eta y$                                                                        | $\log\left(\frac{\mu}{1 - \mu}\right)$  | $\frac{e^\eta}{1 + e^\eta}$                           |
