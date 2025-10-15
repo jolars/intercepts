@@ -137,11 +137,11 @@ its mean parameter through the inverse link function applied to the linear
 predictor. A special property of the resulting loss function is that its
 partial derivative with respect to $\eta$ is
 $$
-  f(\eta; y) = \ilink(\eta_i) - y_i = r_i,
+  f'(\eta_i; y) = \ilink(\eta_i) - y_i = r_i,
 $$
-where we define $r_i$ to be the _generalized residual_. As a
-consequence, the gradient of the loss function with respect to $\beta_j$ can be
-expressed as
+where we define $r_i$ to be the $i$th component of the _generalized residual_.
+As a consequence, the gradient of the loss function with respect to $\beta_j$
+can be expressed as
 $$
   \frac{\partial}{\partial \beta_j} F(\beta_0,\beta)
   = \frac{1}{n} \sum_{i=1}^n x_{ij} \frac{\partial}{\partial \eta_i} f(\eta_i; y_i)
