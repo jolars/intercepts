@@ -15,7 +15,7 @@ Random.seed!(14)
 ```
 
 ::: {.content-hidden when-format="latex"}
-\DeclareMathOperator{\E}{\mathrm{E}}
+\DeclareMathOperator{\E}{E{}}
 \DeclareMathOperator*{\argmin}{\arg\!\min}
 \DeclareMathOperator*{\minimize}{minimize}
 \newcommand{\link}{g}
@@ -32,18 +32,18 @@ investigated extensively, for instance with respect to acceleration and
 parallelization. Yet, one aspect that has so far not been investigated is the
 strategy of fitting the intercept.
 
-In this paper, we are interested in the following convex optimization problem:
+In this paper, we are interested in the following optimization problem:
 $$
 \minimize_{\beta_0 \in \mathbb{R},\beta \in \mathbb{R}^p}
   \Big(
   P(\beta_0,\beta)
-  = F(\beta_0, \beta) + \alpha G_{\lambda}(\beta)
+  = F(\beta_0, \beta) + G_{\lambda}(\beta)
   \Big)
 $$ {#eq-primal-problem}
 where $P$ is the primal objective, $F$ is the loss function, which attempts to
 optimize the fit to the data, and $G$ is the penalty function that penalizes
-solutions with large coefficients. $\beta_j$ is a coefficent and $\beta_0$ is
-the intercept. Throughout the paper, we assume that $G$ is separable and that
+solutions with large coefficients. $\beta_j$ is the $j$th coefficent and $\beta_0$ is
+the intercept. Throughout the paper, we assume that $P$ is separable and that
 $F$ is of the form
 $$
 F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
@@ -52,6 +52,8 @@ where $f$ is a smooth, twice differentiable, and convex function. For clarity,
 we use the convention of denoting the $i$th row and $j$th column of the design
 matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}_0,
 \hat{\beta})$ denote a solution to the problem in @eq-primal-problem.
+Although we will not generally assume that $P$ is convex, we will focus
+on this case in our empirical work
 
 Intercepts are necessary when fitting regularized regression models, since the
 results will otherwise depend on the locations (means) of both the response
@@ -120,16 +122,18 @@ strategy is both reliable and efficient. Our main contributions are as follows:
 
 ## Theory
 
-In this work, we consider generalized linear models (GLMs), where the loss function
-is of the form
+In this work, we consider models where the loss function is of the form
 $$
-F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i).
+F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
-We let $\eta_i = x_i^\intercal \beta + \beta_0$ be the linear predictor. The
-response $y_i$ is modelled as a random variable from an exponential family,
-and is assumed to depend conditionally on the linear predictor $\eta_i$ via
-$\E(y_i \mid \eta_i) = \ilink(\eta_i)$, where $\ilink$ is the inverse link
-function.
+which includes the full family of generalized linear models (GLMs). We let
+$\eta : \mathbb{R} \mapsto \mathbb{R}$ be the function that maps the linear
+predictor to the domain of the response variable. For GLMs, this corresponds to
+the inverse link function. To simplify notation, we equivalently define $\eta_i
+= x_i^\intercal \beta + \beta_0$ to be the linear predictor. In a GLM, the response $y_i$
+is modelled as a random variable from an exponential family, and is assumed to
+depend conditionally on the linear predictor $\eta_i$ via $\E(y_i \mid \eta_i)
+= \ilink(\eta_i)$, where $\ilink$ is the inverse link function.
 
 To estimate the parameters of the model, $(\beta_0, \beta)$, we form a loss
 function from the negative log-likelihood of the target distribution, modeling
@@ -163,6 +167,175 @@ $\exp$ to be overloaded to apply element-wise in these cases. {#tbl-glm}
 | Poisson     | $e^\eta - \eta y$                                                                                  | $\log(\mu)$                             | $e^\eta$                                              |
 | Multinomial | $\sum_{k=1}^{m-1}\left( \log \left( 1 +  \sum_{j=1}^{m-1} e^{\eta_j}\right) - y_k \eta_k  \right)$ | $\log\left(\frac{\mu}{1 - \mu}\right)$  | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$  |
 
+### Coordinate Descent
+
+Coordinate descent is an iterative optimization method that updates one
+coordinate at a time, while keeping the other coordinates fixed. In the case of
+the intercept, this means that we update $\beta_0$ while keeping $\beta$ fixed.
+
+In other words, we take the derivative with respect to the $j$th coefficient.
+Using the chain rule, this can be expressed as
+$$
+\frac{\partial}{\partial \beta_j} F(\beta_0, \beta) = \sum_{i=1}^n x_{ij} f'(\eta_i; y_i)
+$$
+
+In our algorithm, we take a step in the negative gradient direction, updating
+a coefficient or intercept by
+$$
+\beta_j^+ = \beta_j - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta),
+$$
+where $\gamma_j$ is the step size. The step size can be chosen in different
+ways, but the typical approach in a coordinate descent algorithms is to take a 
+Newton step. We first compute the second derivative with respect to $\beta_j$:
+$$
+H_{jk} = \frac{\partial^2}{\partial \beta_j^2} F(\beta_0, \beta) = \sum_{i=1}^n x_{ij}^2 f''(\eta_i; y_i),
+$$
+
+Letting $w_i = f''(\eta_i; y_i)$ be the *weights*, we can express the Hessian
+diagonal element as
+$$
+H_{jj} = \sum_{i=1}^n x_{ij}^2 w_i.
+$$
+
+This leads to the following choice of step size:
+$$
+\gamma_j = H_{jj}^{-1} = \left( \sum_{i=1}^n x_{ij}^2 w_i \right)^{-1}.
+$$
+
+It may seem natural to also take a Newton step for the intercept, i.e. pick
+$$
+\gamma_0
+= H_{00}^{-1}
+= \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1}
+= \left( \sum_{i=1}^n f''(\eta_i; y_i) \right)^{-1}.
+$$
+But as we have already discussed, several state-of-the-art implementations of
+coordinate descent for regularized regression take different approaches to
+updating the intercept. The three main strategies that we have
+identified are these:
+
+1. A Newton step, setting $\gamma_0$ as above.
+2. A gradient descent step, setting $\gamma_0$ to either the global
+   Lipschitz constant with respect to $\beta_0$ or via a backtracking line search.
+3. Solving the optimization problem of the intercept iteratively to convergence,
+   using either Newton or gradient steps. In this paper, we will use 
+   Newton steps. And we will refer to this method as the _convergence strategy_.
+
+The coordinate descent algorithm, with the difference intercept update strategies,
+is summarized in @algo-cd.
+
+```pseudocode
+#| label: algo-cd
+#| html-comment-delimiter: "//"
+#| html-line-number: true
+#| html-no-end: false
+#| pdf-placement: "ht"
+#| pdf-line-number: true
+
+\begin{algorithm}
+    \caption{Cyclic Coordinate Desccent}
+    \begin{algorithmic}
+        \State \textbf{Input:} Data $(X, y)$, $\lambda > 0$, initial intercept and coefficients $(\beta_0, \beta)$
+        \While{not converged}
+            \For{$j$ in $\{1, 2, ..., p\}$}
+                \State $\beta_j \gets \operatorname{prox}\left( \beta_j - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) \right)$
+            \EndFor
+
+            \If{intercept strategy is "Newton"}
+                \State $\beta_0 \gets \beta_0 - \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
+            \ElsIf{intercept strategy is "Gradient"}
+                \State $\beta_0 \gets \beta_0 - \frac{1}{L_0} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
+            \ElsIf{intercept strategy is "Convergence"}
+                \While{not converged}
+                    \State $\beta_0 \gets \beta_0 - \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
+                \EndWhile
+            \EndIf
+        \EndWhile
+        \State \textbf{Output:} $(\beta_0, \beta)$
+    \end{algorithmic}
+\end{algorithm}
+```
+
+### Cross-Influence of Intercept and Coefficients
+
+The Hessian with respect to the intercept and coefficients can used to analyze the
+cross-influence of the intercept and coefficients. In particular, we have
+$$
+H_{jk} = \sum_{i=1}^n x_{ij} x_{ik} w_i = \sum_{i=1}^n x_{ij} x_{ik} w_i
+$$
+in general and 
+$$
+H_{0j} = \sum_{i=1}^n x_{ij} w_i
+$$
+for the cross-influence between the intercept and the $j$th coefficient.
+
+This shows two things: the influence of coefficients on each other
+depends on the covariance structure of the features, while the influence
+of the intercept on the coefficients depends on the means of the features.
+
+For features that are correlated, where $\E |X_j X_k|$ is large, and
+consequently $H_{jk}$ is large, this has a direct effect on convergence. This
+is a classical result in coordinate descent, showing that coordinate descent is
+ill-equipped to break apart this dependence. On the other hand, For
+uncorrelated features, this product is typically small, which means that the
+updates affect each other very little.
+
+For the intercept, there is no dependence on the correlations. This means that
+there is, in general, a global, but potentially weaker, coupling between
+the updates.
+
+For the simple case of linear regression with squared loss, we have $w_i = 1$
+for all $i$, and the cross-influence reduces to
+$$
+H_{0j} = \sum_{i=1}^n x_{ij},
+$$
+which is proportional to the mean of the $j$th feature. Therefore, if we center
+the features, then we also decouple intercept coefficients, which means the
+intercept can be updated independently.
+
+For other loss functions, however, the weights $w_i$ depends on
+the entire linear predictor as well as the response $y$, which means
+that even if the features are centered, there can still be a cross-influence
+between the intercept and coefficients. 
+
+For cases with little correlation between the features and an unbalanced
+response, it is even possible for the intercept and coefficients to be
+strongly coupled, i.e.
+$$
+|H_{0j}| > |H_{jj}|
+$$
+for some $j$. In these cases, the choice of intercept update strategy
+can have a significant impact on convergence speed.
+
+### Convergence Rates
+
+Assuming that the $j$ is drawn uniformly at random from $\{1, 2, ..., p\}$ at each
+iteration, the convergence rate
+for one iteration of coordinate descent can be bounded as [@wright2015]
+$$
+\E \left( F(\beta0^{(t)}, \beta^{(t)}\right) - F(\hat{\beta}_0, \hat{\beta})
+\leq
+\frac{2 S_L R_0^2}{t}.
+$$
+where $S_L = \sum_{j=0}^p L_j$.
+
+And since $L_0$ can be larger than $L_j$ for $j \geq 1$ in cases where the
+the response is skewed and the features are uncorrelated, this can
+have an effect on overall convergence.
+
+Consider, for instance, the case of logistic regression with an unbalanced
+binary response. In this case, the weights $w_i$ will be close to zero for
+most samples, except for those samples where the linear predictor is close to
+the decision boundary. The global
+Lipschitz constant would give
+$$
+L_0 = \frac{n}{4}.
+$$
+while the local Lipschitz constant would be
+$$
+L_0 = \sum_{i=1}^n w_i = \sum_{i=1}^n \ilink(\eta_i) (1 - \ilink(\eta_i))
+$$
+which is much smaller if $\ilink(\eta_i)$ is close to 0 or 1.
 
 ```{julia}
 #| label: fig-parametric
