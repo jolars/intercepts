@@ -260,31 +260,35 @@ strategies, is summarized in @algo-cd.
 
 ### Cross-Influence of Intercept and Coefficients
 
-The Hessian with respect to the intercept and coefficients can used to analyze
-the cross-influence of the intercept and coefficients. In particular, we have
+The Hessian with respect to the intercept and coefficients can be used to
+analyze the cross-influence of the intercept and coefficients. In particular,
+we have
 $$
-H_{jk} = \sum_{i=1}^n x_{ij} x_{ik} w_i = \sum_{i=1}^n x_{ij} x_{ik} w_i
+H_{jk} = \frac{\partial^2}{\partial \beta_j \partial \beta_k} F(\beta_0, \beta)
+       = \sum_{i=1}^n x_{ij} x_{ik} w_i
 $$
 in general and
 $$
-H_{0j} = \sum_{i=1}^n x_{ij} w_i
+H_{0j} = \frac{\partial^2}{\partial \beta_0 \partial \beta_j} F(\beta_0, \beta)
+       = \sum_{i=1}^n x_{ij} w_i
 $$
 for the cross-influence between the intercept and the $j$th coefficient.
 
 This shows two things: the influence of coefficients on each other depends on
-the covariance structure of the features, while the influence of the intercept
-on the coefficients depends on the means of the features.
+the weighted covariance structure of the features, while the influence of the
+intercept on the coefficients depends on the weighted means of the features.
 
-For features that are correlated, where $\E |X_j X_k|$ is large, and
-consequently $H_{jk}$ is large, this has a direct effect on convergence. This is
-a classical result in coordinate descent, showing that coordinate descent is
-ill-equipped to break apart this dependence. On the other hand, For uncorrelated
-features, this product is typically small, which means that the updates affect
-each other very little.
+For features that are correlated, where $|\E[X_j X_k]|$ is large, and
+consequently $|H_{jk}|$ is large, this has a direct effect on convergence. This
+is a classical result in coordinate descent, showing that coordinate descent is
+ill-equipped to break apart this dependence. On the other hand, for
+uncorrelated features, this product is typically small, which means that the
+coefficient updates affect each other very little.
 
 For the intercept, there is no dependence on the correlations. This means that
-there is, in general, a global, but potentially weaker, coupling between the
-updates.
+the coupling between the intercept update and the coefficient updates is
+global, acting through the weighted means of the features rather than through
+their pairwise covariance.
 
 For the simple case of linear regression with squared loss, we have $w_i = 1$
 for all $i$, and the cross-influence reduces to
@@ -292,22 +296,28 @@ $$
 H_{0j} = \sum_{i=1}^n x_{ij},
 $$
 which is proportional to the mean of the $j$th feature. Therefore, if we center
-the features, then we also decouple intercept coefficients, which means the
+the features, we also decouple the intercept from the coefficients, and the
 intercept can be updated independently.
 
-For other loss functions, however, the weights $w_i$ depends on the entire
+For other loss functions, however, the weights $w_i$ depend on the entire
 linear predictor as well as the response $y$, which means that even if the
 features are centered, there can still be a cross-influence between the
-intercept and coefficients.
+intercept and coefficients—because $H_{0j}$ is a $w_i$-weighted mean of
+$x_{ij}$, not the unweighted mean.
 
-For cases with little correlation between the features and an unbalanced
-response, it is even possible for the intercept and coefficients to be strongly
-coupled, i.e.
+The intercept and a coefficient are strongly coupled when
 $$
-|H_{0j}| > |H_{jj}|
+|H_{0j}| > |H_{jj}|.
 $$
-for some $j$. In these cases, the choice of intercept update strategy can have a
-significant impact on convergence speed.
+By the Cauchy--Schwarz inequality, $|H_{0j}|^2 \leq H_{00} H_{jj}$, so a
+necessary condition for this inequality is $H_{00} > H_{jj}$, that is,
+$$
+\sum_{i=1}^n w_i > \sum_{i=1}^n x_{ij}^2 w_i.
+$$
+This can occur, for example, when the features are standardized and the
+response is unbalanced in a way that concentrates $w_i$ on observations where
+$x_{ij}$ is small in magnitude. In such cases, the choice of intercept update
+strategy can have a significant impact on convergence speed.
 
 ### Convergence Rates
 
