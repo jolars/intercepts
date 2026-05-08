@@ -190,7 +190,7 @@ where $\gamma_j$ is the step size. The step size can be chosen in different
 ways, but the typical approach in a coordinate descent algorithms is to take a
 Newton step. We first compute the second derivative with respect to $\beta_j$:
 $$
-H_{jk} = \frac{\partial^2}{\partial \beta_j^2} F(\beta_0, \beta) = \sum_{i=1}^n x_{ij}^2 f''(\eta_i; y_i),
+H_{jj} = \frac{\partial^2}{\partial \beta_j^2} F(\beta_0, \beta) = \sum_{i=1}^n x_{ij}^2 f''(\eta_i; y_i),
 $$
 
 Letting $w_i = f''(\eta_i; y_i)$ be the *weights*, we can express the Hessian
