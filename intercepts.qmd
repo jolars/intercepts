@@ -1,6 +1,7 @@
 ```{julia}
 #| label: setup
 #| output: false
+
 using AlgebraOfGraphics
 using CairoMakie
 using Random
@@ -42,31 +43,31 @@ $$
 $$ {#eq-primal-problem}
 where $P$ is the primal objective, $F$ is the loss function, which attempts to
 optimize the fit to the data, and $G$ is the penalty function that penalizes
-solutions with large coefficients. $\beta_j$ is the $j$th coefficent and $\beta_0$ is
-the intercept. Throughout the paper, we assume that $P$ is separable and that
-$F$ is of the form
+solutions with large coefficients. $\beta_j$ is the $j$th coefficent and
+$\beta_0$ is the intercept. Throughout the paper, we assume that $P$ is
+separable and that $F$ is of the form
 $$
 F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
 where $f$ is a smooth, twice differentiable, and convex function. For clarity,
 we use the convention of denoting the $i$th row and $j$th column of the design
-matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}_0,
-\hat{\beta})$ denote a solution to the problem in @eq-primal-problem.
-Although we will not generally assume that $P$ is convex, we will focus
-on this case in our empirical work
+matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}\_0,
+\hat{\beta})$ denote a solution to the problem in @eq-primal-problem. Although
+we will not generally assume that $P$ is convex, we will focus on this case in
+our empirical work
 
 Intercepts are necessary when fitting regularized regression models, since the
 results will otherwise depend on the locations (means) of both the response
 vector, $y$, and the design matrix, $X$. Only under strong assumptions can the
 intercept be omitted without leading to unwanted results.
 
-Despite the importance of the intercept and maturity of coordinate descent
-as a method for fitting regularized regression models, the issue of how to
-update the intercept has not been studied in the literature. This may also
-serve to explain why many existing implementations of coordinate descent for
-regularized regression differ in their strategies for updating the intercept.
-The aforementioned packages, glmnet, skglm, blitz, and LIBLINEAR, for instance,
-all take different approaches. As we show in this paper, however, the choice of
+Despite the importance of the intercept and maturity of coordinate descent as a
+method for fitting regularized regression models, the issue of how to update the
+intercept has not been studied in the literature. This may also serve to explain
+why many existing implementations of coordinate descent for regularized
+regression differ in their strategies for updating the intercept. The
+aforementioned packages, glmnet, skglm, blitz, and LIBLINEAR, for instance, all
+take different approaches. As we show in this paper, however, the choice of
 strategy for updating the intercept can have a significant impact on convergence
 speed of the overall algorithm.
 
@@ -86,13 +87,14 @@ logistic regression on the w1a dataset. Only the Newton strategy converges
 reliably and quickly to the optimal solution. The gradient strategy converges
 slowly, while the convergence strategy altogether fails to converge.^[Here we
 use cyclic coordinate descent, which is the most common variant in practice.
-But, if we change to a _permuted_ variant here, the convergence strategy will
+But, if we change to a *permuted* variant here, the convergence strategy will
 also converge.]
 
 ```{julia}
 #| label: fig-first-example
-#| fig-cap: Overall convergence for $\ell_1$-regularized logistic
-#|   regression on the real dataset w1a.
+#| fig-cap: Overall convergence for $\ell_1$-regularized logistic regression on
+#|   the real dataset w1a.
+
 dd = JLD2.load(@projectroot("results", "first-example.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
@@ -129,43 +131,43 @@ $$
 which includes the full family of generalized linear models (GLMs). We let
 $\eta : \mathbb{R} \mapsto \mathbb{R}$ be the function that maps the linear
 predictor to the domain of the response variable. For GLMs, this corresponds to
-the inverse link function. To simplify notation, we equivalently define $\eta_i
-= x_i^\intercal \beta + \beta_0$ to be the linear predictor. In a GLM, the response $y_i$
-is modelled as a random variable from an exponential family, and is assumed to
-depend conditionally on the linear predictor $\eta_i$ via $\E(y_i \mid \eta_i)
-= \ilink(\eta_i)$, where $\ilink$ is the inverse link function.
+the inverse link function. To simplify notation, we equivalently define $\eta\_i
+= x_i^\intercal \beta + \beta\_0$ to be the linear predictor. In a GLM, the
+response $y_i$ is modelled as a random variable from an exponential family, and
+is assumed to depend conditionally on the linear predictor $\eta_i$ via $\E(y_i
+\mid \eta\_i) = \ilink(\eta\_i)$, where $\ilink$ is the inverse link function.
 
 To estimate the parameters of the model, $(\beta_0, \beta)$, we form a loss
 function from the negative log-likelihood of the target distribution, modeling
 its mean parameter through the inverse link function applied to the linear
-predictor. A special property of the resulting loss function is that its
-partial derivative with respect to $\eta$ is
+predictor. A special property of the resulting loss function is that its partial
+derivative with respect to $\eta$ is
 $$
-  f'(\eta_i; y) = \ilink(\eta_i) - y_i = r_i,
+f'(\eta_i; y) = \ilink(\eta_i) - y_i = r_i,
 $$
-where we define $r_i$ to be the $i$th component of the _generalized residual_.
+where we define $r_i$ to be the $i$th component of the *generalized residual*.
 As a consequence, the gradient of the loss function with respect to $\beta_j$
 can be expressed as
 $$
-  \frac{\partial}{\partial \beta_j} F(\beta_0,\beta)
+\frac{\partial}{\partial \beta_j} F(\beta_0,\beta)
   = \frac{1}{n} \sum_{i=1}^n x_{ij} \frac{\partial}{\partial \eta_i} f(\eta_i; y_i)
   = \frac{1}{n} \sum_{i=1}^n x_{ij} r_i.
 $$
 
-We summarize the loss, link, and inverse link functions for the
-loss functions we will consider in this paper in @tbl-glm.
+We summarize the loss, link, and inverse link functions for the loss functions
+we will consider in this paper in @tbl-glm.
 
-: Loss functions, link functions, and inverse link functions for generalized
-linear models. Note that in the case of multinomial
-logistic regression, the input is vector-valued, and we allow $\log$ and
-$\exp$ to be overloaded to apply element-wise in these cases. {#tbl-glm}
+  | Model       | $f(\eta; y)$                                                                                       | $\link(\mu)$                           | $\ilink(\eta)$                                       |
+  | :---------- | :------------------------------------------------------------------------------------------------- | :------------------------------------- | :--------------------------------------------------- |
+  | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                          | $\mu$                                  | $\eta$                                               |
+  | Binomial    | $\log(1 + e^\eta) - \eta y$                                                                        | $\log\left(\frac{\mu}{1 - \mu}\right)$ | $\frac{e^\eta}{1 + e^\eta}$                          |
+  | Poisson     | $e^\eta - \eta y$                                                                                  | $\log(\mu)$                            | $e^\eta$                                             |
+  | Multinomial | $\sum_{k=1}^{m-1}\left( \log \left( 1 +  \sum_{j=1}^{m-1} e^{\eta_j}\right) - y_k \eta_k  \right)$ | $\log\left(\frac{\mu}{1 - \mu}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
 
-| Model       | $f(\eta; y)$                                                                                       | $\link(\mu)$                            | $\ilink(\eta)$                                        |
-|:------------|:---------------------------------------------------------------------------------------------------|:----------------------------------------|:------------------------------------------------------|
-| Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                          | $\mu$                                   | $\eta$                                                |
-| Binomial    | $\log(1 + e^\eta) - \eta y$                                                                        | $\log\left(\frac{\mu}{1 - \mu}\right)$  | $\frac{e^\eta}{1 + e^\eta}$                           |
-| Poisson     | $e^\eta - \eta y$                                                                                  | $\log(\mu)$                             | $e^\eta$                                              |
-| Multinomial | $\sum_{k=1}^{m-1}\left( \log \left( 1 +  \sum_{j=1}^{m-1} e^{\eta_j}\right) - y_k \eta_k  \right)$ | $\log\left(\frac{\mu}{1 - \mu}\right)$  | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$  |
+  : Loss functions, link functions, and inverse link functions for generalized
+    linear models. Note that in the case of multinomial logistic regression, the
+    input is vector-valued, and we allow $\log$ and $\exp$ to be overloaded to
+    apply element-wise in these cases. {#tbl-glm}
 
 ### Coordinate Descent
 
@@ -179,13 +181,13 @@ $$
 \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) = \sum_{i=1}^n x_{ij} f'(\eta_i; y_i)
 $$
 
-In our algorithm, we take a step in the negative gradient direction, updating
-a coefficient or intercept by
+In our algorithm, we take a step in the negative gradient direction, updating a
+coefficient or intercept by
 $$
 \beta_j^+ = \beta_j - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta),
 $$
 where $\gamma_j$ is the step size. The step size can be chosen in different
-ways, but the typical approach in a coordinate descent algorithms is to take a 
+ways, but the typical approach in a coordinate descent algorithms is to take a
 Newton step. We first compute the second derivative with respect to $\beta_j$:
 $$
 H_{jk} = \frac{\partial^2}{\partial \beta_j^2} F(\beta_0, \beta) = \sum_{i=1}^n x_{ij}^2 f''(\eta_i; y_i),
@@ -211,18 +213,18 @@ $$
 $$
 But as we have already discussed, several state-of-the-art implementations of
 coordinate descent for regularized regression take different approaches to
-updating the intercept. The three main strategies that we have
-identified are these:
+updating the intercept. The three main strategies that we have identified are
+these:
 
 1. A Newton step, setting $\gamma_0$ as above.
-2. A gradient descent step, setting $\gamma_0$ to either the global
-   Lipschitz constant with respect to $\beta_0$ or via a backtracking line search.
+2. A gradient descent step, setting $\gamma_0$ to either the global Lipschitz
+   constant with respect to $\beta_0$ or via a backtracking line search.
 3. Solving the optimization problem of the intercept iteratively to convergence,
-   using either Newton or gradient steps. In this paper, we will use 
-   Newton steps. And we will refer to this method as the _convergence strategy_.
+   using either Newton or gradient steps. In this paper, we will use Newton
+   steps. And we will refer to this method as the *convergence strategy*.
 
-The coordinate descent algorithm, with the difference intercept update strategies,
-is summarized in @algo-cd.
+The coordinate descent algorithm, with the difference intercept update
+strategies, is summarized in @algo-cd.
 
 ```pseudocode
 #| label: algo-cd
@@ -258,31 +260,31 @@ is summarized in @algo-cd.
 
 ### Cross-Influence of Intercept and Coefficients
 
-The Hessian with respect to the intercept and coefficients can used to analyze the
-cross-influence of the intercept and coefficients. In particular, we have
+The Hessian with respect to the intercept and coefficients can used to analyze
+the cross-influence of the intercept and coefficients. In particular, we have
 $$
 H_{jk} = \sum_{i=1}^n x_{ij} x_{ik} w_i = \sum_{i=1}^n x_{ij} x_{ik} w_i
 $$
-in general and 
+in general and
 $$
 H_{0j} = \sum_{i=1}^n x_{ij} w_i
 $$
 for the cross-influence between the intercept and the $j$th coefficient.
 
-This shows two things: the influence of coefficients on each other
-depends on the covariance structure of the features, while the influence
-of the intercept on the coefficients depends on the means of the features.
+This shows two things: the influence of coefficients on each other depends on
+the covariance structure of the features, while the influence of the intercept
+on the coefficients depends on the means of the features.
 
 For features that are correlated, where $\E |X_j X_k|$ is large, and
-consequently $H_{jk}$ is large, this has a direct effect on convergence. This
-is a classical result in coordinate descent, showing that coordinate descent is
-ill-equipped to break apart this dependence. On the other hand, For
-uncorrelated features, this product is typically small, which means that the
-updates affect each other very little.
+consequently $H_{jk}$ is large, this has a direct effect on convergence. This is
+a classical result in coordinate descent, showing that coordinate descent is
+ill-equipped to break apart this dependence. On the other hand, For uncorrelated
+features, this product is typically small, which means that the updates affect
+each other very little.
 
 For the intercept, there is no dependence on the correlations. This means that
-there is, in general, a global, but potentially weaker, coupling between
-the updates.
+there is, in general, a global, but potentially weaker, coupling between the
+updates.
 
 For the simple case of linear regression with squared loss, we have $w_i = 1$
 for all $i$, and the cross-influence reduces to
@@ -293,25 +295,25 @@ which is proportional to the mean of the $j$th feature. Therefore, if we center
 the features, then we also decouple intercept coefficients, which means the
 intercept can be updated independently.
 
-For other loss functions, however, the weights $w_i$ depends on
-the entire linear predictor as well as the response $y$, which means
-that even if the features are centered, there can still be a cross-influence
-between the intercept and coefficients. 
+For other loss functions, however, the weights $w_i$ depends on the entire
+linear predictor as well as the response $y$, which means that even if the
+features are centered, there can still be a cross-influence between the
+intercept and coefficients.
 
 For cases with little correlation between the features and an unbalanced
-response, it is even possible for the intercept and coefficients to be
-strongly coupled, i.e.
+response, it is even possible for the intercept and coefficients to be strongly
+coupled, i.e.
 $$
 |H_{0j}| > |H_{jj}|
 $$
-for some $j$. In these cases, the choice of intercept update strategy
-can have a significant impact on convergence speed.
+for some $j$. In these cases, the choice of intercept update strategy can have a
+significant impact on convergence speed.
 
 ### Convergence Rates
 
-Assuming that the $j$ is drawn uniformly at random from $\{1, 2, ..., p\}$ at each
-iteration, the convergence rate
-for one iteration of coordinate descent can be bounded as [@wright2015]
+Assuming that the $j$ is drawn uniformly at random from $\{1, 2, ..., p\}$ at
+each iteration, the convergence rate for one iteration of coordinate descent can
+be bounded as [@wright2015]
 $$
 \E \left( F(\beta0^{(t)}, \beta^{(t)}\right) - F(\hat{\beta}_0, \hat{\beta})
 \leq
@@ -319,15 +321,14 @@ $$
 $$
 where $S_L = \sum_{j=0}^p L_j$.
 
-And since $L_0$ can be larger than $L_j$ for $j \geq 1$ in cases where the
-the response is skewed and the features are uncorrelated, this can
-have an effect on overall convergence.
+And since $L_0$ can be larger than $L_j$ for $j \geq 1$ in cases where the the
+response is skewed and the features are uncorrelated, this can have an effect on
+overall convergence.
 
 Consider, for instance, the case of logistic regression with an unbalanced
-binary response. In this case, the weights $w_i$ will be close to zero for
-most samples, except for those samples where the linear predictor is close to
-the decision boundary. The global
-Lipschitz constant would give
+binary response. In this case, the weights $w_i$ will be close to zero for most
+samples, except for those samples where the linear predictor is close to the
+decision boundary. The global Lipschitz constant would give
 $$
 L_0 = \frac{n}{4}.
 $$
@@ -340,10 +341,11 @@ which is much smaller if $\ilink(\eta_i)$ is close to 0 or 1.
 ```{julia}
 #| label: fig-parametric
 #| fig-cap: Example illustrating the three main intercept fitting strategies
-#|   considered in our paper on a simple problem with one feature and
-#|   an intercept.
+#|   considered in our paper on a simple problem with one feature and an
+#|   intercept.
 #| fig-show: true
 #| message: false
+
 using Intercepts
 
 n = 100
@@ -413,6 +415,7 @@ fig
 
 ```{julia}
 #| label: fig-simulated
+
 dd = JLD2.load(@projectroot("results", "sim-logreg-mu.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
@@ -438,8 +441,9 @@ draw(
 ```{julia}
 #| label: fig-real-logreg
 #| fig-cap: Experiment on convergence for $\ell_1$-regularized logistic
-#|   regression on real datasets. $n = 500$, $p = 1000$, and
-#|   $\lambda = \lambda_{\max}/50$.
+#|   regression on real datasets. $n = 500$, $p = 1000$, and $\lambda =
+#|   \lambda_{\max}/50$.
+
 dd = JLD2.load(@projectroot("results", "real-logreg.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
