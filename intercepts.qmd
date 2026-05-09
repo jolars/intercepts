@@ -260,64 +260,184 @@ strategies, is summarized in @algo-cd.
 
 ### Cross-Influence of Intercept and Coefficients
 
-The Hessian with respect to the intercept and coefficients can be used to
-analyze the cross-influence of the intercept and coefficients. In particular,
+The Hessian of $F$ with respect to the intercept and the coefficients exposes
+how the intercept couples to each coefficient. Letting $w_i = f''(\eta_i; y_i)$,
 we have
 $$
 H_{jk} = \frac{\partial^2}{\partial \beta_j \partial \beta_k} F(\beta_0, \beta)
        = \sum_{i=1}^n x_{ij} x_{ik} w_i
 $$
-in general and
+for the coefficient--coefficient block and
 $$
 H_{0j} = \frac{\partial^2}{\partial \beta_0 \partial \beta_j} F(\beta_0, \beta)
        = \sum_{i=1}^n x_{ij} w_i
 $$
-for the cross-influence between the intercept and the $j$th coefficient.
+for the cross-influence between the intercept and the $j$th coefficient. Two
+qualitative observations follow. First, the coefficients couple to each other
+*pairwise*, through the weighted covariance structure of the features:
+correlated features produce large $|H_{jk}|$, which is the classical reason
+coordinate descent struggles on such designs. Second, the intercept couples to
+each coefficient *globally*, through the weighted mean of that feature, with no
+dependence on correlations.
 
-This shows two things: the influence of coefficients on each other depends on
-the weighted covariance structure of the features, while the influence of the
-intercept on the coefficients depends on the weighted means of the features.
+For the special case of squared loss, $w_i = 1$ and $H_{0j} = \sum_i x_{ij}$, so
+centering the features makes $H_{0j} = 0$ and the intercept decouples from the
+coefficients entirely. For other losses the weights depend on the linear
+predictor and the response, so $H_{0j}$ is a $w_i$-weighted mean of $x_{ij}$,
+which is generally non-zero even after centering.
 
-For features that are correlated, where $|\E[X_j X_k]|$ is large, and
-consequently $|H_{jk}|$ is large, this has a direct effect on convergence. This
-is a classical result in coordinate descent, showing that coordinate descent is
-ill-equipped to break apart this dependence. On the other hand, for
-uncorrelated features, this product is typically small, which means that the
-coefficient updates affect each other very little.
+#### A normalized measure of intercept–coefficient coupling
 
-For the intercept, there is no dependence on the correlations. This means that
-the coupling between the intercept update and the coefficient updates is
-global, acting through the weighted means of the features rather than through
-their pairwise covariance.
+To quantify how strongly the intercept and the $j$th coefficient are coupled,
+the natural quantity is the normalized cross-curvature
+$$
+\rho_{0j} \;=\; \frac{H_{0j}}{\sqrt{H_{00} H_{jj}}} \;\in\; [-1, 1],
+$$ {#eq-rho}
+which is invariant to rescaling either coordinate and which the Cauchy--Schwarz
+inequality bounds in $[-1,1]$. The two extremes are easy to interpret:
+$\rho_{0j} = 0$ means the intercept and $\beta_j$ can be optimized
+independently; $|\rho_{0j}| \to 1$ means a change in $\beta_0$ is fully absorbed
+by an opposite change in $\beta_j$ (or vice versa), and the two coordinates are
+degenerate up to that direction.
 
-For the simple case of linear regression with squared loss, we have $w_i = 1$
-for all $i$, and the cross-influence reduces to
-$$
-H_{0j} = \sum_{i=1}^n x_{ij},
-$$
-which is proportional to the mean of the $j$th feature. Therefore, if we center
-the features, we also decouple the intercept from the coefficients, and the
-intercept can be updated independently.
+#### The profiled objective
 
-For other loss functions, however, the weights $w_i$ depend on the entire
-linear predictor as well as the response $y$, which means that even if the
-features are centered, there can still be a cross-influence between the
-intercept and coefficients—because $H_{0j}$ is a $w_i$-weighted mean of
-$x_{ij}$, not the unweighted mean.
+The cleanest way to see why $\rho_{0j}$ controls the impact of the intercept
+update strategy is to consider the *profiled* objective obtained by optimizing
+the intercept out:
+$$
+\tilde F(\beta) \;=\; \min_{\beta_0} F(\beta_0, \beta).
+$$
+A direct calculation (the Schur complement of $H_{00}$ in the full Hessian)
+gives
+$$
+\tilde H_{jk} \;=\; H_{jk} - \frac{H_{j0} H_{0k}}{H_{00}},
+$$ {#eq-schur}
+and in particular
+$$
+\tilde H_{jj} \;=\; H_{jj}\bigl(1 - \rho_{0j}^2\bigr).
+$$ {#eq-schur-diag}
 
-The intercept and a coefficient are strongly coupled when
+@eq-schur-diag is the key relation. When $|\rho_{0j}|$ is close to $1$, the
+profiled curvature $\tilde H_{jj}$ is much smaller than $H_{jj}$: most of the
+diagonal curvature seen in $H$ is "borrowed" through the intercept and is
+removed once the intercept is profiled out. Coordinate descent that re-optimizes
+the intercept after every pass is effectively running on $\tilde F$, with
+curvature $\tilde H_{jj}$; coordinate descent that leaves the intercept stale is
+running on $F$, with the inflated curvature $H_{jj}$. The gap between these two
+regimes is governed entirely by $\rho_{0j}^2$.
+
+#### Strategies as Schur approximations
+
+This perspective lets us classify the three intercept update strategies by how
+completely they remove the intercept–coefficient coupling. The key object is
+the *gradient response* of the coefficient subproblem to an intercept step:
+if we step $\beta_0 \mapsto \beta_0 - \alpha\,\partial_0 F$, the partial
+derivative with respect to $\beta_j$ that the next coefficient update sees
+satisfies, to first order in $\alpha$,
 $$
-|H_{0j}| > |H_{jj}|.
+\partial_j F(\beta_0 - \alpha\,\partial_0 F, \beta)
+  \;=\;
+  \partial_j F(\beta_0, \beta)
+  - \alpha\, H_{j0}\, \partial_0 F(\beta_0, \beta).
+$$ {#eq-gradient-response}
+The Schur-corrected gradient $\partial_j F - (H_{j0}/H_{00})\,\partial_0 F$
+is the gradient of the profiled objective $\tilde F$ at the current $\beta$.
+The three strategies differ in how closely the residual gradient in
+@eq-gradient-response approximates that target.
+
+We make this precise in three statements. The first is the substantive one
+and is what justifies the profiled-objective viewpoint operationally.
+
+::: {.theorem #thm-profile-equiv}
+**(Profile equivalence of the convergence strategy.)** Let $F$ be twice
+continuously differentiable and strictly convex in $\beta_0$ for every
+$\beta$, and let $\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$.
+Coordinate descent on $F$ with the convergence strategy produces a sequence
+of post-pass iterates $\{\beta^{(t)}\}$ that coincides with coordinate
+descent applied to $\tilde F$ with step sizes $1/H_{jj}$ on each coordinate.
+Moreover, $1/H_{jj} \leq 1/\tilde H_{jj}$, so the step sizes used are valid
+descent step sizes for $\tilde F$.
+:::
+
+::: {.proof}
+By construction, after each pass the convergence strategy returns
+$\beta_0^{(t)} \in \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$. The envelope
+theorem then gives $\partial_j \tilde F(\beta^{(t)}) =
+\partial_j F(\beta_0^{(t)}, \beta^{(t)})$, so each coefficient update on
+$F$ at the start of the next pass is also a coefficient update on $\tilde F$
+with the same gradient. The Hessian relation $\tilde H_{jj} =
+H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$ from @eq-schur-diag then yields the
+step-size ordering.
+:::
+
+@thm-profile-equiv is the bridge between the Schur analysis above and any
+convergence-rate result for coordinate descent: the convergence strategy
+inherits the rate that CD enjoys on $\tilde F$, with curvature $\tilde
+H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ in place of $H_{jj}$. The other two
+strategies are then characterized as approximations to this baseline.
+
+::: {.lemma #lem-newton-approx}
+**(Newton strategy is a leading-order approximation.)** Suppose $f$ is
+three-times continuously differentiable. A single Newton step on the
+intercept satisfies
 $$
-By the Cauchy--Schwarz inequality, $|H_{0j}|^2 \leq H_{00} H_{jj}$, so a
-necessary condition for this inequality is $H_{00} > H_{jj}$, that is,
+\bigl|\beta_0^{\text{Newton}} - \beta_0^*(\beta)\bigr|
+  \;=\;
+  O\!\left(\frac{\sup_\xi |f'''(\xi)|}{H_{00}^2}\,
+            \bigl(\partial_0 F\bigr)^2\right),
+$$ {#eq-newton-error}
+where $\beta_0^*(\beta) = \arg\min_{\beta_0} F(\beta_0, \beta)$. For squared
+loss, $f''' \equiv 0$ and the Newton step is exact.
+:::
+
+::: {.proof}
+Standard one-step Newton error bound applied to the one-dimensional
+intercept subproblem $\beta_0 \mapsto F(\beta_0, \beta)$ at the iterate
+$\beta_0$.
+:::
+
+@lem-newton-approx says that the Newton strategy matches the convergence
+strategy at leading order, with an error that vanishes both as the iterates
+approach the conditional optimum and as the third derivative shrinks. For
+logistic regression $|f'''|$ is bounded by a small constant; for squared
+loss the Newton step is exact and the two strategies coincide.
+
+::: {.lemma #lem-gradient-partial}
+**(Gradient strategy applies a fraction of the coupling correction.)** In
+the local quadratic model of $F$ at $(\beta_0, \beta)$, the gradient
+strategy with step size $\alpha = 1/L_0$ removes a fraction $H_{00}/L_0
+\in (0, 1]$ of the coupling component $(H_{j0}/H_{00})\,\partial_0 F$ that
+the Newton and convergence strategies remove. Specifically, the residual
+gradient after the intercept step is
 $$
-\sum_{i=1}^n w_i > \sum_{i=1}^n x_{ij}^2 w_i.
-$$
-This can occur, for example, when the features are standardized and the
-response is unbalanced in a way that concentrates $w_i$ on observations where
-$x_{ij}$ is small in magnitude. In such cases, the choice of intercept update
-strategy can have a significant impact on convergence speed.
+\partial_j F^{\text{grad}}
+  \;=\;
+  \partial_j F
+  - \frac{H_{00}}{L_0}\,\frac{H_{j0}}{H_{00}}\,\partial_0 F,
+$$ {#eq-grad-residual}
+so the coupling residual is $(1 - H_{00}/L_0)$ of its pre-step value. In
+particular, when $L_0 = \infty$, no coupling is removed.
+:::
+
+::: {.proof}
+Substitute $\alpha = 1/L_0$ into @eq-gradient-response and rearrange.
+:::
+
+The qualitative reading of @lem-gradient-partial is that the gradient
+strategy is fully effective only when $H_{00} \approx L_0$, that is, when
+the Lipschitz bound is tight at the current iterate. Whenever $H_{00}$ is
+appreciably below $L_0$---as happens for logistic regression once
+predictions become confident, or whenever the weights $w_i$ are concentrated
+on a small subset of observations---the gradient strategy leaves a residual
+coupling of order $(1 - H_{00}/L_0)$ uncorrected, and coordinate descent
+continues to run on a worse-conditioned objective than necessary.
+
+The Poisson loss is the limiting case: $H_{00}$ has no global upper bound,
+so $L_0 = \infty$ and $H_{00}/L_0 = 0$. By @lem-gradient-partial, the
+gradient strategy applies no coupling correction at all and the coefficient
+subproblem sees the full, uncorrected gradient. In this regime the strategy
+is not merely slow but structurally inadequate.
 
 ### Convergence Rates
 

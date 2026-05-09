@@ -51,3 +51,5 @@ result-*
 
 # Ignore direnv folder
 .direnv/
+
+**/*.quarto_ipynb
