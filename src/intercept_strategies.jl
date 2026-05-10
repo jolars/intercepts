@@ -163,9 +163,22 @@ function update_intercept(
     η::AbstractMatrix{<:Real},
     y::AbstractVector{<:Integer},
 )
+    n = size(η, 1)
     g = _intercept_grad(f, η, y)
     H = _intercept_hess(f, η, y)
-    δ = -(H \ g)
+    local δ
+    try
+        δ = -(H \ g)
+    catch err
+        if err isa LinearAlgebra.SingularException
+            δ = -g ./ (f.lipschitz * n)
+        else
+            rethrow()
+        end
+    end
+    if any(!isfinite, δ)
+        δ = -g ./ (f.lipschitz * n)
+    end
     return intercept .+ δ
 end
 
