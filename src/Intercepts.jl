@@ -15,6 +15,7 @@ export NoIntercept
 export InterceptStrategy
 export GradientStrategy
 export NewtonStrategy
+export DampedNewtonStrategy
 export ConvergenceStrategy
 export update_intercept
 export geomspace

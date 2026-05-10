@@ -81,6 +81,12 @@ The three main strategies that we will consider in this paper are:
    optimization problem in the intercept convergence before each pass over the
    coordinates, using either gradient or Newton steps.
 
+A fourth variant we consider is the *damped Newton strategy*: a single Newton
+step protected by an Armijo backtracking line search. It coincides with the
+Newton strategy whenever the line search accepts the full step, which is the
+common case, and falls back to a safeguarded shorter step in the cold-start or
+saturated-loss regime where bare Newton can overshoot.
+
 For a first illustration of this, see @fig-first-example, which shows how the
 three different methods affect overall convergence on $\ell_1$-regularized
 logistic regression on the w1a dataset. Only the Newton strategy converges
@@ -113,8 +119,11 @@ draw(
 ```
 
 @fig-first-example illustrates the main message of this paper: the gradient
-strategy is slow, the convergence strategy is unreliable, and the Newton
-strategy is both reliable and efficient. Our main contributions are as follows:
+strategy is slow, the convergence strategy wastes per-pass cost without a
+commensurate rate gain, and the Newton strategy is both reliable and
+efficient. The damped Newton strategy adds a safeguard against the narrow
+cold-start regime where a bare Newton step can overshoot. Our main
+contributions are as follows:
 
 1. We introduce and formalize the three strategies for fitting intercepts in
    coordinate descent methods for regularized regression.
@@ -350,32 +359,79 @@ We make this precise in three statements. The first is the substantive one
 and is what justifies the profiled-objective viewpoint operationally.
 
 ::: {.theorem #thm-profile-equiv}
-**(Profile equivalence of the convergence strategy.)** Let $F$ be twice
-continuously differentiable and strictly convex in $\beta_0$ for every
-$\beta$, and let $\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$.
-Coordinate descent on $F$ with the convergence strategy produces a sequence
-of post-pass iterates $\{\beta^{(t)}\}$ that coincides with coordinate
-descent applied to $\tilde F$ with step sizes $1/H_{jj}$ on each coordinate.
-Moreover, $1/H_{jj} \leq 1/\tilde H_{jj}$, so the step sizes used are valid
-descent step sizes for $\tilde F$.
+**(First-update profile equivalence.)** Let $F$ be twice continuously
+differentiable and strictly convex in $\beta_0$ for every $\beta$, and let
+$\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$. Suppose the
+convergence strategy has driven $\beta_0$ to the conditional minimizer
+$\beta_0^{(t)} = \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$. Then the
+*first* coefficient update of the next pass uses the gradient
+$\partial_j F(\beta_0^{(t)}, \beta^{(t)}) = \partial_j \tilde F(\beta^{(t)})$,
+and is therefore identical to a CD step on $\tilde F$ at $\beta^{(t)}$ with
+step size $1/H_{jj}$. The step size satisfies
+$1/H_{jj} \leq 1/\tilde H_{jj}$ by @eq-schur-diag, so it is a valid descent
+step size for $\tilde F$.
 :::
 
 ::: {.proof}
-By construction, after each pass the convergence strategy returns
-$\beta_0^{(t)} \in \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$. The envelope
-theorem then gives $\partial_j \tilde F(\beta^{(t)}) =
-\partial_j F(\beta_0^{(t)}, \beta^{(t)})$, so each coefficient update on
-$F$ at the start of the next pass is also a coefficient update on $\tilde F$
-with the same gradient. The Hessian relation $\tilde H_{jj} =
-H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$ from @eq-schur-diag then yields the
-step-size ordering.
+By construction $\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$. The envelope
+theorem gives $\partial_j \tilde F(\beta^{(t)}) =
+\partial_j F(\beta_0^{(t)}, \beta^{(t)})$, which is the gradient used for
+the first coefficient update of the next pass. The Hessian relation
+$\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$ yields the step-size
+ordering.
 :::
 
-@thm-profile-equiv is the bridge between the Schur analysis above and any
-convergence-rate result for coordinate descent: the convergence strategy
-inherits the rate that CD enjoys on $\tilde F$, with curvature $\tilde
-H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ in place of $H_{jj}$. The other two
-strategies are then characterized as approximations to this baseline.
+@thm-profile-equiv is the bridge between the Schur analysis and CD theory:
+*at the start of each pass*, the convergence strategy aligns with CD on
+$\tilde F$. The catch is that this alignment lasts for exactly one
+coefficient update — by the second update, $\beta_0^{(t)}$ is no longer
+the conditional minimizer, and the equivalence breaks. The next lemma
+quantifies how quickly.
+
+::: {.lemma #lem-convergence-cost}
+**(Within-pass intercept drift undoes the convergence strategy's work.)**
+Starting from $\beta_0^{(t)}$ with $\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$,
+a single coefficient update $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$
+yields
+$$
+\partial_0 F\bigl(\beta_0^{(t)}, \beta^{(t)} + \delta_j e_j\bigr)
+  \;=\;
+  H_{0j}\,\delta_j + O(\delta_j^2).
+$$ {#eq-intercept-drift}
+Hence after a single coordinate update of pass $t+1$, the intercept gradient
+is no longer zero, and the conditional-minimizer property that
+@thm-profile-equiv depends on is lost.
+:::
+
+::: {.proof}
+Taylor-expand $\partial_0 F$ in the $\beta_j$ direction around
+$(\beta_0^{(t)}, \beta^{(t)})$ using $\partial_{0j} F = H_{0j}$ and
+$\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$.
+:::
+
+The practical reading of @lem-convergence-cost is a *cost-versus-progress*
+verdict on the convergence strategy. Let $k_0$ denote the number of inner
+Newton steps consumed at the end of a pass to drive
+$|\partial_0 F| < \varepsilon$. Each step costs $O(n)$ work. By the lemma,
+the conditional-optimum status established by these $k_0$ steps survives
+exactly one coefficient update of the next pass — by the second update it
+has drifted by $H_{0j}\,\delta_j$. Outer progress is therefore upper-bounded
+by what one Newton step on the intercept would have already delivered,
+since the first coefficient update is the only one that benefits from the
+envelope alignment. The convergence strategy thus pays $\Omega(k_0 - 1)$
+inner-iteration cost per pass with no commensurate rate improvement over
+the Newton strategy. The penalty grows with the magnitude of
+intercept-coefficient coupling: when several $|H_{0j}|$ are large, fitting
+the intercept tightly is wasted work because the next coordinate sweep
+re-perturbs $\partial_0 F$ immediately.
+
+This same drift phenomenon also explains the empirical observation in
+@fig-first-example: with cyclic ordering, the same set of strongly coupled
+coordinates is visited in the same sequence each pass, and the intercept
+fit is repeatedly disrupted in a coherent direction. The interaction with
+the post-pass line search in cyclic CD can stall progress entirely. The
+Newton strategy, which never overcommits to the conditional minimizer,
+sidesteps this pathology.
 
 ::: {.lemma #lem-newton-approx}
 **(Newton strategy is a leading-order approximation.)** Suppose $f$ is
@@ -402,6 +458,49 @@ strategy at leading order, with an error that vanishes both as the iterates
 approach the conditional optimum and as the third derivative shrinks. For
 logistic regression $|f'''|$ is bounded by a small constant; for squared
 loss the Newton step is exact and the two strategies coincide.
+
+What we actually need to know is whether the Newton residual harms the
+*next* coefficient update. The following corollary translates the one-step
+Newton error into a perturbation of the coefficient gradient that the
+subsequent CD pass sees.
+
+::: {.corollary #cor-newton-coupling}
+**(Newton residual perturbs the next coefficient gradient.)** Let $r_0 =
+\beta_0^{\text{Newton}} - \beta_0^*(\beta)$ be the Newton residual, with
+$|r_0|$ bounded as in @lem-newton-approx. The first coefficient update of
+the next pass uses
+$$
+\partial_j F\bigl(\beta_0^{\text{Newton}}, \beta\bigr)
+  \;=\;
+  \partial_j \tilde F(\beta)
+  \;+\; H_{j0}\, r_0
+  \;+\; O(r_0^2),
+$$ {#eq-newton-coupling}
+i.e. the profiled gradient plus a bias of order $H_{j0} r_0$. The Newton
+strategy is therefore as good as the convergence strategy on a coordinate
+$j$ whenever
+$$
+|H_{j0}| \cdot |r_0| \;\ll\; \bigl|\partial_j \tilde F(\beta)\bigr|.
+$$ {#eq-newton-good-enough}
+:::
+
+::: {.proof}
+Taylor-expand $\partial_j F$ in $\beta_0$ around the conditional minimizer
+$\beta_0^*(\beta)$, using $\partial_j F(\beta_0^*, \beta) = \partial_j
+\tilde F(\beta)$ and $\partial_{0j} F = H_{j0}$.
+:::
+
+The criterion in @eq-newton-good-enough has two regimes worth flagging.
+*Asymptotically*, $|r_0| = O((\partial_0 F)^2)$ shrinks quadratically while
+$|\partial_j \tilde F|$ shrinks linearly with the iterate's distance from
+the optimum, so the bias becomes negligible. *Far from the optimum*, the
+inequality can fail when $|f'''|/H_{00}^2$ is large and $|\partial_0 F|$ is
+large simultaneously: this is the cold-start regime, particularly for
+losses where $f'''$ grows with $\eta$ such as Poisson ($f''' = e^\eta$). In
+that regime the linear model implicit in a single Newton step becomes a
+poor approximation, and a safeguard --- such as backtracking the Newton
+step until the loss decreases --- recovers the leading-order accuracy that
+@cor-newton-coupling promises.
 
 ::: {.lemma #lem-gradient-partial}
 **(Gradient strategy applies a fraction of the coupling correction.)** In
@@ -438,6 +537,94 @@ so $L_0 = \infty$ and $H_{00}/L_0 = 0$. By @lem-gradient-partial, the
 gradient strategy applies no coupling correction at all and the coefficient
 subproblem sees the full, uncorrected gradient. In this regime the strategy
 is not merely slow but structurally inadequate.
+
+#### A safeguarded Newton variant
+
+@cor-newton-coupling identifies the cold-start regime --- large
+$|\partial_0 F|$ combined with rapidly varying $f''$ --- as the setting
+where a bare Newton step on the intercept perturbs the next coefficient
+pass enough to matter. The natural fix is to wrap the Newton direction
+$-\partial_0 F / H_{00}$ in an Armijo backtracking line search: accept the
+full step ($\alpha = 1$) if it decreases $F$ enough, otherwise halve
+$\alpha$ until it does. We refer to this variant as the *damped Newton
+strategy*. The cost is a constant number of loss evaluations per pass in
+the easy regime and a logarithmic number when the linear model is
+inadequate. When the Newton residual is small, $\alpha = 1$ is accepted on
+the first attempt and the damped Newton strategy reduces to the Newton
+strategy exactly.
+
+#### Constructed failure examples
+
+We illustrate the predictions of the strategy comparison on synthetic
+logistic-regression problems with $n = 500$, $p = 1000$, $s = 10$, and
+$\lambda = 0.05\,\lambda_{\max}$.
+
+```{julia}
+#| label: fig-mu-extreme
+#| fig-cap: As the response imbalance $\mu_0$ approaches one, the gradient
+#|   strategy fails to reach the convergence tolerance within 1000 outer
+#|   passes (Lemma 3.3 prediction $H_{00}/L_0 \to 0$). The other strategies
+#|   are unaffected. Randomized cyclic CD.
+
+dd = JLD2.load(@projectroot("results", "sim-mu-extreme.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
+
+df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.μ0 = "μ₀ = " .* string.(df.μ0)
+
+spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
+
+draw(
+    visual(Lines) * spec,
+    axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
+    facet = (; linkxaxes = :none),
+    figure = (; size = (800, 250))
+)
+```
+
+The first prediction is @lem-gradient-partial: the gradient strategy's
+correction is multiplied by $H_{00}/L_0$, which collapses as the response
+imbalance $\mu_0$ approaches one. @fig-mu-extreme shows exactly this
+collapse: the gradient strategy plateaus and fails to reach the tolerance
+within the outer-pass budget at $\mu_0 = 0.99$, while the other strategies
+are essentially unaffected.
+
+```{julia}
+#| label: fig-cold-start
+#| fig-cap: With cyclic ordering and a cold-start intercept, the bare Newton
+#|   strategy requires more outer passes than damped Newton at extreme
+#|   imbalance. The Armijo line search of damped Newton absorbs the initial
+#|   large $|\partial_0 F|$ transient that
+#|   @cor-newton-coupling identifies as the failure mode of bare Newton.
+
+dd = JLD2.load(@projectroot("results", "sim-cold-start.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
+
+df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.μ0 = "μ₀ = " .* string.(df.μ0)
+
+spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
+
+draw(
+    visual(Lines) * spec,
+    axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
+    facet = (; linkxaxes = :none),
+    figure = (; size = (800, 250))
+)
+```
+
+The second prediction is @cor-newton-coupling: the Newton strategy can be
+perturbed by a large $|\partial_0 F|$ at cold start. @fig-cold-start
+exposes this: with cyclic ordering and the intercept initialized at zero
+(so $|\partial_0 F|$ is large at pass one), bare Newton needs noticeably
+more outer passes than damped Newton at $\mu_0 = 0.99$. At moderate
+imbalance the two are indistinguishable, consistent with
+@cor-newton-coupling promising leading-order agreement whenever $|r_0|$ is
+small. The convergence strategy is competitive in this experiment but pays
+the within-pass-drift cost identified in @lem-convergence-cost; see also
+the cyclic-CD instability footnoted under @fig-first-example.
 
 ### Convergence Rates
 

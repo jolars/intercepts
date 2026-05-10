@@ -7,6 +7,12 @@ struct GradientStrategy <: InterceptStrategy end
 struct NewtonStrategy <: InterceptStrategy end
 struct ConvergenceStrategy <: InterceptStrategy end
 
+@kwdef struct DampedNewtonStrategy <: InterceptStrategy
+    armijo_c::Float64 = 1.0e-4
+    backtrack::Float64 = 0.5
+    max_backtracks::Int = 20
+end
+
 function update_intercept(
     ::NoIntercept,
     f::LossFunction,
@@ -38,6 +44,39 @@ function update_intercept(
     hess = sum(hessian(f, η, y))
 
     return intercept - grad / hess
+end
+
+# Newton step with Armijo backtracking line search
+function update_intercept(
+    s::DampedNewtonStrategy,
+    f::LossFunction,
+    intercept::Real,
+    η::AbstractVector{<:Real},
+    y::AbstractVector{<:Real},
+)
+    grad = sum(gradient(f, η, y))
+    hess = sum(hessian(f, η, y))
+
+    if hess <= 0 || !isfinite(hess) || grad == 0
+        return intercept
+    end
+
+    direction = -grad / hess
+    f0 = loss(f, η, y)
+    armijo_slope = s.armijo_c * grad * direction
+
+    α = 1.0
+    η_trial = similar(η)
+    for _ = 0:s.max_backtracks
+        @. η_trial = η + α * direction
+        f_trial = loss(f, η_trial, y)
+        if f_trial <= f0 + α * armijo_slope
+            return intercept + α * direction
+        end
+        α *= s.backtrack
+    end
+
+    return intercept + α * direction
 end
 
 # Iteratively update the intercept until convergence
