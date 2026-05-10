@@ -135,6 +135,9 @@ case into the common regime. Our main contributions are as follows:
 4. We extend the analysis to vector intercepts (multinomial logistic) and
    show that the rare-class regime sharpens the failure modes already
    identified for the scalar setting.
+5. We connect the analysis to iteratively reweighted least squares (IRLS),
+   the algorithmic basis of glmnet, and identify which of the three
+   strategies is realized by each of glmnet's two production modes.
 
 ## Theory
 
@@ -543,6 +546,16 @@ gradient strategy applies no coupling correction at all and the coefficient
 subproblem sees the full, uncorrected gradient. In this regime the strategy
 is not merely slow but structurally inadequate.
 
+The same $H_{00}/L_0$ ratio also governs how the gradient strategy enters
+standard randomized-CD rate bounds. The expected suboptimality after $t$
+iterations is bounded by $2 S_L R_0^2 / t$ with $S_L = \sum_{j=0}^p L_j$
+[@wright2015]. The global $L_0$ enters $S_L$ at the worst-case scale --- e.g.\
+$n/4$ for logistic loss --- while the iterate-level curvature $H_{00}$ used by
+the Newton and convergence strategies can be orders of magnitude smaller under
+imbalance. The regime that @lem-gradient-partial identifies as the gradient
+strategy's failure mode is exactly the regime where the standard rate bound
+is loosest.
+
 #### A safeguarded Newton variant
 
 @cor-newton-coupling identifies the cold-start regime --- large
@@ -663,9 +676,8 @@ We implement block coordinate descent over classes: for each feature $j$ we
 cycle through the $K-1$ class coefficients with element-wise $\ell_1$
 soft-thresholding, and the intercept is updated as a vector once per pass.
 An alternative is to cycle one class at a time with the others held fixed,
-as in `glmnet`'s symmetric-multinomial path; the intercept story under that
-scheme decouples back into the scalar setting per class and is therefore
-not the interesting comparison for the present paper.
+as in glmnet's symmetric-multinomial path; we return to that scheme below
+after the block-CD findings.
 
 ```{julia}
 #| label: fig-multinomial-imbalance
@@ -728,6 +740,19 @@ matter of tuning.
 Practically, this simplifies the recommendation in the multinomial setting:
 use the bare Newton block step. The damping safeguard that mattered for
 the scalar cold-start is already built in.
+
+The class-by-class scheme of glmnet's symmetric-multinomial path tells a
+different but parallel story. Holding all $\eta_{il}$ for $l \neq k$ fixed,
+the marginal subproblem in class $k$'s linear predictors $\eta_{ik}$ is, up
+to a per-observation offset $\log\bigl(1 + \sum_{l \neq k} e^{\eta_{il}}\bigr)$,
+a scalar logistic regression. The scalar theory of @lem-gradient-partial
+therefore applies *per class*, and any rare class with extreme per-class
+response imbalance triggers exactly the gradient-strategy failure documented
+in the binary setting --- now along the rare class's intercept coordinate
+specifically. The multinomial setting hits the gradient-strategy failure
+mode through two independent mechanisms then: rare-class diagonal scaling
+under block CD, and rare-class scalar imbalance under class-by-class CD.
+The Newton-strategy recommendation transfers to both schemes.
 
 ### Connection to IRLS
 
@@ -824,34 +849,21 @@ strategy-collapse claim within Local-IRLS is verified numerically in the
 unit tests rather than the figure, since by construction the three
 strategies produce identical iterates on the inner quadratic.
 
-### Convergence Rates
+A reader may notice that Local-IRLS also outpaces Direct-CD with the
+Newton strategy on this problem. This reflects the broader trade-off
+between algorithmic families rather than a comparison of intercept
+strategies: IRLS-CD enjoys a constant inner Hessian and locally quadratic
+outer convergence, which favours it on canonical-link GLMs where the
+linearization is tight. Direct-CD has the edge when $f'''$ is large (e.g.\
+Poisson with extreme rates, where each linearization is loose far from the
+current iterate), when working-response instability under saturation
+matters, or when screening and working-set methods --- standard in modern
+$\ell_1$ solvers --- compose poorly with re-linearization
+[@bertrand2022]. Our strategy analysis is orthogonal to this family
+choice: within either family, the recommendation against the gradient
+strategy and in favour of (damped) Newton carries through.
 
-Assuming that the $j$ is drawn uniformly at random from $\{1, 2, ..., p\}$ at
-each iteration, the convergence rate for one iteration of coordinate descent can
-be bounded as [@wright2015]
-$$
-\E \left( F(\beta0^{(t)}, \beta^{(t)}\right) - F(\hat{\beta}_0, \hat{\beta})
-\leq
-\frac{2 S_L R_0^2}{t}.
-$$
-where $S_L = \sum_{j=0}^p L_j$.
-
-And since $L_0$ can be larger than $L_j$ for $j \geq 1$ in cases where the the
-response is skewed and the features are uncorrelated, this can have an effect on
-overall convergence.
-
-Consider, for instance, the case of logistic regression with an unbalanced
-binary response. In this case, the weights $w_i$ will be close to zero for most
-samples, except for those samples where the linear predictor is close to the
-decision boundary. The global Lipschitz constant would give
-$$
-L_0 = \frac{n}{4}.
-$$
-while the local Lipschitz constant would be
-$$
-L_0 = \sum_{i=1}^n w_i = \sum_{i=1}^n \ilink(\eta_i) (1 - \ilink(\eta_i))
-$$
-which is much smaller if $\ilink(\eta_i)$ is close to 0 or 1.
+### Geometric illustration
 
 ```{julia}
 #| label: fig-parametric
