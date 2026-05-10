@@ -122,14 +122,19 @@ draw(
 strategy is slow, the convergence strategy wastes per-pass cost without a
 commensurate rate gain, and the Newton strategy is both reliable and
 efficient. The damped Newton strategy adds a safeguard against the narrow
-cold-start regime where a bare Newton step can overshoot. Our main
-contributions are as follows:
+cold-start regime where a bare Newton step can overshoot. The same
+recommendation extends to multinomial logistic regression, where rare
+classes turn the imbalance failure of the gradient strategy from a corner
+case into the common regime. Our main contributions are as follows:
 
 1. We introduce and formalize the three strategies for fitting intercepts in
    coordinate descent methods for regularized regression.
 2. We provide an extensive empirical study of the three strategies on both
    simulated and real data.
 3. We provide theoretical results that explain the empirical findings.
+4. We extend the analysis to vector intercepts (multinomial logistic) and
+   show that the rare-class regime sharpens the failure modes already
+   identified for the scalar setting.
 
 ## Theory
 
@@ -625,6 +630,77 @@ imbalance the two are indistinguishable, consistent with
 small. The convergence strategy is competitive in this experiment but pays
 the within-pass-drift cost identified in @lem-convergence-cost; see also
 the cyclic-CD instability footnoted under @fig-first-example.
+
+#### Extension to vector intercepts
+
+The scalar story extends almost verbatim to multinomial logistic regression
+with $K$ classes, where the intercept is a vector $\beta_0 \in \mathbb{R}^{K-1}$
+under the reference-class parameterisation $\eta_{iK} = 0$. Writing
+$\eta_{ik} = x_i^\top \beta_k + \beta_{0k}$ for $k = 1, \dots, K-1$ and
+$p_{ik} = e^{\eta_{ik}}/\bigl(1 + \sum_{l<K} e^{\eta_{il}}\bigr)$, the
+per-observation Hessian block has diagonal $p_{ik}(1 - p_{ik})$ and
+off-diagonal $-p_{ik} p_{il}$. The intercept Hessian
+$H_{00} = \sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\top\bigr)$
+is a $(K-1) \times (K-1)$ matrix; the Newton strategy becomes a small block
+solve $\delta = -H_{00}^{-1}\,\nabla_0 F$, and the damped variant performs
+Armijo backtracking on the loss along that direction. @thm-profile-equiv,
+@lem-convergence-cost, and @cor-newton-coupling all carry through with
+matrix-valued $H_{00}$ in place of the scalar.
+
+@lem-gradient-partial sharpens. The gradient strategy applies a uniform
+Lipschitz bound $L_0$ across all classes, so the per-class fraction of the
+correction is
+$H_{00,kk}/L_0 = \bigl(\sum_i p_{ik}(1 - p_{ik})\bigr)/L_0$. With $K$ classes
+the diagonal $H_{00,kk}$ scales linearly with class prevalence, so any rare
+class produces a microscopic intercept correction along that coordinate while
+the dominant classes are well fit. Class imbalance is no longer a corner
+case --- with $K = 10$ and a uniform marginal, $\bar p_k = 0.1$ already, and
+typical text or image-classification label distributions skew further. The
+multinomial setting is where the imbalance failure of the gradient strategy
+is the *common* regime rather than an extreme.
+
+We implement block coordinate descent over classes: for each feature $j$ we
+cycle through the $K-1$ class coefficients with element-wise $\ell_1$
+soft-thresholding, and the intercept is updated as a vector once per pass.
+An alternative is to cycle one class at a time with the others held fixed,
+as in `glmnet`'s symmetric-multinomial path; the intercept story under that
+scheme decouples back into the scalar setting per class and is therefore
+not the interesting comparison for the present paper.
+
+```{julia}
+#| label: fig-multinomial-imbalance
+#| fig-cap: Imbalanced multinomial logistic ($K = 5$, marginal class
+#|   probabilities $(0.7, 0.1, 0.1, 0.05, 0.05)$, $n = 500$, $p = 200$,
+#|   $\lambda = 0.05\,\lambda_{\max}$, three random seeds, cyclic CD). The
+#|   gradient strategy stalls along the rare-class intercept components and
+#|   is roughly an order of magnitude slower to converge than the Newton
+#|   variants. Newton, damped Newton, and convergence are visually
+#|   indistinguishable on this problem; @cor-newton-coupling's cold-start
+#|   regime is mild here because the marginal-prior intercept warm-up keeps
+#|   $|\nabla_0 F|$ moderate at iteration one.
+
+dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
+
+df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.it = "seed = " .* string.(df.it)
+
+spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :it)
+
+draw(
+    visual(Lines) * spec,
+    axis = (yscale = log10, ylabel = "Relative primal suboptimality", xlabel = "Time (s)"),
+    facet = (; linkxaxes = :none),
+    figure = (; size = (800, 250))
+)
+```
+
+@fig-multinomial-imbalance reports relative primal suboptimality
+(measured against the lowest primal observed during each run); the
+multinomial CD solver does not maintain a duality scaling. The qualitative
+behaviour matches the scalar prediction: the gradient strategy stalls and
+the Newton variants converge in roughly an order of magnitude less wall time.
 
 ### Convergence Rates
 

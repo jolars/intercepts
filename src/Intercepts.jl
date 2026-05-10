@@ -7,9 +7,11 @@ include("gdsolver.jl")
 include("math.jl")
 include("data.jl")
 include("normalize.jl")
+include("multinomial_cdsolver.jl")
 include("experiment.jl")
 
 export cdsolver
+export multinomial_cdsolver
 export gdsolver
 export NoIntercept
 export InterceptStrategy
@@ -29,6 +31,8 @@ export LossFunction
 export QuadraticLoss
 export LogisticLoss
 export PoissonLoss
+export MultinomialLogisticLoss
+export softmax_probs
 export residual
 export link
 export invlink

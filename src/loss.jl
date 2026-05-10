@@ -158,3 +158,129 @@ function validateresponse(::PoissonLoss, y::AbstractVector)
         throw(ArgumentError("Response variable for Poisson regression must contain at least two distinct values"))
     end
 end
+
+
+# MultinomialLogisticLoss: K-class softmax with reference class K (η_iK = 0).
+# η is stored as Matrix(n, K-1) for the K-1 free classes.
+# y is a Vector{Int} of class labels in 1..K.
+@kwdef struct MultinomialLogisticLoss <: LossFunction
+    K::Int
+    lipschitz::Float64 = 0.5
+end
+
+# Softmax probabilities (n × K) given η ∈ Matrix(n, K-1) with reference class K.
+function softmax_probs(η::AbstractMatrix{<:Real})
+    n, Km1 = size(η)
+    K = Km1 + 1
+    p = Matrix{Float64}(undef, n, K)
+    @inbounds for i = 1:n
+        m = 0.0
+        for k = 1:Km1
+            ηik = η[i, k]
+            if ηik > m
+                m = ηik
+            end
+        end
+        s = exp(-m)
+        for k = 1:Km1
+            p[i, k] = exp(η[i, k] - m)
+            s += p[i, k]
+        end
+        p[i, K] = exp(-m)
+        for k = 1:K
+            p[i, k] /= s
+        end
+    end
+    return p
+end
+
+function loss(
+    f::MultinomialLogisticLoss,
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    n, Km1 = size(η)
+    K = f.K
+    L = 0.0
+    @inbounds for i = 1:n
+        m = 0.0
+        for k = 1:Km1
+            ηik = η[i, k]
+            if ηik > m
+                m = ηik
+            end
+        end
+        s = exp(-m)
+        for k = 1:Km1
+            s += exp(η[i, k] - m)
+        end
+        lse = m + log(s)
+        ηy = (y[i] == K) ? 0.0 : η[i, y[i]]
+        L += lse - ηy
+    end
+    return L
+end
+
+function gradient(
+    f::MultinomialLogisticLoss,
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    p = softmax_probs(η)
+    n, Km1 = size(η)
+    G = Matrix{Float64}(undef, n, Km1)
+    @inbounds for i = 1:n
+        for k = 1:Km1
+            G[i, k] = p[i, k] - (y[i] == k ? 1.0 : 0.0)
+        end
+    end
+    return G
+end
+
+# Per-observation Hessian blocks: H[i, k, l] = p[i, k] (𝟙{k=l} - p[i, l]).
+# Returns Array(n, K-1, K-1).
+function hessian(
+    f::MultinomialLogisticLoss,
+    η::AbstractMatrix{<:Real},
+    ::AbstractVector{<:Integer},
+)
+    p = softmax_probs(η)
+    n, Km1 = size(η)
+    H = Array{Float64,3}(undef, n, Km1, Km1)
+    @inbounds for i = 1:n
+        for k = 1:Km1
+            pik = p[i, k]
+            for l = 1:Km1
+                H[i, k, l] = (k == l) ? pik * (1 - pik) : -pik * p[i, l]
+            end
+        end
+    end
+    return H
+end
+
+function invlink(f::MultinomialLogisticLoss, η::AbstractMatrix{<:Real})
+    return softmax_probs(η)
+end
+
+# Returns the n × K softmax probability matrix (analog of LogisticLoss weight).
+function weight(f::MultinomialLogisticLoss, η::AbstractMatrix{<:Real})
+    return softmax_probs(η)
+end
+
+function residual(
+    f::MultinomialLogisticLoss,
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    return gradient(f, η, y)
+end
+
+function validateresponse(f::MultinomialLogisticLoss, y::AbstractVector{<:Integer})
+    K = f.K
+    if any(y .< 1) || any(y .> K)
+        throw(ArgumentError("Response for MultinomialLogisticLoss must be class indices in 1..$(K)"))
+    end
+    if length(unique(y)) < 2
+        throw(ArgumentError("Response variable must contain at least two distinct classes"))
+    end
+end

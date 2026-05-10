@@ -15,6 +15,8 @@ function generatedata(
     s::Int = 5,
     type::Symbol = :constant,
     amplitude::Real = 1,
+    K::Int = 3,
+    class_probs::Union{AbstractVector,Nothing} = nothing,
 )
     s = min(s, p)
     β = zeros(p)
@@ -70,6 +72,59 @@ function generatedata(
         end
     else
         throw(ArgumentError("Unsupported x_type: $x_type"))
+    end
+
+    if response == :multinomial
+        π = class_probs === nothing ? fill(1.0 / K, K) : Vector{Float64}(class_probs)
+        if length(π) != K
+            throw(ArgumentError("class_probs length must equal K (got $(length(π)) vs $K)"))
+        end
+        if !isapprox(sum(π), 1.0; atol = 1e-8)
+            throw(ArgumentError("class_probs must sum to 1"))
+        end
+
+        # Per-class sparse signal: each class k=1..K-1 gets s active features
+        # at evenly-spaced indices, scaled by amplitude. Class K is reference (β=0).
+        Bcoef = zeros(p, K - 1)
+        for k = 1:(K-1)
+            offset = ((k - 1) * s) % p
+            inds_k = mod1.(ind .+ offset, p)
+            Bcoef[inds_k, k] .= amplitude
+        end
+
+        η = x * Bcoef  # n × (K-1)
+
+        # Reference-class intercepts that target the marginal π.
+        β0 = log.(π[1:(K-1)] ./ π[K])
+        η .+= β0'
+
+        # Sample classes by softmax.
+        y = Vector{Int}(undef, n)
+        for i = 1:n
+            denom = 1.0
+            cum = zeros(K)
+            cum[K] = 1.0
+            for k = 1:(K-1)
+                cum[k] = exp(η[i, k])
+                denom += cum[k]
+            end
+            for k = 1:K
+                cum[k] /= denom
+            end
+            # cumulative for sampling
+            csum = 0.0
+            r = rand()
+            yi = K
+            for k = 1:K
+                csum += cum[k]
+                if r <= csum
+                    yi = k
+                    break
+                end
+            end
+            y[i] = yi
+        end
+        return x, y
     end
 
     η = x * β

@@ -115,3 +115,132 @@ function update_intercept(
 
     return intercept
 end
+
+
+# =============================================================================
+# Vector-intercept dispatch (multinomial logistic, reference-class form).
+# η is Matrix(n, K-1); intercept is Vector(K-1); y is Vector{Int} (class labels).
+# =============================================================================
+
+# Sum gradient across observations → length K-1.
+function _intercept_grad(f::LossFunction, η::AbstractMatrix, y::AbstractVector{<:Integer})
+    G = gradient(f, η, y)
+    return vec(sum(G; dims = 1))
+end
+
+# Sum per-observation Hessian blocks → (K-1) × (K-1).
+function _intercept_hess(f::LossFunction, η::AbstractMatrix, y::AbstractVector{<:Integer})
+    H = hessian(f, η, y)
+    return dropdims(sum(H; dims = 1); dims = 1)
+end
+
+function update_intercept(
+    ::NoIntercept,
+    f::LossFunction,
+    intercept::AbstractVector{<:Real},
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    return zeros(length(intercept))
+end
+
+function update_intercept(
+    ::GradientStrategy,
+    f::LossFunction,
+    intercept::AbstractVector{<:Real},
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    n = size(η, 1)
+    g = _intercept_grad(f, η, y)
+    return intercept .- g ./ (f.lipschitz * n)
+end
+
+function update_intercept(
+    ::NewtonStrategy,
+    f::LossFunction,
+    intercept::AbstractVector{<:Real},
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    g = _intercept_grad(f, η, y)
+    H = _intercept_hess(f, η, y)
+    δ = -(H \ g)
+    return intercept .+ δ
+end
+
+function update_intercept(
+    s::DampedNewtonStrategy,
+    f::LossFunction,
+    intercept::AbstractVector{<:Real},
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    g = _intercept_grad(f, η, y)
+    H = _intercept_hess(f, η, y)
+
+    # Direction: Newton step. Fall back to no-update if Hessian is degenerate.
+    local δ
+    try
+        δ = -(H \ g)
+    catch
+        return intercept
+    end
+    if any(!isfinite, δ)
+        return intercept
+    end
+
+    f0 = loss(f, η, y)
+    armijo_slope = s.armijo_c * dot(g, δ)
+
+    α = 1.0
+    η_trial = similar(η)
+    for _ = 0:s.max_backtracks
+        @. η_trial = η + α * δ'  # broadcast δ' across rows
+        f_trial = loss(f, η_trial, y)
+        if f_trial <= f0 + α * armijo_slope
+            return intercept .+ α .* δ
+        end
+        α *= s.backtrack
+    end
+
+    return intercept .+ α .* δ
+end
+
+function update_intercept(
+    ::ConvergenceStrategy,
+    f::LossFunction,
+    intercept::AbstractVector{<:Real},
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    n = size(η, 1)
+    η_copy = copy(η)
+    intercept = copy(intercept)
+
+    max_it = 20
+    for _ = 1:max_it
+        g = _intercept_grad(f, η_copy, y)
+
+        if maximum(abs, g) < 1e-10
+            break
+        end
+
+        H = _intercept_hess(f, η_copy, y)
+
+        local δ
+        try
+            δ = -(H \ g)
+        catch
+            δ = -g ./ (f.lipschitz * n)
+        end
+        if any(!isfinite, δ)
+            δ = -g ./ (f.lipschitz * n)
+        end
+
+        η_copy .+= δ'  # broadcast across rows
+        intercept .+= δ
+    end
+
+    return intercept
+end

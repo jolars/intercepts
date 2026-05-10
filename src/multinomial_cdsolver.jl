@@ -1,0 +1,201 @@
+using LinearAlgebra
+using Random
+
+# λmax for multinomial logistic with element-wise L1 on β[j, k].
+# At β = 0, the optimal intercept fits class proportions:
+#   β0[k] = log(n_k / n_K)  for k = 1..K-1
+# giving uniform-across-i softmax probs p[k] = n_k / n. The KKT residual is
+# X' R where R[i, k] = p[k] - 𝟙{y_i = k}; λmax is the max-abs entry.
+function lambdamax_multinomial(
+    f::MultinomialLogisticLoss,
+    x::AbstractMatrix,
+    y::AbstractVector{<:Integer},
+)
+    n = size(x, 1)
+    K = f.K
+    counts = zeros(K)
+    for yi in y
+        counts[yi] += 1
+    end
+    counts = max.(counts, 0.5)
+    p_marg = counts ./ sum(counts)
+
+    R = Matrix{Float64}(undef, n, K - 1)
+    @inbounds for i = 1:n, k = 1:(K-1)
+        R[i, k] = p_marg[k] - (y[i] == k ? 1.0 : 0.0)
+    end
+    return norm(x' * R, Inf)
+end
+
+function rescalecoefs_multinomial(
+    coefs::AbstractMatrix,
+    intercept::AbstractVector,
+    centers::AbstractMatrix,
+    scales::AbstractMatrix;
+    fit_intercept::Bool = true,
+)
+    p, Km1 = size(coefs)
+    coefs_rescaled = copy(coefs)
+    intercept_rescaled = copy(intercept)
+
+    for k = 1:Km1
+        shift = 0.0
+        for j = 1:p
+            coefs_rescaled[j, k] /= scales[j]
+            shift += centers[j] * coefs_rescaled[j, k]
+        end
+        if fit_intercept
+            intercept_rescaled[k] -= shift
+        end
+    end
+    return intercept_rescaled, coefs_rescaled
+end
+
+function multinomial_cdsolver(
+    x::AbstractMatrix,
+    y::AbstractVector{<:Integer},
+    reg::Real = 0.1;
+    lossfun::MultinomialLogisticLoss,
+    intercept_strategy::InterceptStrategy = NewtonStrategy(),
+    update_freq::Int = 1,
+    tol::Real = 1e-10,
+    maxit::Int = 1000,
+    maxtime::Real = Inf,
+    randomize::Bool = true,
+    normalization::Symbol = :standardize,
+    save_history::Bool = false,
+)
+    n, p = size(x)
+    K = lossfun.K
+    Km1 = K - 1
+
+    validateresponse(lossfun, y)
+
+    x, x_centers, x_scales = normalizefeatures(x, normalization)
+
+    fit_intercept = !(intercept_strategy isa NoIntercept)
+    update_when = max(1, floor(Int, p / update_freq))
+
+    λmax = lambdamax_multinomial(lossfun, x, y)
+    λ = reg * λmax
+
+    intercept = zeros(Km1)
+    coef = zeros(p, Km1)
+    η = zeros(n, Km1)
+
+    primals = Float64[]
+    times = Float64[]
+    intercepts_history = Vector{Vector{Float64}}(undef, 0)
+    coefs_history = Vector{Matrix{Float64}}(undef, 0)
+    t0 = time()
+
+    it = 0
+    while it < maxit && (time() - t0) < maxtime
+        it += 1
+
+        primal = loss(lossfun, η, y) + λ * sum(abs, coef)
+        push!(primals, primal)
+        push!(times, time() - t0)
+
+        if save_history
+            intercept_resc, coef_resc = rescalecoefs_multinomial(
+                coef,
+                intercept,
+                x_centers,
+                x_scales;
+                fit_intercept = fit_intercept,
+            )
+            push!(intercepts_history, intercept_resc)
+            push!(coefs_history, coef_resc)
+        end
+
+        if length(primals) >= 2
+            change = abs(primals[end-1] - primal) / max(abs(primal), 1e-15)
+            if change < tol
+                break
+            end
+        end
+
+        ind = randomize ? randperm(p) : (1:p)
+        coef_old = copy(coef)
+        intercept_old = copy(intercept)
+
+        for (inner_it, j) in enumerate(ind)
+            ps = softmax_probs(η)  # Jacobi-within-j: probs frozen for all k of this feature
+
+            for k = 1:Km1
+                grad_jk = 0.0
+                hess_jk = 0.0
+                @inbounds for i = 1:n
+                    diff_i = ps[i, k] - (y[i] == k ? 1.0 : 0.0)
+                    xij = x[i, j]
+                    grad_jk += xij * diff_i
+                    pik = ps[i, k]
+                    hess_jk += xij * xij * pik * (1 - pik)
+                end
+
+                if hess_jk == 0
+                    hess_jk = 1e-10
+                end
+
+                coef_jk = coef[j, k]
+                β_new = st(coef_jk - grad_jk / hess_jk, λ / hess_jk)
+                Δ = coef_jk - β_new
+                if Δ != 0
+                    coef[j, k] = β_new
+                    @views η[:, k] .-= Δ .* x[:, j]
+                end
+            end
+
+            if inner_it % update_when == 0 && fit_intercept
+                intercept_prev = copy(intercept)
+                intercept = update_intercept(
+                    intercept_strategy,
+                    lossfun,
+                    intercept_prev,
+                    η,
+                    y,
+                )
+                for k = 1:Km1
+                    @views η[:, k] .+= intercept[k] - intercept_prev[k]
+                end
+            end
+        end
+
+        # Pass-level backtracking if primal worsened.
+        old_primal = primal
+        primal = loss(lossfun, η, y) + λ * sum(abs, coef)
+        if primal > old_primal
+            coef_diff = coef - coef_old
+            intercept_diff = intercept - intercept_old
+            alpha = 1.0
+            while primal > old_primal && alpha > 1e-4
+                alpha *= 0.1
+                coef = coef_old + alpha * coef_diff
+                intercept = intercept_old + alpha * intercept_diff
+                η = x * coef .+ intercept'
+                primal = loss(lossfun, η, y) + λ * sum(abs, coef)
+            end
+        end
+    end
+
+    intercept_out, coef_out = rescalecoefs_multinomial(
+        coef,
+        intercept,
+        x_centers,
+        x_scales;
+        fit_intercept = fit_intercept,
+    )
+
+    return (
+        intercept = intercept_out,
+        coef = coef_out,
+        primals = primals,
+        time = times,
+        passes = it,
+        λ = λ,
+        λmax = λmax,
+        intercepts = intercepts_history,
+        coefs = coefs_history,
+    )
+end
