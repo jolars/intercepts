@@ -8,11 +8,16 @@ include("math.jl")
 include("data.jl")
 include("normalize.jl")
 include("multinomial_cdsolver.jl")
+include("irlssolver.jl")
 include("experiment.jl")
 
 export cdsolver
 export multinomial_cdsolver
 export gdsolver
+export irlssolver
+export IRLSWeights
+export LocalWeights
+export MajorizedWeights
 export NoIntercept
 export InterceptStrategy
 export GradientStrategy

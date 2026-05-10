@@ -11,5 +11,8 @@ using Statistics
     @testset "Multinomial" begin
         include("multinomial.jl")
     end
+    @testset "IRLS" begin
+        include("irls.jl")
+    end
 end
 
