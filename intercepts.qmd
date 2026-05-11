@@ -28,13 +28,14 @@ Random.seed!(14)
 
 The dominating method for fitting regularized regression models is proximal
 coordinate descent, which serves as the default optimization method in a range
-of software packages: glmnet [@friedman2010], biglasso [@zeng2017], skglm
-[@bertrand2022], LIBLINEAR [@fan2008], BlitzL1 [@johnson2015], and others. These
-packages do not in fact run a single algorithm: glmnet and biglasso solve a
-sequence of weighted-least-squares subproblems via inner CD (the IRLS-CD
-family); LIBLINEAR and BlitzL1 do the same with a proximal-Newton linearization;
-skglm runs CD directly on the original GLM loss with constant per-coordinate
-Lipschitz steps. Coordinate descent has been investigated extensively, for
+of software packages: glmnet [@friedman2010; @tay2023], biglasso [@zeng2017],
+ncvreg [@breheny2011], skglm [@bertrand2022], adelie [@yang2024], LIBLINEAR
+[@fan2008; @yuan2012], BlitzL1 [@johnson2015], and others. These packages do
+not in fact run a single algorithm: glmnet, biglasso, adelie, and ncvreg solve
+a sequence of weighted-least-squares subproblems via inner CD (the IRLS-CD
+family); LIBLINEAR and BlitzL1 do the same with a proximal-Newton
+linearization [@lee2014]; skglm runs CD directly on the original GLM loss with
+constant per-coordinate Lipschitz steps. Coordinate descent has been investigated extensively, for
 instance with respect to acceleration and parallelization, yet one aspect that
 has so far not been investigated is the strategy of fitting the intercept.
 
@@ -73,10 +74,13 @@ to explain why existing CD implementations differ widely in their treatment of
 it: glmnet and biglasso each expose a user-selectable toggle between two
 intercept update schemes (`type.logistic` and `alg.logistic` respectively);
 skglm picks one of those schemes implicitly through its constant-Lipschitz
-design; LIBLINEAR and BlitzL1 graft a separate 1-D Newton convergence loop on
-the intercept onto each prox-Newton subproblem. As we show in this paper, the
-choice of strategy can have a significant impact on convergence speed,
-especially under response imbalance.
+design; adelie keeps the intercept implicit through a weighted-centered-features
+parameterization of the inner Gaussian surrogate; LIBLINEAR and BlitzL1 graft a
+separate 1-D Newton convergence loop on the intercept onto each prox-Newton
+subproblem; celer [@massias2020] declines the question entirely, with `fit_intercept=TRUE`
+raising `NotImplementedError` for L1-logistic in version 0.7.4. As we show in
+this paper, the choice of strategy can have a significant impact on convergence
+speed, especially under response imbalance.
 
 The three main strategies that we will consider in this paper are:
 
@@ -157,18 +161,19 @@ Our main contributions are as follows:
    classification of CD-based GLM solvers into four algorithmic families ---
    direct CD, local-IRLS, MM-IRLS, and prox-Newton --- and identify the
    intercept strategy realized by each. The classification correctly orders
-   every package in our survey (glmnet, biglasso, skglm, LIBLINEAR, BlitzL1,
-   ncvreg, Lasso.jl), corrects two misclassifications in the prior framing of
-   LIBLINEAR and BlitzL1, and turns the within-package mode toggles in glmnet
-   (`type.logistic`) and biglasso (`alg.logistic`) into a controlled empirical
-   experiment.
-4. **Empirical verification on production codebases.** Four figures on the same
+   every package in our survey (glmnet, biglasso, skglm, adelie, LIBLINEAR,
+   BlitzL1, ncvreg, Lasso.jl), corrects two misclassifications in the prior
+   framing of LIBLINEAR and BlitzL1, and turns the within-package mode toggles
+   in glmnet (`type.logistic`) and biglasso (`alg.logistic`) into a controlled
+   empirical experiment.
+4. **Empirical verification on production codebases.** Five figures on the same
    imbalanced logistic problem confirm the framework's predictions: glmnet
    `modified.Newton` needs roughly six times more inner passes than `Newton`;
    biglasso `MM` needs roughly ten times more than `Newton`; skglm exhibits the
    predicted slow ramp; LIBLINEAR and BlitzL1 both converge fast, as the
    framework predicts for their prox-Newton + convergence-strategy intercept
-   design.
+   design; adelie matches the per-iteration cost of glmnet `Newton`, as the
+   framework predicts for its centered-features local-IRLS realization.
 5. **Multinomial extension.** We extend the analysis to vector intercepts
    (multinomial logistic) and show that the rare-class regime turns the slowdown
    from a corner case into the common regime.
@@ -1004,14 +1009,17 @@ The practical map is therefore richer than the direct-CD analysis alone
 suggests. @tbl-classification summarises where each production solver falls.
 Among the CD-based packages we surveyed, only skglm is a genuine
 direct-CD-gradient-strategy realization on the original loss. The remaining
-solvers --- glmnet, biglasso, LIBLINEAR, BlitzL1, Lasso.jl, ncvreg --- all
-linearize before doing CD, either via IRLS or via proximal-Newton on a quadratic
-upper bound. Within those families the within-package mode toggles are what
-isolate the strategy comparison: glmnet's `Newton` vs `modified.Newton` and
+solvers --- glmnet, biglasso, adelie, LIBLINEAR, BlitzL1, Lasso.jl, ncvreg ---
+all linearize before doing CD, either via IRLS or via proximal-Newton on a
+quadratic upper bound. Within those families the within-package mode toggles are
+what isolate the strategy comparison: glmnet's `Newton` vs `modified.Newton` and
 biglasso's `Newton` vs `MM` toggle precisely the weight scheme of
 @lem-gradient-partial. (Scikit-learn's L1-logistic path either delegates to
 LIBLINEAR or uses SAGA, the latter a variance-reduced stochastic-gradient method
-that falls outside the CD framework analyzed here.)
+that falls outside the CD framework analyzed here. celer's L1-logistic
+estimator does not support an intercept at all in version 0.7.4, and its
+documentation redirects users with logistic needs to skglm; it is therefore
+absent from the table.)
 
   | Solver                                       | Family                | Intercept update on the original loss                       |
   | :------------------------------------------- | :-------------------- | :---------------------------------------------------------- |
@@ -1022,6 +1030,7 @@ that falls outside the CD framework analyzed here.)
   | biglasso `alg.logistic = "Newton"` (default) | Local-IRLS            | Convergence on the local quadratic per outer iter           |
   | Lasso.jl                                     | Local-IRLS            | Convergence on the local quadratic per outer iter           |
   | ncvreg                                       | Local-IRLS            | Convergence on the local quadratic per outer iter           |
+  | adelie                                       | Local-IRLS            | Implicit, via weighted-centered-features parameterization   |
   | LIBLINEAR (newGLMNET, L1-LR)                 | Prox-Newton           | Coefficient of a quadratic + post-step Newton               |
   | BlitzL1                                      | Prox-Newton           | Combined-direction backtrack + post-step Newton convergence |
 
@@ -1357,7 +1366,7 @@ bare Newton whenever a path solve is in fact used.
 ### Production solvers {#sec-production-solvers}
 
 The strategy-class predictions of the previous sections are tested here against
-five production solvers --- across both predicted directions --- on the shared
+six production solvers --- across both predicted directions --- on the shared
 imbalanced logistic problem of @fig-irls-comparison ($n = 500$, $p = 1000$,
 $s = 10$, nominal $\mu_0 = 0.99$, realized class imbalance $0.878$,
 $\lambda = 0.05 \cdot \lambda_{\max}$). For each solver we sweep its convergence
@@ -1374,7 +1383,12 @@ realization of constant-Lipschitz proximal CD, where the intercept update is the
 gradient strategy with $L_0 = n/4$ by construction. The fourth panel verifies
 the complementary prediction on LIBLINEAR (newGLMNET) and BlitzL1 --- two
 prox-Newton solvers that apply the convergence strategy to the intercept ---
-which the framework predicts should converge fast.
+which the framework predicts should converge fast. A fifth panel runs adelie
+[@yang2024], a recent local-IRLS solver that places the intercept implicitly at
+the optimum of each Gaussian surrogate through a weighted-centered-features
+parameterization. The framework places adelie in the same bucket as glmnet
+`Newton` and biglasso `Newton`, and predicts fast convergence in the working
+tolerance regime.
 
 ```{julia}
 #| label: fig-real-glmnet
@@ -1499,6 +1513,44 @@ draw(
         xscale = log10,
         yscale = log10,
         xlabel = "Time (s)",
+        ylabel = "Primal suboptimality",
+    ),
+    figure = (; size = (550, 300)),
+)
+```
+
+The fifth panel adds an independent codebase confirmation for the convergence-on-the-local-quadratic bucket. adelie [@yang2024] is a recent direct-Newton solver that builds the same weighted Gaussian surrogate as glmnet `Newton` but realizes the intercept implicitly: rather than updating $\beta_0$ as a coordinate inside the inner CD pass, it weighted-centers the features at the start of each surrogate and tracks the residual mean, reconstructing $\beta_0 = \bar{y} + \overline{\mathrm{resid}}$ at the end of the inner solve. The intercept therefore sits at the surrogate's optimum on every outer pass by construction, with no separate update step. The classification places adelie in the same bucket as glmnet `Newton` and biglasso `Newton`, and @fig-real-adelie confirms the prediction: each tolerance setting completes in tens of milliseconds in the working range. adelie's outer-IRLS criterion is coarser than glmnet's coefficient-based `thresh`, which is reflected in a higher achievable suboptimality from a single tolerance sweep; the per-iteration cost --- the prediction at stake here --- is on the same order as the other local-IRLS solvers.
+
+```{julia}
+#| label: fig-real-adelie
+#| fig-cap: adelie [@yang2024] on the shared imbalanced logistic problem. The
+#|   solver is a local-IRLS implementation that keeps the intercept implicit
+#|   through a weighted-centered-features parameterization of the Gaussian
+#|   surrogate, so on each surrogate the intercept is at the optimum by
+#|   construction. The framework places it in the same bucket as glmnet
+#|   `Newton` and biglasso `Newton`. In the working tolerance regime each
+#|   tolerance setting completes in tens of milliseconds, matching the
+#|   convergence-strategy prediction. Tighter tolerances are bounded by adelie's
+#|   outer-IRLS criterion $|\sum (\mathrm{resid} - \mathrm{resid}_{\mathrm{prev}})
+#|   \cdot (\eta - \eta_{\mathrm{prev}})| \le \texttt{irls\_tol}$, which has
+#|   trouble making progress under imbalance and effectively places a floor on
+#|   the achievable suboptimality from a single tolerance sweep --- a property
+#|   of the criterion, not of the per-iteration cost.
+
+df = DataFrame(CSV.File(@projectroot("results", "real-solvers", "adelie.csv")))
+df_ref = DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv")))
+F_star = minimum(df_ref.primal)
+df.subopt = max.(df.primal .- F_star, 1.0e-15)
+sort!(df, :tol)
+
+spec = data(df) * mapping(:tol, :subopt)
+draw(
+    visual(Lines) * spec + visual(Scatter) * spec,
+    axis = (
+        xscale = log10,
+        xreversed = true,
+        yscale = log10,
+        xlabel = "Convergence tolerance (tol = irls_tol)",
         ylabel = "Primal suboptimality",
     ),
     figure = (; size = (550, 300)),

@@ -100,6 +100,36 @@
           }
         );
 
+        libsvmdata = (
+          python3.pkgs.buildPythonPackage {
+            pname = "libsvmdata";
+            version = "0.5.0";
+            pyproject = true;
+
+            src = pkgs.fetchFromGitHub {
+              owner = "mathurinm";
+              repo = "libsvmdata";
+              rev = "b7cd318f3ea0e02d88791413922fc129a49953f6";
+              hash = "sha256-yQHo7OwC10T5mEx8zlnwp4efB8ux+RhDqrOgGiMq4iQ=";
+            };
+
+            build-system = with python3.pkgs; [
+              setuptools
+            ];
+
+            dependencies = with python3.pkgs; [
+              download
+              numpy
+              scipy
+              scikit-learn
+            ];
+
+            pythonImportsCheck = [
+              "libsvmdata"
+            ];
+          }
+        );
+
         celer = (
           python3.pkgs.buildPythonPackage rec {
             pname = "celer";
