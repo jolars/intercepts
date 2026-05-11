@@ -12,15 +12,18 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       as a quantitative result. Either weaken the framing to match what is
       proved (a unifying analysis), or supply a real rate result (next item).
 
-- [ ] **Produce a quantitative rate gap between Newton and gradient strategies
-      as a function of $\mu_0$ (or $\rho_{0j}^2$).** This is the single
-      change that would turn the theory section from "framework" into "result":
-      a statement of the form "the gradient strategy needs
-      $\Omega(1/(1-\rho^2))$ more passes than Newton to reach $\varepsilon$
-      suboptimality on $\tilde F$" or similar. The orphaned rate paragraph
-      currently in §Theory hints at this but does not deliver. Without it the
-      "$6\times$" and "$10\times$" production-solver slowdowns are unexplained
-      quantitatively.
+- [x] **Quantitative rate gap.** Done via the new `#### Quantitative rate
+      gap` subsection in §Theory: corollary `@cor-rate-gap` decomposes
+      Wright's randomized-CD bound by coordinate and reduces to
+      $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}(\hat\eta)$ in the
+      imbalance regime, anchored by `@fig-rate-gap` showing empirical
+      pass-count ratio scaling with $L_0/H_{00}$ across a $\mu_0$ sweep.
+      Note for future work: the Schur factor $\bar\rho^2$ is small for
+      standardized designs, so the corollary's headline scaling is the
+      per-coordinate Lipschitz mismatch, not the Schur correction. A
+      tighter rate analysis (linear convergence under restricted strong
+      convexity) would predict the empirical constant more precisely;
+      currently the prediction matches scaling within a factor ~2--3.
 
 - [ ] **Be explicit about the locality of the Newton-strategy results.**
       @lem-newton-approx and @cor-newton-coupling are local (Taylor) bounds.
