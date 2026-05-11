@@ -91,31 +91,10 @@
                 --replace-fail 'from distutils.core import setup, Extension' 'from setuptools import setup, Extension'
             '';
 
-            # dontUseCmakeConfigure = true;
-
-            # nativeBuildInputs = [
-            #   pkgs.cmake
-            #   pkgs.ninja
-            # ];
-
-            # buildInputs = [
-            #   pkgs.eigen
-            # ];
-
-            # build-system = [
-            # pkgs.python3.pkgs.scikit-build-core
-            # pkgs.python3.pkgs.pybind11
-            # ];
-
             dependencies = with python3.pkgs; [
               numpy
               scipy
-              furo
             ];
-
-            # disabledTests = [
-            #   "test_cdist"
-            # ];
 
             pythonImportsCheck = [
               "blitzl1"
@@ -173,6 +152,4 @@
 
   # https://devenv.sh/git-hooks/
   # git-hooks.hooks.shellcheck.enable = true;
-
-  # See full reference at https://devenv.sh/reference/options/
 }
