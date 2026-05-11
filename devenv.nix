@@ -12,6 +12,7 @@
     quartoMinimal
     go-task
     librsvg
+    liblinear
   ];
 
   languages = {
@@ -40,6 +41,7 @@
           "SparseArrays"
           "Test"
           "Runic"
+          "Lasso"
         ]
       );
     };
@@ -53,6 +55,7 @@
             glmnet
             ncvreg
             biglasso
+            LiblineaR
           ];
         }
       );

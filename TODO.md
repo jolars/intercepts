@@ -13,14 +13,13 @@ order.
       prediction, with prose tying the result back to the relevant
       lemma/corollary.
 
-- [ ] **Add experiments driving actual production solvers.** The IRLS subsection
-      makes specific predictions about glmnet's `Newton` vs `modified.Newton`
-      modes, and about skglm/LIBLINEAR/Blitz being direct-CD. None of this is
-      empirically tested --- `fig-irls-comparison` uses our own MM- vs
-      Local-IRLS implementation. At minimum: run actual glmnet on imbalanced
-      logistic and show the predicted divergence between its two modes. Ideally
-      also at least one direct-CD external solver (skglm) for cross-family
-      confirmation.
+- [x] **Add experiments driving actual production solvers.** Done in the
+      new `### Production solvers` subsection of Results, with three figures
+      (`fig-real-glmnet`, `fig-real-biglasso`, `fig-real-skglm`) and the
+      classification table `tbl-classification`. The investigation also
+      surfaced corrections to the paper's framing: LIBLINEAR and BlitzL1 are
+      prox-Newton, not direct-CD; only skglm and SAGA fit "Bucket 1." See
+      drivers under `experiments/sim-real-{problem,glmnet,biglasso,skglm}.{jl,R,py}`.
 
 ## Theory / framing
 
