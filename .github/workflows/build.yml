@@ -44,7 +44,7 @@ jobs:
       - name: Install Julia
         uses: julia-actions/setup-julia@v2
         with:
-          version: "1.11.7"
+          version: "1.12.6"
       - uses: julia-actions/cache@v2
         with:
           cache-registries: "true"
