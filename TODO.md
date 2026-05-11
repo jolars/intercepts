@@ -4,13 +4,12 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## The theory section overpromises against what it proves
 
-- [ ] **Reframe "Theoretical characterization" in the contributions list.** The
-      Schur / $\rho_{0j}^2$ view is a *lens*; the supporting lemmas are
-      one-line Taylor expansions and one envelope-theorem identity. The
-      contributions list currently advertises "Three lemmas predict ... exactly
-      which strategy-by-family combinations slow", which a reviewer will read
-      as a quantitative result. Either weaken the framing to match what is
-      proved (a unifying analysis), or supply a real rate result (next item).
+- [x] **Reframe "Theoretical characterization" in the contributions list.**
+      Done: contribution #2 is now titled "A unifying Schur-complement
+      analysis" and describes the lemmas as short Taylor / envelope-theorem
+      identities tying the slow regime to the Lipschitz mismatch
+      $H_{00} \ll L_0$. The genuine quantitative result (rate corollary
+      `@cor-rate-gap`) is retained as the load-bearing claim.
 
 - [x] **Quantitative rate gap.** Done via the new `#### Quantitative rate
       gap` subsection in §Theory: corollary `@cor-rate-gap` decomposes
@@ -25,10 +24,12 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       convexity) would predict the empirical constant more precisely;
       currently the prediction matches scaling within a factor ~2--3.
 
-- [ ] **Be explicit about the locality of the Newton-strategy results.**
-      @lem-newton-approx and @cor-newton-coupling are local (Taylor) bounds.
-      There is no global convergence proof for CD-with-Newton-intercept.
-      One sentence acknowledging this would head off a reviewer ask.
+- [x] **Be explicit about the locality of the Newton-strategy results.**
+      Done: added a sentence after the cold-start discussion of
+      @cor-newton-coupling stating that both results are *local* Taylor
+      statements about a single Newton step, that no global convergence
+      proof for CD-with-Newton-intercept is given, and that empirical
+      evidence in §Numerical experiments stands in for that.
 
 ## The Results section is too thin to support the Theory claims
 
@@ -72,18 +73,25 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## Framing / structural
 
-- [ ] **Resolve the three-vs-four strategies framing.** The intro says "three
-      main strategies" then bolts on damped Newton as "a fourth variant".
-      Algorithm 1 omits damped Newton entirely. Pick a frame: either four
-      strategies throughout, or treat damped Newton as a safeguarded subcase
-      of Newton (closer to what the theory actually does).
+- [x] **Resolve the three-vs-four strategies framing.** Done by treating
+      damped Newton as a safeguarded subcase of the Newton strategy
+      throughout. The intro listing now folds the damped variant into the
+      Newton bullet; the contributions list calls it an "Armijo-backtracking
+      safeguard on the Newton strategy"; the paragraph after Algorithm 1
+      explicitly notes that the algorithm's Newton branch is the bare step
+      and the damped variant wraps the same direction in Armijo
+      backtracking. Figures continue to plot bare and damped Newton as
+      distinct curves where they behave distinctly.
 
-- [ ] **Steelman the convergence strategy.** §IRLS already partly does this
-      by rehabilitating it at the prox-Newton boundary, but the direct-CD
-      verdict is currently a one-sided dismissal. One paragraph naming the
-      regimes where convergence is defensible (warm-started path solves,
-      very ill-conditioned designs, prox-Newton boundary) would sharpen the
-      recommendation rather than weaken it.
+- [x] **Steelman the convergence strategy.** Done: added a paragraph after
+      the cost-versus-progress verdict (in §Theory, just before
+      @lem-newton-approx) that names three regimes where the convergence
+      strategy is defensible --- warm-started path solves (small $k_0$),
+      strongly coupled designs (where envelope alignment offsets some of
+      the per-pass overhead), and the prox-Newton/IRLS linearization
+      boundary (cross-referenced to @sec-irls). The paragraph explicitly
+      scopes the recommendation against the convergence strategy to the
+      cold-start, direct-CD setting outside all three.
 
 ## Smaller items
 

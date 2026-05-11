@@ -83,16 +83,14 @@ The three main strategies that we will consider in this paper are:
 1. **Gradient strategy**: The intercept is updated using a single gradient step
    before each pass over the coordinates.
 2. **Newton strategy**: The intercept is updated using a single Newton step
-   before each pass over the coordinates.
+   before each pass over the coordinates. We also study a *damped* version
+   that wraps the Newton step in an Armijo backtracking line search; the
+   damped variant reduces to the bare Newton update whenever the full step
+   is accepted (the common case) and provides a safeguard in the cold-start
+   or saturated-loss regime where bare Newton can overshoot.
 3. **Convergence strategy**: The intercept is updated by solving the
    optimization problem in the intercept convergence before each pass over the
    coordinates, using either gradient or Newton steps.
-
-A fourth variant we consider is the *damped Newton strategy*: a single Newton
-step protected by an Armijo backtracking line search. It coincides with the
-Newton strategy whenever the line search accepts the full step, which is the
-common case, and falls back to a safeguarded shorter step in the cold-start or
-saturated-loss regime where bare Newton can overshoot.
 
 For a first illustration of this, see @fig-first-example, which shows how the
 three different methods affect overall convergence on $\ell_1$-regularized
@@ -128,8 +126,8 @@ draw(
 @fig-first-example illustrates the main message of this paper: the gradient
 strategy is slow, the convergence strategy wastes per-pass cost without a
 commensurate rate gain, and the Newton strategy is both reliable and efficient.
-The damped Newton strategy adds a safeguard against the narrow cold-start regime
-where a bare Newton step can overshoot.
+An Armijo-safeguarded *damped* Newton variant protects against the narrow
+cold-start regime where a bare Newton step can overshoot.
 
 The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
@@ -143,17 +141,18 @@ Our main contributions are as follows:
 
 1. **Strategy taxonomy.** We introduce and formalize three intercept-update
    strategies --- gradient, Newton, and convergence --- that span the design
-   space used by current CD solvers for regularized GLMs, plus a damped Newton
-   safeguard for the cold-start regime.
-2. **Theoretical characterization.** We give a Schur-complement analysis of how
-   each strategy interacts with the proximal subproblem, summarised by the
-   cross-Hessian coupling $\rho_{0j}^2$ and the curvature ratio $H_{00}/L_0$.
-   Three lemmas isolate the two channels by which the gradient strategy slows
-   --- per-coordinate Lipschitz mismatch on the intercept and partial Schur
-   correction on the coefficients --- and a corollary on the randomized-CD rate
-   yields the leading-order iteration-complexity ratio
+   space used by current CD solvers for regularized GLMs, together with an
+   Armijo-backtracking safeguard on the Newton strategy (the *damped Newton*
+   variant) for the cold-start regime.
+2. **A unifying Schur-complement analysis.** We develop a single
+   Schur-complement lens that parameterises each strategy by the cross-Hessian
+   coupling $\rho_{0j}^2$ and the curvature ratio $H_{00}/L_0$. Short Taylor
+   expansions and an envelope-theorem identity tie the gradient strategy's slow
+   regime to the per-coordinate Lipschitz mismatch $H_{00} \ll L_0$, and a
+   decomposition of the standard randomized-CD bound by coordinate yields the
+   leading-order iteration-complexity ratio
    $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ in the imbalance regime,
-   which diverges as $\mu_0 \to 1$.
+   which diverges as $\mu_0 \to 1$ for binary logistic regression.
 3. **Structural classification of production solvers.** We derive a
    classification of CD-based GLM solvers into four algorithmic families ---
    direct CD, local-IRLS, MM-IRLS, and prox-Newton --- and identify the
@@ -309,6 +308,10 @@ strategies, is summarized in @algo-cd.
     \end{algorithmic}
 \end{algorithm}
 ```
+
+The Newton branch of @algo-cd is the bare Newton step; the damped Newton
+variant simply wraps the same direction in an Armijo backtracking line search,
+and we develop it in the safeguarded-Newton subsection below.
 
 ### Cross-Influence of Intercept and Coefficients
 
@@ -472,6 +475,22 @@ repeatedly disrupted in a coherent direction. The interaction with the post-pass
 line search in cyclic CD can stall progress entirely. The Newton strategy, which
 never overcommits to the conditional minimizer, sidesteps this pathology.
 
+The cost-versus-progress verdict above is sharpest in the cold-start, direct-CD
+setting that drives this paper. Three regimes soften it. *Warm-started path
+solves* along a $\lambda$ grid begin each subproblem with $|\partial_0 F|$
+already small, so $k_0$ drops to one or two inner Newton steps and the
+$\Omega(k_0 - 1)$ penalty shrinks accordingly --- bare Newton and the
+convergence strategy converge to each other in this regime. *Strongly coupled
+designs*, where the envelope alignment of @thm-profile-equiv buys a meaningful
+first-update gain, partially offset the per-pass overhead, though the cyclic
+drift in @lem-convergence-cost still applies. *At the prox-Newton or IRLS
+linearization boundary*, the Hessian is recomputed for the next subproblem and
+the within-pass drift critique no longer bites; we return to this case in
+@sec-irls, where it underwrites the design choices of LIBLINEAR and BlitzL1.
+The convergence strategy is a defensible choice in these regimes and the
+recommendation against it in the rest of this paper should be read as scoped
+to the cold-start, direct-CD setting outside all three.
+
 ::: {.lemma #lem-newton-approx}
 **(Newton strategy is a leading-order approximation.)** Suppose $f$ is
 three-times continuously differentiable. A single Newton step on the intercept
@@ -538,6 +557,11 @@ $f'''$ grows with $\eta$ such as Poisson ($f''' = e^\eta$). In that regime the
 linear model implicit in a single Newton step becomes a poor approximation, and
 a safeguard --- such as backtracking the Newton step until the loss decreases
 --- recovers the leading-order accuracy that @cor-newton-coupling promises.
+
+We emphasise that @lem-newton-approx and @cor-newton-coupling are *local*
+Taylor statements about a single Newton step at the current iterate; we do not
+prove global convergence for CD with the Newton intercept strategy, and rely on
+the empirical evidence in §Numerical experiments for that question.
 
 ::: {.lemma #lem-gradient-partial}
 **(Gradient strategy applies a fraction of the coupling correction.)** In
