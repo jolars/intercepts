@@ -56,6 +56,7 @@
             ncvreg
             biglasso
             LiblineaR
+            adelie
           ];
         }
       );
