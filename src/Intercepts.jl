@@ -23,6 +23,7 @@ export InterceptStrategy
 export GradientStrategy
 export NewtonStrategy
 export DampedNewtonStrategy
+export BacktrackingGradientStrategy
 export ConvergenceStrategy
 export update_intercept
 export geomspace

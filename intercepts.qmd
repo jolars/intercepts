@@ -556,6 +556,32 @@ imbalance. The regime that @lem-gradient-partial identifies as the gradient
 strategy's failure mode is exactly the regime where the standard rate bound
 is loosest.
 
+An obvious objection to @lem-gradient-partial is that adaptive step sizing
+should rescue the gradient strategy: an Armijo line search ought to shrink
+$\alpha$ until the iterate makes progress, irrespective of $L_0$. But
+starting from the global-Lipschitz step $-\partial_0 F / L_0$ Armijo only
+*shrinks* the step, and shrinking is the wrong direction when
+$H_{00} \ll L_0$: the step is already too small, not too large. To recover
+the iterate-level curvature $H_{00}$ a line search would need to *expand*
+the step beyond $1/L_0$, settling near $1/H_{00}$. But the step of size
+$1/H_{00}$ applied to the gradient direction is exactly the bare Newton
+step, and wrapping it in Armijo backtracking is the damped Newton variant
+developed in the next subsection. Rescuing the gradient strategy collapses
+it into Newton. @fig-mu-extreme confirms the shrinking-doesn't-help
+direction empirically: a backtracking-Armijo variant of the gradient
+strategy stalls identically to the bare-Lipschitz version, because the
+Lipschitz step satisfies the sufficient-decrease condition on the first
+attempt and the line search never fires.
+
+The picture matches what production solvers do. Among direct-CD packages,
+skglm [@bertrand2022] uses a fixed Lipschitz step with no line search;
+LIBLINEAR [@fan2008] and BlitzL1 [@johnson2015] do backtrack but only with
+shrinkage and only on the *combined* coordinate direction rather than on
+the intercept alone. Scikit-learn's L1-logistic path either delegates to
+LIBLINEAR or uses SAGA, which treats the intercept as another stochastic
+coordinate at a fixed Lipschitz step. None of the production solvers we
+surveyed use a growth-allowing line search on the intercept.
+
 #### A safeguarded Newton variant
 
 @cor-newton-coupling identifies the cold-start regime --- large
@@ -581,8 +607,12 @@ $\lambda = 0.05\,\lambda_{\max}$.
 #| label: fig-mu-extreme
 #| fig-cap: As the response imbalance $\mu_0$ approaches one, the gradient
 #|   strategy fails to reach the convergence tolerance within 1000 outer
-#|   passes (Lemma 3.3 prediction $H_{00}/L_0 \to 0$). The other strategies
-#|   are unaffected. Randomized cyclic CD.
+#|   passes (Lemma 3.3 prediction $H_{00}/L_0 \to 0$). A
+#|   backtracking-Armijo variant of the gradient strategy stalls
+#|   identically --- the Lipschitz step satisfies sufficient decrease on
+#|   the first attempt, so the line search never shrinks $\alpha$. The
+#|   Newton, damped Newton, and convergence strategies are unaffected.
+#|   Randomized cyclic CD.
 
 dd = JLD2.load(@projectroot("results", "sim-mu-extreme.jld2"))
 df = DataFrame(dd["results"])

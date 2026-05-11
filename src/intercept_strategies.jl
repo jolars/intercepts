@@ -13,6 +13,12 @@ struct ConvergenceStrategy <: InterceptStrategy end
     max_backtracks::Int = 20
 end
 
+@kwdef struct BacktrackingGradientStrategy <: InterceptStrategy
+    armijo_c::Float64 = 1.0e-4
+    backtrack::Float64 = 0.5
+    max_backtracks::Int = 20
+end
+
 function update_intercept(
     ::NoIntercept,
     f::LossFunction,
@@ -62,6 +68,39 @@ function update_intercept(
     end
 
     direction = -grad / hess
+    f0 = loss(f, η, y)
+    armijo_slope = s.armijo_c * grad * direction
+
+    α = 1.0
+    η_trial = similar(η)
+    for _ = 0:s.max_backtracks
+        @. η_trial = η + α * direction
+        f_trial = loss(f, η_trial, y)
+        if f_trial <= f0 + α * armijo_slope
+            return intercept + α * direction
+        end
+        α *= s.backtrack
+    end
+
+    return intercept + α * direction
+end
+
+# Gradient step (with global Lipschitz step size) protected by Armijo backtracking
+function update_intercept(
+    s::BacktrackingGradientStrategy,
+    f::LossFunction,
+    intercept::Real,
+    η::AbstractVector{<:Real},
+    y::AbstractVector{<:Real},
+)
+    n = length(η)
+    grad = sum(gradient(f, η, y))
+
+    if grad == 0
+        return intercept
+    end
+
+    direction = -grad / (f.lipschitz * n)
     f0 = loss(f, η, y)
     armijo_slope = s.armijo_c * grad * direction
 
@@ -210,6 +249,38 @@ function update_intercept(
     η_trial = similar(η)
     for _ = 0:s.max_backtracks
         @. η_trial = η + α * δ'  # broadcast δ' across rows
+        f_trial = loss(f, η_trial, y)
+        if f_trial <= f0 + α * armijo_slope
+            return intercept .+ α .* δ
+        end
+        α *= s.backtrack
+    end
+
+    return intercept .+ α .* δ
+end
+
+function update_intercept(
+    s::BacktrackingGradientStrategy,
+    f::LossFunction,
+    intercept::AbstractVector{<:Real},
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    n = size(η, 1)
+    g = _intercept_grad(f, η, y)
+
+    if all(==(0), g)
+        return intercept
+    end
+
+    δ = -g ./ (f.lipschitz * n)
+    f0 = loss(f, η, y)
+    armijo_slope = s.armijo_c * dot(g, δ)
+
+    α = 1.0
+    η_trial = similar(η)
+    for _ = 0:s.max_backtracks
+        @. η_trial = η + α * δ'
         f_trial = loss(f, η_trial, y)
         if f_trial <= f0 + α * armijo_slope
             return intercept .+ α .* δ

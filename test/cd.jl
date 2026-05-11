@@ -58,13 +58,23 @@ using GLM
         intercept_strategy = DampedNewtonStrategy(),
         maxit = maxit,
     )
+    res_btgrad = cdsolver(
+        X,
+        y,
+        reg,
+        lossfun = LogisticLoss(),
+        intercept_strategy = BacktrackingGradientStrategy(),
+        maxit = maxit,
+    )
 
     @test isapprox(res_grad.coef, res_newt.coef; atol = 1e-4)
     @test isapprox(res_grad.coef, res_conv.coef; atol = 1e-4)
     @test isapprox(res_grad.coef, res_damp.coef; atol = 1e-4)
+    @test isapprox(res_grad.coef, res_btgrad.coef; atol = 1e-4)
     @test isapprox(res_grad.intercept, res_conv.intercept; atol = 1e-4)
     @test isapprox(res_grad.intercept, res_newt.intercept; atol = 1e-4)
     @test isapprox(res_grad.intercept, res_damp.intercept; atol = 1e-4)
+    @test isapprox(res_grad.intercept, res_btgrad.intercept; atol = 1e-4)
 end
 
 @testset "DampedNewton matches Newton on quadratic" begin
