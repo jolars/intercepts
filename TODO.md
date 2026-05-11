@@ -1,91 +1,94 @@
 # TODO
 
-Gaps identified in the current draft of `intercepts.qmd`, in rough priority
-order.
+Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
-## Structural gaps
+## The theory section overpromises against what it proves
 
-- [ ] **Build out the Results section.** It is currently two figures with no
-      narrative, while the Theory section is fully written and makes strong
-      claims (gradient strategy fails under imbalance, Newton ≈ convergence to
-      leading order, convergence wastes per-pass cost). The empirical section
-      should systematically back each claim --- one experiment per load-bearing
-      prediction, with prose tying the result back to the relevant
-      lemma/corollary.
+- [ ] **Reframe "Theoretical characterization" in the contributions list.** The
+      Schur / $\rho_{0j}^2$ view is a *lens*; the supporting lemmas are
+      one-line Taylor expansions and one envelope-theorem identity. The
+      contributions list currently advertises "Three lemmas predict ... exactly
+      which strategy-by-family combinations slow", which a reviewer will read
+      as a quantitative result. Either weaken the framing to match what is
+      proved (a unifying analysis), or supply a real rate result (next item).
 
-- [x] **Add experiments driving actual production solvers.** Done in the
-      new `### Production solvers` subsection of Results, with three figures
-      (`fig-real-glmnet`, `fig-real-biglasso`, `fig-real-skglm`) and the
-      classification table `tbl-classification`. The investigation also
-      surfaced corrections to the paper's framing: LIBLINEAR and BlitzL1 are
-      prox-Newton, not direct-CD; only skglm and SAGA fit "Bucket 1." See
-      drivers under `experiments/sim-real-{problem,glmnet,biglasso,skglm}.{jl,R,py}`.
+- [ ] **Produce a quantitative rate gap between Newton and gradient strategies
+      as a function of $\mu_0$ (or $\rho_{0j}^2$).** This is the single
+      change that would turn the theory section from "framework" into "result":
+      a statement of the form "the gradient strategy needs
+      $\Omega(1/(1-\rho^2))$ more passes than Newton to reach $\varepsilon$
+      suboptimality on $\tilde F$" or similar. The orphaned rate paragraph
+      currently in §Theory hints at this but does not deliver. Without it the
+      "$6\times$" and "$10\times$" production-solver slowdowns are unexplained
+      quantitatively.
 
-## Theory / framing
+- [ ] **Be explicit about the locality of the Newton-strategy results.**
+      @lem-newton-approx and @cor-newton-coupling are local (Taylor) bounds.
+      There is no global convergence proof for CD-with-Newton-intercept.
+      One sentence acknowledging this would head off a reviewer ask.
 
-- [x] **Convergence Rates subsection is orphaned (around line 856).** It states
-      a generic $\sum_j L_j$ bound and the $L_0 = n/4$ vs local-$L_0$
-      observation, but does not tie back to the $\rho_{0j}$/Schur machinery
-      built earlier. Either develop a concrete rate gap (Newton vs gradient as a
-      function of $\mu_0$ or $\rho_{0j}^2$) or cut. As written it weakens rather
-      than strengthens.
+## The Results section is too thin to support the Theory claims
 
-- [ ] **Address whether the gradient-strategy failure survives backtracking line
-      search.** Lemma 3.3's failure mode hinges on $L_0 = n/4$ being looser than
-      $H_{00}$. A backtracking-line-search gradient method would adapt, and that
-      is what many "gradient-strategy" implementations actually do. One
-      paragraph (or a small experiment) addressing this closes a likely reviewer
-      objection.
+- [ ] **Write narrative into §Results.** `fig-simulated` and `fig-real-logreg`
+      currently appear with essentially no surrounding prose --- no caption
+      for `fig-simulated`, no tie-back to specific lemmas. Each figure should
+      open by naming the prediction it tests and close by reporting whether
+      that prediction held.
 
-- [ ] **Rewrite the contributions list to advertise the actual theoretical
-      contribution.** "We provide theoretical results that explain the empirical
-      findings" undersells. The contribution is the $\rho_{0j}^2$ Schur
-      characterization plus the three lemmas classifying strategies by how
-      completely they remove the intercept--coefficient coupling.
+- [ ] **Sweep production-solver experiments across imbalance and
+      regularization.** The "$6\times$" (glmnet) and "$10\times$" (biglasso)
+      numbers come from a single configuration ($\mu_0 = 0.99$, $n=500$,
+      $p=1000$, $s=10$, one $\lambda$). The framework predicts scaling with
+      $H_{00}/L_0$; a 2D heat-map of slowdown vs $(\mu_0,\ \lambda/\lambda_{\max})$
+      would verify the prediction rather than illustrate it once.
 
-- [ ] **Resolve the three-vs-four strategies framing.** The intro says "three
-      main strategies" then bolts on damped Newton as a "fourth variant."
-      Algorithm 1 omits it. Pick a frame: either four strategies throughout, or
-      treat damped Newton purely as a safeguarded subcase of Newton (which is
-      closer to what the theory section actually does).
-
-## Experiments to add
-
-- [ ] **Cyclic vs permuted CD across strategies.** The cyclic/permuted
-      distinction is currently footnoted under `fig-first-example` but is
-      load-bearing for the convergence-strategy failure there. Promote to a
-      figure or paragraph; show how the strategy ranking shifts under permuted
-      ordering.
-
-- [ ] **Regularization-path experiments with warm starts.** Real users solve
-      along a $\lambda$ grid. Whether the strategy ranking changes under
-      warm-starting (where $|\partial_0 F|$ is small at the start of each new
-      $\lambda$) is not discussed. Probably tightens the case for Newton
-      further, but should be checked.
-
-- [ ] **Per-pass cost decomposition for the convergence strategy.** Lemma 3.2
-      claims $\Omega(k_0 - 1)$ wasted inner work per pass. The current figures
-      are wall-clock only; a breakdown of inner-iteration counts vs. outer-pass
-      progress would make the "wasted work" argument concrete.
+- [ ] **Promote the cyclic-vs-permuted distinction in `fig-first-example`
+      from a footnote to a figure or paragraph.** The most striking opening
+      result --- the convergence strategy failing entirely on w1a --- relies
+      on a footnoted caveat that permuted CD restores convergence. Either
+      the footnote becomes the figure, or the opening claim gets softened.
+      Currently the headline overstates the generality.
 
 - [ ] **Harden the multinomial bare-Newton-block claim.** The text claims
       indistinguishability of bare/damped/convergence Newton "down to
-      $\bar p_K = 0.005$ and feature amplitudes up to four times what the figure
-      displays" but only shows one configuration. Add a sweep figure (or
-      appendix) so the "structural rather than tuning" claim is visible to the
-      reader.
+      $\bar p_K = 0.005$ and feature amplitudes up to four times what the
+      figure displays" but only shows one configuration. Add a sweep figure
+      so the "structural rather than tuning" claim is visible.
+
+- [ ] **Add a warm-started regularization-path experiment.** Real users solve
+      along a $\lambda$ grid, where each new $\lambda$ starts with a small
+      $|\partial_0 F|$ — exactly the regime where strategy differences may
+      compress. Whether the strategy ranking survives warm starts is not
+      currently addressed.
+
+- [ ] **Per-pass cost decomposition for the convergence strategy.**
+      @lem-convergence-cost claims $\Omega(k_0 - 1)$ wasted inner work per
+      pass. Current figures are wall-clock only; an inner-iteration-count
+      vs outer-pass-progress breakdown would make the "wasted work" claim
+      concrete instead of asymptotic.
+
+## Framing / structural
+
+- [ ] **Resolve the three-vs-four strategies framing.** The intro says "three
+      main strategies" then bolts on damped Newton as "a fourth variant".
+      Algorithm 1 omits damped Newton entirely. Pick a frame: either four
+      strategies throughout, or treat damped Newton as a safeguarded subcase
+      of Newton (closer to what the theory actually does).
+
+- [ ] **Steelman the convergence strategy.** §IRLS already partly does this
+      by rehabilitating it at the prox-Newton boundary, but the direct-CD
+      verdict is currently a one-sided dismissal. One paragraph naming the
+      regimes where convergence is defensible (warm-started path solves,
+      very ill-conditioned designs, prox-Newton boundary) would sharpen the
+      recommendation rather than weaken it.
 
 ## Smaller items
 
-- [ ] **Methodology/reproducibility section.** Datasets, $\lambda$ grids,
+- [ ] **Methodology/reproducibility paragraph.** Datasets, $\lambda$ grids,
       convergence tolerances, timing methodology, seed counts, hardware.
-      Standard reviewer ask, currently absent.
+      Standard Computo reviewer ask, currently absent.
 
-- [ ] **Related work.** Beyond the brief intro paragraph, no engagement with
-      prior treatments of intercept handling in regularized GLMs
-      (Friedman/Hastie/Tibshirani, fixed-effects/centering literature, etc.).
-
-- [ ] **Steelman the convergence strategy.** The paper dismisses it but does not
-      really steelman. Are there regimes (e.g. warm-started path solves, very
-      ill-conditioned designs) where it would be defensible? Even a paragraph
-      noting "we considered X but found Y" sharpens the recommendation.
+- [ ] **Related work.** Beyond the intro paragraph, no engagement with prior
+      treatments of intercept handling in regularized GLMs (Friedman / Hastie /
+      Tibshirani, fixed-effects / centering literature, MM-algorithm tradition
+      around the $1/4$ majorant).
