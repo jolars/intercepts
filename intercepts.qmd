@@ -12,6 +12,7 @@ using GLM
 using LinearAlgebra
 using DataFrames
 using CSV
+using Statistics
 
 Random.seed!(14)
 ```
@@ -100,10 +101,10 @@ For a first illustration of this, see @fig-first-example, which shows how the
 three different methods affect overall convergence on $\ell_1$-regularized
 logistic regression on the w1a dataset. Only the Newton strategy converges
 reliably and quickly to the optimal solution. The gradient strategy converges
-slowly, while the convergence strategy altogether fails to converge.^[Here we
-use cyclic coordinate descent, which is the most common variant in practice.
-But, if we change to a *permuted* variant here, the convergence strategy will
-also converge.]
+slowly, while the convergence strategy altogether fails to converge. The
+convergence strategy's failure is specific to cyclic coordinate ordering,
+which is the variant we use throughout the paper; switching to a permuted
+ordering rescues it, as we document in @sec-ordering below.
 
 ```{julia}
 #| label: fig-first-example
@@ -1185,56 +1186,215 @@ fig
 
 ## Results
 
+### Methodology and reproducibility {#sec-methodology}
+
+All internal-solver experiments use the `Intercepts` Julia package on Julia
+1.11+ with the default OpenBLAS. We report outer-pass counts as the primary
+work metric: one pass is one sweep through all $p$ coordinates plus an
+intercept update, and "passes to tolerance" use a target relative duality
+gap of $10^{-8}$ unless noted. Pass budgets (`maxit`) are set generously
+(1000 for the single-$\lambda$ figures, 5000 for the heatmap of
+@sec-imbalance-reg) and are clipped only at the figure level when the
+gradient strategy fails to reach the tolerance; those points appear at the
+budget cap. All synthetic designs are standardized (zero mean, unit
+variance per column) and use cyclic coordinate ordering unless we
+explicitly compare orderings; the AR(1) feature correlation parameter is
+$\rho = 0.6$ by default. Random seeds are fixed per experiment script.
+The heatmap of @sec-imbalance-reg replicates each cell across three
+seeds; the other figures use a single seed because cell-to-cell
+variability is dwarfed by the strategy effect we are isolating.
+
+Real-data experiments load LIBSVM problems via `LIBSVMdata.jl` 0.1.4 and
+the solver standardizes each column internally before fitting.
+The production-solver panel runs glmnet 4.1-10, biglasso 1.6-1,
+adelie 1.0-8, skglm 0.5, LIBLINEAR (Python bindings of liblinear), and
+BlitzL1 on the shared standardized problem produced by
+`experiments/sim-real-problem.jl`. Each driver sweeps its convergence
+tolerance and writes a CSV under `results/real-solvers/`, which the
+figures in @sec-production-solvers read directly.
+
+All experiment outputs are cached. Internal-solver scripts at
+`experiments/sim-*.jl` write `.jld2` files to `results/`; production-solver
+scripts write `.csv` to `results/real-solvers/`. The paper re-renders from
+cache, so to refresh a cell re-run the corresponding script. Hardware:
+a single x86_64 workstation; wall-clock numbers in this paper are
+indicative rather than benchmark-grade. Source code and cached results
+ship with the paper repository.
+
 ### Simulated Data
+
+The first prediction we test in §Theory is @lem-gradient-partial: the
+gradient strategy's effective per-pass step on the intercept is the bare
+gradient step shrunk by $H_{00}/L_0$, so the strategy slows as the
+imbalance $\mu_0$ pushes $H_{00}$ toward zero with $L_0 = 1/4$ unchanged.
+We instantiate a standardized binary-logistic design (n=500, p=1000,
+s=10, $\rho = 0.6$, $\lambda = 0.05\,\lambda_{\max}$) and sweep
+$\mu_0 \in \{0.5, 0.7, 0.9\}$, comparing the three strategies under cyclic
+coordinate descent.
 
 ```{julia}
 #| label: fig-simulated
+#| fig-cap: Convergence trajectories for the three intercept strategies on a
+#|   standardized binary-logistic design ($n=500$, $p=1000$, $s=10$,
+#|   $\rho = 0.6$, $\lambda = 0.05\,\lambda_{\max}$) under cyclic CD, across
+#|   three class-imbalance levels. The gradient strategy is competitive
+#|   only at $\mu_0 = 0.5$ (where $H_{00} \approx L_0$) and falls behind as
+#|   $\mu_0$ grows, matching @lem-gradient-partial. The Newton and
+#|   convergence strategies trace nearly identical trajectories on all
+#|   three panels.
 
 dd = JLD2.load(@projectroot("results", "sim-logreg-mu.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
-μ0 = df.μ0
 df.μ0 = "μₒ = " .* string.(df.μ0)
 
 df.relgaps .= max.(df.relgaps, 1.0e-20)
 
-spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
-
-layers = visual(Lines)
+spec = data(df) * mapping(
+    :time => "Time (s)",
+    :relgaps => "Relative duality gap",
+    color = :strategy,
+    col = :μ0,
+)
 
 draw(
-    layers * spec,
+    visual(Lines) * spec,
     axis = (yscale = log10,),
     facet = (; linkxaxes = :none),
     figure = (; size = (800, 300))
 )
 ```
 
+@fig-simulated confirms the qualitative prediction: at $\mu_0 = 0.5$ the
+gradient strategy keeps up, by $\mu_0 = 0.7$ it has visibly slowed, and at
+$\mu_0 = 0.9$ it trails the Newton-class strategies by more than an order
+of magnitude in pass count to reach a fixed relative gap. The bare-Newton
+and convergence trajectories overlay each other throughout, consistent
+with @lem-convergence-cost predicting equal per-pass progress and
+differing only in inner-step cost --- a difference we make visible in
+@sec-per-pass-cost. The quantitative scaling of the gradient/Newton ratio
+with $\mu_0$ and $\lambda$ is taken up in @sec-imbalance-reg.
+
 ### Real Data
+
+The complementary prediction is that the same scaling holds across real
+problems with different $(\mu_0,\text{density},n,p)$. We run the three
+strategies on four LIBSVM benchmark problems at
+$\lambda = 0.05\,\lambda_{\max}$: w1a (n = 2477, p = 300, sparse,
+$\mu_0 = 0.029$), leukemia (n = 38, p = 7129, dense, $\mu_0 = 0.711$),
+breast-cancer (n = 683, p = 10, dense, $\mu_0 = 0.35$) and gisette
+(n = 6000, p = 5000, dense, $\mu_0 = 0.5$). gisette occupies the
+$\mu_0 \to 0.5$, $H_{00}/L_0 \to 1$ corner where the gradient strategy
+is not predicted to be slow.
 
 ```{julia}
 #| label: fig-real-logreg
-#| fig-cap: Experiment on convergence for $\ell_1$-regularized logistic
-#|   regression on real datasets. $n = 500$, $p = 1000$, and $\lambda =
-#|   \lambda_{\max}/50$.
+#| fig-cap: Convergence trajectories for the three intercept strategies on
+#|   four LIBSVM benchmark problems at $\lambda = 0.05\,\lambda_{\max}$.
+#|   The gradient strategy hits the pass budget on the extremely imbalanced
+#|   w1a; the convergence strategy fails to converge on w1a under cyclic
+#|   CD (see @sec-ordering). On the well-balanced problems
+#|   (leukemia, breast-cancer, gisette) the three strategies are within a
+#|   small factor of each other.
 
 dd = JLD2.load(@projectroot("results", "real-logreg.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.dataset = replace.(df.dataset, "gisette_scale" => "gisette")
 
-spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :dataset)
-
-layers = visual(Lines)
+spec = data(df) * mapping(
+    :time => "Time (s)",
+    :relgaps => "Relative duality gap",
+    color = :strategy,
+    col = :dataset,
+)
 
 draw(
-    layers * spec,
+    visual(Lines) * spec,
     axis = (yscale = log10,),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 300))
+    figure = (; size = (900, 300))
 )
 ```
+
+@fig-real-logreg confirms the prediction in both directions. w1a is the
+extreme imbalance case ($\mu_0 = 0.029$): the gradient strategy fails to
+reach the working tolerance within the 1000-pass budget, and the
+convergence strategy plateaus around relative gap $10^{-1}$ under cyclic
+CD --- a separate failure mode that @sec-ordering shows to be specific
+to coordinate ordering rather than to the strategy itself. Only bare
+Newton converges on w1a, and it does so in 232 passes. Leukemia is at
+the opposite extreme of the regularization-vs-data ratio: with only 38
+samples against 7129 features at $\lambda = 0.05\,\lambda_{\max}$, the
+penalty dominates and all three strategies converge in essentially the
+same time. Breast-cancer (n = 683, p = 10, dense) shows the gradient
+strategy slower than the Newton-class strategies by roughly a factor of
+2.5, milder than w1a as @lem-gradient-partial predicts for the milder
+imbalance. gisette is the predicted benign cell: dense, balanced,
+$\mu_0 = 0.5$ so $H_{00}/L_0$ is close to one and the three strategies
+overlay each other on the convergence panel. The cross-dataset variation
+does not isolate a single mechanism the way the simulated $\mu_0$ sweep
+does, but it shows the framework's prediction holds at both ends ---
+gradient is slow when and only when $H_{00}/L_0$ is small.
+
+### Cyclic vs permuted ordering {#sec-ordering}
+
+A separate question is whether the convergence strategy's outright failure
+on w1a in @fig-first-example is intrinsic to the strategy or to the
+cyclic coordinate ordering it is paired with. @lem-convergence-cost is
+agnostic to ordering, but its within-pass drift argument relies on the
+intercept's environment changing while the pass is in progress; under
+strict cyclic order, that drift can compound into a deterministic
+worst-case pairing in which the per-pass intercept solve relinearises
+around an iterate that has already moved. Permuted CD breaks the
+deterministic pairing on each pass, and a finite second moment on the
+ordering noise is enough for the within-pass drift to average out. We
+rerun the @fig-first-example configuration on w1a under both orderings
+and the three strategies.
+
+```{julia}
+#| label: fig-first-example-ordering
+#| fig-cap: Same configuration as @fig-first-example (w1a,
+#|   $\lambda = 0.05\,\lambda_{\max}$) under cyclic (top) and permuted
+#|   (bottom) coordinate ordering. The convergence strategy diverges under
+#|   cyclic order and recovers under permuted order, matching the bare
+#|   Newton trajectory. The gradient strategy is slow under both orderings,
+#|   consistent with @lem-gradient-partial being ordering-agnostic.
+
+dd = JLD2.load(@projectroot("results", "first-example-ordering.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
+
+df.relgaps .= max.(df.relgaps, 1.0e-20)
+
+spec = data(df) * mapping(
+    :time => "Time (s)",
+    :relgaps => "Relative duality gap",
+    color = :strategy,
+    row = :ordering,
+)
+
+draw(
+    visual(Lines) * spec,
+    axis = (; yscale = log10),
+    figure = (; size = (500, 500))
+)
+```
+
+@fig-first-example-ordering localises the convergence-strategy failure
+to the cyclic-order regime. Under permuted CD, the convergence strategy
+tracks bare Newton to the working tolerance; under cyclic order, its
+iterates oscillate and the relative gap plateaus around $10^{-1}$ within
+the pass budget. The gradient strategy is slow under both orderings, as
+@lem-gradient-partial predicts: ordering controls within-pass drift, not
+the per-coordinate Lipschitz mismatch. The implication for direct CD is
+that the conservative recommendation --- bare Newton --- is also the
+ordering-robust one; the convergence strategy is a viable alternative
+specifically when ordering is randomised or when warm-starting along a
+path keeps the within-pass intercept change small (see
+@sec-warmstart-path).
 
 ### Warm-Started Path {#sec-warmstart-path}
 
@@ -1466,6 +1626,119 @@ inner-loop cap of 20, and most passes need only a single inner step. The regime 
 @lem-convergence-cost bites hardest is the cold-start, large-$|\partial_0 F|$
 window of the first few outer passes; the steelman regimes in
 @sec-warmstart-path are precisely those where this window is avoided.
+
+### Imbalance × regularization {#sec-imbalance-reg}
+
+The single-$\lambda$ experiments above test the framework along one axis at
+a time. The quantitative prediction of @cor-rate-gap is two-dimensional:
+the gradient/Newton pass-count ratio scales with $L_0/H_{00}(\hat\eta)$,
+and both $\lambda$ and $\mu_0$ shift $\hat\eta$ and therefore $H_{00}$.
+We sweep $\mu_0 \in \{0.5, 0.7, 0.9, 0.95, 0.99\}$ against
+$\lambda/\lambda_{\max} \in \{0.5, 0.2, 0.1, 0.05, 0.02, 0.01\}$ on the
+standardized binary-logistic design of @fig-simulated (3 seeds per cell),
+running each strategy to a relative-gap tolerance of $10^{-8}$ or a budget
+of 5000 outer passes. We report pass counts rather than wall-clock to
+decouple the per-coordinate Lipschitz-mismatch prediction from BLAS and
+memory effects.
+
+```{julia}
+#| label: fig-mu-reg-gradient
+#| fig-cap: Pass-count ratio $T_{\mathrm{gradient}} / T_{\mathrm{Newton}}$
+#|   (log~10~ scale) across the $(\mu_0,\,\lambda/\lambda_{\max})$ plane,
+#|   averaged over three seeds. Cells where the gradient strategy hits the
+#|   5000-pass budget are clipped; the ratio there is a lower bound.
+#|   Ratio increases monotonically with $\mu_0$ along every column and
+#|   with $1/\lambda$ along every row, matching the qualitative form of
+#|   @cor-rate-gap.
+
+dd = JLD2.load(@projectroot("results", "sim-mu-reg-heatmap.jld2"))
+df = DataFrame(dd["results"])
+
+agg = combine(
+    groupby(df, [:μ0, :reg, :strategy]),
+    :passes => mean => :passes,
+)
+
+wide = unstack(agg, [:μ0, :reg], :strategy, :passes)
+wide.gradient_ratio = wide.gradient ./ wide.newton
+wide.convergence_ratio = wide.convergence ./ wide.newton
+wide.reg_str = string.(wide.reg)
+wide.μ0_str = string.(wide.μ0)
+
+spec_grad =
+    data(wide) * mapping(
+        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => "λ / λ_max",
+        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => "μ₀",
+        :gradient_ratio => log10 => "log₁₀(T_grad / T_Newton)",
+    )
+
+draw(
+    spec_grad * visual(Heatmap),
+    figure = (; size = (560, 320)),
+)
+```
+
+```{julia}
+#| label: fig-mu-reg-convergence
+#| fig-cap: Pass-count ratio
+#|   $T_{\mathrm{convergence}} / T_{\mathrm{Newton}}$ (log~10~ scale) on
+#|   the same grid as @fig-mu-reg-gradient, on a centered diverging
+#|   colormap with $|\log_{10} \mathrm{ratio}| \le 0.1$. The heatmap is
+#|   flat at zero (white) across the plane --- outer-pass-equivalent
+#|   convergence vs Newton, the prediction of @lem-convergence-cost.
+#|   No cyclic-CD blow-up of @sec-ordering surfaces on this generic
+#|   simulated design --- it is dataset-specific to w1a.
+
+spec_conv =
+    data(wide) * mapping(
+        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => "λ / λ_max",
+        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => "μ₀",
+        :convergence_ratio => log10 => "log₁₀(T_conv / T_Newton)",
+    )
+
+draw(
+    spec_conv * visual(Heatmap),
+    scales(Color = (; colormap = :RdBu, colorrange = (-0.1, 0.1))),
+    figure = (; size = (560, 320)),
+)
+```
+
+@fig-mu-reg-gradient is monotone in $\mu_0$ across every column: at
+fixed $\lambda$, increasing imbalance grows the gradient/Newton pass-count
+ratio from roughly one at $\mu_0 = 0.5$ to about ten at $\mu_0 = 0.99$,
+$\lambda = 0.01\,\lambda_{\max}$, where the gradient strategy saturates
+the 5000-pass budget (the ratio there is a lower bound). The cold-start
+prediction $L_0 / H_{00} \approx 1 / (4 \mu_0 (1 - \mu_0))$ gives
+$\{1.00, 1.19, 2.78, 5.26, 25.25\}$ for the five $\mu_0$ values; the
+empirical ratios at $\lambda = 0.05\,\lambda_{\max}$ (the working regime
+along glmnet's path) are $\{1.0, 1.1, 1.8, 2.9, 6.6\}$, tracking the
+predicted scaling at low imbalance and undershooting it by a factor of
+two to four at high imbalance. The undershoot is consistent with the
+qualitative reading of @cor-rate-gap: the iterate spends most passes
+near $\hat\eta$, where the active features pull $H_{00}$ above its
+intercept-only proxy $\mu_0(1-\mu_0)$. As $\lambda$ shrinks more features
+activate, predictions spread, $H_{00}$ shrinks toward (and beyond) the
+intercept-only value, and the ratio grows: at
+$\lambda = 0.01\,\lambda_{\max}$ the empirical row is
+$\{1.6, 1.7, 4.2, 6.7, \ge 10.2\}$, closer to the cold-start prediction
+and clipped at the high-$\mu_0$ end.
+
+@fig-mu-reg-convergence is flat at zero (ratio $\approx 1$) across the
+plane, with no cell departing from the unit ratio by more than about
+12 %. This is the outer-pass content of @lem-convergence-cost: the
+convergence strategy consumes the same number of outer passes as bare
+Newton when both converge. The cost of the convergence strategy is
+therefore an inner-step overhead, not an outer-pass overhead --- the
+quantitative form of which is the $k_0 - 1$ wasted-inner-work claim of
+@sec-per-pass-cost. The convergence-strategy failure that surfaces on
+w1a under cyclic CD (@sec-ordering) does not appear on this simulated
+design at any cell; the cyclic-CD pathology requires the specific
+combination of design and ordering that w1a exhibits and is not
+recovered on a generic standardized imbalanced problem. Together the
+two heatmaps verify @cor-rate-gap on a 30-cell grid: the gradient
+strategy carries a Lipschitz-mismatch penalty whose pass-count
+signature scales with $\mu_0$ and $1/\lambda$, and the convergence
+strategy does not.
 
 ### Production solvers {#sec-production-solvers}
 

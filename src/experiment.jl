@@ -158,7 +158,11 @@ function real_experiment(
     X, y = load_dataset(dataset, verbose = false)
 
     if response == :binomial
-        y .= Int.(y .== 1)
+        # LIBSVM binary datasets ship in several encodings ({-1, 1}, {0, 1},
+        # {2, 4}, ...); map the max-valued class to the positive class so
+        # the conversion is encoding-agnostic.
+        pos = maximum(y)
+        y .= Int.(y .== pos)
     end
 
     return run_solver(
