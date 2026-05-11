@@ -64,6 +64,7 @@ function cdsolver(
     relgaps = Float64[]
 
     times = Float64[]
+    inner_steps = Int[]
     t0 = time()
 
     it = 0
@@ -132,6 +133,8 @@ function cdsolver(
         coef_old = copy(coef)
         intercept_old = intercept
 
+        pass_inner_steps = 0
+
         for (inner_it, j) in enumerate(ind)
             coef_j = coef[j]
 
@@ -164,11 +167,19 @@ function cdsolver(
 
             if inner_it % update_when == 0 && fit_intercept
                 intercept_prev = intercept
-                intercept =
-                    update_intercept(intercept_strategy, lossfun, intercept_prev, η, y)
+                intercept, k0 = update_intercept_with_count(
+                    intercept_strategy,
+                    lossfun,
+                    intercept_prev,
+                    η,
+                    y,
+                )
                 η .+= intercept - intercept_prev
+                pass_inner_steps += k0
             end
         end
+
+        push!(inner_steps, pass_inner_steps)
 
         old_primal = primal
         primal = loss(lossfun, η, y) + λ * norm(coef, 1)
@@ -204,6 +215,7 @@ function cdsolver(
         gaps = gaps,
         relgaps = relgaps,
         time = times,
+        inner_steps = inner_steps,
         passes = it,
         coefs = save_history ? reduce(hcat, coefs) : Matrix{Float64}(undef, 0, 0),
         intercepts = intercepts,

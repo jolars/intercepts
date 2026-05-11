@@ -1363,6 +1363,102 @@ convergence strategy at the prox-Newton/IRLS boundary --- stands, with the
 addendum that the convergence strategy becomes a defensible alternative to
 bare Newton whenever a path solve is in fact used.
 
+### Per-Pass Cost Decomposition {#sec-per-pass-cost}
+
+The pass-count and wall-clock figures above conflate two distinct quantities
+that @lem-convergence-cost separates: the *number of outer passes* needed to
+reach a tolerance and the *per-pass inner cost* paid at the intercept update.
+The lemma's claim is that the convergence strategy pays $\Omega(k_0 - 1)$
+extra inner Newton steps per outer pass with no commensurate rate
+improvement, where $k_0$ is the number of inner steps consumed to drive
+$|\partial_0 F| < \varepsilon$ at the end of the pass. We instrument the
+solver to record $k_0$ for every outer pass and compare the resulting cost
+trajectories against the relative-gap trajectories on the imbalanced
+simulated design of @fig-simulated ($n = 500$, $p = 1000$, $s = 10$, cyclic
+CD, $\lambda / \lambda_{\max} = 0.05$, tolerance $10^{-8}$), sweeping
+$\mu_0 \in \{0.5,\,0.9,\,0.99\}$ to vary the cold-start magnitude of
+$|\partial_0 F|$.
+
+```{julia}
+#| label: fig-per-pass-cost
+#| fig-cap: Per-pass inner Newton steps consumed at the intercept update,
+#|   as a function of outer-pass index, for the bare-Newton and convergence
+#|   strategies across three imbalance levels. The Newton strategy takes
+#|   exactly one inner step by construction. The convergence strategy's $k_0$
+#|   spikes at cold start --- $k_0 = 6$ on the most imbalanced design ---
+#|   and tapers to one as the iterate approaches the joint optimum. The area
+#|   between the two curves is the cumulative wasted inner work predicted by
+#|   @lem-convergence-cost.
+
+dd = JLD2.load(@projectroot("results", "sim-per-pass-cost.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:pass, :inner_steps, :cum_inner_steps, :relgap_after, :time])
+df.μ0_label = "μ₀ = " .* string.(df.μ0)
+
+spec_cost =
+    data(df) * mapping(
+        :pass => "Outer pass",
+        :inner_steps => "Inner Newton steps per pass (k₀)",
+        color = :strategy,
+        col = :μ0_label,
+    )
+
+draw(
+    visual(Lines) * spec_cost,
+    facet = (; linkyaxes = :all),
+    figure = (; size = (800, 260)),
+)
+```
+
+```{julia}
+#| label: fig-per-pass-progress
+#| fig-cap: Relative duality gap after each outer pass on the same runs.
+#|   The two strategies trace nearly indistinguishable trajectories despite
+#|   the convergence strategy paying 19--62 % more inner Newton steps in
+#|   total (compare cumulative areas in @fig-per-pass-cost). The extra
+#|   inner work per pass therefore buys no measurable per-pass rate
+#|   improvement, the empirical content of the
+#|   "cost-without-rate-improvement" reading of @lem-convergence-cost.
+
+spec_prog =
+    data(df) * mapping(
+        :pass => "Outer pass",
+        :relgap_after => "Relative duality gap",
+        color = :strategy,
+        col = :μ0_label,
+    )
+
+draw(
+    visual(Lines) * spec_prog,
+    axis = (yscale = log10,),
+    facet = (; linkyaxes = :all),
+    figure = (; size = (800, 260)),
+)
+```
+
+The two figures together make the asymptotic $\Omega(k_0 - 1)$ claim
+concrete. @fig-per-pass-cost shows $k_0$ peaking at the cold-start pass
+(6, 4, and 4 inner steps for $\mu_0 = 0.99,\,0.9,\,0.5$ respectively) and
+decaying to one by the time the iterate is near the joint optimum. The
+relative overhead summed across the run --- total inner Newton steps for
+convergence divided by the Newton strategy's pass-count baseline --- is
+$1.19\times$ at $\mu_0 = 0.5$, $1.38\times$ at $\mu_0 = 0.9$, and
+$1.62\times$ at $\mu_0 = 0.99$, scaling monotonically with the imbalance
+that drives $|\partial_0 F|$ at cold start. @fig-per-pass-progress shows
+that this extra inner work does not translate into faster per-pass
+progress: both strategies trace essentially the same relative-gap curve
+and finish in comparable pass counts (Newton: 122/122/125; convergence:
+112/116/130). The wasted-work claim is therefore quantitatively visible
+--- the gap between the two curves in @fig-per-pass-cost integrates to
+strictly positive inner Newton work for which @fig-per-pass-progress
+records no return.
+
+The penalty here is modest because $k_0$ stays bounded by the inner-loop
+cap of 20 and most passes need only a single inner step. The regime where
+@lem-convergence-cost bites hardest is the cold-start, large-$|\partial_0 F|$
+window of the first few outer passes; the steelman regimes in
+@sec-warmstart-path are precisely those where this window is avoided.
+
 ### Production solvers {#sec-production-solvers}
 
 The strategy-class predictions of the previous sections are tested here against

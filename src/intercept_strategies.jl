@@ -126,10 +126,28 @@ function update_intercept(
     η::AbstractVector{<:Real},
     y::AbstractVector{<:Real},
 )
+    new_intercept, _ = update_intercept_with_count(
+        ConvergenceStrategy(),
+        f,
+        intercept,
+        η,
+        y,
+    )
+    return new_intercept
+end
+
+function update_intercept_with_count(
+    ::ConvergenceStrategy,
+    f::LossFunction,
+    intercept::Real,
+    η::AbstractVector{<:Real},
+    y::AbstractVector{<:Real},
+)
     η_copy = copy(η)
     n = length(η)
 
     max_it = 20
+    k0 = 0
 
     for _ = 1:max_it
         grad = sum(gradient(f, η_copy, y))
@@ -150,9 +168,31 @@ function update_intercept(
         η_copy .+= new_intercept - intercept
 
         intercept = new_intercept
+        k0 += 1
     end
 
-    return intercept
+    return intercept, k0
+end
+
+# Generic fallback: any one-step strategy counts as a single inner step.
+function update_intercept_with_count(
+    s::InterceptStrategy,
+    f::LossFunction,
+    intercept,
+    η,
+    y,
+)
+    return update_intercept(s, f, intercept, η, y), 1
+end
+
+function update_intercept_with_count(
+    ::NoIntercept,
+    f::LossFunction,
+    intercept,
+    η,
+    y,
+)
+    return update_intercept(NoIntercept(), f, intercept, η, y), 0
 end
 
 
@@ -298,11 +338,29 @@ function update_intercept(
     η::AbstractMatrix{<:Real},
     y::AbstractVector{<:Integer},
 )
+    new_intercept, _ = update_intercept_with_count(
+        ConvergenceStrategy(),
+        f,
+        intercept,
+        η,
+        y,
+    )
+    return new_intercept
+end
+
+function update_intercept_with_count(
+    ::ConvergenceStrategy,
+    f::LossFunction,
+    intercept::AbstractVector{<:Real},
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
     n = size(η, 1)
     η_copy = copy(η)
     intercept = copy(intercept)
 
     max_it = 20
+    k0 = 0
     for _ = 1:max_it
         g = _intercept_grad(f, η_copy, y)
 
@@ -324,7 +382,8 @@ function update_intercept(
 
         η_copy .+= δ'  # broadcast across rows
         intercept .+= δ
+        k0 += 1
     end
 
-    return intercept
+    return intercept, k0
 end

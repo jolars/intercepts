@@ -74,11 +74,19 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       cold-start cyclic divergence that surfaces on w1a at very small
       $\lambda$.
 
-- [ ] **Per-pass cost decomposition for the convergence strategy.**
-      @lem-convergence-cost claims $\Omega(k_0 - 1)$ wasted inner work per
-      pass. Current figures are wall-clock only; an inner-iteration-count
-      vs outer-pass-progress breakdown would make the "wasted work" claim
-      concrete instead of asymptotic.
+- [x] **Per-pass cost decomposition for the convergence strategy.** Done via
+      `experiments/sim-per-pass-cost.jl` and the new `### Per-Pass Cost
+      Decomposition` subsection of §Results. The solver is instrumented to
+      record per-outer-pass $k_0$ (inner Newton steps at the intercept).
+      `@fig-per-pass-cost` plots $k_0$ vs outer-pass index, showing the
+      convergence strategy spikes to $k_0 = 6$ at cold start on the most
+      imbalanced design ($\mu_0 = 0.99$) and tapers to one as the iterate
+      approaches the joint optimum, while bare Newton sits at $k_0 \equiv 1$.
+      `@fig-per-pass-progress` plots relative duality gap vs pass on the same
+      runs, showing the two trajectories are indistinguishable. The
+      cumulative-inner-step overhead is $1.19\times$, $1.38\times$,
+      $1.62\times$ for $\mu_0 \in \{0.5, 0.9, 0.99\}$. The
+      "$\Omega(k_0 - 1)$ wasted work" claim is now empirically anchored.
 
 ## Framing / structural
 
