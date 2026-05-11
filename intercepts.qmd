@@ -461,17 +461,24 @@ $\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$.
 The practical reading of @lem-convergence-cost is a *cost-versus-progress*
 verdict on the convergence strategy. Let $k_0$ denote the number of inner Newton
 steps consumed at the end of a pass to drive $|\partial_0 F| < \varepsilon$.
-Each step costs $O(n)$ work. By the lemma, the conditional-optimum status
-established by these $k_0$ steps survives exactly one coefficient update of the
-next pass --- by the second update it has drifted by $H_{0j}\,\delta_j$. Outer
-progress is therefore upper-bounded by what one Newton step on the intercept
-would have already delivered, since the first coefficient update is the only one
-that benefits from the envelope alignment. The convergence strategy thus pays
-$\Omega(k_0 - 1)$ inner-iteration cost per pass with no commensurate rate
-improvement over the Newton strategy. The penalty grows with the magnitude of
-intercept-coefficient coupling: when several $|H_{0j}|$ are large, fitting the
-intercept tightly is wasted work because the next coordinate sweep re-perturbs
-$\partial_0 F$ immediately.
+Because the intercept subproblem $\beta_0 \mapsto F(\beta_0, \beta)$ is a smooth
+strongly convex 1D problem ($\partial_{00} F = H_{00} > 0$ in a neighbourhood of
+its minimizer), Newton on it converges quadratically and
+$k_0 = O(\log\log(1/\varepsilon))$ --- a small constant in practice. The
+empirical decomposition in @fig-per-pass-cost confirms $k_0 \in [1, 6]$ across
+the imbalance sweep. Each step costs $O(n)$ work. By the lemma, the
+conditional-optimum status established by these $k_0$ steps survives exactly one
+coefficient update of the next pass --- by the second update it has drifted by
+$H_{0j}\,\delta_j$. Outer progress is therefore upper-bounded by what one Newton
+step on the intercept would have already delivered, since the first coefficient
+update is the only one that benefits from the envelope alignment. The
+convergence strategy thus pays $k_0 - 1 = O(\log\log(1/\varepsilon))$ extra
+inner Newton steps per pass with no commensurate per-pass rate improvement over
+the Newton strategy. The overhead is bounded, not unbounded, but the verdict
+stands: every pass pays for inner work that buys no faster outer convergence.
+The penalty grows with the magnitude of intercept-coefficient coupling: when
+several $|H_{0j}|$ are large, fitting the intercept tightly is wasted work
+because the next coordinate sweep re-perturbs $\partial_0 F$ immediately.
 
 This same drift phenomenon also explains the empirical observation in
 @fig-first-example: with cyclic ordering, the same set of strongly coupled
@@ -484,8 +491,8 @@ The cost-versus-progress verdict above is sharpest in the cold-start, direct-CD
 setting that drives this paper. Three regimes soften it. *Warm-started path
 solves* along a $\lambda$ grid begin each subproblem with $|\partial_0 F|$
 already small, so $k_0$ drops to one or two inner Newton steps and the
-$\Omega(k_0 - 1)$ penalty shrinks accordingly --- bare Newton and the
-convergence strategy converge to each other in this regime. *Strongly coupled
+$k_0 - 1$ penalty shrinks to zero --- bare Newton and the convergence strategy
+converge to each other in this regime. *Strongly coupled
 designs*, where the envelope alignment of @thm-profile-equiv buys a meaningful
 first-update gain, partially offset the per-pass overhead, though the cyclic
 drift in @lem-convergence-cost still applies. *At the prox-Newton or IRLS
@@ -1241,7 +1248,7 @@ the previous solution. As anticipated in the steelman paragraph above,
 warm-starting begins each subproblem with $|\partial_0 F|$ already small.
 @cor-newton-coupling then predicts that the bare Newton step is essentially
 exact at the start, so $k_0 \in \{1, 2\}$ in the convergence strategy and the
-$\Omega(k_0 - 1)$ per-pass overhead evaporates. The gradient-strategy collapse
+$k_0 - 1$ per-pass overhead evaporates. The gradient-strategy collapse
 should also soften because the iterate is close to optimum and the
 $H_{00}/L_0$ shrinkage acts on an already-small residual.
 
@@ -1340,7 +1347,7 @@ halves the number of pass-budget-capped subproblems for the Newton and
 convergence strategies (e.g., on w1a from $\sim 8$ to $\sim 3$ out of 20)
 and brings their curves on top of each other --- this is the steelman
 prediction of @lem-convergence-cost: with $|\partial_0 F|$ already small,
-the $\Omega(k_0 - 1)$ per-pass penalty of the convergence strategy
+the $k_0 - 1$ per-pass penalty of the convergence strategy
 evaporates. Warm-starting also rescues bare Newton from the cold-start
 cyclic instability that surfaces at very small $\lambda$ on w1a, where the
 cold-start trajectory diverges entirely.
@@ -1368,10 +1375,11 @@ bare Newton whenever a path solve is in fact used.
 The pass-count and wall-clock figures above conflate two distinct quantities
 that @lem-convergence-cost separates: the *number of outer passes* needed to
 reach a tolerance and the *per-pass inner cost* paid at the intercept update.
-The lemma's claim is that the convergence strategy pays $\Omega(k_0 - 1)$
+The lemma's claim is that the convergence strategy pays $k_0 - 1$
 extra inner Newton steps per outer pass with no commensurate rate
-improvement, where $k_0$ is the number of inner steps consumed to drive
-$|\partial_0 F| < \varepsilon$ at the end of the pass. We instrument the
+improvement, where $k_0 = O(\log\log(1/\varepsilon))$ is the number of inner
+steps consumed to drive $|\partial_0 F| < \varepsilon$ at the end of the pass
+via quadratic Newton convergence on the 1D intercept subproblem. We instrument the
 solver to record $k_0$ for every outer pass and compare the resulting cost
 trajectories against the relative-gap trajectories on the imbalanced
 simulated design of @fig-simulated ($n = 500$, $p = 1000$, $s = 10$, cyclic
@@ -1436,8 +1444,7 @@ draw(
 )
 ```
 
-The two figures together make the asymptotic $\Omega(k_0 - 1)$ claim
-concrete. @fig-per-pass-cost shows $k_0$ peaking at the cold-start pass
+The two figures together make the $k_0 - 1$ overhead claim concrete. @fig-per-pass-cost shows $k_0$ peaking at the cold-start pass
 (6, 4, and 4 inner steps for $\mu_0 = 0.99,\,0.9,\,0.5$ respectively) and
 decaying to one by the time the iterate is near the joint optimum. The
 relative overhead summed across the run --- total inner Newton steps for
@@ -1453,8 +1460,9 @@ and finish in comparable pass counts (Newton: 122/122/125; convergence:
 strictly positive inner Newton work for which @fig-per-pass-progress
 records no return.
 
-The penalty here is modest because $k_0$ stays bounded by the inner-loop
-cap of 20 and most passes need only a single inner step. The regime where
+The penalty here is modest because quadratic Newton convergence on the 1D
+intercept subproblem keeps $k_0 = O(\log\log(1/\varepsilon))$, well below the
+inner-loop cap of 20, and most passes need only a single inner step. The regime where
 @lem-convergence-cost bites hardest is the cold-start, large-$|\partial_0 F|$
 window of the first few outer passes; the steelman regimes in
 @sec-warmstart-path are precisely those where this window is avoided.

@@ -31,6 +31,16 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       proof for CD-with-Newton-intercept is given, and that empirical
       evidence in §Numerical experiments stands in for that.
 
+- [x] **Tighten the $k_0$ bound in @lem-convergence-cost.** Done: replaced
+      the "$\Omega(k_0 - 1)$" phrasing throughout (the paragraph after the
+      lemma, the steelman regimes paragraph, the warm-start interpretation,
+      and the per-pass cost section) with $k_0 - 1 = O(\log\log(1/\varepsilon))$,
+      grounded in quadratic Newton convergence on the smooth strongly convex
+      1D intercept subproblem. The verdict against the convergence strategy
+      stands --- bounded but strictly-positive overhead per pass with no
+      per-pass rate gain --- and is now consistent with the modest 1.2--1.6×
+      empirical overhead in @fig-per-pass-cost.
+
 ## The Results section is too thin to support the Theory claims
 
 - [ ] **Write narrative into §Results.** `fig-simulated` and `fig-real-logreg`
