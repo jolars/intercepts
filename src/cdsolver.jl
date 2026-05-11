@@ -15,6 +15,8 @@ function cdsolver(
     randomize::Bool = true,
     normalization::Symbol = :standardize,
     save_history::Bool = false,
+    coef_init::Union{Nothing,AbstractVector} = nothing,
+    intercept_init::Real = 0.0,
 )
     n, p = size(x)
 
@@ -35,9 +37,22 @@ function cdsolver(
     λmax = lambdamax(lossfun, x, y)
     λ = reg * λmax
 
-    intercept = 0.0
-    coef = zeros(p)
-    η = zeros(n)
+    if coef_init === nothing
+        intercept = 0.0
+        coef = zeros(p)
+        η = zeros(n)
+    else
+        length(coef_init) == p ||
+            throw(ArgumentError("coef_init must have length p = $p"))
+        coef_user = Float64.(coef_init)
+        coef = coef_user .* vec(x_scales)
+        intercept =
+            fit_intercept ? Float64(intercept_init) + dot(vec(x_centers), coef_user) : 0.0
+        η = x * coef .+ intercept
+        if sparse_norm
+            η .-= dot(x_sparse_offset, coef)
+        end
+    end
     r = residual(lossfun, η, y)
 
     intercepts = Vector{Float64}(undef, 0)

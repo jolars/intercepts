@@ -59,11 +59,20 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       figure displays" but only shows one configuration. Add a sweep figure
       so the "structural rather than tuning" claim is visible.
 
-- [ ] **Add a warm-started regularization-path experiment.** Real users solve
-      along a $\lambda$ grid, where each new $\lambda$ starts with a small
-      $|\partial_0 F|$ — exactly the regime where strategy differences may
-      compress. Whether the strategy ranking survives warm starts is not
-      currently addressed.
+- [x] **Add a warm-started regularization-path experiment.** Done via
+      `experiments/sim-warmstart-path.jl` and the new `### Warm-Started Path`
+      subsection of §Results. The two figures (`@fig-warm-start` pass counts
+      and `@fig-warm-start-mechanism` initial $|\partial_0 F|$) sweep
+      strategy × ordering × {warm, cold} over a $K=20$ geometric $\lambda$
+      grid on a simulated imbalanced design and on w1a. Headline finding:
+      warm-starting collapses the bare-Newton/convergence-strategy gap as
+      the steelman of @lem-convergence-cost predicts, but does not extend
+      the gradient strategy's scope --- the $H_{00}/L_0$ shrinkage of
+      @lem-gradient-partial bites at every iterate, not just at cold start,
+      so warm-started gradient on w1a still hits the pass budget on most
+      subproblems. Warm-starting additionally rescues bare Newton from the
+      cold-start cyclic divergence that surfaces on w1a at very small
+      $\lambda$.
 
 - [ ] **Per-pass cost decomposition for the convergence strategy.**
       @lem-convergence-cost claims $\Omega(k_0 - 1)$ wasted inner work per

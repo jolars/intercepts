@@ -70,6 +70,69 @@
             numba = super.numba.override { cudaSupport = false; };
           };
         };
+
+        download = (
+          python3.pkgs.buildPythonPackage rec {
+            pname = "download";
+            version = "0.3.5";
+            pyproject = true;
+
+            src = pkgs.fetchPypi {
+              inherit pname version;
+              hash = "sha256-iEqIVHWzzb7Aqid+QWQ5lcM5Sh4GSggW9T//rko4ITA=";
+            };
+
+            build-system = with python3.pkgs; [
+              setuptools
+              wheel
+            ];
+
+            dependencies = with python3.pkgs; [
+              requests
+              six
+              tqdm
+            ];
+
+            pythonImportsCheck = [
+              "download"
+            ];
+          }
+        );
+
+        celer = (
+          python3.pkgs.buildPythonPackage rec {
+            pname = "celer";
+            version = "0.7.4";
+            pyproject = true;
+
+            src = pkgs.fetchPypi {
+              inherit pname version;
+              hash = "sha256-Lj5ltSGOskVRVfPFTSxrM7SG/RE7Z/vh8xcj/h7BQ2M=";
+            };
+
+            build-system = with python3.pkgs; [
+              cython
+              numpy
+              scipy
+              setuptools
+            ];
+
+            dependencies = with python3.pkgs; [
+              download
+              libsvmdata
+              matplotlib
+              scikit-learn
+              seaborn
+              tqdm
+              xarray
+            ];
+
+            pythonImportsCheck = [
+              "celer"
+            ];
+          }
+        );
+
         blitzl1 = (
           python3.pkgs.buildPythonPackage {
             pname = "blitzl1";
@@ -143,6 +206,7 @@
               scikit-learn
               skglm
               blitzl1
+              celer
             ]
           )
         );

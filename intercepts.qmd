@@ -1220,6 +1220,140 @@ draw(
 )
 ```
 
+### Warm-Started Path {#sec-warmstart-path}
+
+The single-$\lambda$ experiments above stress the strategies in their hardest
+regime --- cold start, large $|\partial_0 F|$ at iterate zero --- which is also
+the setting in which the theoretical critique of @lem-convergence-cost and the
+imbalance collapse of @lem-gradient-partial bite hardest. Production users
+rarely solve a single $\lambda$ in isolation; they sweep a grid
+$\lambda_1 > \lambda_2 > \dots > \lambda_K$ and warm-start each subproblem from
+the previous solution. As anticipated in the steelman paragraph above,
+warm-starting begins each subproblem with $|\partial_0 F|$ already small.
+@cor-newton-coupling then predicts that the bare Newton step is essentially
+exact at the start, so $k_0 \in \{1, 2\}$ in the convergence strategy and the
+$\Omega(k_0 - 1)$ per-pass overhead evaporates. The gradient-strategy collapse
+should also soften because the iterate is close to optimum and the
+$H_{00}/L_0$ shrinkage acts on an already-small residual.
+
+We test this by solving an $\ell_1$-logistic path on two problems --- a
+simulated standardized design ($n = 500$, $p = 1000$, $s = 10$, $\mu_0 = 0.9$,
+$\rho = 0.6$) and the w1a benchmark used in @fig-first-example --- over a
+geometrically spaced grid of $K = 20$ values from $\lambda_{\max}$ down to
+$5 \cdot 10^{-3}\,\lambda_{\max}$. Each subproblem is run to relative-gap
+tolerance $10^{-8}$ or to a budget of 300 outer passes / 20 wall-seconds,
+whichever comes first. We compare the three strategies, each under both warm
+start (initialized from the previous-$\lambda$ solution) and cold start
+(re-initialized at zero), and under both cyclic and permuted feature ordering.
+
+```{julia}
+#| label: fig-warm-start
+#| fig-cap: Outer passes per subproblem along a logistic-regression $\lambda$
+#|   path (lower is better). Solid lines mark warm-starts from the previous
+#|   $\lambda$; dashed lines mark cold starts at zero. Curves capped at 300
+#|   indicate the pass budget was hit before the tolerance. Top row uses
+#|   cyclic CD, bottom row uses permuted CD; left column is the simulated
+#|   imbalanced problem ($\mu_0 = 0.9$) and right column is w1a.
+
+dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(
+    df,
+    [
+        :reg_grid,
+        :passes,
+        :times,
+        :init_relgap,
+        :final_relgap,
+        :init_partial0F,
+        :nnz_solution,
+    ],
+)
+
+df.start_kind = ifelse.(df.warm_start, "warm", "cold")
+df.ordering = ifelse.(df.randomize, "permuted", "cyclic")
+
+spec_passes =
+    data(df) * mapping(
+        :reg_grid => "λ / λ_max",
+        :passes => "Outer passes",
+        color = :strategy,
+        linestyle = :start_kind => "Start",
+        col = :dataset,
+        row = :ordering,
+    )
+
+draw(
+    visual(Lines) * spec_passes,
+    axis = (xscale = log10, yscale = log10),
+    figure = (; size = (800, 500)),
+)
+```
+
+```{julia}
+#| label: fig-warm-start-mechanism
+#| fig-cap: Magnitude of the intercept partial derivative
+#|   $|\partial_0 F|$ at the initial iterate of each subproblem along the same
+#|   $\lambda$ path. Cold start (dashed) is independent of $\lambda$
+#|   --- the initial iterate is always zero, so $|\partial_0 F|$ is the
+#|   marginal class imbalance and the three strategies coincide on top of
+#|   each other. Warm start (solid) shrinks $|\partial_0 F|$ by several
+#|   orders of magnitude, placing each subproblem in the regime where
+#|   @cor-newton-coupling predicts strategy differences to compress.
+
+spec_partial =
+    data(df) * mapping(
+        :reg_grid => "λ / λ_max",
+        :init_partial0F => "|∂₀F| at initialization",
+        color = :strategy,
+        linestyle = :start_kind => "Start",
+        col = :dataset,
+        row = :ordering,
+    )
+
+draw(
+    visual(Lines) * spec_partial,
+    axis = (xscale = log10, yscale = log10),
+    figure = (; size = (800, 500)),
+)
+```
+
+The mechanism panel (@fig-warm-start-mechanism) verifies the premise:
+warm-starting drives $|\partial_0 F|$ toward zero as $\lambda$ shrinks and
+the previous-$\lambda$ solution moves closer to the current optimum. Cold
+start, by contrast, sets the initial iterate to zero at every $\lambda$, so
+$|\partial_0 F|$ is the marginal class imbalance --- roughly $10^2$ on the
+simulated problem and $1.2 \times 10^3$ on w1a, identical across strategies.
+
+The pass-count panel (@fig-warm-start) shows the predicted compression with
+one caveat. On both problems and both orderings, warm-starting roughly
+halves the number of pass-budget-capped subproblems for the Newton and
+convergence strategies (e.g., on w1a from $\sim 8$ to $\sim 3$ out of 20)
+and brings their curves on top of each other --- this is the steelman
+prediction of @lem-convergence-cost: with $|\partial_0 F|$ already small,
+the $\Omega(k_0 - 1)$ per-pass penalty of the convergence strategy
+evaporates. Warm-starting also rescues bare Newton from the cold-start
+cyclic instability that surfaces at very small $\lambda$ on w1a, where the
+cold-start trajectory diverges entirely.
+
+The compression is uneven, however. The gradient strategy is essentially
+unaffected by warm-starting on w1a --- both cold and warm hit the pass
+budget on 11 of 20 subproblems, with the curves overlaying. This is
+@lem-gradient-partial biting at every subproblem: the imbalance factor
+$H_{00}/L_0$ remains microscopic at the warm-start iterate, so even a
+near-optimal starting point cannot compensate for the shrinking correction.
+The simulated problem ($\mu_0 = 0.9$) sits in the milder regime where all
+three strategies are competitive cold, and warm-start contributes only a
+uniform $\sim 5\%$ reduction in pass count across the board.
+
+The takeaway: warm-starting validates the steelman for Newton-class
+strategies (bare Newton and the convergence strategy converge to each
+other) but does not extend the gradient strategy's scope. The
+recommendation of @lem-convergence-cost --- bare Newton in direct CD,
+convergence strategy at the prox-Newton/IRLS boundary --- stands, with the
+addendum that the convergence strategy becomes a defensible alternative to
+bare Newton whenever a path solve is in fact used.
+
 ### Production solvers {#sec-production-solvers}
 
 The strategy-class predictions of the previous sections are tested here against

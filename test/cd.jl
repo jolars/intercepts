@@ -77,6 +77,87 @@ using GLM
     @test isapprox(res_grad.intercept, res_btgrad.intercept; atol = 1e-4)
 end
 
+@testset "Warm-starting from the optimum converges immediately" begin
+    Random.seed!(4242)
+    n, p, k = 100, 10, 2
+
+    X, y = generatedata(
+        n,
+        p;
+        response = :binomial,
+        μ0 = 0.8,
+        x_type = :normal,
+        ρ = 0.3,
+        s = k,
+        amplitude = 1.0,
+    )
+
+    reg = 0.05
+    res_cold = cdsolver(
+        X,
+        y,
+        reg;
+        lossfun = LogisticLoss(),
+        intercept_strategy = NewtonStrategy(),
+        maxit = 2000,
+        tol = 1e-12,
+    )
+
+    res_warm = cdsolver(
+        X,
+        y,
+        reg;
+        lossfun = LogisticLoss(),
+        intercept_strategy = NewtonStrategy(),
+        maxit = 2000,
+        tol = 1e-10,
+        coef_init = res_cold.coef,
+        intercept_init = res_cold.intercept,
+    )
+
+    @test res_warm.passes == 1
+    @test res_warm.relgaps[1] < 1e-10
+    @test isapprox(res_warm.coef, res_cold.coef; atol = 1e-8)
+    @test isapprox(res_warm.intercept, res_cold.intercept; atol = 1e-8)
+end
+
+@testset "coef_init=nothing matches default zero-init" begin
+    Random.seed!(99)
+    n, p = 80, 12
+    X, y = generatedata(
+        n,
+        p;
+        response = :binomial,
+        μ0 = 0.7,
+        x_type = :normal,
+        ρ = 0.2,
+        s = 3,
+        amplitude = 1.0,
+    )
+
+    res_default = cdsolver(
+        X,
+        y,
+        0.1;
+        lossfun = LogisticLoss(),
+        intercept_strategy = NewtonStrategy(),
+        maxit = 500,
+    )
+    res_explicit = cdsolver(
+        X,
+        y,
+        0.1;
+        lossfun = LogisticLoss(),
+        intercept_strategy = NewtonStrategy(),
+        maxit = 500,
+        coef_init = zeros(p),
+        intercept_init = 0.0,
+    )
+
+    @test isapprox(res_default.coef, res_explicit.coef; atol = 1e-8)
+    @test isapprox(res_default.intercept, res_explicit.intercept; atol = 1e-8)
+end
+
 @testset "DampedNewton matches Newton on quadratic" begin
     Random.seed!(2024)
     n = 200
