@@ -103,14 +103,12 @@ Convergence Strategy
     intercept convergence before each pass over the coordinates, using either
     gradient or Newton steps.
 
-For a first illustration of this, see @fig-first-example, which shows how the
-three different methods affect overall convergence on $\ell_1$-regularized
-logistic regression on the w1a dataset. Only the Newton strategy converges
-reliably and quickly to the optimal solution. The gradient strategy converges
-slowly, while the convergence strategy altogether fails to converge. The
-convergence strategy's failure is specific to cyclic coordinate ordering, which
-is the variant we use throughout the paper; switching to a permuted ordering
-rescues it, as we document in @sec-ordering below.
+For a first illustration, see @fig-first-example, which compares the three
+strategies on $\ell_1$-regularized logistic regression on the w1a dataset. The
+Newton strategy reaches the optimal solution quickly, and the gradient strategy
+more slowly. The convergence strategy does not make progress on this problem
+under cyclic coordinate ordering --- a sensitivity we return to in
+@sec-ordering.
 
 ```{julia}
 #| label: fig-first-example
@@ -134,10 +132,10 @@ draw(
 )
 ```
 
-@fig-first-example illustrates the main message of this paper: the gradient
-strategy is slow, the convergence strategy wastes per-pass cost without a
-commensurate rate gain, and the Newton strategy is both reliable and efficient.
-An Armijo-safeguarded *damped* Newton variant protects against the narrow
+@fig-first-example previews the main message of this paper: the Newton strategy
+is both reliable and efficient, the gradient strategy is too slow, and the
+convergence strategy pays a per-pass cost without a commensurate rate gain. An
+Armijo-safeguarded *damped* Newton variant protects against the narrow
 cold-start regime where a bare Newton step can overshoot.
 
 The framework we develop is both diagnostic and explanatory: it predicts when a
@@ -145,45 +143,53 @@ solver's intercept update will slow under imbalance, and it explains why most
 CD-based GLM solvers in current use have already made the right structural
 choice within their algorithmic family. The outliers---skglm, glmnet's
 historical `modified.Newton` default, biglasso's opt-in MM mode---are exactly
-the cases the framework flags. We see this as an explanatory contribution about
-an existing design space rather than a critique of implementations.
+the cases the framework, correctly, flags as suboptimal. We see this as an
+explanatory contribution about an existing design space rather than a critique
+of implementations.
 
 Our main contributions are as follows:
 
-1. **Strategy taxonomy.** We introduce and formalize three intercept-update
-   strategies---gradient, Newton, and convergence---that span the design space
-   used by current CD solvers for regularized GLMs, together with an
-   Armijo-backtracking safeguard on the Newton strategy (the *damped Newton*
-   variant) for the cold-start regime.
-2. **A unifying Schur-complement analysis.** We develop a single
-   Schur-complement lens that parameterises each strategy by the cross-Hessian
-   coupling $\rho_{0j}^2$ and the curvature ratio $H_{00}/L_0$. Short Taylor
-   expansions and an envelope-theorem identity tie the gradient strategy's slow
-   regime to the per-coordinate Lipschitz mismatch $H_{00} \ll L_0$, and a
-   decomposition of the standard randomized-CD bound by coordinate yields the
-   leading-order iteration-complexity ratio
-   $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ in the imbalance regime,
-   which diverges as $\mu_0 \to 1$ for binary logistic regression.
-3. **Structural classification of production solvers.** We derive a
-   classification of CD-based GLM solvers into four algorithmic
-   families---direct CD, local-IRLS, MM-IRLS, and prox-Newton---and identify the
-   intercept strategy realized by each. The classification correctly orders
-   every package in our survey (glmnet, biglasso, skglm, adelie, LIBLINEAR,
-   BlitzL1, ncvreg, Lasso.jl), corrects two misclassifications in the prior
-   framing of LIBLINEAR and BlitzL1, and turns the within-package mode toggles
-   in glmnet (`type.logistic`) and biglasso (`alg.logistic`) into a controlled
-   empirical experiment.
-4. **Empirical verification on production codebases.** Five figures on the same
-   imbalanced logistic problem confirm the framework's predictions: glmnet
-   `modified.Newton` needs roughly six times more inner passes than `Newton`;
-   biglasso `MM` needs roughly ten times more than `Newton`; skglm exhibits the
-   predicted slow ramp; LIBLINEAR and BlitzL1 both converge fast, as the
-   framework predicts for their prox-Newton + convergence-strategy intercept
-   design; adelie matches the per-iteration cost of glmnet `Newton`, as the
-   framework predicts for its centered-features local-IRLS realization.
-5. **Multinomial extension.** We extend the analysis to vector intercepts
-   (multinomial logistic) and show that the rare-class regime turns the slowdown
-   from a corner case into the common regime.
+Strategy Taxonomy
+:   We introduce and formalize three intercept-update strategies---gradient,
+    Newton, and convergence---that span the design space used by current CD
+    solvers for regularized GLMs, together with an Armijo-backtracking safeguard
+    on the Newton strategy (the *damped Newton* variant) for the cold-start
+    regime.
+
+A Unifying Schur-Complement Analysis
+:   We develop a single Schur-complement lens that parameterises each strategy
+    by the cross-Hessian coupling $\rho_{0j}^2$ and the curvature ratio
+    $H_{00}/L_0$. Short Taylor expansions and an envelope-theorem identity tie
+    the gradient strategy's slow regime to the per-coordinate Lipschitz mismatch
+    $H_{00} \ll L_0$, and a decomposition of the standard randomized-CD bound by
+    coordinate yields the leading-order iteration-complexity ratio
+    $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ in the imbalance regime,
+    which diverges as $\mu_0 \to 1$ for binary logistic regression.
+
+Structural Classification of Production Solvers
+:   We derive a classification of CD-based GLM solvers into four algorithmic
+    families---direct CD, local-IRLS, MM-IRLS, and prox-Newton---and identify
+    the intercept strategy realized by each. The classification correctly orders
+    every package in our survey (glmnet, biglasso, skglm, adelie, LIBLINEAR,
+    BlitzL1, ncvreg, Lasso.jl), corrects two misclassifications in the prior
+    framing of LIBLINEAR and BlitzL1, and turns the within-package mode toggles
+    in glmnet (`type.logistic`) and biglasso (`alg.logistic`) into a controlled
+    empirical experiment.
+
+Empirical Verification on Production Codebases
+:   Five figures on the same imbalanced logistic problem confirm the framework's
+    predictions: glmnet `modified.Newton` needs roughly six times more inner
+    passes than `Newton`; biglasso `MM` needs roughly ten times more than
+    `Newton`; skglm exhibits the predicted slow ramp; LIBLINEAR and BlitzL1 both
+    converge fast, as the framework predicts for their prox-Newton +
+    convergence-strategy intercept design; adelie matches the per-iteration cost
+    of glmnet `Newton`, as the framework predicts for its centered-features
+    local-IRLS realization.
+
+Multinomial Extension
+:   We extend the analysis to vector intercepts (multinomial logistic) and show
+    that the rare-class regime turns the slowdown from a corner case into the
+    common regime.
 
 ## Theory
 
@@ -862,11 +868,11 @@ this experiment but pays the within-pass-drift cost identified in
 The scalar story extends almost verbatim to multinomial logistic regression with
 $K$ classes, where the intercept is a vector $\beta_0 \in \mathbb{R}^{K-1}$
 under the reference-class parameterisation $\eta_{iK} = 0$. Writing
-$\eta_{ik} = x_i^\top \beta_k + \beta_{0k}$ for $k = 1, \dots, K-1$ and
+$\eta_{ik} = x_i^\intercal \beta_k + \beta_{0k}$ for $k = 1, \dots, K-1$ and
 $p_{ik} = e^{\eta_{ik}}/\bigl(1 + \sum_{l<K} e^{\eta_{il}}\bigr)$, the
 per-observation Hessian block has diagonal $p_{ik}(1 - p_{ik})$ and off-diagonal
 $-p_{ik} p_{il}$. The intercept Hessian
-$H_{00} = \sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\top\bigr)$
+$H_{00} = \sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\intercal\bigr)$
 is a $(K-1) \times (K-1)$ matrix; the Newton strategy becomes a small block
 solve $\delta = -H_{00}^{-1}\,\nabla_0 F$, and the damped variant performs
 Armijo backtracking on the loss along that direction. @thm-profile-equiv,
