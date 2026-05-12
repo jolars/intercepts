@@ -243,7 +243,6 @@ we will consider in this paper in @tbl-glm.
 Coordinate descent is an iterative optimization method that updates one
 coordinate at a time, while keeping the other coordinates fixed. In the case of
 the intercept, this means that we update $\beta_0$ while keeping $\beta$ fixed.
-
 In other words, we take the derivative with respect to the $j$th coefficient.
 Using the chain rule, this can be expressed as
 $$
@@ -329,7 +328,7 @@ strategies, is summarized in @algo-cd.
 
 The Newton branch of @algo-cd is the bare Newton step; the damped Newton variant
 simply wraps the same direction in an Armijo backtracking line search, and we
-develop it in the safeguarded-Newton subsection below.
+develop it in @sec-irls.
 
 ### Cross-Influence of Intercept and Coefficients
 
@@ -359,21 +358,21 @@ coefficients entirely. For other losses the weights depend on the linear
 predictor and the response, so $H_{0j}$ is a $w_i$-weighted mean of $x_{ij}$,
 which is generally non-zero even after centering.
 
-#### A normalized measure of intercept–coefficient coupling
+#### A Normalized Measure of Intercept--Coefficient Coupling
 
 To quantify how strongly the intercept and the $j$th coefficient are coupled,
 the natural quantity is the normalized cross-curvature
 $$
 \rho_{0j} \;=\; \frac{H_{0j}}{\sqrt{H_{00} H_{jj}}} \;\in\; [-1, 1],
 $$ {#eq-rho}
-which is invariant to rescaling either coordinate and which the Cauchy--Schwarz
-inequality bounds in $[-1,1]$. The two extremes are easy to interpret:
-$\rho_{0j} = 0$ means the intercept and $\beta_j$ can be optimized
+which is invariant to rescaling of the features and the loss function, and which
+the Cauchy--Schwarz inequality bounds in $[-1,1]$. The two extremes are easy to
+interpret: $\rho_{0j} = 0$ means the intercept and $\beta_j$ can be optimized
 independently; $|\rho_{0j}| \to 1$ means a change in $\beta_0$ is fully absorbed
 by an opposite change in $\beta_j$ (or vice versa), and the two coordinates are
 degenerate up to that direction.
 
-#### The profiled objective
+#### The Profiled Objective
 
 The cleanest way to see why $\rho_{0j}$ controls the impact of the intercept
 update strategy is to consider the *profiled* objective obtained by optimizing
@@ -400,7 +399,7 @@ curvature $\tilde H_{jj}$; coordinate descent that leaves the intercept stale is
 running on $F$, with the inflated curvature $H_{jj}$. The gap between these two
 regimes is governed entirely by $\rho_{0j}^2$.
 
-#### Strategies as Schur approximations
+#### Strategies as Schur Approximations
 
 This perspective lets us classify the three intercept update strategies by how
 completely they remove the intercept--coefficient coupling. The key object is
@@ -624,7 +623,7 @@ strategy applies no coupling correction at all and the coefficient subproblem
 sees the full, uncorrected gradient. In this regime the strategy is not merely
 slow but structurally inadequate.
 
-#### Quantitative rate gap
+#### Quantitative Rate Gap
 
 The $H_{00}/L_0$ ratio also enters standard randomized-CD rate bounds, where it
 controls how aggressively the gradient strategy can update the intercept.
@@ -773,7 +772,7 @@ proximal-Newton linearization; we return to them in @sec-irls. None of the
 production CD solvers we surveyed use a growth-allowing line search on the
 intercept alone.
 
-#### A safeguarded Newton variant
+#### A Safe Newton Variant
 
 @cor-newton-coupling identifies the cold-start regime---large $|\partial_0 F|$
 combined with rapidly varying $f''$---as the setting where a bare Newton step on
@@ -787,7 +786,7 @@ inadequate. When the Newton residual is small, $\alpha = 1$ is accepted on the
 first attempt and the damped Newton strategy reduces to the Newton strategy
 exactly.
 
-#### Constructed failure examples
+#### Constructed Failure Examples
 
 We illustrate the predictions of the strategy comparison on synthetic
 logistic-regression problems with $n = 500$, $p = 1000$, $s = 10$, and
@@ -1171,7 +1170,7 @@ compose poorly with re-linearization [@bertrand2022]. Our strategy analysis is
 orthogonal to this family choice: within either family, the recommendation
 against the gradient strategy and in favour of (damped) Newton carries through.
 
-### Geometric illustration
+### Geometric Illustration
 
 ```{julia}
 #| label: fig-parametric
@@ -1246,7 +1245,7 @@ fig
 
 ## Results
 
-### Methodology and reproducibility {#sec-methodology}
+### Methodology and Reproducibility {#sec-methodology}
 
 All internal-solver experiments use the `Intercepts` Julia package on Julia
 1.11+ with the default OpenBLAS. We report outer-pass counts as the primary work
@@ -1390,7 +1389,7 @@ cross-dataset variation does not isolate a single mechanism the way the
 simulated $\mu_0$ sweep does, but it shows the framework's prediction holds at
 both ends: gradient is slow when and only when $H_{00}/L_0$ is small.
 
-### Cyclic vs permuted ordering {#sec-ordering}
+### Cyclic vs Permuted Ordering {#sec-ordering}
 
 A separate question is whether the convergence strategy's outright failure on
 w1a in @fig-first-example is intrinsic to the strategy or to the cyclic
@@ -1672,7 +1671,7 @@ where @lem-convergence-cost bites hardest is the cold-start,
 large-$|\partial_0 F|$ window of the first few outer passes; the steelman
 regimes in @sec-warmstart-path are precisely those where this window is avoided.
 
-### Imbalance × regularization {#sec-imbalance-reg}
+### Imbalance and Regularization {#sec-imbalance-reg}
 
 The single-$\lambda$ experiments above test the framework along one axis at a
 time. The quantitative prediction of @cor-rate-gap is two-dimensional: the
@@ -1780,7 +1779,7 @@ grid: the gradient strategy carries a Lipschitz-mismatch penalty whose
 pass-count signature scales with $\mu_0$ and $1/\lambda$, and the convergence
 strategy does not.
 
-### Production solvers {#sec-production-solvers}
+### Production Solvers {#sec-production-solvers}
 
 The strategy-class predictions of the previous sections are tested here against
 six production solvers---across both predicted directions---on the shared
