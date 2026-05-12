@@ -37,8 +37,8 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       and the per-pass cost section) with $k_0 - 1 = O(\log\log(1/\varepsilon))$,
       grounded in quadratic Newton convergence on the smooth strongly convex
       1D intercept subproblem. The verdict against the convergence strategy
-      stands --- bounded but strictly-positive overhead per pass with no
-      per-pass rate gain --- and is now consistent with the modest 1.2--1.6×
+      stands bounded but strictly-positive overhead per pass with no
+      per-pass rate gain and is now consistent with the modest 1.2--1.6×
       empirical overhead in @fig-per-pass-cost.
 
 ## The Results section is too thin to support the Theory claims
@@ -93,7 +93,7 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       grid on a simulated imbalanced design and on w1a. Headline finding:
       warm-starting collapses the bare-Newton/convergence-strategy gap as
       the steelman of @lem-convergence-cost predicts, but does not extend
-      the gradient strategy's scope --- the $H_{00}/L_0$ shrinkage of
+      the gradient strategy's scope the $H_{00}/L_0$ shrinkage of
       @lem-gradient-partial bites at every iterate, not just at cold start,
       so warm-started gradient on w1a still hits the pass budget on most
       subproblems. Warm-starting additionally rescues bare Newton from the
@@ -129,7 +129,7 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 - [x] **Steelman the convergence strategy.** Done: added a paragraph after
       the cost-versus-progress verdict (in §Theory, just before
       @lem-newton-approx) that names three regimes where the convergence
-      strategy is defensible --- warm-started path solves (small $k_0$),
+      strategy is defensible warm-started path solves (small $k_0$),
       strongly coupled designs (where envelope alignment offsets some of
       the per-pass overhead), and the prox-Newton/IRLS linearization
       boundary (cross-referenced to @sec-irls). The paragraph explicitly
