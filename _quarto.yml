@@ -19,12 +19,30 @@ author:
 date: last-modified
 date-modified: last-modified
 description: >
-  This document explores different strategies for updating intercepts in
-  coordinate descent algorithms.
+  How the intercept is updated inside coordinate descent for regularized
+  generalized linear models, and why the choice matters under response
+  imbalance.
 abstract: >
-  Training intercepts in regularized regression is a common problem, yet it is
-  often overlooked in the literature. This document explores different
-  strategies for updating intercepts in coordinate descent algorithms.
+  Proximal coordinate descent is the default method for fitting regularized
+  generalized linear models (GLMs), yet the strategy used to update the
+  intercept varies widely across production implementations and is rarely
+  studied. We frame the choice as three strategies --- a single gradient
+  step, a single Newton step (optionally with an Armijo safeguard), or
+  iterating the intercept subproblem to convergence --- and analyze each
+  through a Schur-complement decomposition of the joint
+  coefficient--intercept Hessian. The decomposition yields a leading-order
+  iteration-complexity ratio $T_{\mathrm{gradient}}/T_{\mathrm{Newton}}
+  \sim L_0/H_{00}$ that diverges as response imbalance grows, and an
+  outer-pass equivalence between the Newton and convergence strategies
+  with a bounded inner-step overhead. We use the same lens to classify
+  CD-based GLM solvers into four algorithmic families --- direct CD,
+  local-IRLS, MM-IRLS, and prox-Newton --- and identify the intercept
+  strategy realized by each. Experiments on a shared imbalanced logistic
+  problem confirm the predicted ordering across six production solvers
+  (glmnet, biglasso, skglm, adelie, LIBLINEAR, BlitzL1). A multinomial
+  extension shows that the rare-class regime turns the gradient-strategy
+  slowdown from a corner case into the common one; the practical
+  recommendation is to update the intercept with a Newton step.
 
 keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib

@@ -74,11 +74,16 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       and a paragraph tying the convergence-strategy failure to the
       within-pass drift argument of @lem-convergence-cost.
 
-- [ ] **Harden the multinomial bare-Newton-block claim.** The text claims
-      indistinguishability of bare/damped/convergence Newton "down to
-      $\bar p_K = 0.005$ and feature amplitudes up to four times what the
-      figure displays" but only shows one configuration. Add a sweep figure
-      so the "structural rather than tuning" claim is visible.
+- [x] **Harden the multinomial bare-Newton-block claim.** Done via
+      `experiments/sim-multinomial-imbalance-sweep.jl` and the new
+      `@fig-multinomial-sweep` figure: a 4×4 grid sweeping
+      $\bar p_K \in \{0.05, 0.02, 0.01, 0.005\}$ against feature
+      amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$ (3 seeds, median over seeds)
+      on the same $K=5$ design as `@fig-multinomial-imbalance`. The bare
+      Newton, damped Newton, and convergence curves overlap in every cell;
+      the gradient strategy stalls monotonically harder along both axes.
+      The steelman claim now has visible empirical support across the full
+      range rather than a single anchor configuration.
 
 - [x] **Add a warm-started regularization-path experiment.** Done via
       `experiments/sim-warmstart-path.jl` and the new `### Warm-Started Path`

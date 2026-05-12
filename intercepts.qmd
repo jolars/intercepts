@@ -936,9 +936,57 @@ per-class correction across all class intercepts jointly, so the rare-class step
 is computed in concert with the dominant-class step rather than being amplified
 proportionally to the rare-class gradient. The block solve provides the same
 safeguarding that Armijo backtracking provides scalar-coordinate-wise.
-Empirically we found the same indistinguishability across imbalances down to
-$\bar p_K = 0.005$ and feature amplitudes up to four times what the figure
-displays, suggesting the collapse is structural rather than a matter of tuning.
+@fig-multinomial-sweep extends the test to a 2-D grid that shrinks the rarest
+class probability $\bar p_K$ down to $0.005$ and grows the feature amplitude
+to four times the anchor value. The Newton-block trio collapses to a single
+visible curve in every one of the sixteen cells, while the gradient strategy
+stalls monotonically harder as $\bar p_K$ shrinks and as amplitude grows ---
+consistent with a structural property of the $(K-1)$-block Hessian rather
+than a tuning artifact of the single anchor configuration.
+
+```{julia}
+#| label: fig-multinomial-sweep
+#| fig-cap: Multinomial logistic sweep over the rarest-class marginal
+#|   $\bar p_K \in \{0.05, 0.02, 0.01, 0.005\}$ (rows, top to bottom) and
+#|   feature amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$ (columns, left to right),
+#|   on the same $K=5$, $n=500$, $p=200$, $s=5$, $\lambda = 0.05\,\lambda_{\max}$,
+#|   $\rho = 0.3$ design as @fig-multinomial-imbalance. Relative primal
+#|   suboptimality versus outer-pass index, median over three seeds. The bare
+#|   Newton, damped Newton, and convergence strategies overlap on a single
+#|   curve in every cell; the gradient strategy stalls progressively harder
+#|   as $\bar p_K$ shrinks (down the rows) and as amplitude grows (across the
+#|   columns). The anchor cell (top-left) reproduces the trajectories of
+#|   @fig-multinomial-imbalance.
+
+dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals, :pass])
+
+df.relgaps .= max.(df.relgaps, 1.0e-20)
+
+agg = combine(
+    groupby(df, [:p_K, :amplitude, :strategy, :pass]),
+    :relgaps => median => :relgaps,
+)
+
+agg.p_K_str = "p̄_K = " .* string.(agg.p_K)
+agg.amp_str = "amp = " .* string.(agg.amplitude)
+
+spec = data(agg) * mapping(
+    :pass => "Pass",
+    :relgaps => "Relative primal suboptimality",
+    color = :strategy,
+    row = :p_K_str => sorter("p̄_K = 0.05", "p̄_K = 0.02", "p̄_K = 0.01", "p̄_K = 0.005"),
+    col = :amp_str => sorter("amp = 0.5", "amp = 1.0", "amp = 1.5", "amp = 2.0"),
+)
+
+draw(
+    visual(Lines) * spec,
+    axis = (yscale = log10,),
+    facet = (; linkxaxes = :none),
+    figure = (; size = (800, 600)),
+)
+```
 
 Practically, this simplifies the recommendation in the multinomial setting: use
 the bare Newton block step. The damping safeguard that mattered for the scalar
@@ -1933,6 +1981,67 @@ draw(
     figure = (; size = (550, 300)),
 )
 ```
+
+## Discussion
+
+The picture that emerges across theory and experiments is that the intercept
+update is not a one-line implementation detail but a load-bearing choice
+whose right setting is dictated by the response distribution. For direct
+coordinate descent on a smooth GLM loss, the recommendation is the bare
+Newton block step: it is locally invariant to imbalance, requires no tuning,
+and matches the convergence strategy on outer-pass count while avoiding the
+$k_0 - 1$ wasted inner work that the convergence strategy spends per pass.
+The damped (Armijo-safeguarded) variant adds a thin safety net for the
+narrow cold-start regime in which a bare Newton step can overshoot
+(@fig-cold-start); in our experiments the line search succeeds on the first
+attempt at every iterate away from cold start, so the damped variant
+reduces to bare Newton in steady state. The gradient strategy, by contrast,
+inherits a per-coordinate Lipschitz mismatch $H_{00}/L_0$ that shrinks
+toward zero under imbalance --- the same scaling that produces the
+order-of-magnitude pass-count gaps in @fig-mu-extreme,
+@fig-mu-reg-gradient, and the gradient curve of @fig-multinomial-sweep.
+
+The structural classification of production solvers in
+@sec-production-solvers tightens the recommendation into a diagnostic:
+given a CD-based GLM solver, the intercept-update strategy it realises
+predicts whether its inner solve will slow under imbalance, independent of
+the rest of the algorithm. The classification places glmnet `Newton`,
+biglasso `Newton`, adelie, LIBLINEAR, and BlitzL1 in the safe bucket and
+glmnet `modified.Newton`, biglasso `MM`, and skglm in the
+imbalance-sensitive bucket, with the predicted pass-count separation
+confirmed empirically on a shared imbalanced problem
+(@fig-real-glmnet--@fig-real-adelie). The within-package mode toggles in
+glmnet and biglasso turn this into a controlled experiment whose outcome
+is consistent with the framework.
+
+The multinomial setting amplifies the practical relevance of the choice.
+Whereas binary logistic regression needs an explicit imbalance ($\mu_0$
+near zero or one) to expose the gradient-strategy stall, the $(K-1)$-block
+intercept Hessian distributes the same failure mode across every rare
+class, so any classification problem with a long-tailed label distribution
+sits in the regime where the gradient strategy is slow on at least one
+intercept coordinate (@fig-multinomial-imbalance, @fig-multinomial-sweep).
+The same multinomial block structure couples the bare and damped Newton
+steps with the convergence strategy, so the scalar wedge between them
+collapses --- a structural property rather than a tuning artefact, as the
+2-D sweep shows.
+
+Two limitations bound the present analysis. First, the Newton-strategy
+results are *local*: @lem-newton-approx and @cor-newton-coupling are Taylor
+identities for a single Newton step, not a global convergence proof for
+CD-with-Newton-intercept, and the empirical evidence in §Results stands in
+for that. A tighter rate analysis under restricted strong convexity would
+let the corollary of @cor-rate-gap predict the empirical pass-count
+constant rather than only its scaling --- currently the prediction matches
+within a factor of two to four
+(@fig-mu-reg-gradient). Second, the production-solver experiments in
+@sec-production-solvers run on a single shared problem; the heatmap of
+@sec-imbalance-reg replicates the binary direct-CD predictions across a
+30-cell grid but the cross-package comparison does not yet sweep the
+$(\mu_0, \lambda)$ plane. Extending the production-solver sweep along
+those axes, and verifying the multinomial predictions against glmnet's
+symmetric-multinomial path and adelie's multi-response solver, are
+natural follow-ups.
 
 # References {.unnumbered}
 
