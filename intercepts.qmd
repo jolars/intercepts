@@ -51,7 +51,7 @@ $$
 $$ {#eq-primal-problem}
 where $P$ is the primal objective, $F$ is the loss function, which attempts to
 optimize the fit to the data, and $G$ is the penalty function that penalizes
-solutions with large coefficients. $\beta_j$ is the $j$th coefficent and
+solutions with large coefficients. $\beta_j$ is the $j$th coefficient and
 $\beta_0$ is the intercept. Throughout the paper, we assume that $P$ is
 separable and that $F$ is of the form
 $$
