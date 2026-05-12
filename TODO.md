@@ -146,7 +146,62 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       versions (glmnet 4.1-10, biglasso 1.6-1, adelie 1.0-8, skglm 0.5,
       LIBLINEAR, BlitzL1), hardware, and the JLD2/CSV caching layout.
 
-- [ ] **Related work.** Beyond the intro paragraph, no engagement with prior
-      treatments of intercept handling in regularized GLMs (Friedman / Hastie /
-      Tibshirani, fixed-effects / centering literature, MM-algorithm tradition
-      around the $1/4$ majorant).
+- [x] **Related work.** Done: new `## Related Work` section inserted between
+      Introduction and §Theory with three short paragraphs covering
+      (i) intercept handling in CD-based GLM solvers (glmnet, LIBLINEAR,
+      Hastie/Tibshirani/Wainwright, celer), (ii) the fixed-effects /
+      Frisch--Waugh--Lovell centering tradition and its GLM analogue in
+      adelie, and (iii) the MM lineage of the $1/4$ majorant
+      (B\"ohning 1992, Hunter--Lange, Krishnapuram et al.) with a
+      forward-reference to @sec-irls. Four new bib entries
+      (`bohning1992`, `krishnapuram2005`, `hastie2015`, `lovell1963`).
+      Each paragraph closes on a sentence that ties the prior literature to
+      a specific result in this paper. External-verification debt on three
+      sub-claims is tracked below.
+
+## Related Work --- external-verification debt
+
+External verification done on claude.ai against the cited sources resolved
+the @friedman2010 and Böhning/Krishnapuram chain (both check out), and forced
+two corrections to the rest of the paper (the "historical default"
+characterization of `modified.Newton` at l145 / §IRLS, since the 2010 paper
+treats the 1/4 bound as an "option" and current glmnet defaults to `"Newton"`;
+and the attribution of the post-step intercept Newton loop to BlitzL1 via
+@johnson2015, since the Johnson 2015 paper does not formulate an intercept
+at all). The two open items below are what remain.
+
+- [ ] **Verify BlitzL1's intercept handling against the source.** The
+      paper-wide claim that BlitzL1 "follows each prox-Newton subproblem with
+      a separate 1-D Newton convergence loop on the intercept" (l80--81,
+      l1158--1159, l1165--1167, l1956--1957) and the
+      `@tbl-classification` row giving BlitzL1 a "combined-direction
+      backtrack + post-step Newton convergence" intercept update cannot be
+      sourced to @johnson2015, which does not formulate an intercept at all.
+      To resolve: read the BlitzL1 source
+      (<https://github.com/tbjohns/BlitzL1>) and either (a) confirm the
+      design and cite the source in addition to the paper, or (b) drop
+      BlitzL1 from the post-step-Newton claim and rephrase
+      `@tbl-classification` accordingly. Related Work paragraph 1 has
+      already been narrowed to LIBLINEAR only; the paper-wide claims still
+      need this resolution.
+
+- [ ] **Verify Hastie--Tibshirani--Wainwright claim against [@hastie2015].**
+      Related-work prose says the textbook "keeps the intercept unpenalized
+      but does not separate it algorithmically from the slopes". The first
+      half is standard; the second half was written from memory. To
+      resolve: skim chapters 3 and 5 and confirm or rephrase.
+
+- [ ] **Verify adelie's weighted-centered-features mechanism against the
+      source.** The high-level classification (Local-IRLS with implicit
+      intercept) is consistent with @yang2024, which builds a positive
+      diagonal majorant and solves a Gaussian elastic-net subproblem. The
+      specific mechanism the paper describes elsewhere---"a weighted-
+      centered-features parameterization of the inner Gaussian surrogate"
+      (l79--80, l1156, l1856--1857)---is not in this form in the paper
+      text. Related Work paragraph 2 has been softened to the high-level
+      claim ("absorbs the intercept implicitly through that surrogate"),
+      but the more specific phrasing remains elsewhere in the paper. To
+      resolve: read the adelie source
+      (<https://github.com/JamesYang007/adelie>) and either confirm the
+      weighted-centering mechanism and cite the source, or rephrase the
+      remaining paper-wide claims to the high-level form.

@@ -142,7 +142,7 @@ The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
 CD-based GLM solvers in current use have already made the right structural
 choice within their algorithmic family. The outliers---skglm, glmnet's
-historical `modified.Newton` default, biglasso's opt-in MM mode---are exactly
+`modified.Newton` mode, biglasso's opt-in MM mode---are exactly
 the cases the framework, correctly, flags as suboptimal. We see this as an
 explanatory contribution about an existing design space rather than a critique
 of implementations.
@@ -191,7 +191,62 @@ Multinomial Extension
     that the rare-class regime turns the slowdown from a corner case into the
     common regime.
 
-## Theory
+## Related Work
+
+The intercept-update question sits at the intersection of three literatures,
+none of which has analysed it as a separate quantity.
+
+Intercept handling in CD-based GLM solvers has been treated as a routine
+implementation choice across the production-CD ecosystem. The original glmnet
+paper\ [@friedman2010] and its all-GLM extension\ [@tay2023] expose two weight
+schemes for the logistic IRLS inner solve---local weights and a global 1/4
+upper bound, surfaced as the R-package modes `type.logistic = "Newton"` and
+`"modified.Newton"`---which the glmnet documentation describes as a speed
+trade-off ("an upper-bound on the Hessian... can be faster") rather than as an
+intercept-strategy choice. LIBLINEAR's newGLMNET solver
+[@fan2008; @yuan2012] runs a 1-D Newton convergence loop on the intercept after
+each prox-Newton subproblem, described in passing as an implementation detail
+rather than as a design decision. The Hastie--Tibshirani--Wainwright
+textbook\ [@hastie2015] keeps the intercept unpenalized but does not separate it
+algorithmically from the slopes, and celer\ [@massias2020] does not support
+intercepts for $\ell_1$-logistic regression. The *implementation*-side choice is
+widely made and widely varied; the *analysis*-side question---under what
+response distributions the choice matters---has not been posed.
+
+A second thread is the fixed-effects tradition. For linear regression the
+intercept can be partialled out: centering the features zeros the cross-Hessian
+$H_{0j}$ and yields $\hat\beta_0 = \bar y$ at the unregularized optimum, leaving
+the slope subproblem decoupled from the intercept. This is the Frisch--Waugh--
+Lovell theorem\ [@lovell1963], and it is the argument that justifies leaving the
+intercept unpenalized along the Gaussian path of glmnet. The decoupling fails
+for non-Gaussian GLMs because the inverse link sits between $\beta_0$ and $y$:
+the cross-Hessian acquires weights $w_i = f''(\eta_i; y_i)$ that no longer cancel
+under feature centering alone, and the closed form for $\hat\beta_0$ vanishes.
+adelie\ [@yang2024] supplies the natural GLM analogue: its proximal
+quasi-Newton method builds a weighted Gaussian surrogate at each linearization
+and absorbs the intercept implicitly through that surrogate, rather than as a
+separate CD coordinate. The same argument explains why
+the framework of @sec-theory has no bite on Gaussian data: there the decoupling
+is already complete, $L_0 = H_{00}$, and the gradient and Newton strategies
+coincide on the intercept.
+
+The third thread is majorization--minimization. The constant $L_0 = n/4$ that
+governs the gradient strategy in @lem-gradient-partial, and which skglm uses as
+its global per-coordinate Lipschitz step, is the binary specialization of the
+quadratic Hessian majorant used by @bohning1992 to build an MM algorithm for
+multinomial logistic regression. @hunter2004 give the canonical exposition of
+MM. @krishnapuram2005 apply Böhning's bound to L1-penalized multinomial logistic
+regression, a direct precedent for the multinomial extension of this paper. In
+regularized logistic regression the same construction lives on as the
+`modified.Newton` mode of glmnet and the `MM` mode of biglasso\
+(@tbl-classification). @lem-gradient-partial gives the quantitative cost: when
+the response is imbalanced, $H_{00}/L_0$ shrinks to zero and the MM step loses
+progress in proportion. The MM literature treats this as loose majorization;
+what this paper adds is that for imbalanced logistic regression and rare-class
+multinomial classification it is the common regime, not a corner case
+(@sec-irls, @fig-multinomial-sweep).
+
+## Theory {#sec-theory}
 
 In this work, we consider models where the loss function is of the form
 $$
@@ -1035,8 +1090,8 @@ run inner CD on $\tilde F^{(t)}$, then re-linearize. Two weight choices are
 used in practice: *local* weights $w_i^{(t)} = f''(\eta_i^{(t)}; y_i)$
 (glmnet's `type.logistic = "Newton"`), and *MM-majorized* weights replacing
 $w_i^{(t)}$ by a global upper bound on $f''$ (e.g. $w_i \equiv 1/4$ for
-logistic; glmnet's `type.logistic = "modified.Newton"`, the historical
-default, following the MM tradition of @hunter2004).
+logistic; glmnet's `type.logistic = "modified.Newton"`, following the MM
+tradition of @hunter2004).
 
 Inside one inner solve with local weights, $\tilde F^{(t)}$ is quadratic in
 $\beta_0$ with curvature $\sum_i w_i^{(t)} = H_{00}$, so the inner Lipschitz
@@ -1938,7 +1993,7 @@ draw(
 ```
 
 The fifth panel adds an independent codebase confirmation for the
-convergence-on-the-local-quadratic bucket. adelie [@yang2024] is a recent
+convergence-on-the-local-quadratic bucket. adelie\ [@yang2024] is a recent
 direct-Newton solver that builds the same weighted Gaussian surrogate as glmnet
 `Newton` but realizes the intercept implicitly: rather than updating $\beta_0$
 as a coordinate inside the inner CD pass, it weighted-centers the features at
@@ -2000,7 +2055,7 @@ it is locally invariant to imbalance, requires no tuning, and matches the
 convergence strategy on outer-pass count while avoiding the $k_0 - 1$ wasted
 inner work that the convergence strategy spends per pass. The damped
 (Armijo-safeguarded) variant adds a thin safety net for the narrow cold-start
-regime in which a bare Newton step can overshoot (@fig-cold-start); in our
+regime in which a bare Newton step can overshoot\ (@fig-cold-start); in our
 experiments the line search succeeds on the first attempt at every iterate away
 from cold start, so the damped variant reduces to bare Newton in steady state.
 The gradient strategy, by contrast, inherits a per-coordinate Lipschitz mismatch
@@ -2037,7 +2092,7 @@ CD-with-Newton-intercept, and the empirical evidence in §Results stands in for
 that. A tighter rate analysis under restricted strong convexity would let the
 corollary of @cor-rate-gap predict the empirical pass-count constant rather than
 only its scaling---currently the prediction matches within a factor of two to
-four (@fig-mu-reg-gradient). Second, the production-solver experiments in
+four\ (@fig-mu-reg-gradient). Second, the production-solver experiments in
 @sec-production-solvers run on a single shared problem; the heatmap of
 @sec-imbalance-reg replicates the binary direct-CD predictions across a 30-cell
 grid but the cross-package comparison does not yet sweep the $(\mu_0, \lambda)$
