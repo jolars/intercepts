@@ -57,7 +57,7 @@ separable and that $F$ is of the form
 $$
 F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
-where $f$ is a smooth, twice differentiable, and convex function. For clarity,
+where $f$ is a smooth, twice differentiable, and convex function. For brevity,
 we use the convention of denoting the $i$th row and $j$th column of the design
 matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}\_0,
 \hat{\beta})$ denote a solution to the problem in @eq-primal-problem. Although
