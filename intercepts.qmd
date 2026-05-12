@@ -1075,7 +1075,9 @@ within-pass drift of @lem-convergence-cost, which is direct-CD-specific.
 The practical map is therefore richer than the direct-CD analysis alone
 suggests. @tbl-classification summarises where each production solver falls.
 Among the CD-based packages we surveyed, only skglm is a genuine
-direct-CD-gradient-strategy realization on the original loss. The remaining
+direct-CD-gradient-strategy realization on the original loss.^[We have submitted
+a pull request to skglm proposing a Newton intercept update; see
+<https://github.com/scikit-learn-contrib/skglm/pull/337>.] The remaining
 solvers---glmnet, biglasso, adelie, LIBLINEAR, BlitzL1, Lasso.jl, ncvreg---all
 linearize before doing CD, either via IRLS or via proximal-Newton on a quadratic
 upper bound. Within those families the within-package mode toggles are what
