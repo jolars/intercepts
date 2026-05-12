@@ -86,17 +86,22 @@ impact on convergence speed, especially under response imbalance.
 
 The three main strategies that we will consider in this paper are:
 
-1. **Gradient strategy**: The intercept is updated using a single gradient step
-   before each pass over the coordinates.
-2. **Newton strategy**: The intercept is updated using a single Newton step
-   before each pass over the coordinates. We also study a *damped* version that
-   wraps the Newton step in an Armijo backtracking line search; the damped
-   variant reduces to the bare Newton update whenever the full step is accepted
-   (the common case) and provides a safeguard in the cold-start or
-   saturated-loss regime where bare Newton can overshoot.
-3. **Convergence strategy**: The intercept is updated by solving the
-   optimization problem in the intercept convergence before each pass over the
-   coordinates, using either gradient or Newton steps.
+Gradient Strategy
+:   The intercept is updated using a single gradient step before each pass over
+    the coordinates.
+
+Newton Strategy
+:   The intercept is updated using a single Newton step before each pass over
+    the coordinates. We also study a *damped* version that wraps the Newton step
+    in an Armijo backtracking line search; the damped variant reduces to the
+    bare Newton update whenever the full step is accepted (the common case) and
+    provides a safeguard in the cold-start or saturated-loss regime where bare
+    Newton can overshoot.
+
+Convergence Strategy
+:   The intercept is updated by solving the optimization problem in the
+    intercept convergence before each pass over the coordinates, using either
+    gradient or Newton steps.
 
 For a first illustration of this, see @fig-first-example, which shows how the
 three different methods affect overall convergence on $\ell_1$-regularized
