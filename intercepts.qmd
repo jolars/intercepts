@@ -383,6 +383,54 @@ The Newton branch of @algo-cd is the bare Newton step; the damped Newton variant
 simply wraps the same direction in an Armijo backtracking line search, and we
 develop it in @sec-irls.
 
+### What Sets the Intercept Apart
+
+Before analyzing how the three strategies behave, it is worth stating plainly
+why the intercept warrants a separate treatment from a regular coefficient. The
+formal apparatus of the rest of @sec-theory turns on four facts that distinguish
+$\beta_0$ from $\beta_j$:
+
+1. **The intercept's design column is $\mathbf{1}_n$.** Treating $\beta_0$ as a
+   coordinate is equivalent to augmenting $X$ with a constant column of ones.
+   This single observation unifies several quantities that would otherwise look
+   unrelated: $H_{00} = \sum_i w_i$ is a sum of weights rather than a weighted
+   sum of squared features; the global Lipschitz constant
+   $L_0 = \|\mathbf{1}\|^2 f''_{\max}/n = f''_{\max}$ does not shrink with the
+   data (for binary logistic this gives $L_0 = 1/4$); and the cross-Hessian
+   $H_{0j} = \sum_i w_i x_{ij}$ is the $w$-weighted column mean, so the
+   intercept couples to *every* slope through a single scalar regardless of
+   feature correlations.
+
+2. **The intercept is unpenalized.** The regularizer $G_\lambda$ acts only on
+   $\beta$, so $\beta_0$ is the only coordinate whose update is smooth---no
+   proximal operator, no soft-thresholding, no nondifferentiable optimality
+   condition. This is what makes the strategy menu of @algo-cd available for
+   $\beta_0$ in the first place: a "single Newton step" and "iterate to
+   convergence" are degrees of freedom that a penalized coordinate simply does
+   not have.
+
+3. **The intercept is never inactive.** Production CD solvers prune slope
+   coordinates aggressively via screening rules, strong rules, and working sets,
+   so the per-pass cost of any particular $\beta_j$ is amortized over the passes
+   in which it is screened out. The intercept is in the active set of every pass
+   by construction, so its per-pass treatment dominates the overall
+   intercept-update cost in a way that no individual slope's treatment does.
+
+4. **In IRLS-CD, the intercept update is a recentering step.** Because its
+   column is constant, the gradient $\partial_0 F = \sum_i w_i r_i$ is exactly
+   the $w$-weighted residual sum, so a Newton step on $\beta_0$ zeros the
+   weighted-mean residual of the current working response. The slopes never
+   perform this role. This is the structural reason adelie can fold the
+   intercept into a weighted-centered-features parameterization of the inner
+   Gaussian surrogate, while it cannot do the same with an arbitrary slope.
+
+Items 1 and 4 are why the gap $L_0/H_{00}$ that drives our main result is
+unbounded under response imbalance: $L_0$ does not adapt to the curvature of the
+loss at the current iterate, while $H_{00}$ collapses with $\sum_i w_i$ as the
+linear predictor saturates. Items 2 and 3 are why the choice of strategy is even
+available, and why its per-pass cost is not amortized away. The remainder of
+@sec-theory makes these observations quantitative.
+
 ### Cross-Influence of Intercept and Coefficients
 
 The Hessian of $F$ with respect to the intercept and the coefficients exposes
