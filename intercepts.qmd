@@ -206,13 +206,16 @@ glmnet documentation describes as a speed trade-off ("an upper-bound on the
 Hessian... can be faster") rather than as an intercept-strategy choice.
 LIBLINEAR's newGLMNET solver [@fan2008; @yuan2012] runs a 1-D Newton convergence
 loop on the intercept after each prox-Newton subproblem, described in passing as
-an implementation detail rather than as a design decision. The
-Hastie--Tibshirani--Wainwright textbook\ [@hastie2015] keeps the intercept
-unpenalized but does not separate it algorithmically from the slopes, and
-celer\ [@massias2020] does not support intercepts for $\ell_1$-logistic
-regression. So, the *implementation*-side choice is thoroughly studied and
-varied in practice; the *analysis*-side question---under what response
-distributions the choice matters---has neither been asked nor answered.
+an implementation detail rather than as a design decision. BlitzL1
+[@johnson2015] applies the same scheme: each prox-Newton iteration ends with a
+capped 1-D Newton loop on the intercept run to gradient tolerance.^[Source:
+<https://github.com/tbjohns/BlitzL1/blob/aef8d02/src/solver.cpp#L27-L55>. The
+loop is called from `run_prox_newton_iteration` (`solver.cpp:262`) after the
+working-set CD pass and step-size backtracking.] celer\ [@massias2020] does not
+support intercepts for $\ell_1$-logistic regression. So, the
+*implementation*-side choice is thoroughly studied and varied in practice; the
+*analysis*-side question---under what response distributions the choice
+matters---has neither been asked nor answered.
 
 A second thread is the fixed-effects tradition. For linear regression the
 intercept can be partialled out: centering the features zeros the cross-Hessian
@@ -226,7 +229,14 @@ cancel under feature centering alone, and the closed form for $\hat\beta_0$
 vanishes. adelie\ [@yang2024] supplies the natural GLM analogue: its proximal
 quasi-Newton method builds a weighted Gaussian surrogate at each linearization
 and absorbs the intercept implicitly through that surrogate, rather than as a
-separate CD coordinate. The same argument explains why the framework of
+separate CD coordinate.^[Source:
+<https://github.com/JamesYang007/adelie/blob/d6a1229/adelie/src/include/adelie_core/solver/solver_gaussian_pin_naive.hpp>.
+The inner Gaussian solver uses IRLS-weighted column means in its gradient update
+(`solver_gaussian_pin_naive.hpp:87, 120`) and recovers the intercept at the end
+of the inner solve as the weighted mean of the working response plus the
+residual mean (`solver_gaussian_pin_naive.hpp:392`); the column means themselves
+are built with the IRLS weights in the outer GLM solver
+(`solver_glm_naive.hpp:366`).] The same argument explains why the framework of
 @sec-theory has no bite on Gaussian data: there the decoupling is already
 complete, $L_0 = H_{00}$, and the gradient and Newton strategies coincide on the
 intercept.

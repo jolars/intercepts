@@ -170,38 +170,30 @@ and the attribution of the post-step intercept Newton loop to BlitzL1 via
 @johnson2015, since the Johnson 2015 paper does not formulate an intercept
 at all). The two open items below are what remain.
 
-- [ ] **Verify BlitzL1's intercept handling against the source.** The
-      paper-wide claim that BlitzL1 "follows each prox-Newton subproblem with
-      a separate 1-D Newton convergence loop on the intercept" (l80--81,
-      l1158--1159, l1165--1167, l1956--1957) and the
-      `@tbl-classification` row giving BlitzL1 a "combined-direction
-      backtrack + post-step Newton convergence" intercept update cannot be
-      sourced to @johnson2015, which does not formulate an intercept at all.
-      To resolve: read the BlitzL1 source
-      (<https://github.com/tbjohns/BlitzL1>) and either (a) confirm the
-      design and cite the source in addition to the paper, or (b) drop
-      BlitzL1 from the post-step-Newton claim and rephrase
-      `@tbl-classification` accordingly. Related Work paragraph 1 has
-      already been narrowed to LIBLINEAR only; the paper-wide claims still
-      need this resolution.
+- [x] **Verify BlitzL1's intercept handling against the source.** Done:
+      read BlitzL1 source at commit `aef8d02`. `Solver::update_intercept`
+      (`src/solver.cpp:27-55`) is a 1-D Newton loop with cap 10 iterations
+      and gradient tolerance 1e-14, called from `run_prox_newton_iteration`
+      (`src/solver.cpp:262`) after the working-set CD pass and step-size
+      backtracking---i.e. once per prox-Newton iteration. Related Work
+      paragraph 1 now includes BlitzL1 alongside LIBLINEAR with a source
+      footnote pinned to the commit and line range. `@tbl-classification`
+      and the paper-wide claims stand as written.
 
-- [ ] **Verify Hastie--Tibshirani--Wainwright claim against [@hastie2015].**
-      Related-work prose says the textbook "keeps the intercept unpenalized
-      but does not separate it algorithmically from the slopes". The first
-      half is standard; the second half was written from memory. To
-      resolve: skim chapters 3 and 5 and confirm or rephrase.
+- [x] **Drop Hastie--Tibshirani--Wainwright.** Done: removed the textbook
+      sentence from Related Work paragraph 1 and dropped the `hastie2015`
+      bib entry. The celer point still carries the "ecosystem variation"
+      thread on its own.
 
-- [ ] **Verify adelie's weighted-centered-features mechanism against the
-      source.** The high-level classification (Local-IRLS with implicit
-      intercept) is consistent with @yang2024, which builds a positive
-      diagonal majorant and solves a Gaussian elastic-net subproblem. The
-      specific mechanism the paper describes elsewhere---"a weighted-
-      centered-features parameterization of the inner Gaussian surrogate"
-      (l79--80, l1156, l1856--1857)---is not in this form in the paper
-      text. Related Work paragraph 2 has been softened to the high-level
-      claim ("absorbs the intercept implicitly through that surrogate"),
-      but the more specific phrasing remains elsewhere in the paper. To
-      resolve: read the adelie source
-      (<https://github.com/JamesYang007/adelie>) and either confirm the
-      weighted-centering mechanism and cite the source, or rephrase the
-      remaining paper-wide claims to the high-level form.
+- [x] **Verify adelie's weighted-centered-features mechanism against the
+      source.** Done: read adelie source at commit `d6a1229`. The outer GLM
+      solver (`solver_glm_naive.hpp:336-346`) builds an IRLS-weighted
+      Gaussian surrogate and computes weighted column means
+      (`solver_glm_naive.hpp:366`); the inner Gaussian pin solver consumes
+      those weighted means in its gradient update
+      (`solver_gaussian_pin_naive.hpp:87, 120`) and recovers the intercept
+      at the end as the weighted mean of the working response plus the
+      residual mean (`solver_gaussian_pin_naive.hpp:392`)---never as a CD
+      coordinate. The "weighted-centered-features parameterization" phrasing
+      throughout the paper is faithful to the source. Related Work paragraph
+      2 now carries a source footnote pinned to the commit and line numbers.
