@@ -68,6 +68,16 @@ presentation polish.
       modes of two packages. State this up front; it is a stronger paper for
       being narrower.
 
+- [ ] **Isolate $\rho_{0j}^2$ experimentally, or scope the Schur framing.** The
+      contributions list advertises a Schur-complement analysis parameterised by
+      $\rho_{0j}^2$ *and* $H_{00}/L_0$. In the load-bearing results
+      $\rho_{0j}^2$ appears in `@thm-profile-equiv` and is then absorbed into
+      the asymptotic reduction of `@cor-rate-gap`; `@fig-mu-reg-gradient` and
+      the production-solver panel vary $H_{00}/L_0$ but not $\rho_{0j}^2$. An
+      uncentered-vs-standardized comparison at fixed imbalance would test the
+      second axis the framing claims; alternatively, scope the Schur framing in
+      the introduction to what the experiments actually probe.
+
 ### Overselling to dial back
 
 - [ ] **Reframe the Theory section so it stops dressing Taylor identities as
@@ -117,6 +127,36 @@ presentation polish.
       `LIBSVMdata.jl`-available alternative) so the real-data verification does
       not rest on one dataset.
 
+### Reproducibility and provenance
+
+- [ ] **Convert `fig-parametric` to a cached chunk.** The figure at line ~1305
+      calls `cdsolver` for three strategies at render time and is the only
+      figure-producing chunk in the paper without a corresponding `experiments/`
+      script and `.jld2` cache. A `sim-parametric.jl` + `results/parametric.jld2`
+      pair brings it in line with the rest and removes its dependence on the
+      global `Random.seed!(14)` set in the setup chunk.
+
+- [ ] **Pin production-solver methodology.** `@sec-methodology` names solver
+      versions for glmnet, biglasso, adelie, and skglm, but leaves the tolerance
+      grids, per-driver seeds, repetition counts, BLAS configuration for R and
+      Python, and hardware specifics implicit in the experiment scripts. A
+      methodology table or an expanded paragraph pinning these closes a
+      reproducibility gap a referee hits on first read.
+
+- [ ] **Fix the cache-script naming mismatch and remove the orphan cache.**
+      `results/real-logreg.jld2` is loaded at line 1473 but produced by
+      `experiments/sim-real-data.jl`; the rest of the project uses
+      `sim-X.jl` → `X.jld2`. Rename one or the other. Separately,
+      `results/failure-examples.jld2` is produced by
+      `experiments/sim-strategy-failure.jl` but loaded by no chunk in
+      `intercepts.qmd` --- wire it in or drop both.
+
+- [ ] **Source-pin LIBLINEAR on parity with BlitzL1 and adelie.** The BlitzL1
+      (line 211) and adelie (line 234) footnotes pin specific commits when
+      describing intercept handling. The LIBLINEAR row in `@tbl-classification`
+      cites only the published papers. A SHA-pinned source footnote for
+      newGLMNET's post-step intercept Newton loop closes the audit chain.
+
 ### Framing and presentation
 
 - [ ] **Rename "convergence strategy".** The term collides with the general
@@ -148,3 +188,6 @@ presentation polish.
       its own theory section. Reframe as a positive scoping statement ("the
       Newton-strategy guarantee is local; global progress is verified
       empirically in §Results") rather than a concessionary one.
+
+- [ ] **Fix the "Compute journal" typo in `README.qmd`.** Line 24 reads "the
+      Compute journal" --- should be "Computo".
