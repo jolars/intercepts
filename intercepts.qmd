@@ -104,12 +104,12 @@ Convergence Strategy
     intercept convergence before each pass over the coordinates, using either
     gradient or Newton steps.
 
-For a first illustration, see @fig-first-example, which compares the three
-strategies on $\ell_1$-regularized logistic regression on the w1a dataset. The
-Newton strategy reaches the optimal solution quickly, and the gradient strategy
-more slowly. The convergence strategy does not make progress on this problem
-under cyclic coordinate ordering --- a sensitivity we return to in
-@sec-ordering.
+For a first illustration, see @fig-first-example, which compares the three main
+strategies on $\ell_1$-regularized logistic regression on the w1a
+dataset\ [@platt1998]. The Newton strategy reaches the optimal solution quickly,
+and the gradient strategy more slowly. The convergence strategy does not make
+progress on this problem under cyclic coordinate ordering---a sensitivity we
+return to in @sec-ordering.
 
 ```{julia}
 #| label: fig-first-example
