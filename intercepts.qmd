@@ -62,7 +62,7 @@ we use the convention of denoting the $i$th row and $j$th column of the design
 matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}\_0,
 \hat{\beta})$ denote a solution to the problem in @eq-primal-problem. Although
 we will not generally assume that $P$ is convex, we will focus on this case in
-our empirical work
+our empirical work.
 
 Intercepts are necessary when fitting regularized regression models, since the
 results will otherwise depend on the locations (means) of both the response
