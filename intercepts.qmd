@@ -74,7 +74,7 @@ as a method for fitting regularized regression models, the issue of how to
 update the intercept has not been studied in the literature. This may also serve
 to explain why existing CD implementations differ widely in their treatment of
 it: glmnet (`type.logistic`) and biglasso (`alg.logistic`) expose a
-user-selectable toggle between a local-Newton and an MM ($1/4$-Lipschitz) IRLS
+user-selectable toggle between a local-Newton and an MM\ ($1/4$-Lipschitz) IRLS
 surrogate, and this choice happens to also determine which intercept update is
 realized---the local-Newton surrogate induces an exact 1-D Newton step on the
 intercept, while the MM surrogate reduces to a constant-Lipschitz gradient step;
