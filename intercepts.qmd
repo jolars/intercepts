@@ -143,10 +143,8 @@ The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
 CD-based GLM solvers in current use have already made the right structural
 choice within their algorithmic family. The outliers---skglm, glmnet's
-`modified.Newton` mode, biglasso's opt-in MM mode---are exactly
-the cases the framework, correctly, flags as suboptimal. We see this as an
-explanatory contribution about an existing design space rather than a critique
-of implementations.
+`modified.Newton` mode, biglasso's opt-in MM mode---are exactly the cases the
+framework, correctly, flags as suboptimal.
 
 Our main contributions are as follows:
 
