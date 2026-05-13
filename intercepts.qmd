@@ -133,7 +133,7 @@ draw(
 )
 ```
 
-@fig-first-example previews the main message of this paper: the Newton strategy
+@fig-first-example heralds the main message of this paper: the Newton strategy
 is both reliable and efficient, the gradient strategy is too slow, and the
 convergence strategy pays a per-pass cost without a commensurate rate gain. An
 Armijo-safeguarded *damped* Newton variant protects against the narrow
