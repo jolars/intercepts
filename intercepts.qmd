@@ -192,25 +192,24 @@ Multinomial Extension
 
 ## Related Work
 
-The intercept-update question sits at the intersection of three literatures,
-none of which has analysed it as a separate quantity.
-
-Intercept handling in CD-based GLM solvers has been treated as a routine
-implementation choice across the production-CD ecosystem. The original glmnet
-paper\ [@friedman2010] and its all-GLM extension\ [@tay2023] expose two weight
-schemes for the logistic IRLS inner solve---local weights and a global 1/4
-upper bound, surfaced as the R-package modes `type.logistic = "Newton"` and
-`"modified.Newton"`---which the glmnet documentation describes as a speed
-trade-off ("an upper-bound on the Hessian... can be faster") rather than as an
-intercept-strategy choice. LIBLINEAR's newGLMNET solver
-[@fan2008; @yuan2012] runs a 1-D Newton convergence loop on the intercept after
-each prox-Newton subproblem, described in passing as an implementation detail
-rather than as a design decision. The Hastie--Tibshirani--Wainwright
-textbook\ [@hastie2015] keeps the intercept unpenalized but does not separate it
-algorithmically from the slopes, and celer\ [@massias2020] does not support
-intercepts for $\ell_1$-logistic regression. The *implementation*-side choice is
-widely made and widely varied; the *analysis*-side question---under what
-response distributions the choice matters---has not been posed.
+The intercept-update question sits at the intersection of three literatures, of
+which none has analyzed it as a separate problem. Intercept handling in CD-based
+GLM solvers has been treated as a routine implementation choice across the
+ecosystem of CD implementations. The original glmnet paper\ [@friedman2010] and
+its all-GLM extension\ [@tay2023] expose two weight schemes for the logistic
+IRLS inner solve---local weights and a global 1/4 upper bound, surfaced as the
+R-package modes `type.logistic = "Newton"` and `"modified.Newton"`---which the
+glmnet documentation describes as a speed trade-off ("an upper-bound on the
+Hessian... can be faster") rather than as an intercept-strategy choice.
+LIBLINEAR's newGLMNET solver [@fan2008; @yuan2012] runs a 1-D Newton convergence
+loop on the intercept after each prox-Newton subproblem, described in passing as
+an implementation detail rather than as a design decision. The
+Hastie--Tibshirani--Wainwright textbook\ [@hastie2015] keeps the intercept
+unpenalized but does not separate it algorithmically from the slopes, and
+celer\ [@massias2020] does not support intercepts for $\ell_1$-logistic
+regression. So, the *implementation*-side choice is thoroughly studied and
+varied in practice; the *analysis*-side question---under what response
+distributions the choice matters---has neither been asked nor answered.
 
 A second thread is the fixed-effects tradition. For linear regression the
 intercept can be partialled out: centering the features zeros the cross-Hessian
@@ -219,15 +218,15 @@ the slope subproblem decoupled from the intercept. This is the Frisch--Waugh--
 Lovell theorem\ [@lovell1963], and it is the argument that justifies leaving the
 intercept unpenalized along the Gaussian path of glmnet. The decoupling fails
 for non-Gaussian GLMs because the inverse link sits between $\beta_0$ and $y$:
-the cross-Hessian acquires weights $w_i = f''(\eta_i; y_i)$ that no longer cancel
-under feature centering alone, and the closed form for $\hat\beta_0$ vanishes.
-adelie\ [@yang2024] supplies the natural GLM analogue: its proximal
+the cross-Hessian acquires weights $w_i = f''(\eta_i; y_i)$ that no longer
+cancel under feature centering alone, and the closed form for $\hat\beta_0$
+vanishes. adelie\ [@yang2024] supplies the natural GLM analogue: its proximal
 quasi-Newton method builds a weighted Gaussian surrogate at each linearization
 and absorbs the intercept implicitly through that surrogate, rather than as a
-separate CD coordinate. The same argument explains why
-the framework of @sec-theory has no bite on Gaussian data: there the decoupling
-is already complete, $L_0 = H_{00}$, and the gradient and Newton strategies
-coincide on the intercept.
+separate CD coordinate. The same argument explains why the framework of
+@sec-theory has no bite on Gaussian data: there the decoupling is already
+complete, $L_0 = H_{00}$, and the gradient and Newton strategies coincide on the
+intercept.
 
 The third thread is majorization--minimization. The constant $L_0 = n/4$ that
 governs the gradient strategy in @lem-gradient-partial, and which skglm uses as
