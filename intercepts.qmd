@@ -82,10 +82,8 @@ step; skglm picks the gradient scheme implicitly through its
 constant-Lipschitz design; adelie keeps the intercept implicit through a weighted-centered-features
 parameterization of the inner Gaussian surrogate; LIBLINEAR and BlitzL1 graft a
 separate 1-D Newton convergence loop on the intercept onto each prox-Newton
-subproblem; celer [@massias2020] declines the question entirely, with
-`fit_intercept=TRUE` raising `NotImplementedError` for L1-logistic in version
-0.7.4. As we show in this paper, the choice of strategy can have a significant
-impact on convergence speed, especially under response imbalance.
+subproblem. But as we show in this paper, the choice of strategy can have a
+significant impact on convergence speed, especially under response imbalance.
 
 The three main strategies that we will consider in this paper are:
 
