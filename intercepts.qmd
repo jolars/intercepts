@@ -29,17 +29,17 @@ Random.seed!(14)
 
 The dominating method for fitting regularized regression models is proximal
 coordinate descent, which serves as the default optimization method in a range
-of software packages: glmnet [@friedman2010; @tay2023], biglasso [@zeng2017],
-ncvreg [@breheny2011], skglm [@bertrand2022], adelie [@yang2024], LIBLINEAR
-[@fan2008; @yuan2012], BlitzL1 [@johnson2015], and others. These packages do not
-in fact run a single algorithm: glmnet, biglasso, adelie, and ncvreg solve a
-sequence of weighted-least-squares subproblems via inner CD (the IRLS-CD
-family); LIBLINEAR and BlitzL1 do the same with a proximal-Newton linearization
-[@lee2014]; skglm runs CD directly on the original GLM loss with constant
-per-coordinate Lipschitz steps. Coordinate descent has been investigated
-extensively, for instance with respect to acceleration and parallelization, yet
-one aspect that has so far not been investigated is the strategy of fitting the
-intercept.
+of software packages, including glmnet\ [@friedman2010; @tay2023],
+biglasso\ [@zeng2017], ncvreg\ [@breheny2011], skglm\ [@bertrand2022],
+adelie\ [@yang2024], LIBLINEAR\ [@fan2008; @yuan2012], and
+BlitzL1\ [@johnson2015]. These packages do not in fact run a single algorithm:
+glmnet, biglasso, adelie, and ncvreg solve a sequence of weighted-least-squares
+subproblems via inner CD (the IRLS-CD family); LIBLINEAR and BlitzL1 do the same
+with a proximal-Newton linearization\ [@lee2014]; skglm runs CD directly on the
+original GLM loss with constant per-coordinate Lipschitz steps. Coordinate
+descent has been investigated extensively, for instance with respect to
+acceleration and parallelization, yet one aspect that has so far not been
+investigated is the strategy of fitting the intercept.
 
 In this paper, we are interested in the following optimization problem:
 $$
