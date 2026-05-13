@@ -78,8 +78,8 @@ user-selectable toggle between a local-Newton and an MM ($1/4$-Lipschitz) IRLS
 surrogate, and this choice happens to also determine which intercept update is
 realized---the local-Newton surrogate induces an exact 1-D Newton step on the
 intercept, while the MM surrogate reduces to a constant-Lipschitz gradient step;
-skglm picks the gradient scheme implicitly through its constant-Lipschitz
-design; adelie keeps the intercept implicit through a weighted-centered-features
+skglm 0.5 picks the gradient scheme implicitly through its constant-Lipschitz
+design (changed to Newton in 0.6); adelie keeps the intercept implicit through a weighted-centered-features
 parameterization of the inner Gaussian surrogate; LIBLINEAR and BlitzL1 graft a
 separate 1-D Newton convergence loop on the intercept onto each prox-Newton
 subproblem. But as we show in this paper, the choice of strategy can have a
@@ -142,9 +142,11 @@ cold-start regime where a bare Newton step can overshoot.
 The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
 CD-based GLM solvers in current use have already made the right structural
-choice within their algorithmic family. The outliers---skglm, glmnet's
-`modified.Newton` mode, biglasso's opt-in MM mode---are exactly the cases the
-framework, correctly, flags as suboptimal.
+choice within their algorithmic family. The outliers---skglm 0.5 and earlier,
+glmnet's `modified.Newton` mode, biglasso's opt-in MM mode---are exactly the
+cases the framework, correctly, flags as suboptimal. (skglm switched to the
+Newton strategy in version 0.6 following a pull request based on this work; we
+return to this in @sec-production-solvers.)
 
 Our main contributions are as follows:
 
@@ -179,7 +181,7 @@ Empirical Verification on Production Codebases
 :   Five figures on the same imbalanced logistic problem confirm the framework's
     predictions: glmnet `modified.Newton` needs roughly six times more inner
     passes than `Newton`; biglasso `MM` needs roughly ten times more than
-    `Newton`; skglm exhibits the predicted slow ramp; LIBLINEAR and BlitzL1 both
+    `Newton`; skglm 0.5 exhibits the predicted slow ramp; LIBLINEAR and BlitzL1 both
     converge fast, as the framework predicts for their prox-Newton +
     convergence-strategy intercept design; adelie matches the per-iteration cost
     of glmnet `Newton`, as the framework predicts for its centered-features
@@ -416,7 +418,7 @@ $\beta_0$ from $\beta_j$:
    by construction, so its per-pass treatment dominates the overall
    intercept-update cost in a way that no individual slope's treatment does.
 
-4. **In IRLS-CD, the intercept update is a recentering step.** Because its
+4. **In IRLS-CD, the intercept update is a re-centering step.** Because its
    column is constant, the gradient $\partial_0 F = \sum_i w_i r_i$ is exactly
    the $w$-weighted residual sum, so a Newton step on $\beta_0$ zeros the
    weighted-mean residual of the current working response. The slopes never
@@ -843,7 +845,7 @@ The scaling, not the constant, is the load-bearing prediction.
 at the global $L_0 = n/4$ to the intercept inside their IRLS inner solves; the
 corollary predicts their pass counts should grow with $L_0/H_{00}$ at
 $\mu_0 = 0.99$, matching the empirical ≈6× and ≈10× slowdowns reported in
-@fig-real-glmnet and @fig-real-biglasso. skglm, the direct-CD solver, exhibits
+@fig-real-glmnet and @fig-real-biglasso. skglm 0.5, the direct-CD solver, exhibits
 the same scaling on a continuous trajectory in @fig-real-skglm: the slow ramp
 from suboptimality $\sim 10^{-1}$ to $\sim 10^{-5}$ is the intercept climb to
 $\mathrm{logit}(\mu_0)$ at step size $1/L_0$.
@@ -864,10 +866,12 @@ variant of the gradient strategy stalls identically to the bare-Lipschitz
 version, because the Lipschitz step satisfies the sufficient-decrease condition
 on the first attempt and the line search never fires.
 
-The picture matches what production direct-CD solvers do. skglm [@bertrand2022]
-uses constant per-coordinate Lipschitz steps, including $L_0 = n/4$ for the
-intercept---exactly the gradient strategy as defined above, with no line search
-of any kind. The other CD-based production packages we surveyed (glmnet,
+The picture matches what production direct-CD solvers did at the time these
+experiments were run. skglm 0.5 [@bertrand2022] used constant per-coordinate
+Lipschitz steps, including $L_0 = n/4$ for the intercept---exactly the gradient
+strategy as defined above, with no line search of any kind. skglm 0.6 replaced
+this with the Newton strategy after our pull request based on the present
+analysis was merged; see @sec-production-solvers. The other CD-based production packages we surveyed (glmnet,
 biglasso, LIBLINEAR, BlitzL1) embed the intercept update inside an outer IRLS or
 proximal-Newton linearization; we return to them in @sec-irls. None of the
 production CD solvers we surveyed use a growth-allowing line search on the
@@ -1175,10 +1179,12 @@ within-pass drift of @lem-convergence-cost, which is direct-CD-specific.
 
 The practical map is therefore richer than the direct-CD analysis alone
 suggests. @tbl-classification summarises where each production solver falls.
-Among the CD-based packages we surveyed, only skglm is a genuine
-direct-CD-gradient-strategy realization on the original loss.^[We have submitted
-a pull request to skglm proposing a Newton intercept update; see
-<https://github.com/scikit-learn-contrib/skglm/pull/337>.] The remaining
+Among the CD-based packages we surveyed, only skglm 0.5 and earlier are
+genuine direct-CD-gradient-strategy realizations on the original loss; in
+skglm 0.6, released after the experiments in this paper were run, the intercept
+update was switched to the Newton strategy following a pull request based on
+this analysis.^[<https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
+2026-05-13.] The remaining
 solvers---glmnet, biglasso, adelie, LIBLINEAR, BlitzL1, Lasso.jl, ncvreg---all
 linearize before doing CD, either via IRLS or via proximal-Newton on a quadratic
 upper bound. Within those families the within-package mode toggles are what
@@ -1191,25 +1197,26 @@ does not support an intercept at all in version 0.7.4, and its documentation
 redirects users with logistic needs to skglm; it is therefore absent from the
 table.)
 
-  | Solver                                       | Family                | Intercept update on the original loss                       |
-  | :------------------------------------------- | :-------------------- | :---------------------------------------------------------- |
-  | skglm                                        | Constant-Lipschitz CD | Gradient ($L_0 = n/4$)                                      |
-  | glmnet `type.logistic = "modified.Newton"`   | MM-IRLS               | Gradient ($L_0 = n/4$) per outer iteration                  |
-  | biglasso `alg.logistic = "MM"`               | MM-IRLS               | Gradient ($L_0 = n/4$) per outer iteration                  |
-  | glmnet `type.logistic = "Newton"`            | Local-IRLS            | Convergence on the local quadratic per outer iter           |
-  | biglasso `alg.logistic = "Newton"` (default) | Local-IRLS            | Convergence on the local quadratic per outer iter           |
-  | Lasso.jl                                     | Local-IRLS            | Convergence on the local quadratic per outer iter           |
-  | ncvreg                                       | Local-IRLS            | Convergence on the local quadratic per outer iter           |
-  | adelie                                       | Local-IRLS            | Implicit, via weighted-centered-features parameterization   |
-  | LIBLINEAR (newGLMNET, L1-LR)                 | Prox-Newton           | Coefficient of a quadratic + post-step Newton               |
-  | BlitzL1                                      | Prox-Newton           | Combined-direction backtrack + post-step Newton convergence |
+  | Solver                                        | Family                | Intercept Update on the Original Loss                       |
+  | :-------------------------------------------- | :-------------------- | :---------------------------------------------------------- |
+  | skglm $\le 0.5$                               | Constant-Lipschitz CD | Gradient ($L_0 = n/4$)                                      |
+  | skglm $\ge 0.6$                               | Constant-Lipschitz CD | Newton (upstream change adopting our recommendation)        |
+  | glmnet (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Gradient ($L_0 = n/4$) per outer iteration                  |
+  | biglasso (`alg.logistic = "MM"`)              | MM-IRLS               | Gradient ($L_0 = n/4$) per outer iteration                  |
+  | glmnet (`type.logistic = "Newton"`)           | Local-IRLS            | Convergence on the local quadratic per outer iter           |
+  | biglasso (`alg.logistic = "Newton"`, default) | Local-IRLS            | Convergence on the local quadratic per outer iter           |
+  | Lasso.jl                                      | Local-IRLS            | Convergence on the local quadratic per outer iter           |
+  | ncvreg                                        | Local-IRLS            | Convergence on the local quadratic per outer iter           |
+  | adelie                                        | Local-IRLS            | Implicit, via weighted-centered-features parameterization   |
+  | LIBLINEAR (newGLMNET, L1-LR)                  | Prox-Newton           | Coefficient of a quadratic + post-step Newton               |
+  | BlitzL1                                       | Prox-Newton           | Combined-direction backtrack + post-step Newton convergence |
 
   : Classification of CD-based production solvers by algorithmic family and by
     the intercept update they realize on the original loss. Local-IRLS and
     prox-Newton solvers freeze the Hessian at the start of a subproblem, so the
     three strategies of this paper coincide *within* one subproblem; the
     distinction reappears only when comparing weight schemes across outer
-    iterations (rows two to five). LIBLINEAR and BlitzL1 additionally follow
+    iterations (rows three to six). LIBLINEAR and BlitzL1 additionally follow
     each prox-Newton subproblem with a separate sequence of 1-D Newton
     iterations on the intercept (the convergence strategy applied to the
     original loss after each outer step). {#tbl-classification}
@@ -1897,9 +1904,9 @@ primal achieved by that solver across all configurations.
 
 The within-package mode comparisons (glmnet, biglasso) isolate the weight-scheme
 choice: identical solver, identical problem, identical tolerance, only the IRLS
-weighting changes. The third panel runs skglm, the cleanest production
-realization of constant-Lipschitz proximal CD, where the intercept update is the
-gradient strategy with $L_0 = n/4$ by construction. The fourth panel verifies
+weighting changes. The third panel runs skglm 0.5, the cleanest production
+realization of constant-Lipschitz proximal CD at the time of writing, where the
+intercept update is the gradient strategy with $L_0 = n/4$ by construction. The fourth panel verifies
 the complementary prediction on LIBLINEAR (newGLMNET) and BlitzL1, two
 prox-Newton solvers that apply the convergence strategy to the intercept and
 that the framework predicts should converge fast. A fifth panel runs adelie
@@ -1963,10 +1970,11 @@ draw(
 
 ```{julia}
 #| label: fig-real-skglm
-#| fig-cap: skglm `AndersonCD` on the same problem. The solver uses constant
-#|   per-coordinate Lipschitz steps with the global $1/4$ majorant for the
-#|   logistic Hessian and updates the intercept with step $4/n$---exactly the
-#|   gradient strategy in our framework. The trajectory exhibits a slow early
+#| fig-cap: skglm 0.5 `AndersonCD` on the same problem. The solver uses
+#|   constant per-coordinate Lipschitz steps with the global $1/4$ majorant for
+#|   the logistic Hessian and updates the intercept with step $4/n$---exactly
+#|   the gradient strategy in our framework. (skglm 0.6 replaced this with the
+#|   Newton strategy; see @sec-production-solvers.) The trajectory exhibits a slow early
 #|   ramp (hundreds of outer iterations spent reducing suboptimality from $\sim
 #|   0.5$ to $\sim 10^{-5}$) followed by sharp convergence once the intercept
 #|   has caught up. The slow ramp is the Lemma @lem-gradient-partial signature;
@@ -1993,17 +2001,20 @@ draw(
 
 Across the three solvers the prediction holds: within-package weight toggles in
 glmnet and biglasso produce the predicted slowdown of the constant-majorant
-mode, and skglm---the only production solver in our survey whose intercept
+mode, and skglm 0.5---the only production solver in our survey whose intercept
 update is unambiguously the gradient strategy---exhibits the slow-ramp signature
-that @cor-newton-coupling and @lem-gradient-partial together predict.
+that @cor-newton-coupling and @lem-gradient-partial together predict. The same
+diagnosis motivated a pull request to skglm replacing the gradient update with
+a Newton step; it was accepted upstream and ships in skglm 0.6
+(<https://github.com/scikit-learn-contrib/skglm/pull/337>, merged 2026-05-13).
 
 The fourth panel verifies the complementary prediction: solvers whose intercept
 update is the convergence strategy at a prox-Newton boundary should converge
 fast. LIBLINEAR (newGLMNET) and BlitzL1 are the two production solvers in our
 survey that fit this description. @fig-real-proxnewton shows both reaching the
 optimum within tens of milliseconds of wall-clock time, on the same problem
-where skglm needs seconds and glmnet's `modified.Newton` needs roughly an order
-of magnitude more inner passes than `Newton`.
+where skglm 0.5 needs seconds and glmnet's `modified.Newton` needs roughly an
+order of magnitude more inner passes than `Newton`.
 
 ```{julia}
 #| label: fig-real-proxnewton
@@ -2114,7 +2125,7 @@ tightens the recommendation into a diagnostic: given a CD-based GLM solver, the
 intercept-update strategy it realises predicts whether its inner solve will slow
 under imbalance, independent of the rest of the algorithm. The classification
 places glmnet `Newton`, biglasso `Newton`, adelie, LIBLINEAR, and BlitzL1 in the
-safe bucket and glmnet `modified.Newton`, biglasso `MM`, and skglm in the
+safe bucket and glmnet `modified.Newton`, biglasso `MM`, and skglm 0.5 in the
 imbalance-sensitive bucket, with the predicted pass-count separation confirmed
 empirically on a shared imbalanced problem (@fig-real-glmnet--@fig-real-adelie).
 The within-package mode toggles in glmnet and biglasso turn this into a

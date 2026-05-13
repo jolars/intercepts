@@ -1,9 +1,14 @@
 """Fig C: skglm AndersonCD on the shared imbalanced logistic problem.
 
-skglm AndersonCD uses constant per-coordinate Lipschitz steps with the global
-1/4 upper bound on the logistic Hessian. The intercept is updated with the
-fixed Lipschitz step ``mean(-y*sigmoid(-y*Xw))/4``, i.e. exactly the gradient
-strategy with ``L_0 = n/4``. Lemma 3.3 predicts this stalls under imbalance.
+skglm 0.5 AndersonCD uses constant per-coordinate Lipschitz steps with the
+global 1/4 upper bound on the logistic Hessian. The intercept is updated with
+the fixed Lipschitz step ``mean(-y*sigmoid(-y*Xw))/4``, i.e. exactly the
+gradient strategy with ``L_0 = n/4``. Lemma 3.3 predicts this stalls under
+imbalance, which is what this figure documents.
+
+skglm 0.6 (merged after these experiments were run, PR
+https://github.com/scikit-learn-contrib/skglm/pull/337) replaces this with a
+Newton intercept step; pin the package version to 0.5 to reproduce the figure.
 
 Sweeps ``tol`` from loose to tight; records (n_iter, primal) at termination.
 """
