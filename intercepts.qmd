@@ -434,14 +434,14 @@ the intercept out:
 $$
 \tilde F(\beta) \;=\; \min_{\beta_0} F(\beta_0, \beta).
 $$
-A direct calculation (the Schur complement of $H_{00}$ in the full Hessian)
-gives
+
+The Hessian of $\tilde F$ is the Schur complement
 $$
-\tilde H_{jk} \;=\; H_{jk} - \frac{H_{j0} H_{0k}}{H_{00}},
+\tilde H_{jk} = H_{jk} - \frac{H_{0j} H_{0k}}{H_{00}},
 $$ {#eq-schur}
 and in particular
 $$
-\tilde H_{jj} \;=\; H_{jj}\bigl(1 - \rho_{0j}^2\bigr).
+\tilde H_{jj} = H_{jj} - \frac{H_{0j}^2}{H_{00}} = H_{jj}(1 - \rho_{0j}^2).
 $$ {#eq-schur-diag}
 
 @eq-schur-diag is the key relation. When $|\rho_{0j}|$ is close to $1$, the
