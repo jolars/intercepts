@@ -2,29 +2,7 @@
 
 Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
-## Editorial round 2 --- pre-review gaps
-
-Issues identified on an editor-style re-read of the current draft, in rough
-priority order. The top block contains items that a Computo reviewer is likely
-to camp on; the middle block softens the overselling; the bottom block is
-presentation polish.
-
-### Load-bearing claims that need shoring up
-
-- [ ] **Prove or demote `@cor-rate-gap`.** The current "proof" is one sentence
-      ("Apply the standard sublinear randomized-CD bound separately for each
-      strategy"), and standard randomized-CD bounds (Richt\'arik--Tak\'a\v c,
-      Nesterov) are joint statements over all coordinates that do not decompose
-      into the per-coordinate $L_j R_j^2$ sum in @eq-rate-gap without extra
-      assumptions. The result is also a ratio of *upper bounds*, not a true
-      iteration-complexity ratio --- a distinction the paper currently elides.
-      Three acceptable paths: (a) state the underlying CD bound explicitly, name
-      the assumptions that license per-coordinate decomposition, and walk
-      through the substitution; (b) demote the corollary to a heuristic
-      predictor and label as such, keeping @fig-rate-gap as the empirical
-      content; (c) replace with a tighter ratio under restricted strong
-      convexity. The load-bearing claim of the Theory section cannot be left as
-      a one-line plug-in.
+## Load-bearing claims that need shoring up
 
 - [ ] **Engage with the 2--4$\times$ empirical undershoot at high imbalance.**
       Cold-start prediction $L_0/H_{00} \approx 1/(4\mu_0(1-\mu_0))$ gives
@@ -78,7 +56,7 @@ presentation polish.
       second axis the framing claims; alternatively, scope the Schur framing in
       the introduction to what the experiments actually probe.
 
-### Overselling to dial back
+## Overselling to dial back
 
 - [ ] **Reframe the Theory section so it stops dressing Taylor identities as
       theorems.** Of the six numbered results, four (`@thm-profile-equiv`,
@@ -127,14 +105,14 @@ presentation polish.
       `LIBSVMdata.jl`-available alternative) so the real-data verification does
       not rest on one dataset.
 
-### Reproducibility and provenance
+## Reproducibility and provenance
 
-- [ ] **Convert `fig-parametric` to a cached chunk.** The figure at line ~1305
+- [ ] **Convert `fig-parametric` to a cached chunk.** The figure at line \~1305
       calls `cdsolver` for three strategies at render time and is the only
       figure-producing chunk in the paper without a corresponding `experiments/`
-      script and `.jld2` cache. A `sim-parametric.jl` + `results/parametric.jld2`
-      pair brings it in line with the rest and removes its dependence on the
-      global `Random.seed!(14)` set in the setup chunk.
+      script and `.jld2` cache. A `sim-parametric.jl` +
+      `results/parametric.jld2` pair brings it in line with the rest and removes
+      its dependence on the global `Random.seed!(14)` set in the setup chunk.
 
 - [ ] **Pin production-solver methodology.** `@sec-methodology` names solver
       versions for glmnet, biglasso, adelie, and skglm, but leaves the tolerance
@@ -145,8 +123,8 @@ presentation polish.
 
 - [ ] **Fix the cache-script naming mismatch and remove the orphan cache.**
       `results/real-logreg.jld2` is loaded at line 1473 but produced by
-      `experiments/sim-real-data.jl`; the rest of the project uses
-      `sim-X.jl` → `X.jld2`. Rename one or the other. Separately,
+      `experiments/sim-real-data.jl`; the rest of the project uses `sim-X.jl` →
+      `X.jld2`. Rename one or the other. Separately,
       `results/failure-examples.jld2` is produced by
       `experiments/sim-strategy-failure.jl` but loaded by no chunk in
       `intercepts.qmd` --- wire it in or drop both.
@@ -157,7 +135,7 @@ presentation polish.
       cites only the published papers. A SHA-pinned source footnote for
       newGLMNET's post-step intercept Newton loop closes the audit chain.
 
-### Framing and presentation
+## Framing and presentation
 
 - [ ] **Rename "convergence strategy".** The term collides with the general
       optimization-theory sense of "convergence" used throughout the paper

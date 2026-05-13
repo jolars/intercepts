@@ -756,7 +756,7 @@ iterate-level $H_{00}$, which may be orders of magnitude smaller.
 $R_j^2 = (\beta_j^{(0)} - \beta_j^\star)^2$ denote the squared cold-start
 distance to the optimum along coordinate $j$, with the intercept as coordinate
 $0$. Decomposing the standard sublinear randomized-CD bound by coordinate yields
-the iteration-complexity ratio
+the upper-bound ratio
 $$
 \frac{T_{\mathrm{G}}(\varepsilon)}{T_{\mathrm{N}}(\varepsilon)}
   \;\lesssim\;
@@ -780,18 +780,32 @@ as imbalance grows, so the ratio diverges.
 :::
 
 ::: {.proof}
-Apply the standard sublinear randomized-CD bound separately for each
-strategy. The Newton strategy's intercept update is exact at leading order
-(@lem-newton-approx) and aligns with CD on the profiled objective $\tilde
-F$ (@thm-profile-equiv), whose coefficient curvatures are
-$\tilde H_{jj} = H_{jj}(1-\rho_{0j}^2)$ by @eq-schur-diag. The gradient
-strategy uses the global Lipschitz $L_0$ on the intercept and, by
-@lem-gradient-partial, removes only fraction $H_{00}/L_0$ of the coupling,
-leaving an effective coefficient curvature
-$H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$. Substituting these into the
-$L_j R_j^2$ sum gives @eq-rate-gap. The asymptotic reduction in
-@eq-rate-gap-asymptotic follows by retaining only the $R_0^2$ term in the
-$|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit.
+The standard sublinear bound for randomized proximal CD on a convex composite
+$F = f + \psi$ with $f$ having coordinate-wise Lipschitz constants $L_j$ grows
+with $\sum_j L_j R_j^2$. The Newton strategy's intercept update is exact at
+leading order (@lem-newton-approx) and aligns with CD on the profiled objective
+$\tilde F$ (@thm-profile-equiv), whose coefficient curvatures are
+$\tilde H_{jj} = H_{jj}(1-\rho_{0j}^2)$ by @eq-schur-diag. The gradient strategy
+uses the global Lipschitz $L_0$ on the intercept and, by @lem-gradient-partial,
+removes only fraction $H_{00}/L_0$ of the coupling, leaving an effective
+coefficient curvature $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$.
+Substituting these into the $L_j R_j^2$ sum gives @eq-rate-gap; retaining only
+the $R_0^2$ term in the $|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit
+gives @eq-rate-gap-asymptotic.
+:::
+
+::: {.remark}
+@eq-rate-gap is a ratio of upper bounds, not the iteration-complexity ratio
+$T_{\mathrm{G}}(\varepsilon)/T_{\mathrm{N}}(\varepsilon)$ itself, and three
+substitutions inside that derivation are sharp only under further structure:
+the strategies fix the intercept-update schedule rather than sampling it
+uniformly with the coefficient draws; $H_{00}$ is an iterate-level Hessian
+entry, not the fixed coordinate Lipschitz constant the CD bound ingests; and
+the Schur reduction is exact at iterates where the intercept has reached its
+conditional minimum and only approximate after a single Newton step. What
+survives is the scaling: as the intercept channel degrades
+($H_{00}/L_0 \to 0$) the upper-bound ratio diverges, and @fig-rate-gap
+confirms the empirical ratio follows the same scaling.
 :::
 
 Two regimes inside @eq-rate-gap are worth flagging. **Strongly coupled designs**
@@ -2161,9 +2175,9 @@ are *local*: @lem-newton-approx and @cor-newton-coupling are Taylor identities
 for a single Newton step, not a global convergence proof for
 CD-with-Newton-intercept, and the empirical evidence in §Results stands in for
 that. A tighter rate analysis under restricted strong convexity would let the
-corollary of @cor-rate-gap predict the empirical pass-count constant rather than
-only its scaling---currently the prediction matches within a factor of two to
-four\ (@fig-mu-reg-gradient). Second, the production-solver experiments in
+corollary of @cor-rate-gap predict the empirical pass-count constant rather
+than only its scaling---currently the prediction matches within a factor of two
+to four\ (@fig-mu-reg-gradient). Second, the production-solver experiments in
 @sec-production-solvers run on a single shared problem; the heatmap of
 @sec-imbalance-reg replicates the binary direct-CD predictions across a 30-cell
 grid but the cross-package comparison does not yet sweep the $(\mu_0, \lambda)$
