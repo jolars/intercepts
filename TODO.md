@@ -2,198 +2,149 @@
 
 Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
-## The theory section overpromises against what it proves
+## Editorial round 2 --- pre-review gaps
 
-- [x] **Reframe "Theoretical characterization" in the contributions list.**
-      Done: contribution #2 is now titled "A unifying Schur-complement
-      analysis" and describes the lemmas as short Taylor / envelope-theorem
-      identities tying the slow regime to the Lipschitz mismatch
-      $H_{00} \ll L_0$. The genuine quantitative result (rate corollary
-      `@cor-rate-gap`) is retained as the load-bearing claim.
+Issues identified on an editor-style re-read of the current draft, in rough
+priority order. The top block contains items that a Computo reviewer is likely
+to camp on; the middle block softens the overselling; the bottom block is
+presentation polish.
 
-- [x] **Quantitative rate gap.** Done via the new `#### Quantitative rate
-      gap` subsection in §Theory: corollary `@cor-rate-gap` decomposes
-      Wright's randomized-CD bound by coordinate and reduces to
-      $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}(\hat\eta)$ in the
-      imbalance regime, anchored by `@fig-rate-gap` showing empirical
-      pass-count ratio scaling with $L_0/H_{00}$ across a $\mu_0$ sweep.
-      Note for future work: the Schur factor $\bar\rho^2$ is small for
-      standardized designs, so the corollary's headline scaling is the
-      per-coordinate Lipschitz mismatch, not the Schur correction. A
-      tighter rate analysis (linear convergence under restricted strong
-      convexity) would predict the empirical constant more precisely;
-      currently the prediction matches scaling within a factor ~2--3.
+### Load-bearing claims that need shoring up
 
-- [x] **Be explicit about the locality of the Newton-strategy results.**
-      Done: added a sentence after the cold-start discussion of
-      @cor-newton-coupling stating that both results are *local* Taylor
-      statements about a single Newton step, that no global convergence
-      proof for CD-with-Newton-intercept is given, and that empirical
-      evidence in §Numerical experiments stands in for that.
+- [ ] **Prove or demote `@cor-rate-gap`.** The current "proof" is one sentence
+      ("Apply the standard sublinear randomized-CD bound separately for each
+      strategy"), and standard randomized-CD bounds (Richt\'arik--Tak\'a\v c,
+      Nesterov) are joint statements over all coordinates that do not decompose
+      into the per-coordinate $L_j R_j^2$ sum in @eq-rate-gap without extra
+      assumptions. The result is also a ratio of *upper bounds*, not a true
+      iteration-complexity ratio --- a distinction the paper currently elides.
+      Three acceptable paths: (a) state the underlying CD bound explicitly, name
+      the assumptions that license per-coordinate decomposition, and walk
+      through the substitution; (b) demote the corollary to a heuristic
+      predictor and label as such, keeping @fig-rate-gap as the empirical
+      content; (c) replace with a tighter ratio under restricted strong
+      convexity. The load-bearing claim of the Theory section cannot be left as
+      a one-line plug-in.
 
-- [x] **Tighten the $k_0$ bound in @lem-convergence-cost.** Done: replaced
-      the "$\Omega(k_0 - 1)$" phrasing throughout (the paragraph after the
-      lemma, the steelman regimes paragraph, the warm-start interpretation,
-      and the per-pass cost section) with $k_0 - 1 = O(\log\log(1/\varepsilon))$,
-      grounded in quadratic Newton convergence on the smooth strongly convex
-      1D intercept subproblem. The verdict against the convergence strategy
-      stands bounded but strictly-positive overhead per pass with no
-      per-pass rate gain and is now consistent with the modest 1.2--1.6×
-      empirical overhead in @fig-per-pass-cost.
+- [ ] **Engage with the 2--4$\times$ empirical undershoot at high imbalance.**
+      Cold-start prediction $L_0/H_{00} \approx 1/(4\mu_0(1-\mu_0))$ gives
+      $\{1.00, 1.19, 2.78, 5.26, 25.25\}$ for the five $\mu_0$ values; the
+      empirical ratios at $\lambda = 0.05\,\lambda_{\max}$ are
+      $\{1.0, 1.1, 1.8, 2.9, 6.6\}$. The current paper notes this in passing and
+      the TODO already flags a factor-of-2--3 mismatch as future work, but a
+      reviewer will read the gap as the prediction being loose. Either (a)
+      construct a corrected predictor using $H_{00}(\hat\eta)$ averaged over the
+      trajectory or accounting for the active-set scaling, (b) directly measure
+      $H_{00}$ at the final iterate and show the corrected ratio tracks the
+      empirical curve, or (c) acknowledge explicitly that the cold-start proxy
+      overpredicts and reframe @fig-rate-gap as "the scaling, not the constant,
+      is the load-bearing claim" --- it currently reads as a quantitative match.
 
-## The Results section is too thin to support the Theory claims
+- [ ] **Run the skglm 0.5 vs 0.6 comparison as a controlled experiment.** The
+      single most defensible cross-implementation experiment available is same
+      solver, same problem-generation pipeline, only the intercept update
+      changed --- exactly what the skglm 0.5/0.6 transition provides. Sweep
+      $(\mu_0, \lambda, n, p)$ across a small grid and plot the pass-count
+      ratio. This single figure replaces the rhetorical load currently carried
+      by @fig-real-skglm + @fig-real-glmnet + @fig-real-biglasso, all of which
+      are confounded by other algorithmic differences. The 30-cell heatmap on
+      the in-house solver
+      (@fig-mu-reg-gradient) becomes much more convincing when paired with this.
 
-- [x] **Write narrative into §Results.** Done: `@fig-simulated` now has a
-      caption and an opening paragraph naming @lem-gradient-partial as the
-      prediction under test, plus a closing paragraph reporting the
-      qualitative outcome and pointing forward to the quantitative heat-map.
-      `@fig-real-logreg` similarly has an opening paragraph (cross-dataset
-      $H_{00}/L_0$ variation) and a closing paragraph noting the
-      $H_{00}/L_0 \to 1$ corner is benign as predicted.
+- [ ] **Replicate at least one production-solver finding on a second problem.**
+      The cross-package panel (@fig-real-glmnet through @fig-real-adelie) lives
+      on a single shared problem ($n=500$, $p=1000$, nominal $\mu_0 = 0.99$, one
+      $\lambda$). Rerun the glmnet `Newton`/`modified.Newton` comparison on w1a
+      directly, or on one other severely imbalanced LIBSVM problem, to show the
+      within-package gap survives outside the construction used for the panel.
+      One problem confirms-everything is a standard reviewer trap.
 
-- [x] **Sweep production-solver experiments across imbalance and
-      regularization.** Partially done via the new internal-solver
-      `### Imbalance × regularization` subsection (`@sec-imbalance-reg`):
-      `experiments/sim-mu-reg-heatmap.jl` sweeps $\mu_0 \in \{0.5, 0.7,
-      0.9, 0.95, 0.99\}$ against $\lambda/\lambda_{\max} \in \{0.5, 0.2,
-      0.1, 0.05, 0.02, 0.01\}$ for the three strategies × 3 seeds and
-      renders two pass-count-ratio heatmaps (`@fig-mu-reg-gradient` and
-      `@fig-mu-reg-convergence`) that directly test @cor-rate-gap on a
-      30-cell grid. Production-side version of the sweep (glmnet,
-      biglasso) is deferred to a follow-up pass: marginal value over the
-      internal-solver verification is low and the R/Python driver
-      parameterization is ~2 days of engineering.
+- [ ] **Move the IRLS scoping into the abstract / introduction.** The sentence
+      currently buried in §3.4 --- "The strategy distinction this paper analyzes
+      is therefore specific to direct-CD solvers and does not arise within one
+      local-weight IRLS inner solve" --- is a sharper and more defensible
+      scoping than the introduction currently claims. The framework's bite is on (a)
+      direct-CD solvers (skglm 0.5 the only production example) and (b) MM-style
+      modes of two packages. State this up front; it is a stronger paper for
+      being narrower.
 
-- [x] **Promote the cyclic-vs-permuted distinction in `fig-first-example`
-      from a footnote to a figure or paragraph.** Done: the footnote at
-      the head of the paper is dropped and replaced with a forward pointer
-      to the new §Results subsection `### Cyclic vs permuted ordering`
-      (`@sec-ordering`), which carries the figure
-      `@fig-first-example-ordering` (cyclic vs permuted × three strategies
-      on w1a, generated by `experiments/sim-first-example-ordering.jl`)
-      and a paragraph tying the convergence-strategy failure to the
-      within-pass drift argument of @lem-convergence-cost.
+### Overselling to dial back
 
-- [x] **Harden the multinomial bare-Newton-block claim.** Done via
-      `experiments/sim-multinomial-imbalance-sweep.jl` and the new
-      `@fig-multinomial-sweep` figure: a 4×4 grid sweeping
-      $\bar p_K \in \{0.05, 0.02, 0.01, 0.005\}$ against feature
-      amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$ (3 seeds, median over seeds)
-      on the same $K=5$ design as `@fig-multinomial-imbalance`. The bare
-      Newton, damped Newton, and convergence curves overlap in every cell;
-      the gradient strategy stalls monotonically harder along both axes.
-      The steelman claim now has visible empirical support across the full
-      range rather than a single anchor configuration.
+- [ ] **Reframe the Theory section so it stops dressing Taylor identities as
+      theorems.** Of the six numbered results, four (`@thm-profile-equiv`,
+      `@lem-convergence-cost`, `@lem-newton-approx`, `@cor-newton-coupling`,
+      `@lem-gradient-partial`) are one-line envelope-theorem or Taylor-expansion
+      identities, and the proofs reflect that. Either drop the
+      theorem/lemma/corollary machinery for these (folding them into prose as
+      observations) and reserve the formal apparatus for `@cor-rate-gap` (once
+      shored up per above), or commit to genuinely new mathematics. The current
+      middle ground invites reviewer pushback precisely because the form
+      promises more than the content delivers.
 
-- [x] **Add a warm-started regularization-path experiment.** Done via
-      `experiments/sim-warmstart-path.jl` and the new `### Warm-Started Path`
-      subsection of §Results. The two figures (`@fig-warm-start` pass counts
-      and `@fig-warm-start-mechanism` initial $|\partial_0 F|$) sweep
-      strategy × ordering × {warm, cold} over a $K=20$ geometric $\lambda$
-      grid on a simulated imbalanced design and on w1a. Headline finding:
-      warm-starting collapses the bare-Newton/convergence-strategy gap as
-      the steelman of @lem-convergence-cost predicts, but does not extend
-      the gradient strategy's scope the $H_{00}/L_0$ shrinkage of
-      @lem-gradient-partial bites at every iterate, not just at cold start,
-      so warm-started gradient on w1a still hits the pass budget on most
-      subproblems. Warm-starting additionally rescues bare Newton from the
-      cold-start cyclic divergence that surfaces on w1a at very small
-      $\lambda$.
+- [ ] **Explain the w1a convergence-strategy stall or stop using it as
+      evidence.** The failure surfaces in @fig-first-example, is held up as
+      evidence against the convergence strategy, and is then localised to w1a +
+      cyclic ordering in @sec-ordering with a hand-wavy "coherent direction"
+      explanation. The 30-cell heatmap explicitly shows the pathology *does not*
+      occur on generic standardized imbalanced designs. Either (a) characterise
+      the design property that triggers the stall (column-correlation structure,
+      weighted-leverage skew, etc.) and reproduce it on a constructed example,
+      or (b) demote the stall to a single-problem anecdote in @sec-ordering and
+      remove the rhetorical weight it carries earlier in the paper.
 
-- [x] **Per-pass cost decomposition for the convergence strategy.** Done via
-      `experiments/sim-per-pass-cost.jl` and the new `### Per-Pass Cost
-      Decomposition` subsection of §Results. The solver is instrumented to
-      record per-outer-pass $k_0$ (inner Newton steps at the intercept).
-      `@fig-per-pass-cost` plots $k_0$ vs outer-pass index, showing the
-      convergence strategy spikes to $k_0 = 6$ at cold start on the most
-      imbalanced design ($\mu_0 = 0.99$) and tapers to one as the iterate
-      approaches the joint optimum, while bare Newton sits at $k_0 \equiv 1$.
-      `@fig-per-pass-progress` plots relative duality gap vs pass on the same
-      runs, showing the two trajectories are indistinguishable. The
-      cumulative-inner-step overhead is $1.19\times$, $1.38\times$,
-      $1.62\times$ for $\mu_0 \in \{0.5, 0.9, 0.99\}$. The
-      "$\Omega(k_0 - 1)$ wasted work" claim is now empirically anchored.
+- [ ] **Trim the skglm 0.6 PR references.** The pull request is cited as
+      validating evidence in the introduction, related work, theory, results,
+      and discussion. Maintainer acceptance confirms the suggestion was
+      reasonable, not that the analysis is correct. Cite the PR once (in
+      @sec-production-solvers where it belongs as an impact statement) and let
+      the empirical and theoretical content carry the rest.
 
-## Framing / structural
+- [ ] **Strengthen or downgrade the damped Newton variant.** Damped Newton wins
+      materially only in the scalar cold-start cyclic-CD regime at
+      $\mu_0 = 0.99$ (@fig-cold-start); it collapses to bare Newton everywhere
+      else, explicitly including the entire multinomial setting. Either (a) add
+      an ablation across $(\mu_0, \lambda)$ showing where the Armijo line search
+      actually fires and what fraction of passes benefit, to justify it as a
+      recommended safeguard, or (b) demote it to a single paragraph and remove
+      it as a separate curve from figures where it visually coincides with bare
+      Newton.
 
-- [x] **Resolve the three-vs-four strategies framing.** Done by treating
-      damped Newton as a safeguarded subcase of the Newton strategy
-      throughout. The intro listing now folds the damped variant into the
-      Newton bullet; the contributions list calls it an "Armijo-backtracking
-      safeguard on the Newton strategy"; the paragraph after Algorithm 1
-      explicitly notes that the algorithm's Newton branch is the bare step
-      and the damped variant wraps the same direction in Armijo
-      backtracking. Figures continue to plot bare and damped Newton as
-      distinct curves where they behave distinctly.
+- [ ] **Strengthen the real-data evidence.** Of the four LIBSVM problems in
+      @fig-real-logreg, only w1a is severely imbalanced; leukemia is
+      penalty-dominated ($n=38$, $p=7129$), breast-cancer is tiny ($p=10$),
+      gisette is balanced. Add at least two more imbalanced binary problems
+      (e.g., real-sim, news20.binary subsetted to an imbalanced split, or a
+      `LIBSVMdata.jl`-available alternative) so the real-data verification does
+      not rest on one dataset.
 
-- [x] **Steelman the convergence strategy.** Done: added a paragraph after
-      the cost-versus-progress verdict (in §Theory, just before
-      @lem-newton-approx) that names three regimes where the convergence
-      strategy is defensible warm-started path solves (small $k_0$),
-      strongly coupled designs (where envelope alignment offsets some of
-      the per-pass overhead), and the prox-Newton/IRLS linearization
-      boundary (cross-referenced to @sec-irls). The paragraph explicitly
-      scopes the recommendation against the convergence strategy to the
-      cold-start, direct-CD setting outside all three.
+### Framing and presentation
 
-## Smaller items
+- [ ] **Rename "convergence strategy".** The term collides with the general
+      optimization-theory sense of "convergence" used throughout the paper
+      (relative duality gap, convergence rate, etc.) and forces readers to
+      disambiguate on every occurrence. Candidates: "resolved-intercept",
+      "fully-Newton", "inner-loop Newton". Whatever the choice, propagate
+      through the package API (`ConvergenceStrategy` in
+      `src/intercept_strategies.jl`) for consistency.
 
-- [x] **Methodology/reproducibility paragraph.** Done: new
-      `### Methodology and reproducibility` subsection (`@sec-methodology`)
-      at the head of §Results covers solver tolerance defaults,
-      pass-count metric, pass budgets and cap behavior, standardization,
-      coordinate ordering, seed counts, LIBSVMdata version, production-solver
-      versions (glmnet 4.1-10, biglasso 1.6-1, adelie 1.0-8, skglm 0.5,
-      LIBLINEAR, BlitzL1), hardware, and the JLD2/CSV caching layout.
+- [ ] **Compress overlapping single-$\lambda$ figures.** @fig-first-example,
+      @fig-mu-extreme, @fig-simulated, and @fig-real-logreg all carry the same
+      qualitative message ("gradient is slow under imbalance") in slightly
+      different framings. Pick the two most informative (probably
+      @fig-mu-extreme and the 30-cell heatmap @fig-mu-reg-gradient) and reduce
+      or merge the others. The genuinely novel empirical artifacts (heatmap,
+      multinomial sweep, per-pass cost decomposition) deserve more visual real
+      estate; the redundant convergence-trajectory plots deserve less.
 
-- [x] **Related work.** Done: new `## Related Work` section inserted between
-      Introduction and §Theory with three short paragraphs covering
-      (i) intercept handling in CD-based GLM solvers (glmnet, LIBLINEAR,
-      Hastie/Tibshirani/Wainwright, celer), (ii) the fixed-effects /
-      Frisch--Waugh--Lovell centering tradition and its GLM analogue in
-      adelie, and (iii) the MM lineage of the $1/4$ majorant
-      (B\"ohning 1992, Hunter--Lange, Krishnapuram et al.) with a
-      forward-reference to @sec-irls. Four new bib entries
-      (`bohning1992`, `krishnapuram2005`, `hastie2015`, `lovell1963`).
-      Each paragraph closes on a sentence that ties the prior literature to
-      a specific result in this paper. External-verification debt on three
-      sub-claims is tracked below.
+- [ ] **Fix the section reference and the algorithm typo.** The paragraph after
+      `@cor-newton-coupling` references "§Numerical experiments"; the section is
+      actually titled "Results". @algo-cd has "Cyclic Coordinate Desccent"
+      (triple-c) in the `\caption`.
 
-## Related Work --- external-verification debt
-
-External verification done on claude.ai against the cited sources resolved
-the @friedman2010 and Böhning/Krishnapuram chain (both check out), and forced
-two corrections to the rest of the paper (the "historical default"
-characterization of `modified.Newton` at l145 / §IRLS, since the 2010 paper
-treats the 1/4 bound as an "option" and current glmnet defaults to `"Newton"`;
-and the attribution of the post-step intercept Newton loop to BlitzL1 via
-@johnson2015, since the Johnson 2015 paper does not formulate an intercept
-at all). The two open items below are what remain.
-
-- [x] **Verify BlitzL1's intercept handling against the source.** Done:
-      read BlitzL1 source at commit `aef8d02`. `Solver::update_intercept`
-      (`src/solver.cpp:27-55`) is a 1-D Newton loop with cap 10 iterations
-      and gradient tolerance 1e-14, called from `run_prox_newton_iteration`
-      (`src/solver.cpp:262`) after the working-set CD pass and step-size
-      backtracking---i.e. once per prox-Newton iteration. Related Work
-      paragraph 1 now includes BlitzL1 alongside LIBLINEAR with a source
-      footnote pinned to the commit and line range. `@tbl-classification`
-      and the paper-wide claims stand as written.
-
-- [x] **Drop Hastie--Tibshirani--Wainwright.** Done: removed the textbook
-      sentence from Related Work paragraph 1 and dropped the `hastie2015`
-      bib entry. The celer point still carries the "ecosystem variation"
-      thread on its own.
-
-- [x] **Verify adelie's weighted-centered-features mechanism against the
-      source.** Done: read adelie source at commit `d6a1229`. The outer GLM
-      solver (`solver_glm_naive.hpp:336-346`) builds an IRLS-weighted
-      Gaussian surrogate and computes weighted column means
-      (`solver_glm_naive.hpp:366`); the inner Gaussian pin solver consumes
-      those weighted means in its gradient update
-      (`solver_gaussian_pin_naive.hpp:87, 120`) and recovers the intercept
-      at the end as the weighted mean of the working response plus the
-      residual mean (`solver_gaussian_pin_naive.hpp:392`)---never as a CD
-      coordinate. The "weighted-centered-features parameterization" phrasing
-      throughout the paper is faithful to the source. Related Work paragraph
-      2 now carries a source footnote pinned to the commit and line numbers.
+- [ ] **Rewrite the locality disclaimer after `@lem-newton-approx`.** The
+      sentence "We emphasise that @lem-newton-approx and @cor-newton-coupling
+      are *local* Taylor statements... and rely on the empirical evidence in
+      §Numerical experiments for that question" reads as the paper undermining
+      its own theory section. Reframe as a positive scoping statement ("the
+      Newton-strategy guarantee is local; global progress is verified
+      empirically in §Results") rather than a concessionary one.
