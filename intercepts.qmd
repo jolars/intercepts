@@ -173,10 +173,9 @@ Structural Classification of Production Solvers
     families---direct CD, local-IRLS, MM-IRLS, and prox-Newton---and identify
     the intercept strategy realized by each. The classification correctly orders
     every package in our survey (glmnet, biglasso, skglm, adelie, LIBLINEAR,
-    BlitzL1, ncvreg, Lasso.jl), corrects two misclassifications in the prior
-    framing of LIBLINEAR and BlitzL1, and turns the within-package mode toggles
-    in glmnet (`type.logistic`) and biglasso (`alg.logistic`) into a controlled
-    empirical experiment.
+    BlitzL1, ncvreg, Lasso.jl) and turns the configuration options in glmnet
+    (`type.logistic`) and biglasso (`alg.logistic`) into a controlled empirical
+    experiment.
 
 Empirical Verification on Production Codebases
 :   Five figures on the same imbalanced logistic problem confirm the framework's
@@ -200,15 +199,15 @@ which none has analyzed it as a separate problem. Intercept handling in CD-based
 GLM solvers has been treated as a routine implementation choice across the
 ecosystem of CD implementations. The original glmnet paper\ [@friedman2010] and
 its all-GLM extension\ [@tay2023] expose two weight schemes for the logistic
-IRLS inner solve---local weights and a global 1/4 upper bound, surfaced as the
-R-package modes `type.logistic = "Newton"` and `"modified.Newton"`---which the
-glmnet documentation describes as a speed trade-off ("an upper-bound on the
-Hessian... can be faster") rather than as an intercept-strategy choice.
-LIBLINEAR's newGLMNET solver [@fan2008; @yuan2012] runs a 1-D Newton convergence
-loop on the intercept after each prox-Newton subproblem, described in passing as
-an implementation detail rather than as a design decision. BlitzL1
-[@johnson2015] applies the same scheme: each prox-Newton iteration ends with a
-capped 1-D Newton loop on the intercept run to gradient tolerance.^[Source:
+IRLS inner solver---local weights and a global 1/4 upper bound, exposed via the
+arguments `type.logistic = "Newton"` and `"modified.Newton"`, which the glmnet
+documentation describes as a speed trade-off rather than as an
+intercept-strategy choice. LIBLINEAR's newGLMNET solver [@fan2008; @yuan2012]
+runs a 1-D Newton convergence loop on the intercept after each prox-Newton
+subproblem, described in passing as an implementation detail rather than as a
+design decision. BlitzL1\ [@johnson2015] applies the same scheme: each
+prox-Newton iteration ends with a capped 1-D Newton loop on the intercept run to
+gradient tolerance.^[Source:
 <https://github.com/tbjohns/BlitzL1/blob/aef8d02/src/solver.cpp#L27-L55>. The
 loop is called from `run_prox_newton_iteration` (`solver.cpp:262`) after the
 working-set CD pass and step-size backtracking.] celer\ [@massias2020] does not
@@ -217,19 +216,22 @@ support intercepts for $\ell_1$-logistic regression. So, the
 *analysis*-side question---under what response distributions the choice
 matters---has neither been asked nor answered.
 
-A second thread is the fixed-effects tradition. For linear regression the
-intercept can be partialled out: centering the features zeros the cross-Hessian
-$H_{0j}$ and yields $\hat\beta_0 = \bar y$ at the unregularized optimum, leaving
-the slope subproblem decoupled from the intercept. This is the Frisch--Waugh--
-Lovell theorem\ [@lovell1963], and it is the argument that justifies leaving the
-intercept unpenalized along the Gaussian path of glmnet. The decoupling fails
-for non-Gaussian GLMs because the inverse link sits between $\beta_0$ and $y$:
-the cross-Hessian acquires weights $w_i = f''(\eta_i; y_i)$ that no longer
-cancel under feature centering alone, and the closed form for $\hat\beta_0$
-vanishes. adelie\ [@yang2024] supplies the natural GLM analogue: its proximal
-quasi-Newton method builds a weighted Gaussian surrogate at each linearization
-and absorbs the intercept implicitly through that surrogate, rather than as a
-separate CD coordinate.^[Source:
+A second thread is the partialling-out / Frisch--Waugh--Lovell tradition. For
+linear regression the intercept can be sidestepped: centering the features zeros
+the cross-Hessian $H_{0j}$ and yields $\hat\beta_0 = \bar y$ at the
+unregularized optimum, leaving the slope subproblem decoupled from the
+intercept\ [@lovell1963]. Glmnet leaves the intercept unpenalized on
+translation-invariance grounds---penalizing $\beta_0$ would make the path depend
+on the arbitrary location of $y$---and the FWL decoupling above is what makes
+that choice essentially free along the Gaussian path: the intercept is recovered
+as $\hat\beta_0 = \bar y - \bar x^\top \hat\beta$ after the slope solve. The
+decoupling fails for non-Gaussian GLMs because the inverse link sits between
+$\beta_0$ and $y$: the cross-Hessian acquires weights $w_i = f''(\eta_i; y_i)$
+that no longer cancel under feature centering alone, and the closed form for
+$\hat\beta_0$ vanishes. adelie\ [@yang2024] supplies the natural GLM analogue:
+its proximal quasi-Newton method builds a weighted Gaussian surrogate at each
+linearization and absorbs the intercept implicitly through that surrogate,
+rather than as a separate CD coordinate.^[Source:
 <https://github.com/JamesYang007/adelie/blob/d6a1229/adelie/src/include/adelie_core/solver/solver_gaussian_pin_naive.hpp>.
 The inner Gaussian solver uses IRLS-weighted column means in its gradient update
 (`solver_gaussian_pin_naive.hpp:87, 120`) and recovers the intercept at the end
@@ -237,25 +239,25 @@ of the inner solve as the weighted mean of the working response plus the
 residual mean (`solver_gaussian_pin_naive.hpp:392`); the column means themselves
 are built with the IRLS weights in the outer GLM solver
 (`solver_glm_naive.hpp:366`).] The same argument explains why the framework of
-@sec-theory has no bite on Gaussian data: there the decoupling is already
+@sec-theory has no bearing on Gaussian data: there the decoupling is already
 complete, $L_0 = H_{00}$, and the gradient and Newton strategies coincide on the
 intercept.
 
-The third thread is majorization--minimization. The constant $L_0 = n/4$ that
-governs the gradient strategy in @lem-gradient-partial, and which skglm uses as
-its global per-coordinate Lipschitz step, is the binary specialization of the
-quadratic Hessian majorant used by @bohning1992 to build an MM algorithm for
-multinomial logistic regression. @hunter2004 give the canonical exposition of
-MM. @krishnapuram2005 apply Böhning's bound to L1-penalized multinomial logistic
-regression, a direct precedent for the multinomial extension of this paper. In
-regularized logistic regression the same construction lives on as the
-`modified.Newton` mode of glmnet and the `MM` mode of biglasso\
-(@tbl-classification). @lem-gradient-partial gives the quantitative cost: when
-the response is imbalanced, $H_{00}/L_0$ shrinks to zero and the MM step loses
-progress in proportion. The MM literature treats this as loose majorization;
-what this paper adds is that for imbalanced logistic regression and rare-class
-multinomial classification it is the common regime, not a corner case
-(@sec-irls, @fig-multinomial-sweep).
+The third thread is majorization--minimization\ (MM). The constant $L_0 = n/4$
+that governs the gradient strategy in @lem-gradient-partial, and which skglm
+uses as its global per-coordinate Lipschitz step, is the binary specialization
+of the quadratic Hessian majorant used by @bohning1992 to build an MM algorithm
+for multinomial logistic regression. @hunter2004 give the canonical exposition
+of MM. @krishnapuram2005 apply Böhning's bound to L1-penalized multinomial
+logistic regression, a direct precedent for the multinomial extension of this
+paper. In regularized logistic regression the same construction lives on as the
+`modified.Newton` mode of glmnet and the `MM` mode of
+biglasso\ (@tbl-classification). @lem-gradient-partial gives the quantitative
+cost: when the response is imbalanced, $H_{00}/L_0$ shrinks to zero and the MM
+step loses progress in proportion. The MM literature treats this as loose
+majorization; what this paper adds is that for imbalanced logistic regression
+and rare-class multinomial classification, it is the common regime, not a corner
+case (@sec-irls, @fig-multinomial-sweep).
 
 ## Theory {#sec-theory}
 
@@ -393,8 +395,8 @@ strategies, is summarized in @algo-cd.
 ```
 
 The Newton branch of @algo-cd is the bare Newton step; the damped Newton variant
-simply wraps the same direction in an Armijo backtracking line search, and we
-develop it in @sec-irls.
+simply wraps the same direction in an Armijo backtracking line search, which we
+discuss in @sec-irls.
 
 ### What Sets the Intercept Apart
 
@@ -416,18 +418,17 @@ $\beta_0$ from $\beta_j$:
 
 2. **The intercept is unpenalized.** The regularizer $G_\lambda$ acts only on
    $\beta$, so $\beta_0$ is the only coordinate whose update is smooth---no
-   proximal operator, no soft-thresholding, no nondifferentiable optimality
-   condition. This is what makes the strategy menu of @algo-cd available for
-   $\beta_0$ in the first place: a "single Newton step" and "iterate to
-   convergence" are degrees of freedom that a penalized coordinate simply does
-   not have.
+   proximal operator, no soft-thresholding, no non-differentiable optimality
+   condition. This is what makes the various strategies in @algo-cd possible for
+   updating $\beta_0$ in the first place.
 
-3. **The intercept is never inactive.** Production CD solvers prune slope
+3. **The intercept is never inactive.** Production-grade CD solvers prune slope
    coordinates aggressively via screening rules, strong rules, and working sets,
-   so the per-pass cost of any particular $\beta_j$ is amortized over the passes
-   in which it is screened out. The intercept is in the active set of every pass
-   by construction, so its per-pass treatment dominates the overall
-   intercept-update cost in a way that no individual slope's treatment does.
+   so any particular $\beta_j$ is touched in only a fraction of passes and its
+   average per-pass cost is correspondingly small. The intercept is in the
+   active set of every pass by construction, so its per-pass treatment dominates
+   the overall intercept-update cost in a way that no individual slope's
+   treatment does.
 
 4. **In IRLS-CD, the intercept update is a re-centering step.** Because its
    column is constant, the gradient $\partial_0 F = \sum_i w_i r_i$ is exactly
@@ -440,9 +441,9 @@ $\beta_0$ from $\beta_j$:
 Items 1 and 4 are why the gap $L_0/H_{00}$ that drives our main result is
 unbounded under response imbalance: $L_0$ does not adapt to the curvature of the
 loss at the current iterate, while $H_{00}$ collapses with $\sum_i w_i$ as the
-linear predictor saturates. Items 2 and 3 are why the choice of strategy is even
-available, and why its per-pass cost is not amortized away. The remainder of
-@sec-theory makes these observations quantitative.
+linear predictor saturates. Items 2 and 3 explain why the choice of strategy is
+even available, and why its per-pass cost is not amortized away. The remainder
+of @sec-theory makes these observations quantitative.
 
 ### Cross-Influence of Intercept and Coefficients
 
