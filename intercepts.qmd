@@ -73,10 +73,13 @@ Despite the importance of the intercept and the maturity of coordinate descent
 as a method for fitting regularized regression models, the issue of how to
 update the intercept has not been studied in the literature. This may also serve
 to explain why existing CD implementations differ widely in their treatment of
-it: glmnet and biglasso each expose a user-selectable toggle between two
-intercept update schemes (`type.logistic` and `alg.logistic` respectively);
-skglm picks one of those schemes implicitly through its constant-Lipschitz
-design; adelie keeps the intercept implicit through a weighted-centered-features
+it: glmnet (`type.logistic`) and biglasso (`alg.logistic`) expose a
+user-selectable toggle between a local-Newton and an MM ($1/4$-Lipschitz) IRLS
+surrogate, and this choice happens to also determine which intercept update is
+realized---the local-Newton surrogate induces an exact 1-D Newton step on the
+intercept, while the MM surrogate reduces to a constant-Lipschitz gradient
+step; skglm picks the gradient scheme implicitly through its
+constant-Lipschitz design; adelie keeps the intercept implicit through a weighted-centered-features
 parameterization of the inner Gaussian surrogate; LIBLINEAR and BlitzL1 graft a
 separate 1-D Newton convergence loop on the intercept onto each prox-Newton
 subproblem; celer [@massias2020] declines the question entirely, with
