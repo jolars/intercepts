@@ -1716,29 +1716,32 @@ $|\partial_0 F|$.
 
 ```{julia}
 #| label: fig-per-pass-cost
-#| fig-cap: Per-pass inner Newton steps consumed at the intercept update, as a
-#|   function of outer-pass index, for the bare-Newton and convergence
-#|   strategies across three imbalance levels. The Newton strategy takes exactly
-#|   one inner step by construction. The convergence strategy's $k_0$ spikes at
-#|   cold start ($k_0 = 6$ on the most imbalanced design) and tapers to one as
-#|   the iterate approaches the joint optimum. The area between the two curves
-#|   is the cumulative wasted inner work predicted by @lem-convergence-cost.
+#| fig-cap: Per-pass inner Newton steps $k_0$ consumed at the intercept update
+#|   by the convergence strategy, as a function of outer-pass index, across
+#|   three imbalance levels. The dashed reference at $k_0 = 1$ marks the Newton
+#|   strategy, which takes exactly one inner step by construction. The
+#|   convergence strategy's $k_0$ spikes at cold start ($k_0 = 6$ on the most
+#|   imbalanced design) and tapers to one as the iterate approaches the joint
+#|   optimum. The area above the reference is the cumulative wasted inner work
+#|   predicted by @lem-convergence-cost.
 
 dd = JLD2.load(@projectroot("results", "sim-per-pass-cost.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:pass, :inner_steps, :cum_inner_steps, :relgap_after, :time])
 df.μ0_label = "μ₀ = " .* string.(df.μ0)
+df_conv = filter(:strategy => ==("convergence"), df)
 
 spec_cost =
-    data(df) * mapping(
+    data(df_conv) * mapping(
         :pass => "Outer pass",
         :inner_steps => "Inner Newton steps per pass (k₀)",
-        color = :strategy,
         col = :μ0_label,
-    )
+    ) * visual(Lines)
+
+spec_ref = mapping([1]) * visual(HLines, linestyle = :dash, color = :gray)
 
 draw(
-    visual(Lines) * spec_cost,
+    spec_cost + spec_ref,
     facet = (; linkyaxes = :all),
     figure = (; size = (800, 260)),
 )
