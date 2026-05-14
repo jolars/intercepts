@@ -15,6 +15,7 @@ _environment
 /.micromamba/
 /.joblib
 /.pytest_cache/
+__pycache__/
 
 # Quarto tmp files
 /.quarto/
@@ -64,3 +65,7 @@ devenv.local.yaml
 
 # pre-commit
 .pre-commit-config.yaml
+
+# Heavy per-cell scratch for the skglm controlled experiment; reproducible
+# from results/skglm-controlled/index.csv via sim-skglm-controlled-problem.jl.
+/results/skglm-controlled/cells/

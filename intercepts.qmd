@@ -1939,9 +1939,13 @@ choice: identical solver, identical problem, identical tolerance, only the IRLS
 weighting changes. The third panel runs skglm 0.5, the cleanest production
 realization of constant-Lipschitz proximal CD at the time of writing, where the
 intercept update is the gradient strategy with $L_0 = n/4$ by construction. The
-fourth panel verifies the complementary prediction on LIBLINEAR (newGLMNET) and
-BlitzL1, two prox-Newton solvers that apply the convergence strategy to the
-intercept and that the framework predicts should converge fast. A fifth panel
+within-skglm controlled experiment that follows it (@fig-skglm-controlled)
+sharpens this further into a same-solver same-problem comparison across the
+two skglm commits that bracket the intercept-update fix, on the same $(\mu_0,
+\lambda)$ grid as @fig-mu-reg-gradient. The fourth panel verifies the
+complementary prediction on LIBLINEAR (newGLMNET) and BlitzL1, two prox-Newton
+solvers that apply the convergence strategy to the intercept and that the
+framework predicts should converge fast. A fifth panel
 runs adelie [@yang2024], a recent local-IRLS solver that places the intercept
 implicitly at the optimum of each Gaussian surrogate through a
 weighted-centered-features parameterization. The framework places adelie in the
@@ -2037,8 +2041,65 @@ mode, and skglm 0.5---the only production solver in our survey whose intercept
 update is unambiguously the gradient strategy---exhibits the slow-ramp signature
 that @cor-newton-coupling and @lem-gradient-partial together predict. The same
 diagnosis motivated a pull request to skglm replacing the gradient update with a
-Newton step; it was accepted upstream and ships in skglm 0.6
-(<https://github.com/scikit-learn-contrib/skglm/pull/337>, merged 2026-05-13).
+Newton step; the change was merged upstream as commit `8f9cbd77`.[^skglm-pr]
+
+[^skglm-pr]:
+    <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
+    2026-05-13. skglm 0.6 is unreleased at the time of writing; the
+    controlled comparison below pins the two relevant commits directly.
+
+@fig-real-glmnet through @fig-real-skglm compare three packages on one shared
+problem, leaving every figure confounded by between-package algorithmic
+differences. The merged skglm patch eliminates that confound on the skglm row.
+With `b03644fe` (the last commit before the fix, behaviourally identical to
+the released 0.5) and `8f9cbd77` (the merge introducing the Newton intercept
+update) we can run the same `AndersonCD` driver against itself, on the same
+problem-generation pipeline, and isolate the intercept-update change.
+@fig-skglm-controlled reports the pass-count ratio between the two commits
+across the same $(\mu_0,\,\lambda/\lambda_{\max})$ grid as
+@fig-mu-reg-gradient. The empirical pattern matches the in-house heatmap: the
+ratio sits near unity at low imbalance and grows monotonically with $\mu_0$
+and $1/\lambda$, with no other algorithmic differences confounding the
+comparison.
+
+```{julia}
+#| label: fig-skglm-controlled
+#| fig-cap: Within-skglm controlled comparison. Pass-count ratio
+#|   $T_{\mathtt{b03644fe}} / T_{\mathtt{8f9cbd77}}$ (log~10~ scale) of skglm's
+#|   `AndersonCD` solver before and after the intercept-update fix introduced
+#|   by the merged pull request, averaged over three seeds, across the same
+#|   $(\mu_0,\,\lambda/\lambda_{\max})$ grid as @fig-mu-reg-gradient. Cells
+#|   where the pre-fix commit hits the 5000-iteration cap are clipped; the
+#|   ratio there is a lower bound. The monotone increase in $\mu_0$ and
+#|   $1/\lambda$ matches the prediction of @cor-rate-gap on a production
+#|   solver whose only change between the two trials is the intercept update.
+
+df_sk = DataFrame(
+    CSV.File(@projectroot("results", "skglm-controlled", "results.csv")),
+)
+df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
+
+agg_sk = combine(
+    groupby(df_sk, [:mu0, :reg, :strategy]),
+    :n_iter => mean => :n_iter,
+)
+wide_sk = unstack(agg_sk, [:mu0, :reg], :strategy, :n_iter)
+wide_sk.skglm_ratio = wide_sk.gradient ./ wide_sk.newton
+wide_sk.reg_str = string.(wide_sk.reg)
+wide_sk.μ0_str = string.(wide_sk.mu0)
+
+spec_sk =
+    data(wide_sk) * mapping(
+        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => "λ / λ_max",
+        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => "μ₀",
+        :skglm_ratio => log10 => "log₁₀(T_pre / T_post)",
+    )
+
+draw(
+    spec_sk * visual(Heatmap),
+    figure = (; size = (560, 320)),
+)
+```
 
 The fourth panel verifies the complementary prediction: solvers whose intercept
 update is the convergence strategy at a prox-Newton boundary should converge

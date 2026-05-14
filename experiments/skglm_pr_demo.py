@@ -4,7 +4,7 @@ Run this script twice, once on each commit, to compare:
 
     git -C ~/projects/skglm checkout b03644fe -- skglm    # pre-fix
     python skglm_pr_demo.py
-    git -C ~/projects/skglm checkout 24faa86e -- skglm    # post-fix
+    git -C ~/projects/skglm checkout 8f9cbd77 -- skglm    # post-fix
     python skglm_pr_demo.py
 
 Each run prints a summary table and writes a convergence plot named
