@@ -790,22 +790,22 @@ uses the global Lipschitz $L_0$ on the intercept and, by @lem-gradient-partial,
 removes only fraction $H_{00}/L_0$ of the coupling, leaving an effective
 coefficient curvature $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$.
 Substituting these into the $L_j R_j^2$ sum gives @eq-rate-gap; retaining only
-the $R_0^2$ term in the $|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit
-gives @eq-rate-gap-asymptotic.
+the $R_0^2$ term in the $|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit gives
+@eq-rate-gap-asymptotic.
 :::
 
 ::: {.remark}
 @eq-rate-gap is a ratio of upper bounds, not the iteration-complexity ratio
 $T_{\mathrm{G}}(\varepsilon)/T_{\mathrm{N}}(\varepsilon)$ itself, and three
-substitutions inside that derivation are sharp only under further structure:
-the strategies fix the intercept-update schedule rather than sampling it
-uniformly with the coefficient draws; $H_{00}$ is an iterate-level Hessian
-entry, not the fixed coordinate Lipschitz constant the CD bound ingests; and
-the Schur reduction is exact at iterates where the intercept has reached its
-conditional minimum and only approximate after a single Newton step. What
-survives is the scaling: as the intercept channel degrades
-($H_{00}/L_0 \to 0$) the upper-bound ratio diverges, and @fig-rate-gap
-confirms the empirical ratio follows the same scaling.
+substitutions inside that derivation are sharp only under further structure: the
+strategies fix the intercept-update schedule rather than sampling it uniformly
+with the coefficient draws; $H_{00}$ is an iterate-level Hessian entry, not the
+fixed coordinate Lipschitz constant the CD bound ingests; and the Schur
+reduction is exact at iterates where the intercept has reached its conditional
+minimum and only approximate after a single Newton step. What survives is the
+scaling: as the intercept channel degrades ($H_{00}/L_0 \to 0$) the upper-bound
+ratio diverges, and @fig-rate-gap confirms the empirical ratio follows the same
+scaling.
 :::
 
 Two regimes inside @eq-rate-gap are worth flagging. **Strongly coupled designs**
@@ -1887,20 +1887,24 @@ draw(
 $\lambda$, increasing imbalance grows the gradient/Newton pass-count ratio from
 roughly one at $\mu_0 = 0.5$ to about ten at $\mu_0 = 0.99$,
 $\lambda = 0.01\,\lambda_{\max}$, where the gradient strategy saturates the
-5000-pass budget (the ratio there is a lower bound). The cold-start prediction
-$L_0 / H_{00} \approx 1 / (4 \mu_0 (1 - \mu_0))$ gives
-$\{1.00, 1.19, 2.78, 5.26, 25.25\}$ for the five $\mu_0$ values; the empirical
-ratios at $\lambda = 0.05\,\lambda_{\max}$ (the working regime along glmnet's
-path) are $\{1.0, 1.1, 1.8, 2.9, 6.6\}$, tracking the predicted scaling at low
-imbalance and undershooting it by a factor of two to four at high imbalance. The
-undershoot is consistent with the qualitative reading of @cor-rate-gap: the
-iterate spends most passes near $\hat\eta$, where the active features pull
-$H_{00}$ above its intercept-only proxy $\mu_0(1-\mu_0)$. As $\lambda$ shrinks
-more features activate, predictions spread, $H_{00}$ shrinks toward (and beyond)
-the intercept-only value, and the ratio grows: at
+5000-pass budget (the ratio there is a lower bound). At
+$\lambda = 0.05\,\lambda_{\max}$ (the working regime along glmnet's path) the
+empirical ratios across the five $\mu_0$ values are
+$\{1.0, 1.1, 1.8, 2.9, 6.6\}$, against an iterate-level
+$L_0/H_{00}(\hat\eta) = \{3.2, 3.3, 4.4, 5.7, 12.4\}$ measured at the
+Newton-converged iterate on the same cells (mean over three seeds). The
+prediction sits a constant factor above empirical that narrows from
+$\sim 3\times$ at $\mu_0 = 0.5$ to $\sim 2\times$ at $\mu_0 = 0.99$, the same
+bound-vs-empirical offset @fig-rate-gap exhibits on a single-$\lambda$ sweep and
+consistent with @cor-rate-gap being a leading-order upper bound. The cold-start
+proxy $L_0/H_{00}(0) = 1/(4\mu_0(1-\mu_0)) = \{1.00, 1.19, 2.78, 5.26, 25.25\}$
+is looser still at high imbalance because active features pull $H_{00}$ above
+its intercept-only value $\mu_0(1-\mu_0)$ at this $\lambda$. As $\lambda$
+shrinks the active set widens, $H_{00}$ falls toward and beyond
+$\mu_0(1-\mu_0)$, and the empirical ratio grows: at
 $\lambda = 0.01\,\lambda_{\max}$ the empirical row is
-$\{1.6, 1.7, 4.2, 6.7, \ge 10.2\}$, closer to the cold-start prediction and
-clipped at the high-$\mu_0$ end.
+$\{1.6, 1.7, 4.2, 6.7, \ge 10.2\}$, clipped at the high-$\mu_0$ end by the
+gradient strategy's 5000-pass budget.
 
 @fig-mu-reg-convergence is flat at zero (ratio $\approx 1$) across the plane,
 with no cell departing from the unit ratio by more than about 12 %. This is the
@@ -2175,9 +2179,9 @@ are *local*: @lem-newton-approx and @cor-newton-coupling are Taylor identities
 for a single Newton step, not a global convergence proof for
 CD-with-Newton-intercept, and the empirical evidence in §Results stands in for
 that. A tighter rate analysis under restricted strong convexity would let the
-corollary of @cor-rate-gap predict the empirical pass-count constant rather
-than only its scaling---currently the prediction matches within a factor of two
-to four\ (@fig-mu-reg-gradient). Second, the production-solver experiments in
+corollary of @cor-rate-gap predict the empirical pass-count constant rather than
+only its scaling---currently the prediction matches within a factor of two to
+four\ (@fig-mu-reg-gradient). Second, the production-solver experiments in
 @sec-production-solvers run on a single shared problem; the heatmap of
 @sec-imbalance-reg replicates the binary direct-CD predictions across a 30-cell
 grid but the cross-package comparison does not yet sweep the $(\mu_0, \lambda)$

@@ -4,19 +4,19 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## Load-bearing claims that need shoring up
 
-- [ ] **Engage with the 2--4$\times$ empirical undershoot at high imbalance.**
-      Cold-start prediction $L_0/H_{00} \approx 1/(4\mu_0(1-\mu_0))$ gives
-      $\{1.00, 1.19, 2.78, 5.26, 25.25\}$ for the five $\mu_0$ values; the
-      empirical ratios at $\lambda = 0.05\,\lambda_{\max}$ are
-      $\{1.0, 1.1, 1.8, 2.9, 6.6\}$. The current paper notes this in passing and
-      the TODO already flags a factor-of-2--3 mismatch as future work, but a
-      reviewer will read the gap as the prediction being loose. Either (a)
-      construct a corrected predictor using $H_{00}(\hat\eta)$ averaged over the
-      trajectory or accounting for the active-set scaling, (b) directly measure
-      $H_{00}$ at the final iterate and show the corrected ratio tracks the
-      empirical curve, or (c) acknowledge explicitly that the cold-start proxy
-      overpredicts and reframe @fig-rate-gap as "the scaling, not the constant,
-      is the load-bearing claim" --- it currently reads as a quantitative match.
+- [x] **Engage with the 2--4$\times$ empirical undershoot at high imbalance.**
+      Done via (c) with (b)-style instrumentation:
+      `experiments/sim-h00-heatmap.jl` measures $H_{00}(\hat\eta)$ on the full
+      $(\mu_0, \lambda)$ grid; the heatmap prose now compares empirical against
+      iterate-level $L_0/H_{00}(\hat\eta) = \{3.2, 3.3, 4.4, 5.7, 12.4\}$ (mean
+      over three seeds) at $\lambda = 0.05\,\lambda_{\max}$ and demotes the
+      cold-start proxy to the $\lambda \to 0$ limit. The residual
+      $\sim 2$--$3\times$ constant overshoot is the leading-order
+      bound-vs-empirical offset already discussed at @fig-rate-gap (subdominant
+      $\sum_j R_j^2$ dilution + cyclic-CD residual past the first coordinate).
+      Not chasing further: closing the constant via trajectory-averaged $H_{00}$
+      or active-set scaling is high effort, low payoff, and below several
+      structural TODOs in priority.
 
 - [ ] **Run the skglm 0.5 vs 0.6 comparison as a controlled experiment.** The
       single most defensible cross-implementation experiment available is same
