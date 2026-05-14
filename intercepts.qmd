@@ -179,9 +179,11 @@ Structural Classification of Production Solvers
 
 Empirical Verification on Production Codebases
 :   Five figures on the same imbalanced logistic problem confirm the framework's
-    predictions: glmnet `modified.Newton` needs roughly six times more inner
-    passes than `Newton`; biglasso `MM` needs roughly ten times more than
-    `Newton`; skglm 0.5 exhibits the predicted slow ramp; LIBLINEAR and BlitzL1
+    predictions: glmnet `modified.Newton` needs roughly five times more inner
+    passes than `Newton` at tight tolerance (and the same gap survives on
+    w1a, a real severely imbalanced LIBSVM problem); biglasso `MM` needs
+    roughly ten times more than `Newton`; skglm 0.5 exhibits the predicted
+    slow ramp; LIBLINEAR and BlitzL1
     both converge fast, as the framework predicts for their prox-Newton +
     convergence-strategy intercept design; adelie matches the per-iteration cost
     of glmnet `Newton`, as the framework predicts for its centered-features
@@ -870,7 +872,7 @@ The scaling, not the constant, is the load-bearing prediction.
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
 at the global $L_0 = n/4$ to the intercept inside their IRLS inner solves; the
 corollary predicts their pass counts should grow with $L_0/H_{00}$ at
-$\mu_0 = 0.99$, matching the empirical ≈6× and ≈10× slowdowns reported in
+$\mu_0 = 0.99$, matching the empirical ≈5× and ≈10× slowdowns reported in
 @fig-real-glmnet and @fig-real-biglasso. skglm 0.5, the direct-CD solver,
 exhibits the same scaling on a continuous trajectory in @fig-real-skglm: the
 slow ramp from suboptimality $\sim 10^{-1}$ to $\sim 10^{-5}$ is the intercept
@@ -1955,17 +1957,31 @@ convergence in the working tolerance regime.
 ```{julia}
 #| label: fig-real-glmnet
 #| fig-cap: glmnet `type.logistic = "Newton"` (Bucket B, local-IRLS) versus
-#|   `"modified.Newton"` (Bucket A, MM-IRLS with $w \equiv 1/4$) on the shared
-#|   imbalanced logistic problem. Both modes converge to the same $F^\star$, but
-#|   the MM mode requires roughly six times more inner passes at every tolerance
-#|   level---the predicted slowdown from Lemma @lem-gradient-partial applied to
-#|   glmnet's `modified.Newton` intercept update.
+#|   `"modified.Newton"` (Bucket A, MM-IRLS with $w \equiv 1/4$) on two
+#|   problems---left, the shared synthetic imbalanced logistic problem
+#|   ($n=500$, $p=1000$, $\mu_0 = 0.99$); right, w1a, a real severely
+#|   imbalanced LIBSVM problem ($n=2477$, $p=300$, $2.9\%$ positive
+#|   class). Both panels use glmnet's recommended path mode (warm-start
+#|   from $\lambda_{\max}$ down to $0.05\,\lambda_{\max}$ in $50$
+#|   geometric steps); the work axis is total inner CD passes to reach
+#|   the final $\lambda$. Both modes converge to the same $F^\star$ on
+#|   both problems, but the MM mode requires roughly five times more
+#|   passes at the tightest tolerance---the predicted slowdown from
+#|   Lemma @lem-gradient-partial applied to glmnet's `modified.Newton`
+#|   intercept update. The gap survives the change in problem regime
+#|   (synthetic is $p > n$ dense Gaussian; w1a is $n > p$ sparse binary).
 
-df = DataFrame(CSV.File(@projectroot("results", "real-solvers", "glmnet.csv")))
-df.subopt = max.(df.primal .- minimum(df.primal), 1.0e-15)
+df = vcat(
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "glmnet.csv"))),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "glmnet.csv"))),
+)
+df = transform(
+    groupby(df, :problem),
+    :primal => (p -> max.(p .- minimum(p), 1.0e-15)) => :subopt,
+)
 df.mode = df.type
 
-spec = data(df) * mapping(:npasses, :subopt, color = :mode)
+spec = data(df) * mapping(:npasses, :subopt, color = :mode, layout = :problem)
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
@@ -1974,7 +1990,7 @@ draw(
         xlabel = "Inner CD passes",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (550, 300)),
+    figure = (; size = (800, 300)),
 )
 ```
 
@@ -2048,9 +2064,13 @@ Newton step; the change was merged upstream as commit `8f9cbd77`.[^skglm-pr]
     2026-05-13. skglm 0.6 is unreleased at the time of writing; the
     controlled comparison below pins the two relevant commits directly.
 
-@fig-real-glmnet through @fig-real-skglm compare three packages on one shared
-problem, leaving every figure confounded by between-package algorithmic
-differences. The merged skglm patch eliminates that confound on the skglm row.
+@fig-real-glmnet through @fig-real-skglm compare three packages on the shared
+synthetic imbalanced problem, with @fig-real-glmnet additionally replicating
+the within-glmnet gap on w1a, a real severely imbalanced LIBSVM problem in a
+different ($n>p$) regime; the gap is a property of the intercept update, not
+of our synthetic construction. Cross-package comparisons remain confounded
+by between-package algorithmic differences. The merged skglm patch eliminates
+that confound on the skglm row.
 With `b03644fe` (the last commit before the fix, behaviourally identical to
 the released 0.5) and `8f9cbd77` (the merge introducing the Newton intercept
 update) we can run the same `AndersonCD` driver against itself, on the same

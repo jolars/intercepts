@@ -30,13 +30,15 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       is cleaner with a matched 2-D grid, and that heatmap already fixes
       $(n,p)$.
 
-- [ ] **Replicate at least one production-solver finding on a second problem.**
-      The cross-package panel (@fig-real-glmnet through @fig-real-adelie) lives
-      on a single shared problem ($n=500$, $p=1000$, nominal $\mu_0 = 0.99$, one
-      $\lambda$). Rerun the glmnet `Newton`/`modified.Newton` comparison on w1a
-      directly, or on one other severely imbalanced LIBSVM problem, to show the
-      within-package gap survives outside the construction used for the panel.
-      One problem confirms-everything is a standard reviewer trap.
+- [x] **Replicate at least one production-solver finding on a second problem.**
+      @fig-real-glmnet now facets glmnet `Newton` vs `modified.Newton` across
+      the synthetic problem and w1a (a real severely imbalanced LIBSVM problem,
+      $n=2477$, $p=300$, $2.9\%$ positive). Both panels use glmnet's path mode
+      (warm-start from $\lambda_{\max}$ to $0.05\,\lambda_{\max}$ in $50$
+      geometric steps); single-$\lambda$ mode does not converge on w1a. The MM
+      mode needs $\approx 4.5\times$ more passes than `Newton` at the tightest
+      tolerance on both problems --- the within-package gap survives the
+      problem change.
 
 - [ ] **Move the IRLS scoping into the abstract / introduction.** The sentence
       currently buried in §3.4 --- "The strategy distinction this paper analyzes

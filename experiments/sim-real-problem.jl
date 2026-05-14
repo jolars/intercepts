@@ -6,6 +6,7 @@ using ProjectRoot
 using CSV
 using DataFrames
 using JSON3
+using LIBSVMdata
 
 # Shared problem for the three production-solver experiments (glmnet, biglasso,
 # skglm). Generates the imbalanced logistic problem of fig-irls-comparison and
@@ -83,3 +84,61 @@ end
 println("Wrote shared problem to $outdir")
 println("  n_pos = $(meta["n_pos"]), n_neg = $(meta["n_neg"])")
 println("  lambda_max = $lambda_max, lambda = $lambda")
+
+# Replication problem: w1a from LIBSVM, a real severely imbalanced logistic
+# problem in a different regime (n > p, sparse binary features) than the
+# synthetic problem above (p > n, dense Gaussian). Used to show the glmnet
+# Newton / modified.Newton gap is not an artefact of the synthetic
+# construction. Standardization, lambda convention, and storage layout match
+# the synthetic block exactly.
+
+X_w1a_raw, y_w1a = load_dataset("w1a"; verbose = false)
+X_w1a_raw = Matrix(X_w1a_raw)
+y01_w1a = Float64.(Int.(y_w1a .== 1))
+
+x_centers_w1a = vec(mean(X_w1a_raw; dims = 1))
+x_scales_w1a = vec(std(X_w1a_raw; dims = 1, corrected = false))
+x_scales_w1a[x_scales_w1a .== 0] .= 1.0
+X_w1a = (X_w1a_raw .- x_centers_w1a') ./ x_scales_w1a'
+
+y_pm_w1a = 2.0 .* y01_w1a .- 1.0
+ybar_w1a = mean(y01_w1a)
+n_w1a, p_w1a = size(X_w1a)
+
+lambda_max_w1a = norm(X_w1a' * (y01_w1a .- ybar_w1a), Inf) / n_w1a
+lambda_w1a = reg * lambda_max_w1a
+
+outdir_w1a = @projectroot("results", "real-solvers", "w1a")
+mkpath(outdir_w1a)
+
+CSV.write(
+    joinpath(outdir_w1a, "X.csv"),
+    DataFrame(X_w1a, :auto);
+    writeheader = false,
+)
+CSV.write(
+    joinpath(outdir_w1a, "y.csv"),
+    DataFrame(y_pm = y_pm_w1a, y01 = y01_w1a);
+    writeheader = true,
+)
+
+meta_w1a = Dict(
+    "dataset" => "w1a",
+    "n" => n_w1a,
+    "p" => p_w1a,
+    "reg" => reg,
+    "lambda" => lambda_w1a,
+    "lambda_max" => lambda_max_w1a,
+    "ybar" => ybar_w1a,
+    "n_pos" => sum(y01_w1a .== 1),
+    "n_neg" => sum(y01_w1a .== 0),
+)
+
+open(joinpath(outdir_w1a, "meta.json"), "w") do io
+    JSON3.pretty(io, meta_w1a)
+end
+
+println("Wrote w1a problem to $outdir_w1a")
+println("  n = $n_w1a, p = $p_w1a")
+println("  n_pos = $(meta_w1a["n_pos"]), n_neg = $(meta_w1a["n_neg"])")
+println("  lambda_max = $lambda_max_w1a, lambda = $lambda_w1a")
