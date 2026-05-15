@@ -63,7 +63,7 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 - [ ] **Reframe the Theory section so it stops dressing Taylor identities as
       theorems.** Of the six numbered results, four (`@thm-profile-equiv`,
-      `@lem-convergence-cost`, `@lem-newton-approx`, `@cor-newton-coupling`,
+      `@lem-exact-cost`, `@lem-newton-approx`, `@cor-newton-coupling`,
       `@lem-gradient-partial`) are one-line envelope-theorem or Taylor-expansion
       identities, and the proofs reflect that. Either drop the
       theorem/lemma/corollary machinery for these (folding them into prose as
@@ -72,9 +72,9 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       middle ground invites reviewer pushback precisely because the form
       promises more than the content delivers.
 
-- [ ] **Explain the w1a convergence-strategy stall or stop using it as
+- [ ] **Explain the w1a exact-strategy stall or stop using it as
       evidence.** The failure surfaces in @fig-first-example, is held up as
-      evidence against the convergence strategy, and is then localised to w1a +
+      evidence against the exact strategy, and is then localised to w1a +
       cyclic ordering in @sec-ordering with a hand-wavy "coherent direction"
       explanation. The 30-cell heatmap explicitly shows the pathology *does not*
       occur on generic standardized imbalanced designs. Either (a) characterise
@@ -139,14 +139,6 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       newGLMNET's post-step intercept Newton loop closes the audit chain.
 
 ## Framing and presentation
-
-- [ ] **Rename "convergence strategy".** The term collides with the general
-      optimization-theory sense of "convergence" used throughout the paper
-      (relative duality gap, convergence rate, etc.) and forces readers to
-      disambiguate on every occurrence. Candidates: "resolved-intercept",
-      "fully-Newton", "inner-loop Newton". Whatever the choice, propagate
-      through the package API (`ConvergenceStrategy` in
-      `src/intercept_strategies.jl`) for consistency.
 
 - [ ] **Compress overlapping single-$\lambda$ figures.** @fig-first-example,
       @fig-mu-extreme, @fig-simulated, and @fig-real-logreg all carry the same

@@ -16,7 +16,7 @@ param_dict = Dict{String,Any}(
     "s" => [10],
     "reg" => [0.05],
     "μ0" => [0.5, 0.9, 0.95, 0.99],
-    "strategy" => [:gradient, :bt_gradient, :newton, :damped_newton, :convergence],
+    "strategy" => [:gradient, :bt_gradient, :newton, :damped_newton, :exact],
 );
 
 params = dict_list(param_dict);

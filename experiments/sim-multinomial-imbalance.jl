@@ -18,7 +18,7 @@ param_dict = Dict{String,Any}(
     "s" => [5],
     "reg" => [0.05],
     "K" => [5],
-    "strategy" => [:gradient, :newton, :damped_newton, :convergence],
+    "strategy" => [:gradient, :newton, :damped_newton, :exact],
 )
 
 params = dict_list(param_dict)

@@ -29,7 +29,7 @@ end
 # Inner-quadratic intercept update.
 # All non-NoIntercept strategies coincide on the quadratic majorizer: Newton is
 # exact, the gradient step with the inner Lipschitz (= curvature = sum(w))
-# matches it, ConvergenceStrategy reaches the same point in one step, and a
+# matches it, ExactStrategy reaches the same point in one step, and a
 # damped Newton step with backtracking accepts the full step. The dispatch is
 # preserved so NoIntercept still disables the update.
 _irls_inner_intercept_step(::NoIntercept, grad_0::Real, curv::Real) = 0.0

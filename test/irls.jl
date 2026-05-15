@@ -74,7 +74,7 @@ end
 
     res_grad = irlssolver(X, y, reg; intercept_strategy = GradientStrategy(), common...)
     res_newt = irlssolver(X, y, reg; intercept_strategy = NewtonStrategy(), common...)
-    res_conv = irlssolver(X, y, reg; intercept_strategy = ConvergenceStrategy(), common...)
+    res_conv = irlssolver(X, y, reg; intercept_strategy = ExactStrategy(), common...)
 
     # All three strategies coincide on the inner quadratic — iterates should match.
     @test res_grad.intercepts == res_newt.intercepts

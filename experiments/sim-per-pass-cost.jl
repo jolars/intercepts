@@ -4,15 +4,15 @@ using DrWatson
 using ProjectRoot
 using JLD2
 
-# Per-pass cost decomposition for the convergence strategy.
+# Per-pass cost decomposition for the exact strategy.
 # Records, per outer pass, the number of inner Newton steps consumed at the
 # intercept (k_0) and the outer progress (relative gap), for both the Newton
-# strategy (single inner step per pass) and the convergence strategy (iterates
+# strategy (single inner step per pass) and the exact strategy (iterates
 # until |∂_0 F| < 1e-10).
 #
-# Reads as @lem-convergence-cost: Newton and convergence achieve comparable
-# per-pass progress, but convergence pays Ω(k_0 - 1) extra inner steps per
-# pass with no commensurate rate improvement.
+# Reads as @lem-exact-cost: Newton and exact achieve comparable
+# per-pass progress, but the exact strategy pays Ω(k_0 - 1) extra inner steps
+# per pass with no commensurate rate improvement.
 
 Random.seed!(1234)
 
@@ -22,7 +22,7 @@ param_dict = Dict{String,Any}(
     "s" => [10],
     "reg" => [0.05],
     "μ0" => [0.5, 0.9, 0.99],
-    "strategy" => [:newton, :convergence],
+    "strategy" => [:newton, :exact],
 )
 
 params = dict_list(param_dict)
@@ -49,8 +49,8 @@ for (i, d) in enumerate(params)
 
     intercept_strategy = if strategy == :newton
         NewtonStrategy()
-    elseif strategy == :convergence
-        ConvergenceStrategy()
+    elseif strategy == :exact
+        ExactStrategy()
     else
         error("Unknown strategy: $strategy")
     end

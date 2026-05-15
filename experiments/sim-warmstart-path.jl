@@ -44,8 +44,8 @@ function run_path(X, y, strategy_sym, randomize, warm_start)
         GradientStrategy()
     elseif strategy_sym == :newton
         NewtonStrategy()
-    elseif strategy_sym == :convergence
-        ConvergenceStrategy()
+    elseif strategy_sym == :exact
+        ExactStrategy()
     else
         error("Unknown strategy: $strategy_sym")
     end
@@ -128,7 +128,7 @@ end
 
 param_dict = Dict{String,Any}(
     "dataset" => [:simulated, :w1a],
-    "strategy" => [:gradient, :newton, :convergence],
+    "strategy" => [:gradient, :newton, :exact],
     "randomize" => [false, true],
     "warm_start" => [false, true],
 )

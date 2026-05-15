@@ -47,7 +47,7 @@ using GLM
         y,
         reg,
         lossfun = LogisticLoss(),
-        intercept_strategy = ConvergenceStrategy(),
+        intercept_strategy = ExactStrategy(),
         maxit = maxit,
     )
     res_damp = cdsolver(

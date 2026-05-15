@@ -116,9 +116,9 @@ end
     s_vec = update_intercept(DampedNewtonStrategy(), fmult, β0_vec, η_mat, y_mult)
     @test isapprox(s_scalar, s_vec[1]; atol = 1e-12)
 
-    # ConvergenceStrategy
-    s_scalar = update_intercept(ConvergenceStrategy(), fbin, β0_scalar, η_scalar, y_bin)
-    s_vec = update_intercept(ConvergenceStrategy(), fmult, β0_vec, η_mat, y_mult)
+    # ExactStrategy
+    s_scalar = update_intercept(ExactStrategy(), fbin, β0_scalar, η_scalar, y_bin)
+    s_vec = update_intercept(ExactStrategy(), fmult, β0_vec, η_mat, y_mult)
     @test isapprox(s_scalar, s_vec[1]; atol = 1e-10)
 end
 

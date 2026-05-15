@@ -6,19 +6,19 @@ using JLD2
 
 # Cyclic vs permuted coordinate-descent ordering on the w1a problem of
 # @fig-first-example. The cyclic ordering is the headline case where the
-# convergence strategy fails to converge (its iterates oscillate around the
-# joint optimum because each pass relinearises around an intercept value
-# stale by the time the within-pass coordinate drift comes back to it). The
-# permuted ordering breaks the deterministic worst-case pairing and lets the
-# convergence strategy converge, matching the behavior of cyclic Newton.
-# Promotes the prior footnote to a Results-section figure.
+# exact strategy fails to converge (its iterates oscillate around the joint
+# optimum because each pass relinearises around an intercept value stale by
+# the time the within-pass coordinate drift comes back to it). The permuted
+# ordering breaks the deterministic worst-case pairing and lets the exact
+# strategy converge, matching the behavior of cyclic Newton. Promotes the
+# prior footnote to a Results-section figure.
 
 Random.seed!(42)
 
 param_dict = Dict{String,Any}(
     "dataset" => ["w1a"],
     "reg" => [0.05],
-    "strategy" => [:gradient, :newton, :convergence],
+    "strategy" => [:gradient, :newton, :exact],
     "randomize" => [false, true],
 )
 

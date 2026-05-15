@@ -100,7 +100,7 @@ Newton Strategy
     provides a safeguard in the cold-start or saturated-loss regime where bare
     Newton can overshoot.
 
-Convergence Strategy
+Exact Strategy
 :   The intercept is updated by solving the optimization problem in the
     intercept convergence before each pass over the coordinates, using either
     gradient or Newton steps.
@@ -108,7 +108,7 @@ Convergence Strategy
 For a first illustration, see @fig-first-example, which compares the three main
 strategies on $\ell_1$-regularized logistic regression on the w1a
 dataset\ [@platt1998]. The Newton strategy reaches the optimal solution quickly,
-and the gradient strategy more slowly. The convergence strategy does not make
+and the gradient strategy more slowly. The exact strategy does not make
 progress on this problem under cyclic coordinate ordering---a sensitivity we
 return to in @sec-ordering.
 
@@ -136,7 +136,7 @@ draw(
 
 @fig-first-example heralds the main message of this paper: the Newton strategy
 is both reliable and efficient, the gradient strategy is too slow, and the
-convergence strategy pays a per-pass cost without a commensurate rate gain. An
+exact strategy pays a per-pass cost without a commensurate rate gain. An
 Armijo-safeguarded *damped* Newton variant protects against the narrow
 cold-start regime where a bare Newton step can overshoot.
 
@@ -185,7 +185,7 @@ Empirical Verification on Production Codebases
     roughly ten times more than `Newton`; skglm 0.5 exhibits the predicted
     slow ramp; LIBLINEAR and BlitzL1
     both converge fast, as the framework predicts for their prox-Newton +
-    convergence-strategy intercept design; adelie matches the per-iteration cost
+    exact-strategy intercept design; adelie matches the per-iteration cost
     of glmnet `Newton`, as the framework predicts for its centered-features
     local-IRLS realization.
 
@@ -359,7 +359,7 @@ these:
    constant with respect to $\beta_0$ or via a backtracking line search.
 3. Solving the optimization problem of the intercept iteratively to convergence,
    using either Newton or gradient steps. In this paper, we will use Newton
-   steps. And we will refer to this method as the *convergence strategy*.
+   steps. And we will refer to this method as the *exact strategy*.
 
 The coordinate descent algorithm, with the difference intercept update
 strategies, is summarized in @algo-cd.
@@ -385,7 +385,7 @@ strategies, is summarized in @algo-cd.
                 \State $\beta_0 \gets \beta_0 - \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
             \ElsIf{intercept strategy is "Gradient"}
                 \State $\beta_0 \gets \beta_0 - \frac{1}{L_0} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
-            \ElsIf{intercept strategy is "Convergence"}
+            \ElsIf{intercept strategy is "Exact"}
                 \While{not converged}
                     \State $\beta_0 \gets \beta_0 - \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
                 \EndWhile
@@ -561,13 +561,13 @@ ordering.
 :::
 
 @thm-profile-equiv is the bridge between the Schur analysis and CD theory: *at
-the start of each pass*, the convergence strategy aligns with CD on $\tilde F$.
+the start of each pass*, the exact strategy aligns with CD on $\tilde F$.
 The catch is that this alignment lasts for exactly one coefficient update---by
 the second update, $\beta_0^{(t)}$ is no longer the conditional minimizer, and
 the equivalence breaks. The next lemma quantifies how quickly.
 
-::: {.lemma #lem-convergence-cost}
-**(Within-pass intercept drift undoes the convergence strategy's work.)**
+::: {.lemma #lem-exact-cost}
+**(Within-pass intercept drift undoes the exact strategy's work.)**
 Starting from $\beta_0^{(t)}$ with
 $\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$, a single coefficient update
 $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$ yields
@@ -587,8 +587,8 @@ $(\beta_0^{(t)}, \beta^{(t)})$ using $\partial_{0j} F = H_{0j}$ and
 $\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$.
 :::
 
-The practical reading of @lem-convergence-cost is a *cost-versus-progress*
-verdict on the convergence strategy. Let $k_0$ denote the number of inner Newton
+The practical reading of @lem-exact-cost is a *cost-versus-progress*
+verdict on the exact strategy. Let $k_0$ denote the number of inner Newton
 steps consumed at the end of a pass to drive $|\partial_0 F| < \varepsilon$.
 Because the intercept subproblem $\beta_0 \mapsto F(\beta_0, \beta)$ is a smooth
 strongly convex 1D problem ($\partial_{00} F = H_{00} > 0$ in a neighbourhood of
@@ -601,7 +601,7 @@ coefficient update of the next pass---by the second update it has drifted by
 $H_{0j}\,\delta_j$. Outer progress is therefore upper-bounded by what one Newton
 step on the intercept would have already delivered, since the first coefficient
 update is the only one that benefits from the envelope alignment. The
-convergence strategy thus pays $k_0 - 1 = O(\log\log(1/\varepsilon))$ extra
+exact strategy thus pays $k_0 - 1 = O(\log\log(1/\varepsilon))$ extra
 inner Newton steps per pass with no commensurate per-pass rate improvement over
 the Newton strategy. The overhead is bounded, not unbounded, but the verdict
 stands: every pass pays for inner work that buys no faster outer convergence.
@@ -620,14 +620,14 @@ The cost-versus-progress verdict above is sharpest in the cold-start, direct-CD
 setting that drives this paper. Three regimes soften it. *Warm-started path
 solves* along a $\lambda$ grid begin each subproblem with $|\partial_0 F|$
 already small, so $k_0$ drops to one or two inner Newton steps and the $k_0 - 1$
-penalty shrinks to zero---bare Newton and the convergence strategy converge to
+penalty shrinks to zero---bare Newton and the exact strategy converge to
 each other in this regime. *Strongly coupled designs*, where the envelope
 alignment of @thm-profile-equiv buys a meaningful first-update gain, partially
-offset the per-pass overhead, though the cyclic drift in @lem-convergence-cost
+offset the per-pass overhead, though the cyclic drift in @lem-exact-cost
 still applies. *At the prox-Newton or IRLS linearization boundary*, the Hessian
 is recomputed for the next subproblem and the within-pass drift critique no
 longer bites; we return to this case in @sec-irls, where it underwrites the
-design choices of LIBLINEAR and BlitzL1. The convergence strategy is a
+design choices of LIBLINEAR and BlitzL1. The exact strategy is a
 defensible choice in these regimes and the recommendation against it in the rest
 of this paper should be read as scoped to the cold-start, direct-CD setting
 outside all three.
@@ -675,7 +675,7 @@ $$
   \;+\; O(r_0^2),
 $$ {#eq-newton-coupling}
 i.e. the profiled gradient plus a bias of order $H_{j0} r_0$. The Newton
-strategy is therefore as good as the convergence strategy on a coordinate
+strategy is therefore as good as the exact strategy on a coordinate
 $j$ whenever
 $$
 |H_{j0}| \cdot |r_0| \;\ll\; \bigl|\partial_j \tilde F(\beta)\bigr|.
@@ -709,7 +709,7 @@ empirical evidence in §Numerical experiments for that question.
 the local quadratic model of $F$ at $(\beta_0, \beta)$, the gradient
 strategy with step size $\alpha = 1/L_0$ removes a fraction $H_{00}/L_0
 \in (0, 1]$ of the coupling component $(H_{j0}/H_{00})\,\partial_0 F$ that
-the Newton and convergence strategies remove. Specifically, the residual
+the Newton and exact strategies remove. Specifically, the residual
 gradient after the intercept step is
 $$
 \partial_j F^{\text{grad}}
@@ -750,7 +750,7 @@ a quantity of the form $L_j R_j^2$, where $L_j$ is the coordinate-wise Lipschitz
 constant and $R_j$ the cold-start distance to the optimum along coordinate $j$.
 The strategies enter this expression identically on coefficient coordinates but
 differently on the intercept: the gradient strategy plugs in the global
-$L_0 = n\sup f''$, while the Newton and convergence strategies use the
+$L_0 = n\sup f''$, while the Newton and exact strategies use the
 iterate-level $H_{00}$, which may be orders of magnitude smaller.
 
 ::: {.corollary #cor-rate-gap}
@@ -864,7 +864,7 @@ empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ and the asymptotic predictor
 $L_0/H_{00}(\hat\eta)$ grow together, with the empirical multiplier sitting a
 small constant factor below the prediction. The prediction is leading order, so
 a constant gap is expected: subdominant $\sum_j R_j^2$ terms in @eq-rate-gap
-dilute the intercept's dominance, and the convergence-strategy result of
+dilute the intercept's dominance, and the exact-strategy result of
 @thm-profile-equiv is not exact for cyclic CD past the first coordinate update.
 The scaling, not the constant, is the load-bearing prediction.
 
@@ -932,7 +932,7 @@ $\lambda = 0.05\,\lambda_{\max}$.
 #|   (Lemma 3.3 prediction $H_{00}/L_0 \to 0$). A backtracking-Armijo variant of
 #|   the gradient strategy stalls identically---the Lipschitz step satisfies
 #|   sufficient decrease on the first attempt, so the line search never shrinks
-#|   $\alpha$. The Newton, damped Newton, and convergence strategies are
+#|   $\alpha$. The Newton, damped Newton, and exact strategies are
 #|   unaffected. Randomized cyclic CD.
 
 dd = JLD2.load(@projectroot("results", "sim-mu-extreme.jld2"))
@@ -990,9 +990,9 @@ this: with cyclic ordering and the intercept initialized at zero (so
 $|\partial_0 F|$ is large at pass one), bare Newton needs noticeably more outer
 passes than damped Newton at $\mu_0 = 0.99$. At moderate imbalance the two are
 indistinguishable, consistent with @cor-newton-coupling promising leading-order
-agreement whenever $|r_0|$ is small. The convergence strategy is competitive in
+agreement whenever $|r_0|$ is small. The exact strategy is competitive in
 this experiment but pays the within-pass-drift cost identified in
-@lem-convergence-cost; see also the cyclic-CD instability footnoted under
+@lem-exact-cost; see also the cyclic-CD instability footnoted under
 @fig-first-example.
 
 #### Extension to vector intercepts
@@ -1008,7 +1008,7 @@ $H_{00} = \sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1
 is a $(K-1) \times (K-1)$ matrix; the Newton strategy becomes a small block
 solve $\delta = -H_{00}^{-1}\,\nabla_0 F$, and the damped variant performs
 Armijo backtracking on the loss along that direction. @thm-profile-equiv,
-@lem-convergence-cost, and @cor-newton-coupling all carry through with
+@lem-exact-cost, and @cor-newton-coupling all carry through with
 matrix-valued $H_{00}$ in place of the scalar.
 
 @lem-gradient-partial sharpens. The gradient strategy applies a uniform
@@ -1036,7 +1036,7 @@ block-CD findings.
 #|   = 0.05\,\lambda_{\max}$, three random seeds, cyclic CD). The gradient
 #|   strategy stalls along the rare-class intercept components, exactly as
 #|   predicted by the per-class fraction-of-correction $H_{00,kk}/L_0$. The
-#|   Newton, damped Newton, and convergence strategies are visually
+#|   Newton, damped Newton, and exact strategies are visually
 #|   indistinguishable; the K-class block update damps the overshoot that
 #|   distinguished them in the scalar setting.
 
@@ -1068,7 +1068,7 @@ twentieth-of-$L_0$ small, and the gradient strategy's per-class correction along
 those coordinates is correspondingly microscopic. The strategy converges to the
 same primal but takes roughly an order of magnitude longer.
 
-The Newton, damped Newton, and convergence strategies collapse to a single
+The Newton, damped Newton, and exact strategies collapse to a single
 visible curve. This is genuinely surprising at first glance: the scalar
 cold-start figure (@fig-cold-start) showed a measurable wedge between bare and
 damped Newton at $\mu_0 = 0.99$, and the imbalance regime here is at least as
@@ -1096,7 +1096,7 @@ tuning artifact of the single anchor configuration.
 #|   same $K=5$, $n=500$, $p=200$, $s=5$, $\lambda = 0.05\,\lambda_{\max}$,
 #|   $\rho = 0.3$ design as @fig-multinomial-imbalance. Relative primal
 #|   suboptimality versus outer-pass index, median over three seeds. The bare
-#|   Newton, damped Newton, and convergence strategies overlap on a single curve
+#|   Newton, damped Newton, and exact strategies overlap on a single curve
 #|   in every cell; the gradient strategy stalls progressively harder as $\bar
 #|   p_K$ shrinks (down the rows) and as amplitude grows (across the columns).
 #|   The anchor cell (top-left) reproduces the trajectories of
@@ -1175,7 +1175,7 @@ Inside one inner solve with local weights, $\tilde F^{(t)}$ is quadratic in
 $\beta_0$ with curvature $\sum_i w_i^{(t)} = H_{00}$, so the inner Lipschitz
 constant satisfies $L_0^{\text{inner}} = H_{00}$. The fraction
 $H_{00} / L_0^{\text{inner}} = 1$ in @lem-gradient-partial, and Newton on a
-quadratic is exact, so the gradient, Newton, and convergence strategies all
+quadratic is exact, so the gradient, Newton, and exact strategies all
 coincide on the inner subproblem. The strategy distinction this paper analyzes
 is therefore specific to direct-CD solvers (e.g. skglm) and does not arise
 within one local-weight IRLS inner solve.
@@ -1203,7 +1203,7 @@ applies instead.
 Across IRLS linearizations the weights $w_i^{(t)}$ change with $\eta^{(t)}$, so
 even a fully resolved inner intercept becomes stale once the weights are
 recomputed. This outer-level drift is analogous to but distinct from the
-within-pass drift of @lem-convergence-cost, which is direct-CD-specific.
+within-pass drift of @lem-exact-cost, which is direct-CD-specific.
 
 The practical map is therefore richer than the direct-CD analysis alone
 suggests. @tbl-classification summarises where each production solver falls.
@@ -1245,18 +1245,18 @@ therefore absent from the table.)
     distinction reappears only when comparing weight schemes across outer
     iterations (rows three to six). LIBLINEAR and BlitzL1 additionally follow
     each prox-Newton subproblem with a separate sequence of 1-D Newton
-    iterations on the intercept (the convergence strategy applied to the
+    iterations on the intercept (the exact strategy applied to the
     original loss after each outer step). {#tbl-classification}
 
 A consequence of the table is that two production solvers---LIBLINEAR
-(newGLMNET) and BlitzL1---independently chose to apply the convergence strategy
+(newGLMNET) and BlitzL1---independently chose to apply the exact strategy
 to the intercept at the boundary of each prox-Newton step. The analysis in
-@lem-convergence-cost penalises convergence-strategy within direct CD because
+@lem-exact-cost penalises exact-strategy within direct CD because
 the inner Hessian drifts between iterations; that critique does not apply at the
 prox-Newton boundary, where the next subproblem's Hessian is recomputed anyway.
 The structural distinction between the families thus carries over to a sensible
 recommendation: use Newton on the intercept within direct CD, and run the
-convergence strategy at the linearization boundary inside IRLS or prox-Newton.
+exact strategy at the linearization boundary inside IRLS or prox-Newton.
 The production solvers that fit serious imbalanced-GLM problems in practice
 appear to have arrived at exactly this prescription.
 
@@ -1267,7 +1267,7 @@ appear to have arrived at exactly this prescription.
 #|   Direct-CD with the gradient strategy as the algebra above predicts---both
 #|   stall at the same per-iteration correction fraction. Local-weight IRLS
 #|   converges, matching the strategy collapse argument. The Local-IRLS curve
-#|   uses Newton at the inner level; the gradient and convergence strategies
+#|   uses Newton at the inner level; the gradient and exact strategies
 #|   coincide with it numerically (verified in unit tests).
 
 dd = JLD2.load(@projectroot("results", "sim-irls-comparison.jld2"))
@@ -1331,7 +1331,7 @@ X, y = generatedata(
 strategies = [
     (strategy = GradientStrategy(), name = "Gradient"),
     (strategy = NewtonStrategy(), name = "Newton"),
-    (strategy = ConvergenceStrategy(), name = "Convergence"),
+    (strategy = ExactStrategy(), name = "Exact"),
 ]
 
 reg = 0.2
@@ -1431,7 +1431,7 @@ comparing the three strategies under cyclic coordinate descent.
 #|   0.6$, $\lambda = 0.05\,\lambda_{\max}$) under cyclic CD, across three
 #|   class-imbalance levels. The gradient strategy is competitive only at $\mu_0
 #|   = 0.5$ (where $H_{00} \approx L_0$) and falls behind as $\mu_0$ grows,
-#|   matching @lem-gradient-partial. The Newton and convergence strategies trace
+#|   matching @lem-gradient-partial. The Newton and exact strategies trace
 #|   nearly identical trajectories on all three panels.
 
 dd = JLD2.load(@projectroot("results", "sim-logreg-mu.jld2"))
@@ -1461,7 +1461,7 @@ gradient strategy keeps up, by $\mu_0 = 0.7$ it has visibly slowed, and at
 $\mu_0 = 0.9$ it trails the Newton-class strategies by more than an order of
 magnitude in pass count to reach a fixed relative gap. The bare-Newton and
 convergence trajectories overlay each other throughout, consistent with
-@lem-convergence-cost predicting equal per-pass progress and differing only in
+@lem-exact-cost predicting equal per-pass progress and differing only in
 inner-step cost---a difference we make visible in @sec-per-pass-cost. The
 quantitative scaling of the gradient/Newton ratio with $\mu_0$ and $\lambda$ is
 taken up in @sec-imbalance-reg.
@@ -1482,7 +1482,7 @@ predicted to be slow.
 #| fig-cap: Convergence trajectories for the three intercept strategies on four
 #|   LIBSVM benchmark problems at $\lambda = 0.05\,\lambda_{\max}$. The gradient
 #|   strategy hits the pass budget on the extremely imbalanced w1a; the
-#|   convergence strategy fails to converge on w1a under cyclic CD (see
+#|   exact strategy fails to converge on w1a under cyclic CD (see
 #|   @sec-ordering). On the well-balanced problems (leukemia, breast-cancer,
 #|   gisette) the three strategies are within a small factor of each other.
 
@@ -1510,7 +1510,7 @@ draw(
 
 @fig-real-logreg confirms the prediction in both directions. w1a is the extreme
 imbalance case ($\mu_0 = 0.029$): the gradient strategy fails to reach the
-working tolerance within the 1000-pass budget, and the convergence strategy
+working tolerance within the 1000-pass budget, and the exact strategy
 plateaus around relative gap $10^{-1}$ under cyclic CD---a separate failure mode
 that @sec-ordering shows to be specific to coordinate ordering rather than to
 the strategy itself. Only bare Newton converges on w1a, and it does so in 232
@@ -1528,9 +1528,9 @@ both ends: gradient is slow when and only when $H_{00}/L_0$ is small.
 
 ### Cyclic vs Permuted Ordering {#sec-ordering}
 
-A separate question is whether the convergence strategy's outright failure on
+A separate question is whether the exact strategy's outright failure on
 w1a in @fig-first-example is intrinsic to the strategy or to the cyclic
-coordinate ordering it is paired with. @lem-convergence-cost is agnostic to
+coordinate ordering it is paired with. @lem-exact-cost is agnostic to
 ordering, but its within-pass drift argument relies on the intercept's
 environment changing while the pass is in progress; under strict cyclic order,
 that drift can compound into a deterministic worst-case pairing in which the
@@ -1544,7 +1544,7 @@ the three strategies.
 #| label: fig-first-example-ordering
 #| fig-cap: Same configuration as @fig-first-example (w1a, $\lambda =
 #|   0.05\,\lambda_{\max}$) under cyclic (top) and permuted (bottom) coordinate
-#|   ordering. The convergence strategy diverges under cyclic order and recovers
+#|   ordering. The exact strategy diverges under cyclic order and recovers
 #|   under permuted order, matching the bare Newton trajectory. The gradient
 #|   strategy is slow under both orderings, consistent with
 #|   @lem-gradient-partial being ordering-agnostic.
@@ -1569,14 +1569,14 @@ draw(
 )
 ```
 
-@fig-first-example-ordering localises the convergence-strategy failure to the
-cyclic-order regime. Under permuted CD, the convergence strategy tracks bare
+@fig-first-example-ordering localises the exact-strategy failure to the
+cyclic-order regime. Under permuted CD, the exact strategy tracks bare
 Newton to the working tolerance; under cyclic order, its iterates oscillate and
 the relative gap plateaus around $10^{-1}$ within the pass budget. The gradient
 strategy is slow under both orderings, as @lem-gradient-partial predicts:
 ordering controls within-pass drift, not the per-coordinate Lipschitz mismatch.
 The implication for direct CD is that the conservative recommendation---bare
-Newton---is also the ordering-robust one; the convergence strategy is a viable
+Newton---is also the ordering-robust one; the exact strategy is a viable
 alternative specifically when ordering is randomised or when warm-starting along
 a path keeps the within-pass intercept change small (see @sec-warmstart-path).
 
@@ -1584,14 +1584,14 @@ a path keeps the within-pass intercept change small (see @sec-warmstart-path).
 
 The single-$\lambda$ experiments above stress the strategies in their hardest
 regime---cold start, large $|\partial_0 F|$ at iterate zero---which is also the
-setting in which the theoretical critique of @lem-convergence-cost and the
+setting in which the theoretical critique of @lem-exact-cost and the
 imbalance collapse of @lem-gradient-partial bite hardest. Production users
 rarely solve a single $\lambda$ in isolation; they sweep a grid
 $\lambda_1 > \lambda_2 > \dots > \lambda_K$ and warm-start each subproblem from
 the previous solution. As anticipated in the steelman paragraph above,
 warm-starting begins each subproblem with $|\partial_0 F|$ already small.
 @cor-newton-coupling then predicts that the bare Newton step is essentially
-exact at the start, so $k_0 \in \{1, 2\}$ in the convergence strategy and the
+exact at the start, so $k_0 \in \{1, 2\}$ in the exact strategy and the
 $k_0 - 1$ per-pass overhead evaporates. The gradient-strategy collapse should
 also soften because the iterate is close to optimum and the $H_{00}/L_0$
 shrinkage acts on an already-small residual.
@@ -1690,8 +1690,8 @@ caveat. On both problems and both orderings, warm-starting roughly halves the
 number of pass-budget-capped subproblems for the Newton and convergence
 strategies (e.g., on w1a from $\sim 8$ to $\sim 3$ out of 20) and brings their
 curves on top of each other---this is the steelman prediction of
-@lem-convergence-cost: with $|\partial_0 F|$ already small, the $k_0 - 1$
-per-pass penalty of the convergence strategy evaporates. Warm-starting also
+@lem-exact-cost: with $|\partial_0 F|$ already small, the $k_0 - 1$
+per-pass penalty of the exact strategy evaporates. Warm-starting also
 rescues bare Newton from the cold-start cyclic instability that surfaces at very
 small $\lambda$ on w1a, where the cold-start trajectory diverges entirely.
 
@@ -1706,9 +1706,9 @@ competitive cold, and warm-start contributes only a uniform $\sim 5\%$ reduction
 in pass count across the board.
 
 The takeaway: warm-starting validates the steelman for Newton-class strategies
-(bare Newton and the convergence strategy converge to each other) but does not
+(bare Newton and the exact strategy converge to each other) but does not
 extend the gradient strategy's scope. The recommendation of
-@lem-convergence-cost---bare Newton in direct CD, convergence strategy at the
+@lem-exact-cost---bare Newton in direct CD, exact strategy at the
 prox-Newton/IRLS boundary---stands, with the addendum that the convergence
 strategy becomes a defensible alternative to bare Newton whenever a path solve
 is in fact used.
@@ -1716,9 +1716,9 @@ is in fact used.
 ### Per-Pass Cost Decomposition {#sec-per-pass-cost}
 
 The pass-count and wall-clock figures above conflate two distinct quantities
-that @lem-convergence-cost separates: the *number of outer passes* needed to
+that @lem-exact-cost separates: the *number of outer passes* needed to
 reach a tolerance and the *per-pass inner cost* paid at the intercept update.
-The lemma's claim is that the convergence strategy pays $k_0 - 1$ extra inner
+The lemma's claim is that the exact strategy pays $k_0 - 1$ extra inner
 Newton steps per outer pass with no commensurate rate improvement, where
 $k_0 = O(\log\log(1/\varepsilon))$ is the number of inner steps consumed to
 drive $|\partial_0 F| < \varepsilon$ at the end of the pass via quadratic Newton
@@ -1733,13 +1733,13 @@ $|\partial_0 F|$.
 ```{julia}
 #| label: fig-per-pass-cost
 #| fig-cap: Per-pass inner Newton steps $k_0$ consumed at the intercept update
-#|   by the convergence strategy, as a function of outer-pass index, across
+#|   by the exact strategy, as a function of outer-pass index, across
 #|   three imbalance levels. The dashed reference at $k_0 = 1$ marks the Newton
 #|   strategy, which takes exactly one inner step by construction. The
-#|   convergence strategy's $k_0$ spikes at cold start ($k_0 = 6$ on the most
+#|   exact strategy's $k_0$ spikes at cold start ($k_0 = 6$ on the most
 #|   imbalanced design) and tapers to one as the iterate approaches the joint
 #|   optimum. The area above the reference is the cumulative wasted inner work
-#|   predicted by @lem-convergence-cost.
+#|   predicted by @lem-exact-cost.
 
 dd = JLD2.load(@projectroot("results", "sim-per-pass-cost.jld2"))
 df = DataFrame(dd["results"])
@@ -1767,11 +1767,11 @@ draw(
 #| label: fig-per-pass-progress
 #| fig-cap: Relative duality gap after each outer pass on the same runs. The two
 #|   strategies trace nearly indistinguishable trajectories despite the
-#|   convergence strategy paying 19--62 % more inner Newton steps in total
+#|   exact strategy paying 19--62 % more inner Newton steps in total
 #|   (compare cumulative areas in @fig-per-pass-cost). The extra inner work per
 #|   pass therefore buys no measurable per-pass rate improvement, the empirical
 #|   content of the "cost-without-rate-improvement" reading of
-#|   @lem-convergence-cost.
+#|   @lem-exact-cost.
 
 spec_prog =
     data(df) * mapping(
@@ -1807,7 +1807,7 @@ inner Newton work for which @fig-per-pass-progress records no return.
 The penalty here is modest because quadratic Newton convergence on the 1D
 intercept subproblem keeps $k_0 = O(\log\log(1/\varepsilon))$, well below the
 inner-loop cap of 20, and most passes need only a single inner step. The regime
-where @lem-convergence-cost bites hardest is the cold-start,
+where @lem-exact-cost bites hardest is the cold-start,
 large-$|\partial_0 F|$ window of the first few outer passes; the steelman
 regimes in @sec-warmstart-path are precisely those where this window is avoided.
 
@@ -1862,12 +1862,12 @@ draw(
 ```
 
 ```{julia}
-#| label: fig-mu-reg-convergence
-#| fig-cap: Pass-count ratio $T_{\mathrm{convergence}} / T_{\mathrm{Newton}}$
+#| label: fig-mu-reg-exact
+#| fig-cap: Pass-count ratio $T_{\mathrm{exact}} / T_{\mathrm{Newton}}$
 #|   (log~10~ scale) on the same grid as @fig-mu-reg-gradient, on a centered
 #|   diverging colormap with $|\log_{10} \mathrm{ratio}| \le 0.1$. The heatmap
 #|   is flat at zero (white) across the plane---outer-pass-equivalent
-#|   convergence vs Newton, the prediction of @lem-convergence-cost. No
+#|   exact vs Newton, the prediction of @lem-exact-cost. No
 #|   cyclic-CD blow-up of @sec-ordering surfaces on this generic simulated
 #|   design---it is dataset-specific to w1a.
 
@@ -1908,13 +1908,13 @@ $\lambda = 0.01\,\lambda_{\max}$ the empirical row is
 $\{1.6, 1.7, 4.2, 6.7, \ge 10.2\}$, clipped at the high-$\mu_0$ end by the
 gradient strategy's 5000-pass budget.
 
-@fig-mu-reg-convergence is flat at zero (ratio $\approx 1$) across the plane,
+@fig-mu-reg-exact is flat at zero (ratio $\approx 1$) across the plane,
 with no cell departing from the unit ratio by more than about 12 %. This is the
-outer-pass content of @lem-convergence-cost: the convergence strategy consumes
+outer-pass content of @lem-exact-cost: the exact strategy consumes
 the same number of outer passes as bare Newton when both converge. The cost of
-the convergence strategy is therefore an inner-step overhead, not an outer-pass
+the exact strategy is therefore an inner-step overhead, not an outer-pass
 overhead---the quantitative form of which is the $k_0 - 1$ wasted-inner-work
-claim of @sec-per-pass-cost. The convergence-strategy failure that surfaces on
+claim of @sec-per-pass-cost. The exact-strategy failure that surfaces on
 w1a under cyclic CD (@sec-ordering) does not appear on this simulated design at
 any cell; the cyclic-CD pathology requires the specific combination of design
 and ordering that w1a exhibits and is not recovered on a generic standardized
@@ -1946,7 +1946,7 @@ sharpens this further into a same-solver same-problem comparison across the
 two skglm commits that bracket the intercept-update fix, on the same $(\mu_0,
 \lambda)$ grid as @fig-mu-reg-gradient. The fourth panel verifies the
 complementary prediction on LIBLINEAR (newGLMNET) and BlitzL1, two prox-Newton
-solvers that apply the convergence strategy to the intercept and that the
+solvers that apply the exact strategy to the intercept and that the
 framework predicts should converge fast. A fifth panel
 runs adelie [@yang2024], a recent local-IRLS solver that places the intercept
 implicitly at the optimum of each Gaussian surrogate through a
@@ -2122,7 +2122,7 @@ draw(
 ```
 
 The fourth panel verifies the complementary prediction: solvers whose intercept
-update is the convergence strategy at a prox-Newton boundary should converge
+update is the exact strategy at a prox-Newton boundary should converge
 fast. LIBLINEAR (newGLMNET) and BlitzL1 are the two production solvers in our
 survey that fit this description. @fig-real-proxnewton shows both reaching the
 optimum within tens of milliseconds of wall-clock time, on the same problem
@@ -2132,11 +2132,11 @@ order of magnitude more inner passes than `Newton`.
 ```{julia}
 #| label: fig-real-proxnewton
 #| fig-cap: LIBLINEAR (newGLMNET) and BlitzL1 on the shared imbalanced logistic
-#|   problem. Both are prox-Newton solvers that apply the convergence strategy
+#|   problem. Both are prox-Newton solvers that apply the exact strategy
 #|   to the intercept after each linearization, the complement of
 #|   `glmnet::Newton` and `biglasso::Newton` from @fig-real-glmnet and
 #|   @fig-real-biglasso. Both reach $F^\star$ in tens of milliseconds,
-#|   confirming that the convergence-strategy choice on the intercept does not
+#|   confirming that the exact-strategy choice on the intercept does not
 #|   inherit the imbalance failure mode of the gradient-strategy solvers.
 #|   LIBLINEAR runs that hit its internal `max_iter` cap without further
 #|   progress have been excluded---they reflect a tolerance-semantic quirk in
@@ -2187,7 +2187,7 @@ prediction at stake here---is on the same order as the other local-IRLS solvers.
 #|   construction. The framework places it in the same bucket as glmnet `Newton`
 #|   and biglasso `Newton`. In the working tolerance regime each tolerance
 #|   setting completes in tens of milliseconds, matching the
-#|   convergence-strategy prediction. Tighter tolerances are bounded by adelie's
+#|   exact-strategy prediction. Tighter tolerances are bounded by adelie's
 #|   outer-IRLS criterion $|\sum (\mathrm{resid} -
 #|   \mathrm{resid}_{\mathrm{prev}}) \cdot (\eta - \eta_{\mathrm{prev}})| \le
 #|   \texttt{irls\_tol}$, which has trouble making progress under imbalance and
@@ -2222,8 +2222,8 @@ update is not a one-line implementation detail but a load-bearing choice whose
 right setting is dictated by the response distribution. For direct coordinate
 descent on a smooth GLM loss, the recommendation is the bare Newton block step:
 it is locally invariant to imbalance, requires no tuning, and matches the
-convergence strategy on outer-pass count while avoiding the $k_0 - 1$ wasted
-inner work that the convergence strategy spends per pass. The damped
+exact strategy on outer-pass count while avoiding the $k_0 - 1$ wasted
+inner work that the exact strategy spends per pass. The damped
 (Armijo-safeguarded) variant adds a thin safety net for the narrow cold-start
 regime in which a bare Newton step can overshoot\ (@fig-cold-start); in our
 experiments the line search succeeds on the first attempt at every iterate away

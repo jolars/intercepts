@@ -5,7 +5,7 @@ abstract type InterceptStrategy end
 struct NoIntercept <: InterceptStrategy end
 struct GradientStrategy <: InterceptStrategy end
 struct NewtonStrategy <: InterceptStrategy end
-struct ConvergenceStrategy <: InterceptStrategy end
+struct ExactStrategy <: InterceptStrategy end
 
 @kwdef struct DampedNewtonStrategy <: InterceptStrategy
     armijo_c::Float64 = 1.0e-4
@@ -120,14 +120,14 @@ end
 
 # Iteratively update the intercept until convergence
 function update_intercept(
-    ::ConvergenceStrategy,
+    ::ExactStrategy,
     f::LossFunction,
     intercept::Real,
     η::AbstractVector{<:Real},
     y::AbstractVector{<:Real},
 )
     new_intercept, _ = update_intercept_with_count(
-        ConvergenceStrategy(),
+        ExactStrategy(),
         f,
         intercept,
         η,
@@ -137,7 +137,7 @@ function update_intercept(
 end
 
 function update_intercept_with_count(
-    ::ConvergenceStrategy,
+    ::ExactStrategy,
     f::LossFunction,
     intercept::Real,
     η::AbstractVector{<:Real},
@@ -332,14 +332,14 @@ function update_intercept(
 end
 
 function update_intercept(
-    ::ConvergenceStrategy,
+    ::ExactStrategy,
     f::LossFunction,
     intercept::AbstractVector{<:Real},
     η::AbstractMatrix{<:Real},
     y::AbstractVector{<:Integer},
 )
     new_intercept, _ = update_intercept_with_count(
-        ConvergenceStrategy(),
+        ExactStrategy(),
         f,
         intercept,
         η,
@@ -349,7 +349,7 @@ function update_intercept(
 end
 
 function update_intercept_with_count(
-    ::ConvergenceStrategy,
+    ::ExactStrategy,
     f::LossFunction,
     intercept::AbstractVector{<:Real},
     η::AbstractMatrix{<:Real},

@@ -18,7 +18,7 @@ param_dict = Dict{String,Any}(
     "ρ" => [0.6],
     "μ0" => [0.5, 0.7, 0.9, 0.95, 0.99],
     "reg" => [0.5, 0.2, 0.1, 0.05, 0.02, 0.01],
-    "strategy" => [:gradient, :newton, :convergence],
+    "strategy" => [:gradient, :newton, :exact],
     "seed" => [1, 2, 3],
 )
 

@@ -24,7 +24,7 @@ export GradientStrategy
 export NewtonStrategy
 export DampedNewtonStrategy
 export BacktrackingGradientStrategy
-export ConvergenceStrategy
+export ExactStrategy
 export update_intercept
 export geomspace
 export rescalecoefs

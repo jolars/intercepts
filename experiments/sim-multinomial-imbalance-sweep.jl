@@ -32,7 +32,7 @@ param_dict = Dict{String,Any}(
     "K" => [5],
     "p_K" => P_K_LEVELS,
     "amplitude" => AMP_LEVELS,
-    "strategy" => [:gradient, :newton, :damped_newton, :convergence],
+    "strategy" => [:gradient, :newton, :damped_newton, :exact],
 )
 
 params = dict_list(param_dict)

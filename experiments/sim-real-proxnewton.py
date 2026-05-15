@@ -2,7 +2,7 @@
 problem.
 
 Both are prox-Newton with local weights (Bucket B in the classification table)
-and additionally apply the convergence strategy to the intercept after each
+and additionally apply the exact strategy to the intercept after each
 prox-Newton subproblem. The paper predicts they converge fast --- comparable
 to glmnet `Newton` and biglasso `Newton`. This experiment verifies that
 prediction directly on the production codebases.

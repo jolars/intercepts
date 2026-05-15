@@ -47,7 +47,7 @@ res_conv = gdsolver(
     y,
     reg,
     lossfun = Logistic(),
-    intercept_strategy = ConvergenceStrategy(),
+    intercept_strategy = ExactStrategy(),
     maxit = maxit,
 )
 
@@ -56,7 +56,7 @@ ax = Axis(fig[1, 1], yscale = log)
 
 lines!(ax, res_grad.time, res_grad.gaps, label = "Gradient")
 lines!(ax, res_newt.time, res_newt.gaps, label = "Newton")
-lines!(ax, res_conv.time, res_conv.gaps, label = "Convergence")
+lines!(ax, res_conv.time, res_conv.gaps, label = "Exact")
 fig[1, 2] = Legend(fig, ax)
 
 fig

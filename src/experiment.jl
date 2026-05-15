@@ -24,8 +24,8 @@ function get_intercept_strategy(strategy)
         return DampedNewtonStrategy()
     elseif strategy == :bt_gradient
         return BacktrackingGradientStrategy()
-    elseif strategy == :convergence
-        return ConvergenceStrategy()
+    elseif strategy == :exact
+        return ExactStrategy()
     else
         error("Unknown strategy: $strategy")
     end
