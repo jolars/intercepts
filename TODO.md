@@ -60,27 +60,44 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## Overselling to dial back
 
-- [ ] **Reframe the Theory section so it stops dressing Taylor identities as
-      theorems.** Of the six numbered results, four (`@thm-profile-equiv`,
-      `@lem-exact-cost`, `@lem-newton-approx`, `@cor-newton-coupling`,
-      `@lem-gradient-partial`) are one-line envelope-theorem or Taylor-expansion
-      identities, and the proofs reflect that. Either drop the
-      theorem/lemma/corollary machinery for these (folding them into prose as
-      observations) and reserve the formal apparatus for `@cor-rate-gap` (once
-      shored up per above), or commit to genuinely new mathematics. The current
-      middle ground invites reviewer pushback precisely because the form
-      promises more than the content delivers.
+- [x] **Reframe the Theory section so it stops dressing Taylor identities as
+      theorems.** Done by label-only downgrade: the four one-line Taylor /
+      envelope identities (now `@prp-exact-cost`, `@prp-newton-approx`,
+      `@prp-newton-coupling`, `@prp-gradient-partial`) move from lemma/corollary
+      into the `.proposition` environment, while `@thm-profile-equiv` and
+      `@cor-rate-gap` keep their theorem / corollary status because they carry
+      the structural bridge and synthesis weight respectively. Cross-references
+      throughout the paper update via the label prefix change; the proofs,
+      statements, and content are unchanged. The "next lemma / the lemma's claim
+      / the following corollary" prose lead-ins are rewritten to use
+      "proposition" instead. The full prose-fold alternative was rejected
+      because the paper cites these results dozens of times and the navigable
+      handles outweigh the cost of keeping the numbered environments.
 
-- [ ] **Explain the w1a exact-strategy stall or stop using it as evidence.** The
-      failure surfaces in @fig-first-example, is held up as evidence against the
-      exact strategy, and is then localised to w1a + cyclic ordering in
-      @sec-ordering with a hand-wavy "coherent direction" explanation. The
-      30-cell heatmap explicitly shows the pathology *does not* occur on generic
-      standardized imbalanced designs. Either (a) characterise the design
-      property that triggers the stall (column-correlation structure,
-      weighted-leverage skew, etc.) and reproduce it on a constructed example,
-      or (b) demote the stall to a single-problem anecdote in @sec-ordering and
-      remove the rhetorical weight it carries earlier in the paper.
+- [x] **Explain the w1a exact-strategy stall or stop using it as evidence.**
+      Done via (b) after diagnosis pointed away from (a). Instrumented
+      pass-by-pass run shows the stall is a fixed point of the cdsolver's
+      post-pass primal line search: at intermediate iterates on w1a + cyclic,
+      the combined coordinate-plus-intercept step is a non-descent direction,
+      the line search shrinks $\alpha$ to its floor along the ascent ray, and
+      the iterate freezes. Removing the line search lets the exact strategy
+      converge on w1a + cyclic in $\approx 144$ passes (vs $\approx 94$ for
+      Newton), consistent with @prp-exact-cost's constant-factor verdict and
+      *not* with a fundamental pathology. The trap fires for all three
+      strategies on w1a but is only absorbing for exact, because exact makes
+      the largest per-pass intercept move (Newton and gradient drift past it
+      after a few line-search hits). A constructed sparse-binary
+      severe-imbalance design (n=2477, p=300, density=0.04, $\mu_0=0.05$)
+      with higher within-pass drift coherence (0.87 vs 0.28 on w1a) converges
+      in 80 passes, so the design property "sparse + severe imbalance + cyclic"
+      is not sufficient to reproduce the stall. Prose edits demote the stall
+      to a solver-heuristic anecdote: @fig-first-example surrounding text,
+      the @prp-exact-cost discussion, @fig-real-logreg analysis, and
+      @sec-ordering are rewritten to scope the failure as a
+      (line-search$\times$cyclic$\times$w1a) interaction rather than as
+      generalisable evidence against the exact strategy. The per-pass cost
+      verdict against exact rests on @prp-exact-cost alone, which survives
+      the demotion.
 
 - [ ] **Trim the skglm 0.6 PR references.** The pull request is cited as
       validating evidence in the introduction, related work, theory, results,
@@ -100,23 +117,22 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       Newton.
 
 - [x] **Strengthen the real-data evidence.** Done by adding two imbalanced
-      binaries to @fig-real-logreg and one real-data multinomial figure:
-      **a4a** (n=4781, p=123, UCI Adult census, $\mu_0 \approx 0.25$) gives a
+      binaries to @fig-real-logreg and one real-data multinomial figure: **a4a**
+      (n=4781, p=123, UCI Adult census, $\mu_0 \approx 0.25$) gives a
       moderately-imbalanced different design family alongside w1a;
       **news20-3pct** is news20.binary subsampled to 150 positives + 4850
       negatives ($\mu_0 = 0.03$, sparse $p \gg n$ bag-of-words), covering the
       severe-imbalance regime on a design totally different from w1a's
-      Webb-pages binaries. (The intermediate experiment used w8a too, but it
-      is just w1a's twentyfold-larger sibling and does not add design
-      diversity, so it was dropped on revision.) @fig-real-multinomial adds
-      Yeoh2002 (n=248, p=12625, K=6 pediatric ALL subtypes with rare classes
-      BCR at 6\% and MLL at 8\%) as the real-data analogue of
-      @fig-multinomial-imbalance; the gradient strategy stalls along the
-      rare-class intercept components while bare Newton, damped Newton, and
-      exact strategies collapse onto a single curve, exactly the synthetic
-      pattern. Poisson on abalone was investigated but deferred: PoissonLoss
-      has $L_0 = \infty$ globally and abalone is not zero-inflated, so the
-      imbalance story does not translate cleanly.
+      Webb-pages binaries. (The intermediate experiment used w8a too, but it is
+      just w1a's twentyfold-larger sibling and does not add design diversity, so
+      it was dropped on revision.) @fig-real-multinomial adds Yeoh2002 (n=248,
+      p=12625, K=6 pediatric ALL subtypes with rare classes BCR at 6\% and MLL
+      at 8\%) as the real-data analogue of @fig-multinomial-imbalance; the
+      gradient strategy stalls along the rare-class intercept components while
+      bare Newton, damped Newton, and exact strategies collapse onto a single
+      curve, exactly the synthetic pattern. Poisson on abalone was investigated
+      but deferred: PoissonLoss has $L_0 = \infty$ globally and abalone is not
+      zero-inflated, so the imbalance story does not translate cleanly.
 
 ## Reproducibility and provenance
 
@@ -127,12 +143,19 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       `results/parametric.jld2` pair brings it in line with the rest and removes
       its dependence on the global `Random.seed!(14)` set in the setup chunk.
 
-- [ ] **Pin production-solver methodology.** `@sec-methodology` names solver
-      versions for glmnet, biglasso, adelie, and skglm, but leaves the tolerance
-      grids, per-driver seeds, repetition counts, BLAS configuration for R and
-      Python, and hardware specifics implicit in the experiment scripts. A
-      methodology table or an expanded paragraph pinning these closes a
-      reproducibility gap a referee hits on first read.
+- [x] **Pin production-solver methodology.** Done: `@sec-methodology` now pins
+      the production-solver language bindings (glmnet 4.1-10 R, biglasso 1.6-1
+      R, adelie 1.0-8 R, skglm 0.5 Python, LIBLINEAR via scikit-learn, BlitzL1
+      at commit `aef8d02`), the problem-generation seed (`Random.seed!(2025)` in
+      `sim-real-problem.jl`) with the deterministic per-cell single-run policy,
+      the per-driver tolerance grids ($10^{-1}$--$10^{-13}$ in half-decade steps
+      for glmnet `thresh` and biglasso `eps`; quarter-decade steps for skglm
+      `tol` over the same span; $10^{-1}$--$10^{-8}$ for LIBLINEAR `tol`;
+      $10^{-1}$--$10^{-10}$ for BlitzL1; $10^{-1}$--$10^{-3.5}$ for adelie's
+      coupled `tol`/`irls_tol` with a documented reason for the truncation), the
+      per-driver iterate caps with cap-hit reporting policy, and the BLAS
+      configuration (OpenBLAS in Julia/R/Python via `devenv.nix`, no thread
+      pinning) plus the single-workstation hardware note.
 
 - [ ] **Fix the cache-script naming mismatch and remove the orphan cache.**
       `results/real-logreg.jld2` is loaded at line 1473 but produced by
@@ -164,8 +187,8 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       actually titled "Results". @algo-cd has "Cyclic Coordinate Desccent"
       (triple-c) in the `\caption`.
 
-- [ ] **Rewrite the locality disclaimer after `@lem-newton-approx`.** The
-      sentence "We emphasise that @lem-newton-approx and @cor-newton-coupling
+- [ ] **Rewrite the locality disclaimer after `@prp-newton-approx`.** The
+      sentence "We emphasise that @prp-newton-approx and @prp-newton-coupling
       are *local* Taylor statements... and rely on the empirical evidence in
       §Numerical experiments for that question" reads as the paper undermining
       its own theory section. Reframe as a positive scoping statement ("the
