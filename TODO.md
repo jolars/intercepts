@@ -149,7 +149,7 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       multinomial sweep, per-pass cost decomposition) deserve more visual real
       estate; the redundant convergence-trajectory plots deserve less.
 
-- [ ] **Fix the section reference and the algorithm typo.** The paragraph after
+- [x] **Fix the section reference and the algorithm typo.** The paragraph after
       `@cor-newton-coupling` references "§Numerical experiments"; the section is
       actually titled "Results". @algo-cd has "Cyclic Coordinate Desccent"
       (triple-c) in the `\caption`.

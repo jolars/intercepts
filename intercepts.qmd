@@ -373,7 +373,7 @@ strategies, is summarized in @algo-cd.
 #| pdf-line-number: true
 
 \begin{algorithm}
-    \caption{Cyclic Coordinate Desccent}
+    \caption{Cyclic Coordinate Descent}
     \begin{algorithmic}
         \State \textbf{Input:} Data $(X, y)$, $\lambda > 0$, initial intercept and coefficients $(\beta_0, \beta)$
         \While{not converged}
@@ -702,7 +702,7 @@ recovers the leading-order accuracy that @cor-newton-coupling promises.
 We emphasise that @lem-newton-approx and @cor-newton-coupling are *local* Taylor
 statements about a single Newton step at the current iterate; we do not prove
 global convergence for CD with the Newton intercept strategy, and rely on the
-empirical evidence in §Numerical experiments for that question.
+empirical evidence in §Results for that question.
 
 ::: {.lemma #lem-gradient-partial}
 **(Gradient strategy applies a fraction of the coupling correction.)** In
