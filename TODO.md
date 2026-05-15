@@ -48,7 +48,7 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       modes of two packages. State this up front; it is a stronger paper for
       being narrower.
 
-- [ ] **Isolate $\rho_{0j}^2$ experimentally, or scope the Schur framing.** The
+- [x] **Isolate $\rho_{0j}^2$ experimentally, or scope the Schur framing.** The
       contributions list advertises a Schur-complement analysis parameterised by
       $\rho_{0j}^2$ *and* $H_{00}/L_0$. In the load-bearing results
       $\rho_{0j}^2$ appears in `@thm-profile-equiv` and is then absorbed into
