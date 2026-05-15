@@ -868,6 +868,62 @@ dilute the intercept's dominance, and the exact-strategy result of
 @thm-profile-equiv is not exact for cyclic CD past the first coordinate update.
 The scaling, not the constant, is the load-bearing prediction.
 
+@fig-rate-gap sweeps $\mu_0$ and so probes the $H_{00}/L_0$ axis of the
+framing while keeping the second axis $\bar\rho^2$ close to zero (the design
+is standardized). The complementary slice---holding $\mu_0$ fixed and toggling
+feature centering---isolates $\bar\rho^2$ directly. On the same problem family
+with `means = :random` (so each column has an $O(1)$ mean), running on the
+raw matrix gives weighted $\bar\rho^2 \approx 0.5$ where standardizing drives
+it below $5\times 10^{-3}$. @fig-rho-centering shows the resulting jump in
+$T_{\mathrm{G}}/T_{\mathrm{N}}$ at $\mu_0 \in \{0.5,\, 0.9\}$: centering
+matters in both regimes, the leading-order ratio
+$(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ captures the direction, and
+the empirical jump sits a constant factor above the prediction---the same
+subdominant-term gap visible in @fig-rate-gap. The Schur framing's second
+axis is therefore visible empirically, not just absorbed into the asymptotic
+limit of @cor-rate-gap.
+
+```{julia}
+#| label: fig-rho-centering
+#| fig-cap: Isolating the $\bar\rho^2$ axis. Holding $\mu_0$ fixed and
+#|   toggling feature centering moves $\bar\rho^2$ from $\approx 0$
+#|   (standardized) to $\approx 0.5$ (uncentered, with $O(1)$ per-column
+#|   means) while leaving $H_{00}/L_0$ approximately fixed. Empirical
+#|   $T_{\mathrm{G}}/T_{\mathrm{N}}$ at relative-gap tolerance $10^{-6}$
+#|   tracks the eq-rate-gap leading-order prediction
+#|   $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ along this second
+#|   axis, with the same constant-factor offset @fig-rate-gap exhibits, on a
+#|   problem with $n = 500$, $p = 1000$, $s = 10$, and
+#|   $\lambda = 0.05\,\lambda_{\max}$.
+
+dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
+df = DataFrame(dd["records"])
+
+df_long = stack(
+    df,
+    [:empirical_ratio, :predicted_ratio];
+    variable_name = :quantity,
+    value_name = :ratio,
+)
+df_long.quantity = map(df_long.quantity) do q
+    q == "empirical_ratio" ? "Empirical T_G / T_N" :
+    "Predicted (eq-rate-gap)"
+end
+
+spec = data(df_long) * mapping(
+    :barρ2 => "Weighted ρ̄²",
+    :ratio => "T_G / T_N",
+    color = :quantity,
+    marker = :μ0 => nonnumeric => "μ₀",
+)
+
+draw(
+    visual(Scatter; markersize = 14) * spec,
+    axis = (yscale = log10,),
+    figure = (; size = (550, 300)),
+)
+```
+
 @cor-rate-gap connects directly to §Production solvers. glmnet's
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
 at the global $L_0 = n/4$ to the intercept inside their IRLS inner solves; the

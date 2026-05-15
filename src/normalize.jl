@@ -4,7 +4,7 @@ function normalizefeatures(x::AbstractMatrix, normalization::Symbol = :standardi
     p = size(x, 2)
 
     if normalization == :none
-        return zeros(p)', ones(p)'
+        return x, zeros(p)', ones(p)'
     elseif normalization == :standardize
         centers = mean(x; dims = 1)
         scales = stdm(x, centers; corrected = false, dims = 1)
