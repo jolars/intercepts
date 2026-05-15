@@ -39,14 +39,14 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       tolerance on both problems --- the within-package gap survives the problem
       change.
 
-- [ ] **Move the IRLS scoping into the abstract / introduction.** The sentence
-      currently buried in §3.4 --- "The strategy distinction this paper analyzes
-      is therefore specific to direct-CD solvers and does not arise within one
-      local-weight IRLS inner solve" --- is a sharper and more defensible
-      scoping than the introduction currently claims. The framework's bite is on (a)
-      direct-CD solvers (skglm 0.5 the only production example) and (b) MM-style
-      modes of two packages. State this up front; it is a stronger paper for
-      being narrower.
+- [x] **Move the IRLS scoping into the abstract / introduction.** Done: the
+      abstract now states that within a local-weight IRLS or prox-Newton inner
+      solve the three strategies collapse onto the same exact update, so the
+      distinction has bite only on direct-CD solvers and on MM-IRLS modes; the
+      introduction repeats the scoping (direct CD + MM-IRLS), points at
+      @sec-irls for the derivation, and names skglm 0.5 as the only production
+      direct-CD GLM solver in the survey. The technical statement in §3.4
+      remains where the algebra justifies it.
 
 - [x] **Isolate $\rho_{0j}^2$ experimentally, or scope the Schur framing.** The
       contributions list advertises a Schur-complement analysis parameterised by

@@ -143,11 +143,16 @@ cold-start regime where a bare Newton step can overshoot.
 The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
 CD-based GLM solvers in current use have already made the right structural
-choice within their algorithmic family. The outliers---skglm 0.5 and earlier,
-glmnet's `modified.Newton` mode, biglasso's opt-in MM mode---are exactly the
-cases the framework, correctly, flags as suboptimal. (skglm switched to the
-Newton strategy in version 0.6 following a pull request based on this work; we
-return to this in @sec-production-solvers.)
+choice within their algorithmic family. The strategy distinction sharpens to two
+algorithmic regimes: direct CD on the original GLM loss, and MM-IRLS inner
+solves that majorize $f''$ by a global constant. Within a local-weight IRLS or
+prox-Newton inner solve the three strategies collapse onto the same exact update
+on the inner quadratic (@sec-irls), so the framework's per-package bite is on
+skglm 0.5---the only production direct-CD GLM solver in our survey---and on the
+MM-style mode toggles of glmnet (`modified.Newton`) and biglasso (`MM`), exactly
+the cases it flags as suboptimal. (skglm switched to the Newton strategy in
+version 0.6 following a pull request based on this work; we return to this in
+@sec-production-solvers.)
 
 Our main contributions are as follows:
 

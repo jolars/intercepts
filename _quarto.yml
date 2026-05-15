@@ -36,12 +36,15 @@ abstract: >
   convergence strategies with a bounded inner-step overhead. We use the same
   lens to classify CD-based GLM solvers into four algorithmic families: direct
   CD, local-IRLS, MM-IRLS, and prox-Newton, and identify the intercept strategy
-  realized by each. Experiments on a shared imbalanced logistic problem confirm
-  the predicted ordering across six production solvers (glmnet, biglasso, skglm,
-  adelie, LIBLINEAR, BlitzL1). A multinomial extension shows that the rare-class
-  regime turns the gradient-strategy slowdown from a corner case into the common
-  one; the practical recommendation is to update the intercept with a Newton
-  step.
+  realized by each. Within a local-weight IRLS or prox-Newton inner solve the
+  three strategies collapse onto the same exact update on the inner quadratic,
+  so the distinction has bite only on direct-CD solvers and on the MM-IRLS modes
+  of glmnet and biglasso. Experiments on a shared imbalanced logistic problem
+  confirm the predicted ordering across six production solvers (glmnet,
+  biglasso, skglm, adelie, LIBLINEAR, BlitzL1). A multinomial extension shows
+  that the rare-class regime turns the gradient-strategy slowdown from a corner
+  case into the common one; the practical recommendation is to update the
+  intercept with a Newton step.
 
 keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib
