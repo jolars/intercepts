@@ -99,13 +99,24 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       it as a separate curve from figures where it visually coincides with bare
       Newton.
 
-- [ ] **Strengthen the real-data evidence.** Of the four LIBSVM problems in
-      @fig-real-logreg, only w1a is severely imbalanced; leukemia is
-      penalty-dominated ($n=38$, $p=7129$), breast-cancer is tiny ($p=10$),
-      gisette is balanced. Add at least two more imbalanced binary problems
-      (e.g., real-sim, news20.binary subsetted to an imbalanced split, or a
-      `LIBSVMdata.jl`-available alternative) so the real-data verification does
-      not rest on one dataset.
+- [x] **Strengthen the real-data evidence.** Done by adding two imbalanced
+      binaries to @fig-real-logreg and one real-data multinomial figure:
+      **a4a** (n=4781, p=123, UCI Adult census, $\mu_0 \approx 0.25$) gives a
+      moderately-imbalanced different design family alongside w1a;
+      **news20-3pct** is news20.binary subsampled to 150 positives + 4850
+      negatives ($\mu_0 = 0.03$, sparse $p \gg n$ bag-of-words), covering the
+      severe-imbalance regime on a design totally different from w1a's
+      Webb-pages binaries. (The intermediate experiment used w8a too, but it
+      is just w1a's twentyfold-larger sibling and does not add design
+      diversity, so it was dropped on revision.) @fig-real-multinomial adds
+      Yeoh2002 (n=248, p=12625, K=6 pediatric ALL subtypes with rare classes
+      BCR at 6\% and MLL at 8\%) as the real-data analogue of
+      @fig-multinomial-imbalance; the gradient strategy stalls along the
+      rare-class intercept components while bare Newton, damped Newton, and
+      exact strategies collapse onto a single curve, exactly the synthetic
+      pattern. Poisson on abalone was investigated but deferred: PoissonLoss
+      has $L_0 = \infty$ globally and abalone is not zero-inflated, so the
+      imbalance story does not translate cleanly.
 
 ## Reproducibility and provenance
 

@@ -1,4 +1,6 @@
 using LIBSVMdata
+using Random
+using SparseArrays
 
 function get_lossfun(response; K::Int = 3, lipschitz::Union{Real,Nothing} = nothing)
     if response == :binomial
@@ -153,6 +155,10 @@ function real_experiment(
     update_freq = 1,
     maxit = 1000,
     maxtime = Inf,
+    n_positive::Union{Nothing,Int} = nothing,
+    n_negative::Union{Nothing,Int} = nothing,
+    seed::Int = 42,
+    min_nnz_per_column::Int = 1,
 )
 
     X, y = load_dataset(dataset, verbose = false)
@@ -163,6 +169,37 @@ function real_experiment(
         # the conversion is encoding-agnostic.
         pos = maximum(y)
         y .= Int.(y .== pos)
+    end
+
+    if n_positive !== nothing || n_negative !== nothing
+        # Subsample rows to create a controlled class imbalance. Drop any
+        # feature column that is too sparse to standardise stably (sparse
+        # text features with one or two surviving nonzeros after row
+        # subsampling otherwise standardise to extreme values and destabilise
+        # the CD solve).
+        rng = MersenneTwister(seed)
+        pos_idx = findall(==(1), y)
+        neg_idx = findall(==(0), y)
+        n_pos_keep = n_positive === nothing ? length(pos_idx) : min(n_positive, length(pos_idx))
+        n_neg_keep = n_negative === nothing ? length(neg_idx) : min(n_negative, length(neg_idx))
+        pos_sample = shuffle(rng, pos_idx)[1:n_pos_keep]
+        neg_sample = shuffle(rng, neg_idx)[1:n_neg_keep]
+        row_idx = sort(vcat(pos_sample, neg_sample))
+        X = X[row_idx, :]
+        y = y[row_idx]
+
+        # For sparse CSC matrices, nnz/column reads off the colptr in O(p)
+        # without materialising per-column views. min_nnz_per_column = 1
+        # only drops fully-empty columns (preserves the prior contract);
+        # higher values drop low-support features that otherwise produce
+        # near-zero standard deviations and NaN gradients downstream.
+        if issparse(X)
+            Xc = X::SparseMatrixCSC
+            keep = [Xc.colptr[j+1] - Xc.colptr[j] >= min_nnz_per_column for j in 1:size(Xc, 2)]
+        else
+            keep = [!iszero(maximum(@view X[:, j]) - minimum(@view X[:, j])) for j in 1:size(X, 2)]
+        end
+        X = X[:, keep]
     end
 
     return run_solver(

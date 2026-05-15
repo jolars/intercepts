@@ -69,3 +69,7 @@ devenv.local.yaml
 # Heavy per-cell scratch for the skglm controlled experiment; reproducible
 # from results/skglm-controlled/index.csv via sim-skglm-controlled-problem.jl.
 /results/skglm-controlled/cells/
+
+# Locally-cached external datasets (e.g. Yeoh2002 from iowabiostat);
+# fetched on demand by experiments/fetch-yeoh.R and similar drivers.
+/data/
