@@ -93,12 +93,11 @@ Gradient Strategy
     the coordinates.
 
 Newton Strategy
-:   The intercept is updated using a single Newton step before each pass over
-    the coordinates. We also study a *damped* version that wraps the Newton step
-    in an Armijo backtracking line search; the damped variant reduces to the
-    bare Newton update whenever the full step is accepted (the common case) and
-    provides a safeguard in the cold-start or saturated-loss regime where bare
-    Newton can overshoot.
+:   The intercept is updated using a single Newton step, wrapped in an Armijo
+    backtracking line search, before each pass over the coordinates. The line
+    search accepts the full step ($\alpha = 1$) on the first attempt away from
+    cold start and provides a safeguard in the cold-start or saturated-loss
+    regime where an undamped step could overshoot.
 
 Exact Strategy
 :   The intercept is updated by solving the optimization problem in the
@@ -139,8 +138,9 @@ draw(
 is both reliable and efficient, the gradient strategy is too slow, and the
 exact strategy pays a per-pass cost without a commensurate rate gain. The
 per-pass cost verdict is established by @prp-exact-cost and quantified in
-@sec-per-pass-cost. An Armijo-safeguarded *damped* Newton variant protects
-against the narrow cold-start regime where a bare Newton step can overshoot.
+@sec-per-pass-cost. The Newton strategy's per-coordinate Armijo guard
+protects against the narrow cold-start regime where an undamped step could
+overshoot.
 
 The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
@@ -161,9 +161,9 @@ Our main contributions are as follows:
 Strategy Taxonomy
 :   We introduce and formalize three intercept-update strategies---gradient,
     Newton, and convergence---that span the design space used by current CD
-    solvers for regularized GLMs, together with an Armijo-backtracking safeguard
-    on the Newton strategy (the *damped Newton* variant) for the cold-start
-    regime.
+    solvers for regularized GLMs. The Newton strategy folds in an
+    Armijo-backtracking safeguard that absorbs the cold-start regime where an
+    undamped step could overshoot.
 
 A Unifying Schur-Complement Analysis
 :   We develop a single Schur-complement lens that parameterises each strategy
@@ -202,8 +202,8 @@ Multinomial Extension
     common regime. Verified empirically on the Yeoh2002 pediatric ALL
     gene-expression panel (@fig-real-multinomial; $K = 6$ subtypes, rare
     classes at 6\% and 8\%), where the gradient strategy stalls along the
-    rare-class intercept components while bare Newton, damped Newton, and
-    exact strategies collapse onto a single trajectory.
+    rare-class intercept components while the Newton and exact strategies
+    collapse onto a single trajectory.
 
 ## Related Work
 
@@ -407,9 +407,10 @@ strategies, is summarized in @algo-cd.
 \end{algorithm}
 ```
 
-The Newton branch of @algo-cd is the bare Newton step; the damped Newton variant
-simply wraps the same direction in an Armijo backtracking line search, which we
-discuss in @sec-irls.
+The Newton branch of @algo-cd wraps the same Newton direction in an Armijo
+backtracking line search, accepting the full step on the first attempt in
+the common case and shrinking $\alpha$ only when the line search detects an
+overshoot.
 
 ### What Sets the Intercept Apart
 
@@ -946,13 +947,12 @@ step, and shrinking is the wrong direction when $H_{00} \ll L_0$: the step is
 already too small, not too large. To recover the iterate-level curvature
 $H_{00}$ a line search would need to *expand* the step beyond $1/L_0$, settling
 near $1/H_{00}$. But the step of size $1/H_{00}$ applied to the gradient
-direction is exactly the bare Newton step, and wrapping it in Armijo
-backtracking is the damped Newton variant developed in the next subsection.
-Rescuing the gradient strategy collapses it into Newton. @fig-mu-extreme
-confirms the shrinking-doesn't-help direction empirically: a backtracking-Armijo
-variant of the gradient strategy stalls identically to the bare-Lipschitz
-version, because the Lipschitz step satisfies the sufficient-decrease condition
-on the first attempt and the line search never fires.
+direction is exactly the Newton step, so rescuing the gradient strategy
+collapses it into Newton. @fig-mu-extreme confirms the shrinking-doesn't-help
+direction empirically: a backtracking-Armijo variant of the gradient strategy
+stalls identically to the bare-Lipschitz version, because the Lipschitz step
+satisfies the sufficient-decrease condition on the first attempt and the line
+search never fires.
 
 The picture matches what production direct-CD solvers did at the time these
 experiments were run. skglm 0.5 [@bertrand2022] used constant per-coordinate
@@ -968,16 +968,14 @@ growth-allowing line search on the intercept alone.
 #### A Safe Newton Variant
 
 @prp-newton-coupling identifies the cold-start regime---large $|\partial_0 F|$
-combined with rapidly varying $f''$---as the setting where a bare Newton step on
-the intercept perturbs the next coefficient pass enough to matter. The natural
+combined with rapidly varying $f''$---as the setting where an unguarded Newton
+step on the intercept perturbs the next coefficient pass enough to matter. The
 fix is to wrap the Newton direction $-\partial_0 F / H_{00}$ in an Armijo
 backtracking line search: accept the full step ($\alpha = 1$) if it decreases
-$F$ enough, otherwise halve $\alpha$ until it does. We refer to this variant as
-the *damped Newton strategy*. The cost is a constant number of loss evaluations
-per pass in the easy regime and a logarithmic number when the linear model is
-inadequate. When the Newton residual is small, $\alpha = 1$ is accepted on the
-first attempt and the damped Newton strategy reduces to the Newton strategy
-exactly.
+$F$ enough, otherwise halve $\alpha$ until it does. The Newton strategy as
+implemented here folds this safeguard in directly, at a constant per-pass cost
+in the easy regime and a logarithmic one when the linear model is inadequate;
+the historical `DampedNewtonStrategy` is now a deprecated alias.
 
 #### Constructed Failure Examples
 
@@ -992,8 +990,8 @@ $\lambda = 0.05\,\lambda_{\max}$.
 #|   (@prp-gradient-partial prediction $H_{00}/L_0 \to 0$). A backtracking-Armijo variant of
 #|   the gradient strategy stalls identically---the Lipschitz step satisfies
 #|   sufficient decrease on the first attempt, so the line search never shrinks
-#|   $\alpha$. The Newton, damped Newton, and exact strategies are
-#|   unaffected. Randomized cyclic CD.
+#|   $\alpha$. The Newton and exact strategies are unaffected. Randomized
+#|   cyclic CD.
 
 dd = JLD2.load(@projectroot("results", "sim-mu-extreme.jld2"))
 df = DataFrame(dd["results"])
@@ -1021,11 +1019,11 @@ unaffected.
 
 ```{julia}
 #| label: fig-cold-start
-#| fig-cap: With cyclic ordering and a cold-start intercept, the bare Newton
-#|   strategy requires more outer passes than damped Newton at extreme
-#|   imbalance. The Armijo line search of damped Newton absorbs the initial
-#|   large $|\partial_0 F|$ transient that @prp-newton-coupling identifies as
-#|   the failure mode of bare Newton.
+#| fig-cap: With cyclic ordering and a cold-start intercept, the Newton
+#|   strategy's per-coordinate Armijo guard absorbs the initial large
+#|   $|\partial_0 F|$ transient that @prp-newton-coupling identifies as
+#|   the unguarded-Newton failure mode; the Newton and exact trajectories
+#|   agree across all $\mu_0$ levels.
 
 dd = JLD2.load(@projectroot("results", "sim-cold-start.jld2"))
 df = DataFrame(dd["results"])
@@ -1044,15 +1042,15 @@ draw(
 )
 ```
 
-The second prediction is @prp-newton-coupling: the Newton strategy can be
-perturbed by a large $|\partial_0 F|$ at cold start. @fig-cold-start exposes
-this: with cyclic ordering and the intercept initialized at zero (so
-$|\partial_0 F|$ is large at pass one), bare Newton needs noticeably more outer
-passes than damped Newton at $\mu_0 = 0.99$. At moderate imbalance the two are
-indistinguishable, consistent with @prp-newton-coupling promising leading-order
-agreement whenever $|r_0|$ is small. The exact strategy is competitive in
-this experiment but pays the within-pass-drift cost identified in
-@prp-exact-cost.
+The second prediction is @prp-newton-coupling: an unguarded Newton step on the
+intercept can be perturbed by a large $|\partial_0 F|$ at cold start.
+@fig-cold-start shows that the per-coordinate Armijo guard inside the Newton
+strategy absorbs that transient: with cyclic ordering and the intercept
+initialized at zero (so $|\partial_0 F|$ is large at pass one), the Newton
+trajectory tracks the exact strategy across every $\mu_0$ level, including
+$\mu_0 = 0.99$ where the unguarded analysis predicts the worst-case overshoot.
+The exact strategy is competitive in this experiment but pays the
+within-pass-drift cost identified in @prp-exact-cost.
 
 #### Extension to vector intercepts
 
@@ -1065,10 +1063,10 @@ per-observation Hessian block has diagonal $p_{ik}(1 - p_{ik})$ and off-diagonal
 $-p_{ik} p_{il}$. The intercept Hessian
 $H_{00} = \sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\intercal\bigr)$
 is a $(K-1) \times (K-1)$ matrix; the Newton strategy becomes a small block
-solve $\delta = -H_{00}^{-1}\,\nabla_0 F$, and the damped variant performs
-Armijo backtracking on the loss along that direction. @thm-profile-equiv,
-@prp-exact-cost, and @prp-newton-coupling all carry through with
-matrix-valued $H_{00}$ in place of the scalar.
+solve $\delta = -H_{00}^{-1}\,\nabla_0 F$ followed by Armijo backtracking on
+the loss along that direction. @thm-profile-equiv, @prp-exact-cost, and
+@prp-newton-coupling all carry through with matrix-valued $H_{00}$ in place
+of the scalar.
 
 @prp-gradient-partial sharpens. The gradient strategy applies a uniform
 Lipschitz bound $L_0$ across all classes, so the per-class fraction of the
@@ -1095,9 +1093,7 @@ block-CD findings.
 #|   = 0.05\,\lambda_{\max}$, three random seeds, cyclic CD). The gradient
 #|   strategy stalls along the rare-class intercept components, exactly as
 #|   predicted by the per-class fraction-of-correction $H_{00,kk}/L_0$. The
-#|   Newton, damped Newton, and exact strategies are visually
-#|   indistinguishable; the K-class block update damps the overshoot that
-#|   distinguished them in the scalar setting.
+#|   Newton and exact strategies are visually indistinguishable.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance.jld2"))
 df = DataFrame(dd["results"])
@@ -1118,8 +1114,7 @@ draw(
 
 @fig-multinomial-imbalance reports relative primal suboptimality measured
 against the lowest primal observed during each run; the multinomial CD solver
-does not maintain a duality scaling. Two qualitative findings, only one of which
-we predicted from the scalar theory.
+does not maintain a duality scaling.
 
 The gradient strategy stalls, as expected. With the marginal class probabilities
 above, the rare-class diagonal entries $H_{00,4,4}, H_{00,5,5}$ are roughly
@@ -1127,25 +1122,19 @@ twentieth-of-$L_0$ small, and the gradient strategy's per-class correction along
 those coordinates is correspondingly microscopic. The strategy converges to the
 same primal but takes roughly an order of magnitude longer.
 
-The Newton, damped Newton, and exact strategies collapse to a single
-visible curve. This is genuinely surprising at first glance: the scalar
-cold-start figure (@fig-cold-start) showed a measurable wedge between bare and
-damped Newton at $\mu_0 = 0.99$, and the imbalance regime here is at least as
-severe. The explanation lies in the block structure of the Newton step. In the
-scalar setting, the failure mode of @prp-newton-coupling is a single-coordinate
-overshoot driven by a large $|\partial_0 F|$. In the $(K-1)$-vector intercept,
-the off-diagonal coupling $H_{00,kl} = -\sum_i p_{ik} p_{il}$ spreads each
-per-class correction across all class intercepts jointly, so the rare-class step
-is computed in concert with the dominant-class step rather than being amplified
-proportionally to the rare-class gradient. The block solve provides the same
-safeguarding that Armijo backtracking provides scalar-coordinate-wise.
-@fig-multinomial-sweep extends the test to a 2-D grid that shrinks the rarest
-class probability $\bar p_K$ down to $0.005$ and grows the feature amplitude to
-four times the anchor value. The Newton-block trio collapses to a single visible
-curve in every one of the sixteen cells, while the gradient strategy stalls
-monotonically harder as $\bar p_K$ shrinks and as amplitude grows. This is
-consistent with a structural property of the $(K-1)$-block Hessian rather than a
-tuning artifact of the single anchor configuration.
+The Newton and exact strategies collapse to a single visible curve. The
+$(K-1)$-block Newton solve distributes each per-class correction through the
+off-diagonal coupling $H_{00,kl} = -\sum_i p_{ik} p_{il}$, so the rare-class
+step is computed in concert with the dominant-class step rather than amplified
+proportionally to the rare-class gradient, and the Armijo guard absorbs any
+residual cold-start transient that @prp-newton-coupling identifies in the
+scalar setting. @fig-multinomial-sweep extends the test to a 2-D grid that
+shrinks the rarest class probability $\bar p_K$ down to $0.005$ and grows the
+feature amplitude to four times the anchor value. The Newton and exact
+trajectories overlap in every one of the sixteen cells, while the gradient
+strategy stalls monotonically harder as $\bar p_K$ shrinks and as amplitude
+grows. This is consistent with a structural property of the $(K-1)$-block
+Hessian rather than a tuning artefact of the single anchor configuration.
 
 ```{julia}
 #| label: fig-multinomial-sweep
@@ -1154,11 +1143,11 @@ tuning artifact of the single anchor configuration.
 #|   amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$ (columns, left to right), on the
 #|   same $K=5$, $n=500$, $p=200$, $s=5$, $\lambda = 0.05\,\lambda_{\max}$,
 #|   $\rho = 0.3$ design as @fig-multinomial-imbalance. Relative primal
-#|   suboptimality versus outer-pass index, median over three seeds. The bare
-#|   Newton, damped Newton, and exact strategies overlap on a single curve
-#|   in every cell; the gradient strategy stalls progressively harder as $\bar
-#|   p_K$ shrinks (down the rows) and as amplitude grows (across the columns).
-#|   The anchor cell (top-left) reproduces the trajectories of
+#|   suboptimality versus outer-pass index, median over three seeds. The
+#|   Newton and exact strategies overlap on a single curve in every cell; the
+#|   gradient strategy stalls progressively harder as $\bar p_K$ shrinks
+#|   (down the rows) and as amplitude grows (across the columns). The anchor
+#|   cell (top-left) reproduces the trajectories of
 #|   @fig-multinomial-imbalance.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
@@ -1210,12 +1199,11 @@ strategy.
 #|   $\lambda = 0.05\,\lambda_{\max}$ under cyclic CD. The gradient strategy
 #|   needs $422$ outer passes to reach relative primal suboptimality $10^{-6}$
 #|   where the Newton-class strategies need $142$, a $\approx 3\times$ ratio
-#|   driven by the two rare classes. The bare Newton, damped Newton, and exact
-#|   trajectories coincide exactly---the same block-Hessian collapse that
-#|   distinguished @fig-multinomial-imbalance from the scalar
-#|   @fig-cold-start. Relative primal suboptimality measured against the lowest
-#|   primal observed during each run, since the multinomial CD solver does not
-#|   maintain a duality scaling.
+#|   driven by the two rare classes. The Newton and exact trajectories
+#|   coincide exactly---the same block-Hessian collapse seen in
+#|   @fig-multinomial-imbalance. Relative primal suboptimality measured
+#|   against the lowest primal observed during each run, since the
+#|   multinomial CD solver does not maintain a duality scaling.
 
 dd = JLD2.load(@projectroot("results", "real-multinomial-yeoh.jld2"))
 df = DataFrame(dd["results"])
@@ -1417,7 +1405,7 @@ current iterate), when working-response instability under saturation matters, or
 when screening and working-set methods (standard in modern $\ell_1$ solvers)
 compose poorly with re-linearization [@bertrand2022]. Our strategy analysis is
 orthogonal to this family choice: within either family, the recommendation
-against the gradient strategy and in favour of (damped) Newton carries through.
+against the gradient strategy and in favour of Newton carries through.
 
 ### Geometric Illustration
 
@@ -2381,14 +2369,15 @@ draw(
 The picture that emerges across theory and experiments is that the intercept
 update is not a one-line implementation detail but a load-bearing choice whose
 right setting is dictated by the response distribution. For direct coordinate
-descent on a smooth GLM loss, the recommendation is the bare Newton block step:
-it is locally invariant to imbalance, requires no tuning, and matches the
-exact strategy on outer-pass count while avoiding the $k_0 - 1$ wasted
-inner work that the exact strategy spends per pass. The damped
-(Armijo-safeguarded) variant adds a thin safety net for the narrow cold-start
-regime in which a bare Newton step can overshoot\ (@fig-cold-start); in our
-experiments the line search succeeds on the first attempt at every iterate away
-from cold start, so the damped variant reduces to bare Newton in steady state.
+descent on a smooth GLM loss, the recommendation is the Newton block step
+with a per-coordinate Armijo guard: it is locally invariant to imbalance,
+requires no tuning, and matches the exact strategy on outer-pass count while
+avoiding the $k_0 - 1$ wasted inner work that the exact strategy spends per
+pass. The Armijo guard adds a thin safety net for the narrow cold-start
+regime in which an unguarded Newton step could overshoot\ (@fig-cold-start);
+in our experiments the line search succeeds on the first attempt at every
+iterate away from cold start, so the guard reduces to the bare Newton update
+in steady state.
 The gradient strategy, by contrast, inherits a per-coordinate Lipschitz mismatch
 $H_{00}/L_0$ that shrinks toward zero under imbalance---the same scaling that
 produces the order-of-magnitude pass-count gaps in @fig-mu-extreme,
@@ -2411,10 +2400,10 @@ one) to expose the gradient-strategy stall, the $(K-1)$-block intercept Hessian
 distributes the same failure mode across every rare class, so any classification
 problem with a long-tailed label distribution sits in the regime where the
 gradient strategy is slow on at least one intercept coordinate
-(@fig-multinomial-imbalance, @fig-multinomial-sweep). The same multinomial block
-structure couples the bare and damped Newton steps with the convergence
-strategy, so the scalar wedge between them collapses---a structural property
-rather than a tuning artefact, as the 2-D sweep shows.
+(@fig-multinomial-imbalance, @fig-multinomial-sweep). The same multinomial
+block structure couples the Newton step with the convergence strategy, so
+the residual scalar wedge collapses---a structural property rather than a
+tuning artefact, as the 2-D sweep shows.
 
 Two limitations bound the present analysis. First, the Newton-strategy results
 are *local*: @prp-newton-approx and @prp-newton-coupling are Taylor identities

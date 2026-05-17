@@ -8,9 +8,9 @@ Random.seed!(1234)
 
 # Sweep of class imbalance (p_K, the rarest-class marginal) × feature amplitude
 # for the K=5 multinomial logistic problem of sim-multinomial-imbalance.jl,
-# testing whether the collapse of {bare Newton, damped Newton, convergence}
-# observed at the single anchor point persists across the steelman range
-# (down to p_K = 0.005 and up to four-times the figure amplitude).
+# testing whether the collapse of {bare Newton, convergence} observed at the
+# single anchor point persists across the steelman range (down to p_K = 0.005
+# and up to four-times the figure amplitude).
 #
 # class_probs is built so the anchor cell (p_K = 0.05) reproduces the
 # single-config experiment exactly: [0.7 + (0.05 - p_K), 0.1, 0.1, 0.05, p_K].
@@ -32,7 +32,7 @@ param_dict = Dict{String,Any}(
     "K" => [5],
     "p_K" => P_K_LEVELS,
     "amplitude" => AMP_LEVELS,
-    "strategy" => [:gradient, :newton, :damped_newton, :exact],
+    "strategy" => [:gradient, :newton, :exact],
 )
 
 params = dict_list(param_dict)

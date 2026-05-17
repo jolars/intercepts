@@ -111,7 +111,7 @@ end
     s_vec = update_intercept(NewtonStrategy(), fmult, β0_vec, η_mat, y_mult)
     @test isapprox(s_scalar, s_vec[1]; atol = 1e-12)
 
-    # DampedNewtonStrategy (no backtracking should trigger here; matches Newton)
+    # DampedNewtonStrategy is a deprecated alias delegating to NewtonStrategy.
     s_scalar = update_intercept(DampedNewtonStrategy(), fbin, β0_scalar, η_scalar, y_bin)
     s_vec = update_intercept(DampedNewtonStrategy(), fmult, β0_vec, η_mat, y_mult)
     @test isapprox(s_scalar, s_vec[1]; atol = 1e-12)

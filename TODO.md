@@ -106,22 +106,6 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       @sec-production-solvers where it belongs as an impact statement) and let
       the empirical and theoretical content carry the rest.
 
-- [ ] **Demote the damped Newton variant.** After the per-coord Armijo
-      refactor, `NewtonStrategy`'s intercept update has its own Armijo guard,
-      so `DampedNewtonStrategy` is now bitwise-equivalent to `NewtonStrategy`
-      on every refreshed cache: sim-cold-start pass counts coincide at all
-      $\mu_0 \in \{0.5, 0.9, 0.95, 0.99\}$, sim-mu-extreme coincides at all
-      $\mu_0$ and at the multinomial sweeps. The variant is no longer a
-      separate algorithm in the binary setting --- it's a redundant alias.
-      Recommended action: (a) drop the `DampedNewtonStrategy` curve from
-      @fig-cold-start, @fig-mu-extreme, @fig-real-logreg, and
-      @fig-multinomial-imbalance; (b) demote the prose definition of the
-      strategy in @sec-strategies to a single line ("the per-coord Armijo
-      makes bare Newton globally descent, so the historical
-      `DampedNewtonStrategy` collapses into it"); (c) leave the type in the
-      package as a deprecation alias for now, with a docstring noting the
-      collapse.
-
 - [x] **Strengthen the real-data evidence.** Done by adding two imbalanced
       binaries to @fig-real-logreg and one real-data multinomial figure: **a4a**
       (n=4781, p=123, UCI Adult census, $\mu_0 \approx 0.25$) gives a
@@ -169,10 +153,9 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
       Follow-up items broken out below: qmd render bugs from the
       `convergence → exact` strategy rename
-      (see *Fix the `convergence` plot-chunk references*), the
+      (see *Fix the `convergence` plot-chunk references*) and the
       cyclic-vs-permuted rewrite (see *Rewrite @sec-ordering and
-      @fig-first-example-ordering*), and the damped-Newton demotion
-      (see *Demote the damped Newton variant*).
+      @fig-first-example-ordering*).
 
 ## Reproducibility and provenance
 

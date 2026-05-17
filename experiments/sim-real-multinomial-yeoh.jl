@@ -42,7 +42,7 @@ end
 
 param_dict = Dict{String,Any}(
     "reg" => [0.05],
-    "strategy" => [:gradient, :newton, :damped_newton, :exact],
+    "strategy" => [:gradient, :newton, :exact],
 )
 
 params = dict_list(param_dict)
@@ -57,8 +57,6 @@ for (i, d) in enumerate(params)
         GradientStrategy()
     elseif strategy == :newton
         NewtonStrategy()
-    elseif strategy == :damped_newton
-        DampedNewtonStrategy()
     elseif strategy == :exact
         ExactStrategy()
     else

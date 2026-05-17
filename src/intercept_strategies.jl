@@ -7,6 +7,16 @@ struct GradientStrategy <: InterceptStrategy end
 struct NewtonStrategy <: InterceptStrategy end
 struct ExactStrategy <: InterceptStrategy end
 
+"""
+    DampedNewtonStrategy(; armijo_c = 1e-4, backtrack = 0.5, max_backtracks = 20)
+
+Deprecated alias for [`NewtonStrategy`](@ref). The Newton intercept update
+now performs its own Armijo line search, so the historically separate
+damped variant produces the same iterates as the bare strategy. The
+keyword arguments are accepted for backward compatibility but ignored;
+`update_intercept` delegates to `NewtonStrategy()` in both the scalar and
+vector dispatch.
+"""
 @kwdef struct DampedNewtonStrategy <: InterceptStrategy
     armijo_c::Float64 = 1.0e-4
     backtrack::Float64 = 0.5
@@ -76,37 +86,14 @@ function update_intercept(
     return intercept
 end
 
-# Newton step with Armijo backtracking line search
 function update_intercept(
-    s::DampedNewtonStrategy,
+    ::DampedNewtonStrategy,
     f::LossFunction,
     intercept::Real,
     η::AbstractVector{<:Real},
     y::AbstractVector{<:Real},
 )
-    grad = sum(gradient(f, η, y))
-    hess = sum(hessian(f, η, y))
-
-    if hess <= 0 || !isfinite(hess) || grad == 0
-        return intercept
-    end
-
-    direction = -grad / hess
-    f0 = loss(f, η, y)
-    armijo_slope = s.armijo_c * grad * direction
-
-    α = 1.0
-    η_trial = similar(η)
-    for _ = 0:s.max_backtracks
-        @. η_trial = η + α * direction
-        f_trial = loss(f, η_trial, y)
-        if f_trial <= f0 + α * armijo_slope
-            return intercept + α * direction
-        end
-        α *= s.backtrack
-    end
-
-    return intercept + α * direction
+    return update_intercept(NewtonStrategy(), f, intercept, η, y)
 end
 
 # Gradient step (with global Lipschitz step size) protected by Armijo backtracking
@@ -309,41 +296,13 @@ function update_intercept(
 end
 
 function update_intercept(
-    s::DampedNewtonStrategy,
+    ::DampedNewtonStrategy,
     f::LossFunction,
     intercept::AbstractVector{<:Real},
     η::AbstractMatrix{<:Real},
     y::AbstractVector{<:Integer},
 )
-    g = _intercept_grad(f, η, y)
-    H = _intercept_hess(f, η, y)
-
-    # Direction: Newton step. Fall back to no-update if Hessian is degenerate.
-    local δ
-    try
-        δ = -(H \ g)
-    catch
-        return intercept
-    end
-    if any(!isfinite, δ)
-        return intercept
-    end
-
-    f0 = loss(f, η, y)
-    armijo_slope = s.armijo_c * dot(g, δ)
-
-    α = 1.0
-    η_trial = similar(η)
-    for _ = 0:s.max_backtracks
-        @. η_trial = η + α * δ'  # broadcast δ' across rows
-        f_trial = loss(f, η_trial, y)
-        if f_trial <= f0 + α * armijo_slope
-            return intercept .+ α .* δ
-        end
-        α *= s.backtrack
-    end
-
-    return intercept .+ α .* δ
+    return update_intercept(NewtonStrategy(), f, intercept, η, y)
 end
 
 function update_intercept(

@@ -7,10 +7,10 @@ using JLD2
 Random.seed!(1234);
 
 # Cold-start cyclic CD on extreme-imbalance logistic regression.
-# Plain Newton sees a large initial |partial_0 F| and oscillates with cyclic
-# ordering (Lemma 3.2 + Corollary: the Newton residual perturbs subsequent
-# coefficient gradients). Damped Newton's Armijo backtracking absorbs the
-# initial transient.
+# An unguarded Newton step sees a large initial |partial_0 F| at zero-init and
+# could oscillate with cyclic ordering (Lemma 3.2 + Corollary: the Newton
+# residual perturbs subsequent coefficient gradients); the per-coord Armijo
+# inside NewtonStrategy absorbs the initial transient.
 param_dict = Dict{String,Any}(
     "it" => collect(1:5),
     "n" => [500],
@@ -18,7 +18,7 @@ param_dict = Dict{String,Any}(
     "s" => [10],
     "reg" => [0.05],
     "μ0" => [0.5, 0.9, 0.95, 0.99],
-    "strategy" => [:newton, :damped_newton, :exact],
+    "strategy" => [:newton, :exact],
 );
 
 params = dict_list(param_dict);
