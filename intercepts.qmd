@@ -107,14 +107,11 @@ Exact Strategy
 
 For a first illustration, see @fig-first-example, which compares the three main
 strategies on $\ell_1$-regularized logistic regression on the w1a
-dataset\ [@platt1998]. The Newton strategy reaches the optimal solution quickly,
-and the gradient strategy more slowly. The exact strategy stalls on this
-particular configuration under cyclic coordinate ordering; the stall is an
-interaction between the cdsolver's post-pass primal line search and w1a's
-specific iterate trajectory rather than a property of the exact strategy in
-general, and we return to it in @sec-ordering. The cost-per-pass argument
-against the exact strategy that we develop in @sec-theory does not depend on
-this stall.
+dataset\ [@platt1998]. The Newton and exact strategies reach the optimal
+solution at indistinguishable pass counts, and the gradient strategy is markedly
+slower. The per-pass overhead of the exact strategy that we develop in
+@sec-theory is not visible on a single panel; we isolate it in
+@sec-per-pass-cost.
 
 ```{julia}
 #| label: fig-first-example
@@ -140,11 +137,9 @@ draw(
 
 @fig-first-example heralds the main message of this paper: the Newton strategy
 is both reliable and efficient, the gradient strategy is too slow, and the
-exact strategy pays a per-pass cost without a commensurate rate gain. (The
-exact strategy's flat trajectory on w1a is a separate, solver-heuristic
-failure mode discussed in @sec-ordering; the per-pass cost verdict is
-established by @prp-exact-cost and verified across orderings and datasets in
-the rest of the paper.) An Armijo-safeguarded *damped* Newton variant protects
+exact strategy pays a per-pass cost without a commensurate rate gain. The
+per-pass cost verdict is established by @prp-exact-cost and quantified in
+@sec-per-pass-cost. An Armijo-safeguarded *damped* Newton variant protects
 against the narrow cold-start regime where a bare Newton step can overshoot.
 
 The framework we develop is both diagnostic and explanatory: it predicts when a
@@ -625,23 +620,6 @@ The penalty grows with the magnitude of intercept-coefficient coupling: when
 several $|H_{0j}|$ are large, fitting the intercept tightly is wasted work
 because the next coordinate sweep re-perturbs $\partial_0 F$ immediately.
 
-This same drift phenomenon shapes, but does not directly cause, the apparent
-exact-strategy stall on @fig-first-example. The within-pass drift accumulates
-in a roughly coherent direction under cyclic ordering, and the end-of-pass
-exact intercept solve compensates for it with a large counter-move; on the
-w1a iterate trajectory specifically, the combined coordinate-plus-intercept
-pass becomes a non-descent direction. The cdsolver's post-pass primal line
-search detects this and shrinks the step, but on w1a it backs off to its
-floor while still on the ascent ray, freezing the iterate at a non-optimal
-point. The Newton strategy, which makes a smaller intercept move per pass,
-does not get trapped on w1a, and so does not exhibit the stall even though
-@prp-exact-cost's within-pass drift applies equally to it. The stall is
-therefore a solver-heuristic interaction, not the within-pass drift itself,
-and it is specific to w1a + cyclic CD under our line-search rule; on
-news20-3pct at the same imbalance the exact strategy converges (see
-@fig-real-logreg), and on the 30-cell standardized heatmap of
-@fig-mu-reg-gradient it does not appear at all.
-
 The cost-versus-progress verdict above is sharpest in the cold-start, direct-CD
 setting that drives this paper. Three regimes soften it. *Warm-started path
 solves* along a $\lambda$ grid begin each subproblem with $|\partial_0 F|$
@@ -1074,8 +1052,7 @@ passes than damped Newton at $\mu_0 = 0.99$. At moderate imbalance the two are
 indistinguishable, consistent with @prp-newton-coupling promising leading-order
 agreement whenever $|r_0|$ is small. The exact strategy is competitive in
 this experiment but pays the within-pass-drift cost identified in
-@prp-exact-cost; see also the line-search-trap interaction discussed under
-@fig-first-example and @sec-ordering.
+@prp-exact-cost.
 
 #### Extension to vector intercepts
 
@@ -1264,7 +1241,7 @@ gene-expression multinomial problem with rare classes: the gradient strategy
 stalls along the rare-class intercept components while the Newton-class
 strategies---including exact---collapse onto a single curve. The slowdown ratio
 ($\approx 3\times$ at relative suboptimality $10^{-6}$) is milder than the
-$\approx 10\times$ ratio of @fig-multinomial-imbalance because Yeoh2002's
+$\approx 15\times$ ratio of @fig-multinomial-imbalance because Yeoh2002's
 rarest class is at $6\,\%$ rather than the $5\,\%$ floor of the synthetic
 design, and the penalty contribution at $n \ll p$ damps the absolute scale of
 the per-pass intercept correction. The qualitative diagnostic is intact: rare
@@ -1660,14 +1637,11 @@ is not a property of the w1a design specifically.
 #|   $\lambda = 0.05\,\lambda_{\max}$, ordered left-to-right, top-to-bottom by
 #|   predicted slowdown $L_0/H_{00}$. The gradient strategy needs roughly
 #|   $5\times$ more passes than Newton on w1a and $\approx 4\times$ more on
-#|   news20-3pct; the factor shrinks to $\approx 1.3\times$ on a4a, and the
-#|   three strategies overlay on leukemia (penalty-dominated), breast-cancer
-#|   (mild imbalance), and gisette (balanced). The exact strategy stalls
-#|   under cyclic CD on w1a but converges in $\approx 108$ passes on
-#|   news20-3pct---two designs at near-identical $\mu_0 \approx 0.03$,
-#|   diverging in exact-strategy behaviour, which localises the cyclic-CD
-#|   pathology of @sec-ordering to the w1a design rather than to severe
-#|   imbalance per se.
+#|   news20-3pct; the factor shrinks to $\approx 1.3\times$ on a4a, $\approx
+#|   2.3\times$ on breast-cancer, and the three strategies overlay on leukemia
+#|   (penalty-dominated) and gisette (balanced). The exact strategy tracks
+#|   bare Newton throughout on every panel, consistent with the per-pass-cost
+#|   prediction of @prp-exact-cost at this tolerance.
 
 dd = JLD2.load(@projectroot("results", "real-logreg.jld2"))
 df = DataFrame(dd["results"])
@@ -1699,26 +1673,19 @@ draw(
 ```
 
 @fig-real-logreg confirms the prediction in both directions. w1a is the extreme
-imbalance case ($\mu_0 = 0.029$): the gradient strategy needs $472$ passes to
-reach relative gap $10^{-6}$ where Newton needs $94$, a $5\times$ slowdown that
+imbalance case ($\mu_0 = 0.029$): the gradient strategy needs $436$ passes to
+reach relative gap $10^{-6}$ where Newton needs $86$, a $5\times$ slowdown that
 matches the leading-order $L_0/H_{00} \approx 8.8$ ratio after the usual
-constant-factor offset of @fig-rate-gap. The exact strategy plateaus around
-relative gap $0.28$ under cyclic CD---a solver-heuristic failure mode that
-@sec-ordering localises to the (line-search$\times$cyclic$\times$w1a)
-interaction; the same exact strategy converges on news20-3pct at the same
-imbalance, and the apparent stall in @fig-first-example should be read as a
-single-problem heuristic interaction rather than as primary evidence against
-the strategy. news20-3pct is the same severity ($\mu_0 = 0.030$) on a totally
+constant-factor offset of @fig-rate-gap. The exact strategy converges in $79$
+passes, tracking bare Newton to within a handful of passes throughout.
+news20-3pct is the same severity ($\mu_0 = 0.030$) on a totally
 different sparse design---a $4\,675$-feature bag-of-words text panel after
 dropping low-support vocabulary---and the gradient slowdown reproduces:
 $402$ passes to relative gap $10^{-4}$ before hitting the $120\,\mathrm{s}$
 wall-time cap (final relgap $\approx 2 \cdot 10^{-6}$) against $110$ passes for
 Newton, a ${\approx}4\times$ ratio in the same regime as w1a. The exact
-strategy, by contrast, converges on news20-3pct in $108$ passes and tracks
-Newton throughout---the cyclic-CD stall on w1a is therefore not a property of
-severe imbalance, but of the w1a design specifically (cf.\ the standardized
-30-cell heatmap in @fig-mu-reg-gradient, where the stall is absent across the
-imbalance grid). a4a sits at the framework's predicted mild-slowdown regime
+strategy converges on news20-3pct in $108$ passes, again essentially
+indistinguishable from bare Newton. a4a sits at the framework's predicted mild-slowdown regime
 ($H_{00}/L_0 \approx 0.75$): the gradient strategy needs $39$ passes to
 $10^{-6}$ against $30$ for Newton, a $1.3\times$ ratio. Leukemia is at the
 opposite extreme of the regularization-vs-data ratio: with only $38$ samples
@@ -1735,37 +1702,27 @@ when $H_{00}/L_0$ is small.
 
 ### Cyclic vs Permuted Ordering {#sec-ordering}
 
-A separate question is whether the exact strategy's outright failure on
-w1a in @fig-first-example is intrinsic to the strategy or to the cyclic
-coordinate ordering it is paired with. @prp-exact-cost is agnostic to
-ordering, but its within-pass drift argument relies on the intercept's
-environment changing while the pass is in progress; under strict cyclic order,
-that drift can compound into a deterministic worst-case pairing in which the
-per-pass intercept solve relinearises around an iterate that has already moved.
-Permuted CD breaks the deterministic pairing on each pass, and a finite second
-moment on the ordering noise is enough for the within-pass drift to average out.
-The proximate mechanism on w1a is a solver-heuristic interaction: the
-combined coordinate-plus-intercept step over a pass becomes a non-descent
-direction at intermediate iterates, the cdsolver's post-pass primal line
-search shrinks the step toward zero, and the iterate freezes near a
-non-optimal point. The same line search fires occasionally on the Newton and
-gradient strategies too, but their smaller per-pass intercept moves let the
-iterate drift past the trap; only the exact strategy makes a large enough
-intercept move to be absorbed by it. We were not able to reproduce this stall
-on a constructed sparse-binary design at the same imbalance, so we present it
-as a w1a-specific solver-heuristic anecdote rather than as a generalisable
-design pathology. We rerun the @fig-first-example configuration on w1a under
-both orderings and the three strategies.
+@prp-exact-cost's within-pass drift argument is agnostic to coordinate
+ordering, but a residual concern is that strict cyclic order deterministically
+pairs the intercept solve with the same first coordinate on every pass, which
+could compound the drift. Under the per-coordinate Armijo backtrack that the
+cdsolver applies after every coordinate update (@sec-methodology), this concern
+does not materialise: on the w1a benchmark of @fig-first-example all three
+strategies converge under both orderings and the pass-count differences are
+within a factor of $1.4$ (@fig-first-example-ordering). Cyclic order is in
+fact slightly faster than permuted on this problem for Newton ($157$ vs $187$
+passes) and for exact ($149$ vs $197$), with the gradient strategy at
+$\sim 840$ passes under either rule. The qualitative ranking of the three
+strategies---Newton and exact fast, gradient slow---is the same under both,
+and we use cyclic CD as the default elsewhere in the paper.
 
 ```{julia}
 #| label: fig-first-example-ordering
 #| fig-cap: Same configuration as @fig-first-example (w1a, $\lambda =
 #|   0.05\,\lambda_{\max}$) under cyclic (top) and permuted (bottom) coordinate
-#|   ordering. The exact strategy stalls under cyclic order (a
-#|   line-search$\times$w1a heuristic interaction; see prose) and recovers
-#|   under permuted order, matching the bare Newton trajectory. The gradient
-#|   strategy is slow under both orderings, consistent with
-#|   @prp-gradient-partial being ordering-agnostic.
+#|   ordering. All three strategies converge to the working tolerance under
+#|   both orderings; the choice of ordering rule changes pass counts by at
+#|   most a factor of $1.4$ and does not change the qualitative ranking.
 
 dd = JLD2.load(@projectroot("results", "first-example-ordering.jld2"))
 df = DataFrame(dd["results"])
@@ -1786,18 +1743,6 @@ draw(
     figure = (; size = (500, 500))
 )
 ```
-
-@fig-first-example-ordering localises the cyclic-CD trap to a single
-problem-and-ordering combination. Under permuted CD on w1a, the exact strategy
-tracks bare Newton to the working tolerance; under cyclic order, its iterates
-oscillate and the relative gap plateaus around $10^{-1}$ within the pass budget.
-The gradient strategy is slow under both orderings, as @prp-gradient-partial
-predicts: ordering controls within-pass drift, not the per-coordinate Lipschitz
-mismatch. The implication for direct CD is that the conservative
-recommendation---bare Newton---is also the ordering-robust one; the exact
-strategy is a viable alternative specifically when ordering is randomised or
-when warm-starting along a path keeps the within-pass intercept change small
-(see @sec-warmstart-path).
 
 ### Warm-Started Path {#sec-warmstart-path}
 
@@ -1905,18 +1850,19 @@ $|\partial_0 F|$ is the marginal class imbalance---roughly $10^2$ on the
 simulated problem and $1.2 \times 10^3$ on w1a, identical across strategies.
 
 The pass-count panel (@fig-warm-start) shows the predicted compression with one
-caveat. On both problems and both orderings, warm-starting roughly halves the
-number of pass-budget-capped subproblems for the Newton and convergence
-strategies (e.g., on w1a from $\sim 8$ to $\sim 3$ out of 20) and brings their
-curves on top of each other---this is the steelman prediction of
-@prp-exact-cost: with $|\partial_0 F|$ already small, the $k_0 - 1$
-per-pass penalty of the exact strategy evaporates. Warm-starting also
-rescues bare Newton from the cold-start cyclic instability that surfaces at very
-small $\lambda$ on w1a, where the cold-start trajectory diverges entirely.
+caveat. On both problems and both orderings, warm-starting trims the few
+pass-budget-capped subproblems for the Newton and convergence strategies
+(on w1a from $2$--$4$ out of $20$ cold to $2$ out of $20$ warm, depending on
+ordering and strategy) and brings their curves on top of each other---this is
+the steelman prediction of @prp-exact-cost: with $|\partial_0 F|$ already
+small, the $k_0 - 1$ per-pass penalty of the exact strategy evaporates.
+Warm-starting also tightens the bare Newton solve at very small $\lambda$ on
+w1a, where the cold-start trajectory hits the pass budget at relative gaps
+two to three orders of magnitude looser than its warm-start counterpart.
 
 The compression is uneven, however. The gradient strategy is essentially
 unaffected by warm-starting on w1a---both cold and warm hit the pass budget on
-11 of 20 subproblems, with the curves overlaying. This is @prp-gradient-partial
+$11$--$12$ of $20$ subproblems, with the curves overlaying. This is @prp-gradient-partial
 biting at every subproblem: the imbalance factor $H_{00}/L_0$ remains
 microscopic at the warm-start iterate, so even a near-optimal starting point
 cannot compensate for the shrinking correction. The simulated problem
@@ -1964,10 +1910,10 @@ dd = JLD2.load(@projectroot("results", "sim-per-pass-cost.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:pass, :inner_steps, :cum_inner_steps, :relgap_after, :time])
 df.μ0_label = "μ₀ = " .* string.(df.μ0)
-df_conv = filter(:strategy => ==("convergence"), df)
+df_exact = filter(:strategy => ==("exact"), df)
 
 spec_cost =
-    data(df_conv) * mapping(
+    data(df_exact) * mapping(
         :pass => "Outer pass",
         :inner_steps => "Inner Newton steps per pass (k₀)",
         col = :μ0_label,
@@ -2009,17 +1955,17 @@ draw(
 ```
 
 The two figures together make the $k_0 - 1$ overhead claim concrete.
-@fig-per-pass-cost shows $k_0$ peaking at the cold-start pass (6, 4, and 4 inner
-steps for $\mu_0 = 0.99,\,0.9,\,0.5$ respectively) and decaying to one by the
-time the iterate is near the joint optimum. The relative overhead summed across
-the run---total inner Newton steps for convergence divided by the Newton
-strategy's pass-count baseline---is $1.19\times$ at $\mu_0 = 0.5$, $1.38\times$
-at $\mu_0 = 0.9$, and $1.62\times$ at $\mu_0 = 0.99$, scaling monotonically with
-the imbalance that drives $|\partial_0 F|$ at cold start. @fig-per-pass-progress
-shows that this extra inner work does not translate into faster per-pass
-progress: both strategies trace essentially the same relative-gap curve and
-finish in comparable pass counts (Newton: 122/122/125; convergence:
-112/116/130). The wasted-work claim is therefore quantitatively visible: the gap
+@fig-per-pass-cost shows $k_0$ peaking at the cold-start pass (6, 4, and 3
+inner steps for $\mu_0 = 0.99,\,0.9,\,0.5$ respectively) and decaying to one
+by the time the iterate is near the joint optimum. The relative overhead
+summed across the run---total inner Newton steps for the exact strategy
+divided by the Newton strategy's pass-count baseline---is $1.30\times$ at
+$\mu_0 = 0.5$, $1.50\times$ at $\mu_0 = 0.9$, and $1.59\times$ at $\mu_0 =
+0.99$, scaling monotonically with the imbalance that drives $|\partial_0 F|$
+at cold start. @fig-per-pass-progress shows that this extra inner work does
+not translate into faster per-pass progress: both strategies trace essentially
+the same relative-gap curve and finish in comparable pass counts (Newton:
+109/107/121; exact: 109/108/120). The wasted-work claim is therefore quantitatively visible: the gap
 between the two curves in @fig-per-pass-cost integrates to strictly positive
 inner Newton work for which @fig-per-pass-progress records no return.
 
@@ -2063,7 +2009,7 @@ agg = combine(
 
 wide = unstack(agg, [:μ0, :reg], :strategy, :passes)
 wide.gradient_ratio = wide.gradient ./ wide.newton
-wide.convergence_ratio = wide.convergence ./ wide.newton
+wide.exact_ratio = wide.exact ./ wide.newton
 wide.reg_str = string.(wide.reg)
 wide.μ0_str = string.(wide.μ0)
 
@@ -2086,19 +2032,17 @@ draw(
 #|   (log~10~ scale) on the same grid as @fig-mu-reg-gradient, on a centered
 #|   diverging colormap with $|\log_{10} \mathrm{ratio}| \le 0.1$. The heatmap
 #|   is flat at zero (white) across the plane---outer-pass-equivalent
-#|   exact vs Newton, the prediction of @prp-exact-cost. No
-#|   cyclic-CD blow-up of @sec-ordering surfaces on this generic simulated
-#|   design---it is dataset-specific to w1a.
+#|   exact vs Newton, the prediction of @prp-exact-cost.
 
-spec_conv =
+spec_exact =
     data(wide) * mapping(
         :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => "λ / λ_max",
         :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => "μ₀",
-        :convergence_ratio => log10 => "log₁₀(T_conv / T_Newton)",
+        :exact_ratio => log10 => "log₁₀(T_exact / T_Newton)",
     )
 
 draw(
-    spec_conv * visual(Heatmap),
+    spec_exact * visual(Heatmap),
     scales(Color = (; colormap = :RdBu, colorrange = (-0.1, 0.1))),
     figure = (; size = (560, 320)),
 )
@@ -2111,8 +2055,8 @@ $\lambda = 0.01\,\lambda_{\max}$, where the gradient strategy saturates the
 5000-pass budget (the ratio there is a lower bound). At
 $\lambda = 0.05\,\lambda_{\max}$ (the working regime along glmnet's path) the
 empirical ratios across the five $\mu_0$ values are
-$\{1.0, 1.1, 1.8, 2.9, 6.6\}$, against an iterate-level
-$L_0/H_{00}(\hat\eta) = \{3.2, 3.3, 4.4, 5.7, 12.4\}$ measured at the
+$\{1.0, 1.1, 1.8, 3.0, 6.8\}$, against an iterate-level
+$L_0/H_{00}(\hat\eta) = \{3.2, 3.3, 4.4, 5.7, 12.3\}$ measured at the
 Newton-converged iterate on the same cells (mean over three seeds). The
 prediction sits a constant factor above empirical that narrows from
 $\sim 3\times$ at $\mu_0 = 0.5$ to $\sim 2\times$ at $\mu_0 = 0.99$, the same
@@ -2123,9 +2067,11 @@ is looser still at high imbalance because active features pull $H_{00}$ above
 its intercept-only value $\mu_0(1-\mu_0)$ at this $\lambda$. As $\lambda$
 shrinks the active set widens, $H_{00}$ falls toward and beyond
 $\mu_0(1-\mu_0)$, and the empirical ratio grows: at
-$\lambda = 0.01\,\lambda_{\max}$ the empirical row is
-$\{1.6, 1.7, 4.2, 6.7, \ge 10.2\}$, clipped at the high-$\mu_0$ end by the
-gradient strategy's 5000-pass budget.
+$\lambda = 0.01\,\lambda_{\max}$ the empirical row for
+$\mu_0 \in \{0.5, 0.7, 0.9, 0.95\}$ is $\{1.7, 1.8, 4.0, 5.4\}$; the
+$\mu_0 = 0.99$ corner is omitted because both Newton and gradient saturate
+the 5000-pass budget there and the ratio collapses to a meaningless
+$\approx 2\times$.
 
 @fig-mu-reg-exact is flat at zero (ratio $\approx 1$) across the plane,
 with no cell departing from the unit ratio by more than about 12 %. This is the
@@ -2133,12 +2079,8 @@ outer-pass content of @prp-exact-cost: the exact strategy consumes
 the same number of outer passes as bare Newton when both converge. The cost of
 the exact strategy is therefore an inner-step overhead, not an outer-pass
 overhead---the quantitative form of which is the $k_0 - 1$ wasted-inner-work
-claim of @sec-per-pass-cost. The exact-strategy failure that surfaces on
-w1a under cyclic CD (@sec-ordering) does not appear on this simulated design at
-any cell; the cyclic-CD pathology requires the specific combination of design
-and ordering that w1a exhibits and is not recovered on a generic standardized
-imbalanced problem. Together the two heatmaps verify @cor-rate-gap on a 30-cell
-grid: the gradient strategy carries a Lipschitz-mismatch penalty whose
+claim of @sec-per-pass-cost. Together the two heatmaps verify @cor-rate-gap on
+a 30-cell grid: the gradient strategy carries a Lipschitz-mismatch penalty whose
 pass-count signature scales with $\mu_0$ and $1/\lambda$, and the convergence
 strategy does not.
 

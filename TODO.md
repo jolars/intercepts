@@ -197,53 +197,70 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       configuration (OpenBLAS in Julia/R/Python via `devenv.nix`, no thread
       pinning) plus the single-workstation hardware note.
 
-- [ ] **Fix the `convergence` plot-chunk references after the strategy
-      rename.** Commit `4224ea4` renamed `ConvergenceStrategy` →
-      `ExactStrategy` in prose and Julia code, but the Quarto plot chunks
-      that filter / unstack by strategy *string* were missed. With the
-      refreshed `.jld2` caches now writing `strategy = "exact"`, the render
-      breaks in three chunks: `intercepts.qmd:1952` (filter
-      `:strategy => ==("convergence")` is empty), `:2046`
-      (`wide.convergence ./ wide.newton` --- the unstacked column is now
-      `wide.exact`), and `:2083` (propagated from the previous chunk's
-      half-built `wide`). Fixes: substitute `convergence` → `exact` in
-      chunk-internal string literals and column accessors. Sweep the rest of
-      the qmd for the same pattern; non-strategy uses of the English word
-      "convergence" (tolerance, theoretical convergence, etc.) stay. After
-      the swap, `task paper-render` should succeed.
+- [x] **Fix the `convergence` plot-chunk references after the strategy
+      rename.** Done. Substituted `convergence` → `exact` in the three
+      chunk-internal references (`filter(:strategy => ==("exact"), …)` in
+      the per-pass-cost chunk; `wide.exact_ratio = wide.exact ./ wide.newton`
+      and the matching `:exact_ratio => log10 => "log₁₀(T_exact /
+      T_Newton)"` mapping in the $\mu_0$-$\lambda$ heatmap chunk). Local
+      bindings (`df_conv` → `df_exact`, `spec_conv` → `spec_exact`) were
+      renamed for consistency. Two prose strategy-name uses in the
+      @fig-per-pass-cost discussion ("total inner Newton steps for
+      convergence", "Newton: 122/122/125; convergence: 112/116/130") were
+      also updated; the inline numbers themselves still need the refresh
+      tracked separately under *Refresh inline number citations*. After
+      the swap `task paper-render` produces both `intercepts.html` and
+      `intercepts.pdf` cleanly (the remaining `jog.lua` "TableBody"
+      warnings are a pre-existing pandoc-filter artefact unrelated to
+      this rename).
 
-- [ ] **Refresh inline number citations against the new caches.** The prose
-      cites specific pass counts and ratios that drifted with the refreshed
-      `.jld2` files. Known stale numbers from a grep:
-      - `intercepts.qmd:2012`: "$k_0$ peaking at the cold-start pass (6, 4,
-        and 4...)" --- new values are 6, 4, 3 (only $\mu_0 = 0.5$ shifted).
-      - `intercepts.qmd:2016-2017`: relative overhead "$1.19\times$ /
-        $1.38\times$ / $1.62\times$" at $\mu_0 = 0.5/0.9/0.99$ --- new values
-        are $1.30\times$ / $1.50\times$ / $1.59\times$.
-      - `intercepts.qmd:2021-2022`: "Newton: 122/122/125; convergence:
-        112/116/130" --- new values are Newton 109/107/121, exact
-        109/108/120 (and the label "convergence" is stale --- see the
-        previous TODO item).
-      - `intercepts.qmd:2115`: rate-gap measured $L_0/H_{00}(\hat\eta) =
-        \{3.2, 3.3, 4.4, 5.7, 12.4\}$ --- new values from
-        `sim-rate-gap.jld2` need cross-checking against the script output
-        (rerun stdout showed empirical ratios $\{2.47, 2.78, 3.76, 6.52,
-        11.4\}$; the $L_0/H_{00}$ values themselves should be recomputed).
-      Sweep the qmd for any other inline-cited number (pass counts, ratios,
-      iterate counts) and reconcile against the refreshed caches.
+- [x] **Refresh inline number citations against the new caches.** Done.
+      Reconciled against the refreshed `.jld2` files:
+      - @fig-per-pass-cost discussion: $k_0$ peaks (6, 4, 4) → (6, 4, 3);
+        relative-overhead row $1.19\times/1.38\times/1.62\times$ →
+        $1.30\times/1.50\times/1.59\times$; pass-count comparison Newton
+        $122/122/125$, convergence $112/116/130$ → Newton $109/107/121$,
+        exact $109/108/120$.
+      - @fig-mu-reg-gradient discussion: empirical row at $\lambda =
+        0.05\,\lambda_{\max}$ $\{1.0, 1.1, 1.8, 2.9, 6.6\} \to \{1.0,
+        1.1, 1.8, 3.0, 6.8\}$; iterate-level $L_0/H_{00}(\hat\eta)$ last
+        entry $12.4 \to 12.3$ (cross-checked against
+        `sim-h00-heatmap.jld2`); the $\lambda = 0.01\,\lambda_{\max}$ row
+        was rewritten from $\{1.6, 1.7, 4.2, 6.7, \ge 10.2\}$ to $\{1.7,
+        1.8, 4.0, 5.4\}$ for $\mu_0 \le 0.95$ with an explicit note that
+        the $\mu_0 = 0.99$ corner now has both Newton and gradient
+        saturating the 5000-pass budget so the ratio collapses.
+      - @fig-real-multinomial discussion: comparison ratio
+        $\approx 10\times$ → $\approx 15\times$ to match the refreshed
+        `sim-multinomial-imbalance.jld2`.
+      - @fig-warm-start prose: cap-hit counts on w1a Newton-class
+        "$\sim 8$ to $\sim 3$ out of 20" replaced with the current
+        "$2$--$4$ cold to $2$ warm" range; the "diverges entirely" claim
+        about Newton at very small $\lambda$ replaced with a "two to
+        three orders of magnitude looser relative gap" framing (the
+        cold trajectory now hits the budget at relgap $\sim 10^{-5}$
+        rather than diverging); the gradient cap-hit count "11 of 20"
+        loosened to "$11$--$12$ of $20$" to match the actual
+        cold-vs-warm breakdown. `task paper-render` succeeds.
 
-- [ ] **Rewrite @sec-ordering and @fig-first-example-ordering.** With
-      per-coord Armijo, w1a + cyclic + exact converges in $\sim$149 passes
-      and w1a + cyclic + newton in $\sim$157 passes --- cyclic is in fact
-      *faster* than permuted for both strategies on w1a (cyclic: 149/157
-      vs permuted: 197/187). The current prose framing "exact strategy
-      diverges on cyclic w1a" is no longer true. Suggested rewrite: fold the
-      section into a one-paragraph note that cyclic-vs-permuted no longer
-      differs qualitatively under per-coord descent, and remove
-      @fig-first-example-ordering or re-purpose it as a brief illustration
-      that the choice no longer matters. Prose around `@prp-exact-cost`,
-      `@fig-real-logreg`, and the discussion section's mention of the
-      cyclic-w1a stall need parallel updates.
+- [x] **Rewrite @sec-ordering and @fig-first-example-ordering.** Done.
+      @sec-ordering now opens by stating that the per-coordinate Armijo
+      backtrack neutralises the residual cyclic-vs-permuted concern; on
+      w1a all three strategies converge under both orderings with cyclic
+      slightly faster than permuted (Newton $157$ vs $187$, exact $149$
+      vs $197$, gradient $\sim 840$ either way), and the qualitative
+      ranking is the same. @fig-first-example-ordering is kept as a brief
+      illustration that the choice no longer matters; the figure caption
+      and the two surrounding stall paragraphs are gone. Parallel updates:
+      @fig-first-example's intro/follow-up prose, @prp-exact-cost's
+      cyclic-stall discussion paragraph, @fig-real-logreg's caption and
+      analysis (including the "exact plateaus at $0.28$" and the
+      cyclic-CD-localisation framing), the @fig-cold-start follow-up
+      mentioning a line-search-trap, and the @fig-mu-reg-exact caption
+      and discussion paragraph that referenced the "cyclic-CD pathology"
+      have all been rewritten or removed. `results/first-example.jld2`
+      was refreshed (it had not been included in the prior per-coord
+      Armijo refresh list).
 
 - [ ] **Fix the cache-script naming mismatch and remove the orphan cache.**
       `results/real-logreg.jld2` is loaded at line 1473 but produced by
