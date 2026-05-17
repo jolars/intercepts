@@ -158,6 +158,74 @@ end
     @test isapprox(res_default.intercept, res_explicit.intercept; atol = 1e-8)
 end
 
+@testset "Per-coord Armijo gives monotone primal" begin
+    Random.seed!(7777)
+    n, p, k = 200, 50, 5
+
+    X, y = generatedata(
+        n,
+        p;
+        response = :binomial,
+        μ0 = 0.9,
+        x_type = :normal,
+        ρ = 0.3,
+        s = k,
+        amplitude = 1.0,
+    )
+
+    strategies = [
+        GradientStrategy(),
+        NewtonStrategy(),
+        ExactStrategy(),
+        DampedNewtonStrategy(),
+        BacktrackingGradientStrategy(),
+    ]
+
+    for s in strategies
+        res = cdsolver(
+            X,
+            y,
+            0.05;
+            lossfun = LogisticLoss(),
+            intercept_strategy = s,
+            maxit = 500,
+            randomize = false,
+            tol = 1e-12,
+        )
+        @test all(diff(res.primals) .<= 1.0e-10)
+        @test isfinite(res.primals[end])
+    end
+end
+
+@testset "NewtonStrategy intercept is descent at extreme imbalance" begin
+    Random.seed!(8888)
+    n = 200
+    p = 50
+
+    X, y = generatedata(
+        n,
+        p;
+        response = :binomial,
+        μ0 = 0.99,
+        x_type = :normal,
+        ρ = 0.3,
+        s = 5,
+        amplitude = 1.0,
+    )
+
+    # Construct an η that an unguarded Newton step would overshoot on:
+    # mostly negative (matching mu0 near 1) with the intercept far from optimal.
+    η = -3.0 .* ones(n) .+ 0.1 .* randn(n)
+    f = LogisticLoss()
+
+    f0 = loss(f, η, y)
+    intercept_new = update_intercept(NewtonStrategy(), f, 0.0, η, y)
+    η_new = η .+ (intercept_new - 0.0)
+    f_new = loss(f, η_new, y)
+
+    @test f_new <= f0 + 1.0e-10
+end
+
 @testset "DampedNewton matches Newton on quadratic" begin
     Random.seed!(2024)
     n = 200

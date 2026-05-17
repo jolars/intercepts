@@ -122,6 +122,40 @@ end
     @test isapprox(s_scalar, s_vec[1]; atol = 1e-10)
 end
 
+@testset "Multinomial per-coord Armijo gives monotone primal" begin
+    Random.seed!(5151)
+    n = 200
+    p = 40
+    K = 3
+
+    X, y = generatedata(
+        n,
+        p;
+        response = :multinomial,
+        K = K,
+        class_probs = [0.85, 0.10, 0.05],
+        x_type = :normal,
+        ρ = 0.3,
+        s = 4,
+        amplitude = 1.0,
+    )
+
+    for s in (NewtonStrategy(), ExactStrategy(), GradientStrategy())
+        res = multinomial_cdsolver(
+            X,
+            y,
+            0.05;
+            lossfun = MultinomialLogisticLoss(K = K),
+            intercept_strategy = s,
+            maxit = 200,
+            randomize = false,
+            tol = 1e-12,
+        )
+        @test all(diff(res.primals) .<= 1.0e-10)
+        @test isfinite(res.primals[end])
+    end
+end
+
 @testset "multinomial_cdsolver K=2 reduces to cdsolver" begin
     Random.seed!(4)
     n = 200

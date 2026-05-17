@@ -16,8 +16,8 @@ end
 end
 
 # QuadraticLoss loss
-function loss(::QuadraticLoss, η::AbstractVector, ::AbstractVector)
-    return 0.5 * norm(η)^2
+function loss(::QuadraticLoss, η::AbstractVector, y::AbstractVector)
+    return 0.5 * sum(abs2, η .- y)
 end
 
 function dual(::QuadraticLoss, θ::AbstractVector, y::AbstractVector)

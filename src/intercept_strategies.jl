@@ -49,7 +49,31 @@ function update_intercept(
     grad = sum(gradient(f, η, y))
     hess = sum(hessian(f, η, y))
 
-    return intercept - grad / hess
+    if hess <= 0 || !isfinite(hess) || grad == 0
+        return intercept
+    end
+
+    direction = -grad / hess
+    f0 = loss(f, η, y)
+
+    armijo_c = 1.0e-4
+    armijo_shrink = 0.5
+    armijo_max_backtracks = 20
+    armijo_slope = armijo_c * grad * direction
+    fp_tol = 4 * eps(Float64) * (1.0 + abs(f0))
+
+    α = 1.0
+    η_trial = similar(η)
+    for _ = 0:armijo_max_backtracks
+        @. η_trial = η + α * direction
+        f_trial = loss(f, η_trial, y)
+        if f_trial <= f0 + α * armijo_slope + fp_tol
+            return intercept + α * direction
+        end
+        α *= armijo_shrink
+    end
+
+    return intercept
 end
 
 # Newton step with Armijo backtracking line search
@@ -258,7 +282,30 @@ function update_intercept(
     if any(!isfinite, δ)
         δ = -g ./ (f.lipschitz * n)
     end
-    return intercept .+ δ
+    if all(==(0), δ)
+        return copy(intercept)
+    end
+
+    f0 = loss(f, η, y)
+
+    armijo_c = 1.0e-4
+    armijo_shrink = 0.5
+    armijo_max_backtracks = 20
+    armijo_slope = armijo_c * dot(g, δ)
+    fp_tol = 4 * eps(Float64) * (1.0 + abs(f0))
+
+    α = 1.0
+    η_trial = similar(η)
+    for _ = 0:armijo_max_backtracks
+        @. η_trial = η + α * δ'
+        f_trial = loss(f, η_trial, y)
+        if f_trial <= f0 + α * armijo_slope + fp_tol
+            return intercept .+ α .* δ
+        end
+        α *= armijo_shrink
+    end
+
+    return copy(intercept)
 end
 
 function update_intercept(

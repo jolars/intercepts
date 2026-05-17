@@ -106,15 +106,21 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       @sec-production-solvers where it belongs as an impact statement) and let
       the empirical and theoretical content carry the rest.
 
-- [ ] **Strengthen or downgrade the damped Newton variant.** Damped Newton wins
-      materially only in the scalar cold-start cyclic-CD regime at
-      $\mu_0 = 0.99$ (@fig-cold-start); it collapses to bare Newton everywhere
-      else, explicitly including the entire multinomial setting. Either (a) add
-      an ablation across $(\mu_0, \lambda)$ showing where the Armijo line search
-      actually fires and what fraction of passes benefit, to justify it as a
-      recommended safeguard, or (b) demote it to a single paragraph and remove
-      it as a separate curve from figures where it visually coincides with bare
-      Newton.
+- [ ] **Demote the damped Newton variant.** After the per-coord Armijo
+      refactor, `NewtonStrategy`'s intercept update has its own Armijo guard,
+      so `DampedNewtonStrategy` is now bitwise-equivalent to `NewtonStrategy`
+      on every refreshed cache: sim-cold-start pass counts coincide at all
+      $\mu_0 \in \{0.5, 0.9, 0.95, 0.99\}$, sim-mu-extreme coincides at all
+      $\mu_0$ and at the multinomial sweeps. The variant is no longer a
+      separate algorithm in the binary setting --- it's a redundant alias.
+      Recommended action: (a) drop the `DampedNewtonStrategy` curve from
+      @fig-cold-start, @fig-mu-extreme, @fig-real-logreg, and
+      @fig-multinomial-imbalance; (b) demote the prose definition of the
+      strategy in @sec-strategies to a single line ("the per-coord Armijo
+      makes bare Newton globally descent, so the historical
+      `DampedNewtonStrategy` collapses into it"); (c) leave the type in the
+      package as a deprecation alias for now, with a docstring noting the
+      collapse.
 
 - [x] **Strengthen the real-data evidence.** Done by adding two imbalanced
       binaries to @fig-real-logreg and one real-data multinomial figure: **a4a**
@@ -133,6 +139,40 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       curve, exactly the synthetic pattern. Poisson on abalone was investigated
       but deferred: PoissonLoss has $L_0 = \infty$ globally and abalone is not
       zero-inflated, so the imbalance story does not translate cleanly.
+
+- [x] **Replace the cdsolver post-pass primal line search with per-coordinate
+      Armijo.** Done. `cdsolver` and `multinomial_cdsolver` now wrap each
+      coordinate update in a Tseng--Yun Armijo backtrack on $F$ (with a
+      $4\,\epsilon_{\mathrm{mach}}(1 + |\mathrm{loss}|)$ FP-precision tolerance
+      so near-optimal iterates aren't blocked by cancellation noise);
+      `NewtonStrategy` intercept update gains a matching Armijo guard so the
+      whole pass is descent by construction. The post-pass scaling block is
+      gone. `QuadraticLoss.loss` was corrected from `0.5*norm(η)^2` to
+      `0.5*sum((η-y)^2)` to make it consistent with the gradient `η-y` (the
+      old form would have falsely tripped per-coord Armijo). w1a + cyclic +
+      exact now converges in $\sim 149$ passes (was the original stall);
+      w1a + cyclic + Newton in $\sim 157$ passes; w1a + permuted unchanged.
+      Synthetic problems show identical trajectories to the prior algorithm
+      (per-coord Armijo accepts $\alpha=1$ at every well-conditioned coord).
+      Subtle implementation note: the inner-loop `continue` used when
+      $d_j = 0$ must not be reached when $j$ is the last coord with an
+      in-pass intercept update --- otherwise the intercept refresh is
+      skipped and convergence stalls. Tests in `test/cd.jl` and
+      `test/multinomial.jl` assert monotone primals across the five
+      strategies plus a `NewtonStrategy` intercept-descent check on
+      $\mu_0 = 0.99$. All `experiments/sim-*.jl` `.jld2` caches refreshed
+      (rate-gap, rho-centering, per-pass-cost, first-example-ordering,
+      logreg-mu, logreg-reg, multinomial-imbalance, mu-extreme,
+      irls-comparison, cold-start, real-data, warmstart-path,
+      real-multinomial-yeoh, h00-heatmap, mu-reg-heatmap,
+      multinomial-imbalance-sweep).
+
+      Follow-up items broken out below: qmd render bugs from the
+      `convergence → exact` strategy rename
+      (see *Fix the `convergence` plot-chunk references*), the
+      cyclic-vs-permuted rewrite (see *Rewrite @sec-ordering and
+      @fig-first-example-ordering*), and the damped-Newton demotion
+      (see *Demote the damped Newton variant*).
 
 ## Reproducibility and provenance
 
@@ -156,6 +196,54 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       per-driver iterate caps with cap-hit reporting policy, and the BLAS
       configuration (OpenBLAS in Julia/R/Python via `devenv.nix`, no thread
       pinning) plus the single-workstation hardware note.
+
+- [ ] **Fix the `convergence` plot-chunk references after the strategy
+      rename.** Commit `4224ea4` renamed `ConvergenceStrategy` →
+      `ExactStrategy` in prose and Julia code, but the Quarto plot chunks
+      that filter / unstack by strategy *string* were missed. With the
+      refreshed `.jld2` caches now writing `strategy = "exact"`, the render
+      breaks in three chunks: `intercepts.qmd:1952` (filter
+      `:strategy => ==("convergence")` is empty), `:2046`
+      (`wide.convergence ./ wide.newton` --- the unstacked column is now
+      `wide.exact`), and `:2083` (propagated from the previous chunk's
+      half-built `wide`). Fixes: substitute `convergence` → `exact` in
+      chunk-internal string literals and column accessors. Sweep the rest of
+      the qmd for the same pattern; non-strategy uses of the English word
+      "convergence" (tolerance, theoretical convergence, etc.) stay. After
+      the swap, `task paper-render` should succeed.
+
+- [ ] **Refresh inline number citations against the new caches.** The prose
+      cites specific pass counts and ratios that drifted with the refreshed
+      `.jld2` files. Known stale numbers from a grep:
+      - `intercepts.qmd:2012`: "$k_0$ peaking at the cold-start pass (6, 4,
+        and 4...)" --- new values are 6, 4, 3 (only $\mu_0 = 0.5$ shifted).
+      - `intercepts.qmd:2016-2017`: relative overhead "$1.19\times$ /
+        $1.38\times$ / $1.62\times$" at $\mu_0 = 0.5/0.9/0.99$ --- new values
+        are $1.30\times$ / $1.50\times$ / $1.59\times$.
+      - `intercepts.qmd:2021-2022`: "Newton: 122/122/125; convergence:
+        112/116/130" --- new values are Newton 109/107/121, exact
+        109/108/120 (and the label "convergence" is stale --- see the
+        previous TODO item).
+      - `intercepts.qmd:2115`: rate-gap measured $L_0/H_{00}(\hat\eta) =
+        \{3.2, 3.3, 4.4, 5.7, 12.4\}$ --- new values from
+        `sim-rate-gap.jld2` need cross-checking against the script output
+        (rerun stdout showed empirical ratios $\{2.47, 2.78, 3.76, 6.52,
+        11.4\}$; the $L_0/H_{00}$ values themselves should be recomputed).
+      Sweep the qmd for any other inline-cited number (pass counts, ratios,
+      iterate counts) and reconcile against the refreshed caches.
+
+- [ ] **Rewrite @sec-ordering and @fig-first-example-ordering.** With
+      per-coord Armijo, w1a + cyclic + exact converges in $\sim$149 passes
+      and w1a + cyclic + newton in $\sim$157 passes --- cyclic is in fact
+      *faster* than permuted for both strategies on w1a (cyclic: 149/157
+      vs permuted: 197/187). The current prose framing "exact strategy
+      diverges on cyclic w1a" is no longer true. Suggested rewrite: fold the
+      section into a one-paragraph note that cyclic-vs-permuted no longer
+      differs qualitatively under per-coord descent, and remove
+      @fig-first-example-ordering or re-purpose it as a brief illustration
+      that the choice no longer matters. Prose around `@prp-exact-cost`,
+      `@fig-real-logreg`, and the discussion section's mention of the
+      cyclic-w1a stall need parallel updates.
 
 - [ ] **Fix the cache-script naming mismatch and remove the orphan cache.**
       `results/real-logreg.jld2` is loaded at line 1473 but produced by

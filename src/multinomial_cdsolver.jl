@@ -89,6 +89,14 @@ function multinomial_cdsolver(
     coefs_history = Vector{Matrix{Float64}}(undef, 0)
     t0 = time()
 
+    # Tseng--Yun proximal-Newton CD: each (j, k) step is wrapped in an Armijo
+    # backtrack on F so the iterate is descent by construction.
+    armijo_c = 1.0e-4
+    armijo_shrink = 0.5
+    armijo_max_backtracks = 20
+
+    η_trial = similar(η)
+
     it = 0
     while it < maxit && (time() - t0) < maxtime
         it += 1
@@ -117,8 +125,8 @@ function multinomial_cdsolver(
         end
 
         ind = randomize ? randperm(p) : (1:p)
-        coef_old = copy(coef)
-        intercept_old = copy(intercept)
+
+        loss_eta = loss(lossfun, η, y)
 
         for (inner_it, j) in enumerate(ind)
             ps = softmax_probs(η)  # Jacobi-within-j: probs frozen for all k of this feature
@@ -134,16 +142,45 @@ function multinomial_cdsolver(
                     hess_jk += xij * xij * pik * (1 - pik)
                 end
 
-                if hess_jk == 0
-                    hess_jk = 1e-10
+                if hess_jk <= 0
+                    hess_jk = 1.0e-10
                 end
 
                 coef_jk = coef[j, k]
                 β_new = st(coef_jk - grad_jk / hess_jk, λ / hess_jk)
-                Δ = coef_jk - β_new
-                if Δ != 0
-                    coef[j, k] = β_new
-                    @views η[:, k] .-= Δ .* x[:, j]
+                d_jk = β_new - coef_jk
+
+                if d_jk == 0
+                    continue
+                end
+
+                Δmodel = grad_jk * d_jk + λ * (abs(β_new) - abs(coef_jk))
+
+                α = 1.0
+                accepted_α = 0.0
+                accepted_loss = loss_eta
+                for _ = 0:armijo_max_backtracks
+                    factor = α * d_jk
+                    copyto!(η_trial, η)
+                    @views η_trial[:, k] .+= factor .* x[:, j]
+
+                    loss_trial = loss(lossfun, η_trial, y)
+                    ΔF = (loss_trial - loss_eta) +
+                         λ * (abs(coef_jk + factor) - abs(coef_jk))
+
+                    fp_tol = 4 * eps(Float64) * (1.0 + abs(loss_eta))
+                    if ΔF <= armijo_c * α * Δmodel + fp_tol
+                        accepted_α = α
+                        accepted_loss = loss_trial
+                        break
+                    end
+                    α *= armijo_shrink
+                end
+
+                if accepted_α > 0
+                    coef[j, k] = coef_jk + accepted_α * d_jk
+                    copyto!(η, η_trial)
+                    loss_eta = accepted_loss
                 end
             end
 
@@ -159,22 +196,7 @@ function multinomial_cdsolver(
                 for k = 1:Km1
                     @views η[:, k] .+= intercept[k] - intercept_prev[k]
                 end
-            end
-        end
-
-        # Pass-level backtracking if primal worsened.
-        old_primal = primal
-        primal = loss(lossfun, η, y) + λ * sum(abs, coef)
-        if primal > old_primal
-            coef_diff = coef - coef_old
-            intercept_diff = intercept - intercept_old
-            alpha = 1.0
-            while primal > old_primal && alpha > 1e-4
-                alpha *= 0.1
-                coef = coef_old + alpha * coef_diff
-                intercept = intercept_old + alpha * intercept_diff
-                η = x * coef .+ intercept'
-                primal = loss(lossfun, η, y) + λ * sum(abs, coef)
+                loss_eta = loss(lossfun, η, y)
             end
         end
     end
