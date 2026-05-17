@@ -245,13 +245,17 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       was refreshed (it had not been included in the prior per-coord
       Armijo refresh list).
 
-- [ ] **Fix the cache-script naming mismatch and remove the orphan cache.**
+- [x] **Fix the cache-script naming mismatch and remove the orphan cache.**
       `results/real-logreg.jld2` is loaded at line 1473 but produced by
       `experiments/sim-real-data.jl`; the rest of the project uses `sim-X.jl` →
       `X.jld2`. Rename one or the other. Separately,
       `results/failure-examples.jld2` is produced by
       `experiments/sim-strategy-failure.jl` but loaded by no chunk in
       `intercepts.qmd` --- wire it in or drop both.
+      (Done: renamed `sim-real-data.jl` → `sim-real-logreg.jl` to align with
+      `real-logreg.jld2` and the `@fig-real-logreg` labels; dropped
+      `sim-strategy-failure.jl` and `failure-examples.jld2`---the script no
+      longer writes the file and nothing in the paper loads it.)
 
 - [x] **Source-pin LIBLINEAR on parity with BlitzL1 and adelie.** The BlitzL1
       (line 211) and adelie (line 234) footnotes pin specific commits when
