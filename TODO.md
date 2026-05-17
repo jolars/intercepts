@@ -99,7 +99,7 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       verdict against exact rests on @prp-exact-cost alone, which survives
       the demotion.
 
-- [ ] **Trim the skglm 0.6 PR references.** The pull request is cited as
+- [x] **Trim the skglm 0.6 PR references.** The pull request is cited as
       validating evidence in the introduction, related work, theory, results,
       and discussion. Maintainer acceptance confirms the suggestion was
       reasonable, not that the analysis is correct. Cite the PR once (in
@@ -253,11 +253,16 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       `experiments/sim-strategy-failure.jl` but loaded by no chunk in
       `intercepts.qmd` --- wire it in or drop both.
 
-- [ ] **Source-pin LIBLINEAR on parity with BlitzL1 and adelie.** The BlitzL1
+- [x] **Source-pin LIBLINEAR on parity with BlitzL1 and adelie.** The BlitzL1
       (line 211) and adelie (line 234) footnotes pin specific commits when
       describing intercept handling. The LIBLINEAR row in `@tbl-classification`
       cites only the published papers. A SHA-pinned source footnote for
       newGLMNET's post-step intercept Newton loop closes the audit chain.
+      (Done: LIBLINEAR pinned to commit 491c9f1; in the process discovered
+      LIBLINEAR has no separate post-step intercept loop---the intercept is
+      the unregularized last coordinate of the prox-Newton inner CD. Rewrote
+      the prose throughout the paper to describe the actual mechanism and
+      distinguish it from BlitzL1's explicit post-step loop.)
 
 ## Framing and presentation
 
@@ -275,7 +280,7 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       actually titled "Results". @algo-cd has "Cyclic Coordinate Desccent"
       (triple-c) in the `\caption`.
 
-- [ ] **Rewrite the locality disclaimer after `@prp-newton-approx`.** The
+- [x] **Rewrite the locality disclaimer after `@prp-newton-approx`.** The
       sentence "We emphasise that @prp-newton-approx and @prp-newton-coupling
       are *local* Taylor statements... and rely on the empirical evidence in
       §Numerical experiments for that question" reads as the paper undermining

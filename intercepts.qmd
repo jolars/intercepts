@@ -81,10 +81,12 @@ intercept, while the MM surrogate reduces to a constant-Lipschitz gradient step;
 skglm 0.5 picks the gradient scheme implicitly through its constant-Lipschitz
 design; adelie keeps the intercept implicit through a
 weighted-centered-features parameterization of the inner Gaussian surrogate;
-LIBLINEAR and BlitzL1 graft a separate 1-D Newton convergence loop on the
-intercept onto each prox-Newton subproblem. But as we show in this paper, the
-choice of strategy can have a significant impact on convergence speed,
-especially under response imbalance.
+LIBLINEAR leaves the intercept unregularized inside the prox-Newton inner CD,
+whose QP-convergent sweep drives it to its conditional minimum on the quadratic
+each outer iteration; BlitzL1 does the same and additionally runs a separate
+1-D Newton convergence loop on the intercept on the original loss after each
+subproblem. But as we show in this paper, the choice of strategy can have a
+significant impact on convergence speed, especially under response imbalance.
 
 The three main strategies that we will consider in this paper are:
 
@@ -189,8 +191,9 @@ Empirical Verification on Production Codebases
     w1a, a real severely imbalanced LIBSVM problem); biglasso `MM` needs
     roughly ten times more than `Newton`; skglm 0.5 exhibits the predicted
     slow ramp; LIBLINEAR and BlitzL1
-    both converge fast, as the framework predicts for their prox-Newton +
-    exact-strategy intercept design; adelie matches the per-iteration cost
+    both converge fast, as the framework predicts for prox-Newton solvers
+    whose intercept reaches its conditional optimum each outer iteration;
+    adelie matches the per-iteration cost
     of glmnet `Newton`, as the framework predicts for its centered-features
     local-IRLS realization.
 
@@ -214,10 +217,19 @@ IRLS inner solver---local weights and a global 1/4 upper bound, exposed via the
 arguments `type.logistic = "Newton"` and `"modified.Newton"`, which the glmnet
 documentation describes as a speed trade-off rather than as an
 intercept-strategy choice. LIBLINEAR's newGLMNET solver [@fan2008; @yuan2012]
-runs a 1-D Newton convergence loop on the intercept after each prox-Newton
-subproblem, described in passing as an implementation detail rather than as a
-design decision. BlitzL1\ [@johnson2015] applies the same scheme: each
-prox-Newton iteration ends with a capped 1-D Newton loop on the intercept run to
+treats the intercept as the unregularized last coordinate of the prox-Newton
+inner CD: each inner sweep takes a Newton step on the frozen quadratic, and
+the inner CD's QP convergence carries the intercept to its conditional
+minimum on the quadratic each outer iteration, without any separate
+intercept loop on the original loss.^[Source:
+<https://github.com/cjlin1/liblinear/blob/491c9f1/linear.cpp#L1972-L1977>.
+`solve_l1r_lr` (`linear.cpp:1796`) appends the intercept as a constant feature
+and skips it from regularization (`linear.cpp:1789-1790`); inside the inner CD
+QP solve the intercept update is the pure Newton step `z = -G/H`
+(`linear.cpp:1972-1977`), and the outer Newton loop closes without any
+separate intercept loop on the original loss.] BlitzL1\ [@johnson2015] does
+the same inside the prox-Newton inner CD, and additionally runs a capped 1-D
+Newton loop on the intercept on the original loss after each subproblem, to
 gradient tolerance.^[Source:
 <https://github.com/tbjohns/BlitzL1/blob/aef8d02/src/solver.cpp#L27-L55>. The
 loop is called from `run_prox_newton_iteration` (`solver.cpp:262`) after the
@@ -630,7 +642,7 @@ offset the per-pass overhead, though the cyclic drift in @prp-exact-cost
 still applies. *At the prox-Newton or IRLS linearization boundary*, the Hessian
 is recomputed for the next subproblem and the within-pass drift critique no
 longer bites; we return to this case in @sec-irls, where it underwrites the
-design choices of LIBLINEAR and BlitzL1. The exact strategy is a
+intercept handling in LIBLINEAR and BlitzL1. The exact strategy is a
 defensible choice in these regimes and the recommendation against it in the rest
 of this paper should be read as scoped to the cold-start, direct-CD setting
 outside all three.
@@ -702,10 +714,11 @@ linear model implicit in a single Newton step becomes a poor approximation, and
 a safeguard, such as backtracking the Newton step until the loss decreases,
 recovers the leading-order accuracy that @prp-newton-coupling promises.
 
-We emphasise that @prp-newton-approx and @prp-newton-coupling are *local* Taylor
-statements about a single Newton step at the current iterate; we do not prove
-global convergence for CD with the Newton intercept strategy, and rely on the
-empirical evidence in §Results for that question.
+The scope of @prp-newton-approx and @prp-newton-coupling is a single Newton
+step at the current iterate: they pin down the per-step bias and coupling
+correction that the Newton strategy delivers. How those per-step gains compound
+into convergence across an outer solve is a complementary question, which
+§Results answers empirically across the benchmark suite.
 
 ::: {.proposition #prp-gradient-partial}
 **(Gradient strategy applies a fraction of the coupling correction.)** In
@@ -1327,7 +1340,7 @@ therefore absent from the table.)
   | Lasso.jl                                      | Local-IRLS            | Convergence on the local quadratic per outer iter           |
   | ncvreg                                        | Local-IRLS            | Convergence on the local quadratic per outer iter           |
   | adelie                                        | Local-IRLS            | Implicit, via weighted-centered-features parameterization   |
-  | LIBLINEAR (newGLMNET, L1-LR)                  | Prox-Newton           | Coefficient of a quadratic + post-step Newton               |
+  | LIBLINEAR (newGLMNET, L1-LR)                  | Prox-Newton           | Convergence on the quadratic; intercept unregularized       |
   | BlitzL1                                       | Prox-Newton           | Combined-direction backtrack + post-step Newton convergence |
 
   : Classification of CD-based production solvers by algorithmic family and by
@@ -1335,15 +1348,21 @@ therefore absent from the table.)
     prox-Newton solvers freeze the Hessian at the start of a subproblem, so the
     three strategies of this paper coincide *within* one subproblem; the
     distinction reappears only when comparing weight schemes across outer
-    iterations (rows three to six). LIBLINEAR and BlitzL1 additionally follow
-    each prox-Newton subproblem with a separate sequence of 1-D Newton
-    iterations on the intercept (the exact strategy applied to the
-    original loss after each outer step). {#tbl-classification}
+    iterations (rows three to six). BlitzL1 additionally follows each
+    prox-Newton subproblem with a separate sequence of 1-D Newton iterations
+    on the intercept on the original loss; LIBLINEAR arrives at the same
+    end without that loop, because its inner CD already drives the
+    unregularized intercept to its conditional minimum on the quadratic.
+    {#tbl-classification}
 
 A consequence of the table is that two production solvers---LIBLINEAR
-(newGLMNET) and BlitzL1---independently chose to apply the exact strategy
-to the intercept at the boundary of each prox-Newton step. The analysis in
-@prp-exact-cost penalises exact-strategy within direct CD because
+(newGLMNET) and BlitzL1---end up with the exact strategy on the intercept
+at the boundary of each prox-Newton step. BlitzL1 arrives there by design,
+with an explicit 1-D Newton convergence loop on the original loss after each
+subproblem; LIBLINEAR arrives there as a byproduct of leaving the intercept
+unregularized inside the inner CD, whose QP convergence carries the intercept
+to its conditional minimum on the quadratic. The analysis in @prp-exact-cost
+penalises exact-strategy within direct CD because
 the inner Hessian drifts between iterations; that critique does not apply at the
 prox-Newton boundary, where the next subproblem's Hessian is recomputed anyway.
 The structural distinction between the families thus carries over to a sensible
@@ -2086,9 +2105,11 @@ within-skglm controlled experiment that follows it (@fig-skglm-controlled)
 sharpens this further into a same-solver same-problem comparison across the
 two skglm commits that bracket the intercept-update fix, on the same $(\mu_0,
 \lambda)$ grid as @fig-mu-reg-gradient. The fourth panel verifies the
-complementary prediction on LIBLINEAR (newGLMNET) and BlitzL1, two prox-Newton
-solvers that apply the exact strategy to the intercept and that the
-framework predicts should converge fast. A fifth panel
+complementary prediction on LIBLINEAR (newGLMNET) and BlitzL1, two
+prox-Newton solvers whose intercept reaches its conditional optimum at each
+prox-Newton boundary (BlitzL1 via an explicit post-step Newton loop on the
+original loss, LIBLINEAR via the inner CD's handling of the unregularized
+intercept) and that the framework predicts should converge fast. A fifth panel
 runs adelie [@yang2024], a recent local-IRLS solver that places the intercept
 implicitly at the optimum of each Gaussian surrogate through a
 weighted-centered-features parameterization. The framework places adelie in the
@@ -2272,11 +2293,13 @@ order of magnitude more inner passes than `Newton`.
 ```{julia}
 #| label: fig-real-proxnewton
 #| fig-cap: LIBLINEAR (newGLMNET) and BlitzL1 on the shared imbalanced logistic
-#|   problem. Both are prox-Newton solvers that apply the exact strategy
-#|   to the intercept after each linearization, the complement of
-#|   `glmnet::Newton` and `biglasso::Newton` from @fig-real-glmnet and
+#|   problem. Both are prox-Newton solvers whose intercept reaches its
+#|   conditional optimum at each prox-Newton boundary (BlitzL1 via an
+#|   explicit post-step 1-D Newton loop on the original loss, LIBLINEAR via
+#|   the inner CD's handling of the unregularized intercept), the complement
+#|   of `glmnet::Newton` and `biglasso::Newton` from @fig-real-glmnet and
 #|   @fig-real-biglasso. Both reach $F^\star$ in tens of milliseconds,
-#|   confirming that the exact-strategy choice on the intercept does not
+#|   confirming that exact-strategy behaviour on the intercept does not
 #|   inherit the imbalance failure mode of the gradient-strategy solvers.
 #|   LIBLINEAR runs that hit its internal `max_iter` cap without further
 #|   progress have been excluded---they reflect a tolerance-semantic quirk in
