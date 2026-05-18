@@ -30,21 +30,22 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       runs with `max_iter=2000` and a tol grid trimmed at $10^{-7}$ to bound
       gradient-stall wall time on news20-3pct. `X.csv` files are gitignored
       and regenerate from `experiments/sim-real-problem.jl`.
-- [ ] **Document the cold-start intercept overshoot in production solvers.**
-      Diagnostic on w1a (biglasso `alg.logistic = "Newton"`, single-lambda,
-      `eps = 1e-1`, `max.iter` up to $10^5$) shows biglasso's unguarded
-      Newton intercept overshoots from $\beta_0 = 0$ to $\approx -1500$
-      (vs optimum $\approx -3.5$) and oscillates indefinitely; the
-      conservative MM majorant ($w \equiv 1/4$) converges in 2 iterations
-      on the same problem. adelie's outer-IRLS step shows the analogous
-      failure. Both are real-world demonstrations of the unguarded-Newton
-      failure mode that motivates the Armijo guard, and both are why the
-      production-solver figures use path mode. Decide how to surface:
-      footnote at the path-mode mention citing the diagnostic, a small
-      appendix table ($\beta_0^{\text{final}}$, primal, iter at varying
-      `max.iter`), or fold into @fig-cold-start as a production-solver
-      instance. Closely related to "Isolate the Armijo guard's
-      contribution" below; might subsume it.
+- [x] **Document the cold-start intercept overshoot in production solvers.**
+      Done: `experiments/sim-cold-start-real.R` runs biglasso (Newton vs
+      MM) and adelie at single $\lambda$, cold start, $\text{eps} = 10^{-1}$,
+      sweeping the iterate cap from $10^1$ to $10^5$ on w1a and news20-3pct.
+      Results in `results/real-solvers/cold-start-diag.csv` and surfaced in
+      @sec-cold-start-diag (subsubsection of Production Solvers, with
+      @tbl-cold-start-diag and a forward-pointing footnote at the path-mode
+      methodology paragraph). Findings: on w1a, biglasso `Newton`
+      oscillates ($\beta_0 \in [-1722, -291]$ across the sweep, primal
+      stuck near $10^1$), adelie returns an empty state regardless of
+      `irls_max_iters`, and biglasso `MM` converges in 2 iterations. On
+      news20-3pct the catastrophic divergence does not reproduce; biglasso
+      `Newton` instead exits its eps criterion prematurely (primal $0.31$
+      vs path-mode optimum $0.0497$) while MM gives $0.089$ at the same
+      eps. Two-dataset claim survives in a more measured form than "both
+      blow up to $-1500$."
 - [ ] **Isolate the Armijo guard's contribution.** @fig-cold-start is consistent
       with both "guard saved us at cold start" and "guard never fires." Add an
       unguarded-Newton baseline on the most adversarial $\mu_0$ row, or
