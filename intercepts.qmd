@@ -53,11 +53,15 @@ where $P$ is the primal objective, $F$ is the loss function, which attempts to
 optimize the fit to the data, and $G$ is the penalty function that penalizes
 solutions with large coefficients. $\beta_j$ is the $j$th coefficient and
 $\beta_0$ is the intercept. Throughout the paper, we assume that $P$ is
-separable and that $F$ is of the form
+separable and that $F$ is the per-observation-averaged loss
 $$
-F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
+F(\beta_0, \beta) = \frac{1}{n}\sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
-where $f$ is a smooth, twice differentiable, and convex function. For brevity,
+where $f$ is a smooth, twice differentiable, and convex function. The averaging
+keeps the global Lipschitz constant on the intercept, $L_0 = \sup f''$, free of
+$n$, and aligns with the $(1/n)\cdot\text{loss} + \lambda\,\|\beta\|_1$
+$\lambda$-scale used by the production solvers we compare against in
+@sec-production-solvers. For brevity,
 we use the convention of denoting the $i$th row and $j$th column of the design
 matrix $X$ as $x_i$ and $x_j$ respectively. Finally, we let $(\hat{\beta}\_0,
 \hat{\beta})$ denote a solution to the problem in @eq-primal-problem. Although
@@ -266,10 +270,11 @@ are built with the IRLS weights in the outer GLM solver
 complete, $L_0 = H_{00}$, and the gradient and Newton strategies coincide on the
 intercept.
 
-The third thread is majorization--minimization\ (MM). The constant $L_0 = n/4$
+The third thread is majorization--minimization\ (MM). The constant $L_0 = 1/4$
 that governs the gradient strategy in @prp-gradient-partial, and which skglm
-uses as its global per-coordinate Lipschitz step, is the binary specialization
-of the quadratic Hessian majorant used by @bohning1992 to build an MM algorithm
+uses as its global per-coordinate Lipschitz step (in its unaveraged form $n/4$),
+is the binary specialization of the quadratic Hessian majorant used by
+@bohning1992 to build an MM algorithm
 for multinomial logistic regression. @hunter2004 give the canonical exposition
 of MM. @krishnapuram2005 apply Böhning's bound to L1-penalized multinomial
 logistic regression, a direct precedent for the multinomial extension of this
@@ -284,9 +289,10 @@ case (@sec-irls, @fig-multinomial-sweep).
 
 ## Theory {#sec-theory}
 
-In this work, we consider models where the loss function is of the form
+In this work, we consider models where the loss function is the
+per-observation-averaged GLM loss
 $$
-F(\beta_0, \beta) = \sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
+F(\beta_0, \beta) = \frac{1}{n}\sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
 which includes the full family of generalized linear models (GLMs). We let
 $\eta : \mathbb{R} \mapsto \mathbb{R}$ be the function that maps the linear
@@ -337,7 +343,8 @@ the intercept, this means that we update $\beta_0$ while keeping $\beta$ fixed.
 In other words, we take the derivative with respect to the $j$th coefficient.
 Using the chain rule, this can be expressed as
 $$
-\frac{\partial}{\partial \beta_j} F(\beta_0, \beta) = \sum_{i=1}^n x_{ij} f'(\eta_i; y_i)
+\frac{\partial}{\partial \beta_j} F(\beta_0, \beta)
+  = \frac{1}{n}\sum_{i=1}^n x_{ij} f'(\eta_i; y_i).
 $$
 
 In our algorithm, we take a step in the negative gradient direction, updating a
@@ -349,18 +356,20 @@ where $\gamma_j$ is the step size. The step size can be chosen in different
 ways, but the typical approach in a coordinate descent algorithms is to take a
 Newton step. We first compute the second derivative with respect to $\beta_j$:
 $$
-H_{jj} = \frac{\partial^2}{\partial \beta_j^2} F(\beta_0, \beta) = \sum_{i=1}^n x_{ij}^2 f''(\eta_i; y_i),
+H_{jj} = \frac{\partial^2}{\partial \beta_j^2} F(\beta_0, \beta)
+       = \frac{1}{n}\sum_{i=1}^n x_{ij}^2 f''(\eta_i; y_i).
 $$
 
 Letting $w_i = f''(\eta_i; y_i)$ be the *weights*, we can express the Hessian
 diagonal element as
 $$
-H_{jj} = \sum_{i=1}^n x_{ij}^2 w_i.
+H_{jj} = \frac{1}{n}\sum_{i=1}^n x_{ij}^2 w_i.
 $$
 
 This leads to the following choice of step size:
 $$
-\gamma_j = H_{jj}^{-1} = \left( \sum_{i=1}^n x_{ij}^2 w_i \right)^{-1}.
+\gamma_j = H_{jj}^{-1}
+        = \left( \frac{1}{n}\sum_{i=1}^n x_{ij}^2 w_i \right)^{-1}.
 $$
 
 It may seem natural to also take a Newton step for the intercept, i.e. pick
@@ -368,7 +377,7 @@ $$
 \gamma_0
 = H_{00}^{-1}
 = \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1}
-= \left( \sum_{i=1}^n f''(\eta_i; y_i) \right)^{-1}.
+= \left( \frac{1}{n}\sum_{i=1}^n f''(\eta_i; y_i) \right)^{-1}.
 $$
 But as we have already discussed, several state-of-the-art implementations of
 coordinate descent for regularized regression take different approaches to
@@ -432,11 +441,11 @@ $\beta_0$ from $\beta_j$:
 1. **The intercept's design column is $\mathbf{1}_n$.** Treating $\beta_0$ as a
    coordinate is equivalent to augmenting $X$ with a constant column of ones.
    This single observation unifies several quantities that would otherwise look
-   unrelated: $H_{00} = \sum_i w_i$ is a sum of weights rather than a weighted
-   sum of squared features; the global Lipschitz constant
+   unrelated: $H_{00} = (1/n)\sum_i w_i$ is a mean of weights rather than a
+   weighted mean of squared features; the global Lipschitz constant
    $L_0 = \|\mathbf{1}\|^2 f''_{\max}/n = f''_{\max}$ does not shrink with the
    data (for binary logistic this gives $L_0 = 1/4$); and the cross-Hessian
-   $H_{0j} = \sum_i w_i x_{ij}$ is the $w$-weighted column mean, so the
+   $H_{0j} = (1/n)\sum_i w_i x_{ij}$ is the $w$-weighted column mean, so the
    intercept couples to *every* slope through a single scalar regardless of
    feature correlations.
 
@@ -455,8 +464,8 @@ $\beta_0$ from $\beta_j$:
    treatment does.
 
 4. **In IRLS-CD, the intercept update is a re-centering step.** Because its
-   column is constant, the gradient $\partial_0 F = \sum_i w_i r_i$ is exactly
-   the $w$-weighted residual sum, so a Newton step on $\beta_0$ zeros the
+   column is constant, the gradient $\partial_0 F = (1/n)\sum_i w_i r_i$ is
+   the $w$-weighted residual mean, so a Newton step on $\beta_0$ zeros the
    weighted-mean residual of the current working response. The slopes never
    perform this role. This is the structural reason adelie can fold the
    intercept into a weighted-centered-features parameterization of the inner
@@ -464,8 +473,8 @@ $\beta_0$ from $\beta_j$:
 
 Items 1 and 4 are why the gap $L_0/H_{00}$ that drives our main result is
 unbounded under response imbalance: $L_0$ does not adapt to the curvature of the
-loss at the current iterate, while $H_{00}$ collapses with $\sum_i w_i$ as the
-linear predictor saturates. Items 2 and 3 explain why the choice of strategy is
+loss at the current iterate, while $H_{00}$ collapses with $(1/n)\sum_i w_i$ as
+the linear predictor saturates. Items 2 and 3 explain why the choice of strategy is
 even available, and why its per-pass cost is not amortized away. The remainder
 of @sec-theory makes these observations quantitative.
 
@@ -476,12 +485,12 @@ how the intercept couples to each coefficient. Letting $w_i = f''(\eta_i; y_i)$,
 we have
 $$
 H_{jk} = \frac{\partial^2}{\partial \beta_j \partial \beta_k} F(\beta_0, \beta)
-       = \sum_{i=1}^n x_{ij} x_{ik} w_i
+       = \frac{1}{n}\sum_{i=1}^n x_{ij} x_{ik} w_i
 $$
 for the coefficient--coefficient block and
 $$
 H_{0j} = \frac{\partial^2}{\partial \beta_0 \partial \beta_j} F(\beta_0, \beta)
-       = \sum_{i=1}^n x_{ij} w_i
+       = \frac{1}{n}\sum_{i=1}^n x_{ij} w_i
 $$
 for the cross-influence between the intercept and the $j$th coefficient. Two
 qualitative observations follow. First, the coefficients couple to each other
@@ -491,8 +500,8 @@ coordinate descent struggles on such designs. Second, the intercept couples to
 each coefficient *globally*, through the weighted mean of that feature, with no
 dependence on correlations.
 
-For the special case of squared loss, $w_i = 1$ and $H_{0j} = \sum_i x_{ij}$, so
-centering the features makes $H_{0j} = 0$ and the intercept decouples from the
+For the special case of squared loss, $w_i = 1$ and
+$H_{0j} = (1/n)\sum_i x_{ij}$, so centering the features makes $H_{0j} = 0$ and the intercept decouples from the
 coefficients entirely. For other losses the weights depend on the linear
 predictor and the response, so $H_{0j}$ is a $w_i$-weighted mean of $x_{ij}$,
 which is generally non-zero even after centering.
@@ -654,7 +663,7 @@ satisfies
 $$
 \bigl|\beta_0^{\text{Newton}} - \beta_0^*(\beta)\bigr|
   \;=\;
-  O\!\left(\frac{\sup_\xi |f'''(\xi)|}{H_{00}^2}\,
+  O\!\left(\frac{\sup_\xi |f'''(\xi)|}{H_{00}^3}\,
             \bigl(\partial_0 F\bigr)^2\right),
 $$ {#eq-newton-error}
 where $\beta_0^*(\beta) = \arg\min_{\beta_0} F(\beta_0, \beta)$. For squared
@@ -662,8 +671,12 @@ loss, $f''' \equiv 0$ and the Newton step is exact.
 :::
 
 ::: {.proof}
-Standard one-step Newton error bound applied to the one-dimensional intercept
-subproblem $\beta_0 \mapsto F(\beta_0, \beta)$ at the iterate $\beta_0$.
+Standard one-step Newton error bound for the one-dimensional intercept
+subproblem $\beta_0 \mapsto F(\beta_0, \beta)$ at the iterate $\beta_0$:
+$|\beta^N - \beta^*| \le \tfrac{1}{2}|\partial_{000}F|/H_{00} \cdot (\beta -
+\beta^*)^2$. Bound $|\partial_{000}F| = |(1/n)\sum_i f'''(\eta_i)| \le
+\sup|f'''|$ and substitute the linear-model estimate $|\beta - \beta^*| =
+|\partial_0 F|/H_{00} + O(\cdot)$.
 :::
 
 @prp-newton-approx says that the Newton strategy matches the convergence
@@ -707,7 +720,7 @@ The criterion in @eq-newton-good-enough has two regimes worth flagging.
 *Asymptotically*, $|r_0| = O((\partial_0 F)^2)$ shrinks quadratically while
 $|\partial_j \tilde F|$ shrinks linearly with the iterate's distance from the
 optimum, so the bias becomes negligible. *Far from the optimum*, the inequality
-can fail when $|f'''|/H_{00}^2$ is large and $|\partial_0 F|$ is large
+can fail when $|f'''|/H_{00}^3$ is large and $|\partial_0 F|$ is large
 simultaneously: this is the cold-start regime, particularly for losses where
 $f'''$ grows with $\eta$ such as Poisson ($f''' = e^\eta$). In that regime the
 linear model implicit in a single Newton step becomes a poor approximation, and
@@ -766,7 +779,7 @@ a quantity of the form $L_j R_j^2$, where $L_j$ is the coordinate-wise Lipschitz
 constant and $R_j$ the cold-start distance to the optimum along coordinate $j$.
 The strategies enter this expression identically on coefficient coordinates but
 differently on the intercept: the gradient strategy plugs in the global
-$L_0 = n\sup f''$, while the Newton and exact strategies use the
+$L_0 = \sup f''$, while the Newton and exact strategies use the
 iterate-level $H_{00}$, which may be orders of magnitude smaller.
 
 ::: {.corollary #cor-rate-gap}
@@ -793,7 +806,7 @@ $$
   \;\sim\;
   \frac{L_0}{H_{00}(\hat\eta)}.
 $$ {#eq-rate-gap-asymptotic}
-For logistic regression, $L_0 = n/4$ stays fixed while $H_{00}(\hat\eta) \to 0$
+For logistic regression, $L_0 = 1/4$ stays fixed while $H_{00}(\hat\eta) \to 0$
 as imbalance grows, so the ratio diverges.
 :::
 
@@ -942,7 +955,7 @@ draw(
 
 @cor-rate-gap connects directly to §Production solvers. glmnet's
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
-at the global $L_0 = n/4$ to the intercept inside their IRLS inner solves; the
+at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves; the
 corollary predicts their pass counts should grow with $L_0/H_{00}$ at
 $\mu_0 = 0.99$, matching the empirical ≈5× and ≈10× slowdowns reported in
 @fig-real-glmnet and @fig-real-biglasso. skglm 0.5, the direct-CD solver,
@@ -967,8 +980,9 @@ search never fires.
 
 The picture matches what production direct-CD solvers did at the time these
 experiments were run. skglm 0.5 [@bertrand2022] used constant per-coordinate
-Lipschitz steps, including $L_0 = n/4$ for the intercept---exactly the gradient
-strategy as defined above, with no line search of any kind. The other CD-based
+Lipschitz steps and, on the unaveraged loss it works with internally, a step
+$4/n$ on the intercept---exactly the gradient strategy as defined above (with
+$L_0 = 1/4$ on the averaged loss), with no line search of any kind. The other CD-based
 production packages we surveyed (glmnet, biglasso, LIBLINEAR, BlitzL1) embed
 the intercept update inside an outer IRLS or proximal-Newton linearization; we
 return to them in @sec-irls. None of the production CD solvers we surveyed use
@@ -1070,7 +1084,7 @@ $\eta_{ik} = x_i^\intercal \beta_k + \beta_{0k}$ for $k = 1, \dots, K-1$ and
 $p_{ik} = e^{\eta_{ik}}/\bigl(1 + \sum_{l<K} e^{\eta_{il}}\bigr)$, the
 per-observation Hessian block has diagonal $p_{ik}(1 - p_{ik})$ and off-diagonal
 $-p_{ik} p_{il}$. The intercept Hessian
-$H_{00} = \sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\intercal\bigr)$
+$H_{00} = (1/n)\sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\intercal\bigr)$
 is a $(K-1) \times (K-1)$ matrix; the Newton strategy becomes a small block
 solve $\delta = -H_{00}^{-1}\,\nabla_0 F$ followed by Armijo backtracking on
 the loss along that direction. @thm-profile-equiv, @prp-exact-cost, and
@@ -1079,7 +1093,7 @@ of the scalar.
 
 @prp-gradient-partial sharpens. The gradient strategy applies a uniform
 Lipschitz bound $L_0$ across all classes, so the per-class fraction of the
-correction is $H_{00,kk}/L_0 = \bigl(\sum_i p_{ik}(1 - p_{ik})\bigr)/L_0$. With
+correction is $H_{00,kk}/L_0 = \bigl((1/n)\sum_i p_{ik}(1 - p_{ik})\bigr)/L_0$. With
 $K$ classes the diagonal $H_{00,kk}$ scales linearly with class prevalence, so
 any rare class produces a microscopic intercept correction along that coordinate
 while the dominant classes are well fit. Class imbalance is no longer a corner
@@ -1269,7 +1283,7 @@ form a weighted least squares majorizer
 $$
 \tilde F^{(t)}(\beta_0, \beta)
   \;=\;
-  \frac{1}{2} \sum_{i=1}^n w_i^{(t)}
+  \frac{1}{2n} \sum_{i=1}^n w_i^{(t)}
     \bigl( z_i^{(t)} - \beta_0 - x_i^\intercal \beta \bigr)^2,
 $$
 with working response $z_i^{(t)} = \eta_i^{(t)} - r_i^{(t)} / w_i^{(t)}$,
@@ -1281,8 +1295,8 @@ logistic; glmnet's `type.logistic = "modified.Newton"`, following the MM
 tradition of @hunter2004).
 
 Inside one inner solve with local weights, $\tilde F^{(t)}$ is quadratic in
-$\beta_0$ with curvature $\sum_i w_i^{(t)} = H_{00}$, so the inner Lipschitz
-constant satisfies $L_0^{\text{inner}} = H_{00}$. The fraction
+$\beta_0$ with curvature $(1/n)\sum_i w_i^{(t)} = H_{00}$, so the inner
+Lipschitz constant satisfies $L_0^{\text{inner}} = H_{00}$. The fraction
 $H_{00} / L_0^{\text{inner}} = 1$ in @prp-gradient-partial, and Newton on a
 quadratic is exact, so the gradient, Newton, and exact strategies all
 coincide on the inner subproblem. The strategy distinction this paper analyzes
@@ -1295,7 +1309,7 @@ update on $\tilde F^{(t)}$ is
 $$
 \beta_0 \;\gets\; \beta_0 + \frac{4}{n} \sum_{i=1}^n (y_i - p_i)
   \;=\; \beta_0 - \frac{1}{L_0}\, \partial_0 F,
-\qquad L_0 = n/4,
+\qquad L_0 = 1/4,
 $$
 which is exactly the gradient strategy of this paper, taken with the global
 Lipschitz step. @prp-gradient-partial therefore applies directly to glmnet's
@@ -1332,9 +1346,9 @@ therefore absent from the table.)
 
   | Solver                                        | Family                | Intercept Update on the Original Loss                       |
   | :-------------------------------------------- | :-------------------- | :---------------------------------------------------------- |
-  | skglm 0.5                                     | Constant-Lipschitz CD | Gradient ($L_0 = n/4$)                                      |
-  | glmnet (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Gradient ($L_0 = n/4$) per outer iteration                  |
-  | biglasso (`alg.logistic = "MM"`)              | MM-IRLS               | Gradient ($L_0 = n/4$) per outer iteration                  |
+  | skglm 0.5                                     | Constant-Lipschitz CD | Gradient ($L_0 = 1/4$)                                      |
+  | glmnet (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Gradient ($L_0 = 1/4$) per outer iteration                  |
+  | biglasso (`alg.logistic = "MM"`)              | MM-IRLS               | Gradient ($L_0 = 1/4$) per outer iteration                  |
   | glmnet (`type.logistic = "Newton"`)           | Local-IRLS            | Convergence on the local quadratic per outer iter           |
   | biglasso (`alg.logistic = "Newton"`, default) | Local-IRLS            | Convergence on the local quadratic per outer iter           |
   | Lasso.jl                                      | Local-IRLS            | Convergence on the local quadratic per outer iter           |
@@ -2056,7 +2070,8 @@ The within-package mode comparisons (glmnet, biglasso) isolate the weight-scheme
 choice: identical solver, identical problem, identical tolerance, only the IRLS
 weighting changes. The third panel runs skglm 0.5, the cleanest production
 realization of constant-Lipschitz proximal CD at the time of writing, where the
-intercept update is the gradient strategy with $L_0 = n/4$ by construction. The
+intercept update is the gradient strategy with $L_0 = 1/4$ by construction (a
+step $4/n$ against the unaveraged-loss gradient skglm computes internally). The
 within-skglm controlled experiment that follows it (@fig-skglm-controlled)
 sharpens this further into a same-solver same-problem comparison across the
 two skglm commits that bracket the intercept-update fix, on the same $(\mu_0,
@@ -2142,8 +2157,9 @@ draw(
 #| label: fig-real-skglm
 #| fig-cap: skglm 0.5 `AndersonCD` on the same problem. The solver uses constant
 #|   per-coordinate Lipschitz steps with the global $1/4$ majorant for the
-#|   logistic Hessian and updates the intercept with step $4/n$---exactly the
-#|   gradient strategy in our framework. The trajectory exhibits a slow early
+#|   logistic Hessian and updates the intercept with step $4/n$ against the
+#|   unaveraged-loss gradient, equivalent to the gradient strategy with
+#|   $L_0 = 1/4$ on the averaged loss of @sec-theory. The trajectory exhibits a slow early
 #|   ramp (hundreds of outer iterations spent reducing suboptimality from
 #|   $\sim 0.5$ to $\sim 10^{-5}$) followed by sharp convergence once the
 #|   intercept has caught up. The slow ramp is the @prp-gradient-partial
