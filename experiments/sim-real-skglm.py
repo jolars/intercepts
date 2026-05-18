@@ -27,57 +27,92 @@ from skglm.solvers import AndersonCD
 
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTDIR = ROOT / "results" / "real-solvers"
-
-X = pd.read_csv(OUTDIR / "X.csv", header=None).to_numpy()
-ydf = pd.read_csv(OUTDIR / "y.csv")
-y_pm = ydf["y_pm"].to_numpy().astype(float)
-meta = json.loads((OUTDIR / "meta.json").read_text())
-lam = meta["lambda"]
+REAL_SOLVERS = ROOT / "results" / "real-solvers"
 
 
-def logistic_primal(beta0, beta):
-    eta = beta0 + X @ beta
-    z = -y_pm * eta
-    loss = np.where(z > 0, z + np.log1p(np.exp(-z)), np.log1p(np.exp(z)))
-    return loss.mean() + lam * np.abs(beta).sum()
-
-
+# Tol grid trimmed at 10^-7 (well past the slow-ramp signature shown in
+# fig-real-skglm; tighter tols just trace the Anderson-acceleration scatter
+# near F*). max_iter capped at 2000 so the gradient-strategy stall on
+# news20-3pct -- which by design has no tight-tol convergence -- bounds
+# wall time instead of escalating doubling per tol step.
 tol_grid = sorted(
-    set(np.round(10 ** np.arange(-1.0, -13.5, -0.25), 16)),
+    set(np.round(10 ** np.arange(-1.0, -7.25, -0.25), 16)),
     reverse=True,
 )
 
-rows = []
-print("=== skglm AndersonCD ===")
-for tol in tol_grid:
-    solver = AndersonCD(
-        tol=tol,
-        max_iter=5000,
-        max_epochs=200_000,
-        fit_intercept=True,
-        warm_start=False,
-        verbose=0,
-    )
-    est = GeneralizedLinearEstimator(
-        datafit=Logistic(),
-        penalty=L1(alpha=lam),
-        solver=solver,
-    )
 
-    t0 = time.perf_counter()
-    est.fit(X, y_pm)
-    runtime = time.perf_counter() - t0
+def run_sweep(probdir, problem):
+    X = pd.read_csv(probdir / "X.csv", header=None).to_numpy()
+    ydf = pd.read_csv(probdir / "y.csv")
+    y_pm = ydf["y_pm"].to_numpy().astype(float)
+    meta = json.loads((probdir / "meta.json").read_text())
+    lam = meta["lambda"]
 
-    beta0 = float(est.intercept_) if np.ndim(est.intercept_) == 0 else float(est.intercept_[0])
-    beta = np.asarray(est.coef_).ravel()
-    primal = logistic_primal(beta0, beta)
-    n_iter = int(est.n_iter_) if np.ndim(est.n_iter_) == 0 else int(est.n_iter_[0])
-    print(
-        f"  tol={tol:.0e}  n_iter={n_iter:5d}  a0={beta0:.4f}  "
-        f"primal={primal:.10f}  time={runtime:.3f}s"
-    )
-    rows.append(dict(tol=tol, n_iter=n_iter, primal=primal, runtime=runtime))
+    def logistic_primal(beta0, beta):
+        eta = beta0 + X @ beta
+        z = -y_pm * eta
+        loss = np.where(z > 0, z + np.log1p(np.exp(-z)), np.log1p(np.exp(z)))
+        return loss.mean() + lam * np.abs(beta).sum()
 
-pd.DataFrame(rows).to_csv(OUTDIR / "skglm.csv", index=False)
-print(f"Wrote {OUTDIR / 'skglm.csv'}")
+    rows = []
+    print(f"=== skglm AndersonCD problem={problem} ===")
+    for tol in tol_grid:
+        solver = AndersonCD(
+            tol=tol,
+            max_iter=2000,
+            max_epochs=200_000,
+            fit_intercept=True,
+            warm_start=False,
+            verbose=0,
+        )
+        est = GeneralizedLinearEstimator(
+            datafit=Logistic(),
+            penalty=L1(alpha=lam),
+            solver=solver,
+        )
+
+        t0 = time.perf_counter()
+        est.fit(X, y_pm)
+        runtime = time.perf_counter() - t0
+
+        beta0 = (
+            float(est.intercept_)
+            if np.ndim(est.intercept_) == 0
+            else float(est.intercept_[0])
+        )
+        beta = np.asarray(est.coef_).ravel()
+        primal = logistic_primal(beta0, beta)
+        n_iter = (
+            int(est.n_iter_) if np.ndim(est.n_iter_) == 0 else int(est.n_iter_[0])
+        )
+        print(
+            f"  tol={tol:.0e}  n_iter={n_iter:5d}  a0={beta0:.4f}  "
+            f"primal={primal:.10f}  time={runtime:.3f}s"
+        )
+        rows.append(
+            dict(
+                problem=problem,
+                tol=tol,
+                n_iter=n_iter,
+                primal=primal,
+                runtime=runtime,
+            )
+        )
+    return pd.DataFrame(rows)
+
+
+synthetic_dir = REAL_SOLVERS
+w1a_dir = REAL_SOLVERS / "w1a"
+news20_dir = REAL_SOLVERS / "news20-3pct"
+
+out_synth = run_sweep(synthetic_dir, "synthetic")
+out_synth.to_csv(synthetic_dir / "skglm.csv", index=False)
+print(f"Wrote {synthetic_dir / 'skglm.csv'}")
+
+out_w1a = run_sweep(w1a_dir, "w1a")
+out_w1a.to_csv(w1a_dir / "skglm.csv", index=False)
+print(f"Wrote {w1a_dir / 'skglm.csv'}")
+
+out_news20 = run_sweep(news20_dir, "news20-3pct")
+out_news20.to_csv(news20_dir / "skglm.csv", index=False)
+print(f"Wrote {news20_dir / 'skglm.csv'}")

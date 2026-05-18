@@ -783,7 +783,7 @@ $L_0 = \sup f''$, while the Newton and exact strategies use the
 iterate-level $H_{00}$, which may be orders of magnitude smaller.
 
 ::: {.corollary #cor-rate-gap}
-**(Rate gap, leading order in imbalance.)** Let
+**(Rate gap, with a large-imbalance reduction.)** Let
 $R_j^2 = (\beta_j^{(0)} - \beta_j^\star)^2$ denote the squared cold-start
 distance to the optimum along coordinate $j$, with the intercept as coordinate
 $0$. Decomposing the standard sublinear randomized-CD bound by coordinate yields
@@ -796,18 +796,20 @@ $$
        {H_{00}\,R_0^2
         + \sum_{j\ge 1} H_{jj}\bigl(1 - \rho_{0j}^2\bigr)\,R_j^2}.
 $$ {#eq-rate-gap}
-When the optimal intercept $|\beta_0^\star|$ is large compared to
-$\|\beta^\star\|$---for binary logistic regression with cold start,
-$|\beta_0^\star| = |\mathrm{logit}(\mu_0)|$ diverges as $\mu_0 \to 1$---the
-intercept term dominates both numerator and denominator, and the bound reduces
-at leading order to
+In the regime $|\beta_0^\star|/\|\beta^\star\| \to \infty$---for binary logistic
+regression with cold start, $|\beta_0^\star| = |\mathrm{logit}(\mu_0)|$ diverges
+as $\mu_0 \to 1$---the intercept term dominates both numerator and denominator,
+and @eq-rate-gap collapses to
 $$
 \frac{T_{\mathrm{G}}(\varepsilon)}{T_{\mathrm{N}}(\varepsilon)}
   \;\sim\;
   \frac{L_0}{H_{00}(\hat\eta)}.
 $$ {#eq-rate-gap-asymptotic}
 For logistic regression, $L_0 = 1/4$ stays fixed while $H_{00}(\hat\eta) \to 0$
-as imbalance grows, so the ratio diverges.
+as imbalance grows, so the limit diverges. Outside that regime---in particular
+at $\mu_0 = 1/2$, where $\beta_0^\star = 0$ kills the $R_0^2$ terms---the
+asymptotic in @eq-rate-gap-asymptotic does not apply, and the full @eq-rate-gap
+is needed.
 :::
 
 ::: {.proof}
@@ -852,27 +854,27 @@ same $H_{00}/L_0 \to 0$ regime.
 ```{julia}
 #| label: fig-rate-gap
 #| fig-cap: Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ (pass count to relative
-#|   gap $10^{-6}$) versus the leading-order predicted ratio
-#|   $L_0/H_{00}(\hat\eta)$ from @eq-rate-gap-asymptotic, swept over response
-#|   imbalance $\mu_0$ on the standardized logistic problem of @fig-mu-extreme
-#|   ($n = 500$, $p = 1000$, $s = 10$, $\lambda = 0.05\,\lambda_{\max}$). The
-#|   two curves track in scaling, with the empirical multiplier a small constant
-#|   below the asymptotic prediction — consistent with the prediction being a
-#|   leading-order limit that incorporates only the intercept-coordinate
-#|   contribution.
+#|   gap $10^{-6}$) versus the full bound-ratio @eq-rate-gap evaluated at the
+#|   Newton-converged iterate ($R_j^2 = (\beta_j^\star)^2$ on the standardized
+#|   design, with $H_{00}$, $H_{jj}$, and $\rho_{0j}^2$ taken at the same
+#|   iterate), swept over response imbalance $\mu_0$ on the standardized
+#|   logistic problem of @fig-mu-extreme ($n = 500$, $p = 1000$, $s = 10$,
+#|   $\lambda = 0.05\,\lambda_{\max}$). The two curves track across the full
+#|   $\mu_0$ range; the large-imbalance reduction $L_0/H_{00}(\hat\eta)$ of
+#|   @eq-rate-gap-asymptotic is the limit reached only as $\mu_0 \to 1$, when
+#|   $|\beta_0^\star| \gg \|\beta^\star\|$.
 
 dd = JLD2.load(@projectroot("results", "rate-gap.jld2"))
 df = DataFrame(dd["records"])
-df.L0_over_H00 = df.L0 ./ df.H00
 df_long = stack(
     df,
-    [:empirical_ratio, :L0_over_H00];
+    [:empirical_ratio, :full_ratio];
     variable_name = :quantity,
     value_name = :ratio,
 )
 df_long.quantity = map(df_long.quantity) do q
     q == "empirical_ratio" ? "Empirical T_G / T_N" :
-    "Predicted L₀ / H₀₀"
+    "Predicted (eq-rate-gap)"
 end
 
 spec = data(df_long) * mapping(:μ0, :ratio, color = :quantity)
@@ -888,14 +890,17 @@ draw(
 )
 ```
 
-@fig-rate-gap shows the prediction holds in scaling: as $\mu_0 \to 1$, both
-empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ and the asymptotic predictor
-$L_0/H_{00}(\hat\eta)$ grow together, with the empirical multiplier sitting a
-small constant factor below the prediction. The prediction is leading order, so
-a constant gap is expected: subdominant $\sum_j R_j^2$ terms in @eq-rate-gap
-dilute the intercept's dominance, and the exact-strategy result of
-@thm-profile-equiv is not exact for cyclic CD past the first coordinate update.
-The scaling, not the constant, is the load-bearing prediction.
+@fig-rate-gap shows the full bound ratio @eq-rate-gap tracking empirical
+$T_{\mathrm{G}}/T_{\mathrm{N}}$ across the full $\mu_0$ range. At $\mu_0 = 0.5$
+the intercept's $R_0^2$ term vanishes and @eq-rate-gap reduces to a
+slope-weighted ratio close to one---matching the empirical pass-count parity
+there, which the large-imbalance limit $L_0/H_{00}(\hat\eta)$ of
+@eq-rate-gap-asymptotic would have over-predicted by a factor of $\sim 3$. The
+empirical ratio sits a roughly constant factor below the predicted curve at
+every $\mu_0$; that residual is the upper-bound slack of the CD inequality
+itself (see the remark following @eq-rate-gap). As $\mu_0 \to 1$, the
+intercept term dominates and the predicted curve approaches
+$L_0/H_{00}(\hat\eta)$, recovering @eq-rate-gap-asymptotic.
 
 @fig-rate-gap sweeps $\mu_0$ and so probes the $H_{00}/L_0$ axis of the
 framing while keeping the second axis $\bar\rho^2$ close to zero (the design
@@ -908,7 +913,7 @@ $T_{\mathrm{G}}/T_{\mathrm{N}}$ at $\mu_0 \in \{0.5,\, 0.9\}$: centering
 matters in both regimes, the leading-order ratio
 $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ captures the direction, and
 the empirical jump sits a constant factor above the prediction---the same
-subdominant-term gap visible in @fig-rate-gap. The Schur framing's second
+upper-bound slack visible in @fig-rate-gap. The Schur framing's second
 axis is therefore visible empirically, not just absorbed into the asymptotic
 limit of @cor-rate-gap.
 
@@ -921,8 +926,8 @@ limit of @cor-rate-gap.
 #|   $T_{\mathrm{G}}/T_{\mathrm{N}}$ at relative-gap tolerance $10^{-6}$
 #|   tracks the eq-rate-gap leading-order prediction
 #|   $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ along this second
-#|   axis, with the same constant-factor offset @fig-rate-gap exhibits, on a
-#|   problem with $n = 500$, $p = 1000$, $s = 10$, and
+#|   axis, with the same constant-factor upper-bound slack @fig-rate-gap
+#|   exhibits, on a problem with $n = 500$, $p = 1000$, $s = 10$, and
 #|   $\lambda = 0.05\,\lambda_{\max}$.
 
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
@@ -2056,15 +2061,23 @@ strategy does not.
 ### Production Solvers {#sec-production-solvers}
 
 The strategy-class predictions of the previous sections are tested here against
-six production solvers---across both predicted directions---on the shared
-imbalanced logistic problem of @fig-irls-comparison ($n = 500$, $p = 1000$,
-$s = 10$, nominal $\mu_0 = 0.99$, realized class imbalance $0.878$,
-$\lambda = 0.05 \cdot \lambda_{\max}$). For each solver we sweep its convergence
-tolerance and record the actual work performed (number of CD passes, outer
-iterations, or wall-clock time, depending on what the solver exposes) and the
-primal objective at termination. Suboptimality is plotted against work, both on
-a logarithmic scale. The reference primal $F^\star$ is taken as the minimum
-primal achieved by that solver across all configurations.
+six production solvers---across both predicted directions---on three
+imbalanced logistic problems: the synthetic design of @fig-irls-comparison
+($n = 500$, $p = 1000$, $s = 10$, nominal $\mu_0 = 0.99$, realized
+positive-class fraction $0.878$), w1a from LIBSVM ($n = 2477$, $p = 300$,
+$\mu_0 = 0.029$, sparse binary features), and news20-3pct, a
+$3\%$-positive subsample of LIBSVM news20.binary documented in
+@tbl-real-logreg-problems ($n = 2000$, $p = 4\,675$, $\mu_0 = 0.030$, sparse
+text features). The three problems together span both directions of
+imbalance ($\mu_0$ near 0 and near 1) and three regimes
+($p > n$ dense Gaussian, $n > p$ sparse binary, $n < p$ sparse text). Each
+problem fixes $\lambda = 0.05 \cdot \lambda_{\max}$. For each solver we
+sweep its convergence tolerance and record the actual work performed
+(number of CD passes, outer iterations, or wall-clock time, depending on
+what the solver exposes) and the primal objective at termination.
+Suboptimality is plotted against work, both on a logarithmic scale. The
+reference primal $F^\star$ is taken as the minimum primal achieved by that
+solver across all configurations on each problem.
 
 The within-package mode comparisons (glmnet, biglasso) isolate the weight-scheme
 choice: identical solver, identical problem, identical tolerance, only the IRLS
@@ -2090,23 +2103,26 @@ convergence in the working tolerance regime.
 ```{julia}
 #| label: fig-real-glmnet
 #| fig-cap: glmnet `type.logistic = "Newton"` (Bucket B, local-IRLS) versus
-#|   `"modified.Newton"` (Bucket A, MM-IRLS with $w \equiv 1/4$) on two
+#|   `"modified.Newton"` (Bucket A, MM-IRLS with $w \equiv 1/4$) across three
 #|   problems---left, the shared synthetic imbalanced logistic problem
-#|   ($n=500$, $p=1000$, $\mu_0 = 0.99$); right, w1a, a real severely
-#|   imbalanced LIBSVM problem ($n=2477$, $p=300$, $2.9\%$ positive
-#|   class). Both panels use glmnet's recommended path mode (warm-start
-#|   from $\lambda_{\max}$ down to $0.05\,\lambda_{\max}$ in $50$
-#|   geometric steps); the work axis is total inner CD passes to reach
-#|   the final $\lambda$. Both modes converge to the same $F^\star$ on
-#|   both problems, but the MM mode requires roughly five times more
-#|   passes at the tightest tolerance---the predicted slowdown from
-#|   @prp-gradient-partial applied to glmnet's `modified.Newton`
-#|   intercept update. The gap survives the change in problem regime
-#|   (synthetic is $p > n$ dense Gaussian; w1a is $n > p$ sparse binary).
+#|   ($n=500$, $p=1000$, $\mu_0 = 0.99$); middle, w1a, a real severely
+#|   imbalanced LIBSVM problem ($n=2477$, $p=300$, $2.9\%$ positive class);
+#|   right, news20-3pct, a $3\%$-positive subsample of LIBSVM news20.binary
+#|   ($n=2000$, $p=4\,675$ after the $\ge 20$-nonzero column filter
+#|   documented in @tbl-real-logreg-problems).
+#|   All panels use glmnet's recommended path mode (warm-start from
+#|   $\lambda_{\max}$ down to $0.05\,\lambda_{\max}$ in $50$ geometric
+#|   steps); the work axis is total inner CD passes to reach the final
+#|   $\lambda$. The within-package gap is a property of the intercept
+#|   update, not of any single problem regime ($p > n$ dense Gaussian,
+#|   $n > p$ sparse binary, and $n < p$ sparse text).
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "glmnet.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "glmnet.csv"))),
+    DataFrame(
+        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "glmnet.csv")),
+    ),
 )
 df = transform(
     groupby(df, :problem),
@@ -2114,7 +2130,13 @@ df = transform(
 )
 df.mode = df.type
 
-spec = data(df) * mapping(:npasses, :subopt, color = :mode, layout = :problem)
+spec =
+    data(df) * mapping(
+        :npasses,
+        :subopt,
+        color = :mode,
+        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+    )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
@@ -2123,24 +2145,41 @@ draw(
         xlabel = "Inner CD passes",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (800, 300)),
+    figure = (; size = (1000, 300)),
 )
 ```
 
 ```{julia}
 #| label: fig-real-biglasso
 #| fig-cap: biglasso `alg.logistic = "Newton"` (Bucket B, local-IRLS) versus
-#|   `"MM"` (Bucket A, MM-IRLS) on the same problem. The MM mode requires
-#|   roughly ten times more passes than Newton at tight tolerance, an
-#|   independent confirmation of the glmnet result on a different codebase.
-#|   biglasso documents its MM option as the memory-efficient choice for
-#|   out-of-core data; the analysis here quantifies its convergence cost.
+#|   `"MM"` (Bucket A, MM-IRLS) across the same three problems as
+#|   @fig-real-glmnet. The within-package gap is an independent confirmation
+#|   of the glmnet result on a different codebase. biglasso documents its MM
+#|   option as the memory-efficient choice for out-of-core data; the analysis
+#|   here quantifies its convergence cost.
 
-df = DataFrame(CSV.File(@projectroot("results", "real-solvers", "biglasso.csv")))
-df.subopt = max.(df.primal .- minimum(df.primal), 1.0e-15)
+df = vcat(
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "biglasso.csv"))),
+    DataFrame(
+        CSV.File(@projectroot("results", "real-solvers", "w1a", "biglasso.csv")),
+    ),
+    DataFrame(
+        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "biglasso.csv")),
+    ),
+)
+df = transform(
+    groupby(df, :problem),
+    :primal => (p -> max.(p .- minimum(p), 1.0e-15)) => :subopt,
+)
 df.mode = df.alg
 
-spec = data(df) * mapping(:npasses, :subopt, color = :mode)
+spec =
+    data(df) * mapping(
+        :npasses,
+        :subopt,
+        color = :mode,
+        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+    )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
@@ -2149,29 +2188,44 @@ draw(
         xlabel = "Inner CD passes",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (550, 300)),
+    figure = (; size = (1000, 300)),
 )
 ```
 
 ```{julia}
 #| label: fig-real-skglm
-#| fig-cap: skglm 0.5 `AndersonCD` on the same problem. The solver uses constant
-#|   per-coordinate Lipschitz steps with the global $1/4$ majorant for the
-#|   logistic Hessian and updates the intercept with step $4/n$ against the
-#|   unaveraged-loss gradient, equivalent to the gradient strategy with
-#|   $L_0 = 1/4$ on the averaged loss of @sec-theory. The trajectory exhibits a slow early
-#|   ramp (hundreds of outer iterations spent reducing suboptimality from
-#|   $\sim 0.5$ to $\sim 10^{-5}$) followed by sharp convergence once the
-#|   intercept has caught up. The slow ramp is the @prp-gradient-partial
-#|   signature; the post-convergence scatter at high $n_{\text{iter}}$ reflects
-#|   Anderson acceleration's non-monotonic stopping behaviour near $F^\star$.
+#| fig-cap: skglm 0.5 `AndersonCD` across the same three problems as
+#|   @fig-real-glmnet. The solver uses constant per-coordinate Lipschitz steps
+#|   with the global $1/4$ majorant for the logistic Hessian and updates the
+#|   intercept with step $4/n$ against the unaveraged-loss gradient,
+#|   equivalent to the gradient strategy with $L_0 = 1/4$ on the averaged
+#|   loss of @sec-theory. The trajectory on the synthetic panel exhibits a
+#|   slow early ramp (hundreds of outer iterations spent reducing
+#|   suboptimality before sharp convergence once the intercept has caught
+#|   up); this is the @prp-gradient-partial signature. The post-convergence
+#|   scatter at high $n_{\text{iter}}$ reflects Anderson acceleration's
+#|   non-monotonic stopping behaviour near $F^\star$.
 
-df = DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv")))
-df.subopt = max.(df.primal .- minimum(df.primal), 1.0e-15)
+df = vcat(
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
+    DataFrame(
+        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "skglm.csv")),
+    ),
+)
+df = transform(
+    groupby(df, :problem),
+    :primal => (p -> max.(p .- minimum(p), 1.0e-15)) => :subopt,
+)
 df = df[df.n_iter .> 0, :]
-sort!(df, :n_iter)
+sort!(df, [:problem, :n_iter])
 
-spec = data(df) * mapping(:n_iter, :subopt)
+spec =
+    data(df) * mapping(
+        :n_iter,
+        :subopt,
+        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+    )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
@@ -2180,7 +2234,7 @@ draw(
         xlabel = "AndersonCD outer iterations",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (550, 300)),
+    figure = (; size = (1000, 300)),
 )
 ```
 
@@ -2197,13 +2251,16 @@ Newton step; the change was merged upstream as commit `8f9cbd77`.[^skglm-pr]
     2026-05-13. skglm 0.6 is unreleased at the time of writing; the
     controlled comparison below pins the two relevant commits directly.
 
-@fig-real-glmnet through @fig-real-skglm compare three packages on the shared
-synthetic imbalanced problem, with @fig-real-glmnet additionally replicating
-the within-glmnet gap on w1a, a real severely imbalanced LIBSVM problem in a
-different ($n>p$) regime; the gap is a property of the intercept update, not
-of our synthetic construction. Cross-package comparisons remain confounded
-by between-package algorithmic differences. The merged skglm patch eliminates
-that confound on the skglm row.
+@fig-real-glmnet through @fig-real-skglm each compare the two within-package
+modes across three problems: the shared synthetic imbalanced design
+($n=500$, $p=1000$, $\mu_0 = 0.99$, dense Gaussian), w1a (real, $n > p$,
+sparse binary, $\mu_0 = 0.029$), and news20-3pct (real, $n < p$, sparse
+text, $\mu_0 = 0.030$); each problem fixes $\lambda = 0.05\,\lambda_{\max}$.
+The three regimes together test whether the within-package gap is a property
+of the intercept update or of any single problem construction.
+Cross-package comparisons remain confounded by between-package algorithmic
+differences. The merged skglm patch eliminates that confound on the skglm
+row.
 With `b03644fe` (the last commit before the fix, behaviourally identical to
 the released 0.5) and `8f9cbd77` (the merge introducing the Newton intercept
 update) we can run the same `AndersonCD` driver against itself, on the same
@@ -2257,21 +2314,22 @@ draw(
 The fourth panel verifies the complementary prediction: solvers whose intercept
 update is the exact strategy at a prox-Newton boundary should converge
 fast. LIBLINEAR (newGLMNET) and BlitzL1 are the two production solvers in our
-survey that fit this description. @fig-real-proxnewton shows both reaching the
-optimum within tens of milliseconds of wall-clock time, on the same problem
-where skglm 0.5 needs seconds and glmnet's `modified.Newton` needs roughly an
-order of magnitude more inner passes than `Newton`.
+survey that fit this description. @fig-real-proxnewton reports their
+wall-clock cost to reach $F^\star$ across the same three problems used above,
+complementary to the inner-pass curves for skglm 0.5 (which uses the gradient
+strategy on the intercept) and glmnet's `modified.Newton` (the
+constant-majorant alternative).
 
 ```{julia}
 #| label: fig-real-proxnewton
-#| fig-cap: LIBLINEAR (newGLMNET) and BlitzL1 on the shared imbalanced logistic
-#|   problem. Both are prox-Newton solvers whose intercept reaches its
-#|   conditional optimum at each prox-Newton boundary (BlitzL1 via an
+#| fig-cap: LIBLINEAR (newGLMNET) and BlitzL1 across the same three problems
+#|   as @fig-real-glmnet. Both are prox-Newton solvers whose intercept reaches
+#|   its conditional optimum at each prox-Newton boundary (BlitzL1 via an
 #|   explicit post-step 1-D Newton loop on the original loss, LIBLINEAR via
 #|   the inner CD's handling of the unregularized intercept), the complement
 #|   of `glmnet::Newton` and `biglasso::Newton` from @fig-real-glmnet and
-#|   @fig-real-biglasso. Both reach $F^\star$ in tens of milliseconds,
-#|   confirming that exact-strategy behaviour on the intercept does not
+#|   @fig-real-biglasso. The wall-clock cost to reach $F^\star$ is the
+#|   evidence that exact-strategy behaviour on the intercept does not
 #|   inherit the imbalance failure mode of the gradient-strategy solvers.
 #|   LIBLINEAR runs that hit its internal `max_iter` cap without further
 #|   progress have been excluded---they reflect a tolerance-semantic quirk in
@@ -2279,12 +2337,31 @@ order of magnitude more inner passes than `Newton`.
 #|   work axis because the two solvers count outer iterations differently and
 #|   BlitzL1 does not expose an iteration counter on its solution object.
 
-df = DataFrame(CSV.File(@projectroot("results", "real-solvers", "proxnewton.csv")))
-df.subopt = max.(df.primal .- minimum(df.primal), 1.0e-15)
+df = vcat(
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "proxnewton.csv"))),
+    DataFrame(
+        CSV.File(@projectroot("results", "real-solvers", "w1a", "proxnewton.csv")),
+    ),
+    DataFrame(
+        CSV.File(
+            @projectroot("results", "real-solvers", "news20-3pct", "proxnewton.csv"),
+        ),
+    ),
+)
+df = transform(
+    groupby(df, :problem),
+    :primal => (p -> max.(p .- minimum(p), 1.0e-15)) => :subopt,
+)
 df = df[.!(df.solver .== "LIBLINEAR" .&& df.n_iter .>= 5000), :]
-sort!(df, [:solver, :runtime])
+sort!(df, [:problem, :solver, :runtime])
 
-spec = data(df) * mapping(:runtime, :subopt, color = :solver)
+spec =
+    data(df) * mapping(
+        :runtime,
+        :subopt,
+        color = :solver,
+        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+    )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
@@ -2293,7 +2370,7 @@ draw(
         xlabel = "Time (s)",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (550, 300)),
+    figure = (; size = (1000, 300)),
 )
 ```
 
@@ -2307,36 +2384,54 @@ $\beta_0 = \bar{y} + \overline{\mathrm{resid}}$ at the end of the inner solve.
 The intercept therefore sits at the surrogate's optimum on every outer pass by
 construction, with no separate update step. The classification places adelie in
 the same bucket as glmnet `Newton` and biglasso `Newton`, and @fig-real-adelie
-confirms the prediction: each tolerance setting completes in tens of
-milliseconds in the working range. adelie's outer-IRLS criterion is coarser than
-glmnet's coefficient-based `thresh`, which is reflected in a higher achievable
+reports its per-tolerance wall-clock cost across the same three problems used
+above. adelie's outer-IRLS criterion is coarser than glmnet's
+coefficient-based `thresh`, which is reflected in a higher achievable
 suboptimality from a single tolerance sweep; the per-iteration cost---the
 prediction at stake here---is on the same order as the other local-IRLS solvers.
 
 ```{julia}
 #| label: fig-real-adelie
-#| fig-cap: adelie [@yang2024] on the shared imbalanced logistic problem. The
-#|   solver is a local-IRLS implementation that keeps the intercept implicit
-#|   through a weighted-centered-features parameterization of the Gaussian
-#|   surrogate, so on each surrogate the intercept is at the optimum by
-#|   construction. The framework places it in the same bucket as glmnet `Newton`
-#|   and biglasso `Newton`. In the working tolerance regime each tolerance
-#|   setting completes in tens of milliseconds, matching the
-#|   exact-strategy prediction. Tighter tolerances are bounded by adelie's
-#|   outer-IRLS criterion $|\sum (\mathrm{resid} -
+#| fig-cap: adelie [@yang2024] across the same three problems as
+#|   @fig-real-glmnet. The solver is a local-IRLS implementation that keeps
+#|   the intercept implicit through a weighted-centered-features
+#|   parameterization of the Gaussian surrogate, so on each surrogate the
+#|   intercept is at the optimum by construction. The framework places it in
+#|   the same bucket as glmnet `Newton` and biglasso `Newton`. The
+#|   per-tolerance wall-clock cost in the working tolerance regime is the
+#|   evidence for the exact-strategy prediction. Tighter tolerances are
+#|   bounded by adelie's outer-IRLS criterion $|\sum (\mathrm{resid} -
 #|   \mathrm{resid}_{\mathrm{prev}}) \cdot (\eta - \eta_{\mathrm{prev}})| \le
 #|   \texttt{irls\_tol}$, which has trouble making progress under imbalance and
 #|   effectively places a floor on the achievable suboptimality from a single
 #|   tolerance sweep---a property of the criterion, not of the per-iteration
 #|   cost.
 
-df = DataFrame(CSV.File(@projectroot("results", "real-solvers", "adelie.csv")))
-df_ref = DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv")))
-F_star = minimum(df_ref.primal)
-df.subopt = max.(df.primal .- F_star, 1.0e-15)
-sort!(df, :tol)
+df = vcat(
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "adelie.csv"))),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "adelie.csv"))),
+    DataFrame(
+        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "adelie.csv")),
+    ),
+)
+df_ref = vcat(
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
+    DataFrame(
+        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "skglm.csv")),
+    ),
+)
+F_star = combine(groupby(df_ref, :problem), :primal => minimum => :F_star)
+df = leftjoin(df, F_star, on = :problem)
+df.subopt = max.(df.primal .- df.F_star, 1.0e-15)
+sort!(df, [:problem, :tol])
 
-spec = data(df) * mapping(:tol, :subopt)
+spec =
+    data(df) * mapping(
+        :tol,
+        :subopt,
+        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+    )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
@@ -2346,7 +2441,7 @@ draw(
         xlabel = "Convergence tolerance (tol = irls_tol)",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (550, 300)),
+    figure = (; size = (1000, 300)),
 )
 ```
 
@@ -2376,7 +2471,7 @@ under imbalance, independent of the rest of the algorithm. The classification
 places glmnet `Newton`, biglasso `Newton`, adelie, LIBLINEAR, and BlitzL1 in the
 safe bucket and glmnet `modified.Newton`, biglasso `MM`, and skglm 0.5 in the
 imbalance-sensitive bucket, with the predicted pass-count separation confirmed
-empirically on a shared imbalanced problem (@fig-real-glmnet--@fig-real-adelie).
+empirically on three imbalanced problems (@fig-real-glmnet--@fig-real-adelie).
 The within-package mode toggles in glmnet and biglasso turn this into a
 controlled experiment whose outcome is consistent with the framework.
 

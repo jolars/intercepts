@@ -2,6 +2,7 @@ using Intercepts
 using Random
 using LinearAlgebra
 using Statistics
+using SparseArrays
 using ProjectRoot
 using CSV
 using DataFrames
@@ -64,6 +65,7 @@ CSV.write(
 )
 
 meta = Dict(
+    "dataset" => "synthetic",
     "n" => n,
     "p" => p,
     "s" => s,
@@ -142,3 +144,96 @@ println("Wrote w1a problem to $outdir_w1a")
 println("  n = $n_w1a, p = $p_w1a")
 println("  n_pos = $(meta_w1a["n_pos"]), n_neg = $(meta_w1a["n_neg"])")
 println("  lambda_max = $lambda_max_w1a, lambda = $lambda_w1a")
+
+# Replication problem: news20-3pct, a 3 %-positive subsample of LIBSVM
+# news20.binary (sparse text features). Matches the deterministic procedure
+# used by sim-real-logreg.jl (seed 42, 60 positives, 1940 negatives,
+# columns with fewer than 20 nonzeros after row subsampling dropped to
+# avoid near-zero standard deviations destabilising downstream solvers).
+# Provides a third regime (sparse, high-dim, severely imbalanced) on top of
+# the synthetic and w1a cells.
+news20_seed = 42
+news20_npos = 60
+news20_nneg = 1940
+news20_min_nnz = 20
+
+X_news_raw, y_news = load_dataset("news20.binary"; verbose = false)
+y_news_pos_label = maximum(y_news)
+y01_news_full = Float64.(Int.(y_news .== y_news_pos_label))
+
+let rng = MersenneTwister(news20_seed)
+    pos_idx = findall(==(1.0), y01_news_full)
+    neg_idx = findall(==(0.0), y01_news_full)
+    n_pos_keep = min(news20_npos, length(pos_idx))
+    n_neg_keep = min(news20_nneg, length(neg_idx))
+    pos_sample = shuffle(rng, pos_idx)[1:n_pos_keep]
+    neg_sample = shuffle(rng, neg_idx)[1:n_neg_keep]
+    global row_idx_news = sort(vcat(pos_sample, neg_sample))
+end
+
+X_news_sub = X_news_raw[row_idx_news, :]
+y01_news = y01_news_full[row_idx_news]
+
+if issparse(X_news_sub)
+    Xc = X_news_sub::SparseMatrixCSC
+    keep_cols_news =
+        [Xc.colptr[j+1] - Xc.colptr[j] >= news20_min_nnz for j in 1:size(Xc, 2)]
+else
+    keep_cols_news = [
+        !iszero(maximum(@view X_news_sub[:, j]) - minimum(@view X_news_sub[:, j]))
+        for j in 1:size(X_news_sub, 2)
+    ]
+end
+X_news_filt = X_news_sub[:, keep_cols_news]
+X_news_dense = Matrix(X_news_filt)
+
+x_centers_news = vec(mean(X_news_dense; dims = 1))
+x_scales_news = vec(std(X_news_dense; dims = 1, corrected = false))
+x_scales_news[x_scales_news .== 0] .= 1.0
+X_news = (X_news_dense .- x_centers_news') ./ x_scales_news'
+
+y_pm_news = 2.0 .* y01_news .- 1.0
+ybar_news = mean(y01_news)
+n_news, p_news = size(X_news)
+
+lambda_max_news = norm(X_news' * (y01_news .- ybar_news), Inf) / n_news
+lambda_news = reg * lambda_max_news
+
+outdir_news = @projectroot("results", "real-solvers", "news20-3pct")
+mkpath(outdir_news)
+
+CSV.write(
+    joinpath(outdir_news, "X.csv"),
+    DataFrame(X_news, :auto);
+    writeheader = false,
+)
+CSV.write(
+    joinpath(outdir_news, "y.csv"),
+    DataFrame(y_pm = y_pm_news, y01 = y01_news);
+    writeheader = true,
+)
+
+meta_news = Dict(
+    "dataset" => "news20-3pct",
+    "n" => n_news,
+    "p" => p_news,
+    "reg" => reg,
+    "lambda" => lambda_news,
+    "lambda_max" => lambda_max_news,
+    "ybar" => ybar_news,
+    "n_pos" => sum(y01_news .== 1),
+    "n_neg" => sum(y01_news .== 0),
+    "seed" => news20_seed,
+    "n_positive_requested" => news20_npos,
+    "n_negative_requested" => news20_nneg,
+    "min_nnz_per_column" => news20_min_nnz,
+)
+
+open(joinpath(outdir_news, "meta.json"), "w") do io
+    JSON3.pretty(io, meta_news)
+end
+
+println("Wrote news20-3pct problem to $outdir_news")
+println("  n = $n_news, p = $p_news (after min_nnz filter)")
+println("  n_pos = $(meta_news["n_pos"]), n_neg = $(meta_news["n_neg"])")
+println("  lambda_max = $lambda_max_news, lambda = $lambda_news")

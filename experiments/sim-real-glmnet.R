@@ -92,6 +92,7 @@ run_sweep <- function(probdir, problem) {
 
 synthetic_dir <- file.path(root, "results", "real-solvers")
 w1a_dir       <- file.path(root, "results", "real-solvers", "w1a")
+news20_dir    <- file.path(root, "results", "real-solvers", "news20-3pct")
 
 out_synth <- run_sweep(synthetic_dir, "synthetic")
 write.csv(out_synth, file.path(synthetic_dir, "glmnet.csv"), row.names = FALSE)
@@ -100,3 +101,7 @@ cat(sprintf("Wrote %s\n", file.path(synthetic_dir, "glmnet.csv")))
 out_w1a <- run_sweep(w1a_dir, "w1a")
 write.csv(out_w1a, file.path(w1a_dir, "glmnet.csv"), row.names = FALSE)
 cat(sprintf("Wrote %s\n", file.path(w1a_dir, "glmnet.csv")))
+
+out_news20 <- run_sweep(news20_dir, "news20-3pct")
+write.csv(out_news20, file.path(news20_dir, "glmnet.csv"), row.names = FALSE)
+cat(sprintf("Wrote %s\n", file.path(news20_dir, "glmnet.csv")))

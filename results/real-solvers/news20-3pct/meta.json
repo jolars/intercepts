@@ -1,0 +1,15 @@
+{
+    "n_neg": 1940,
+    "reg": 0.05,
+    "n_negative_requested": 1940,
+    "n_positive_requested": 60,
+    "lambda": 0.002286390688864218,
+    "dataset": "news20-3pct",
+    "ybar": 0.03,
+    "n_pos": 60,
+    "lambda_max": 0.045727813777284354,
+    "min_nnz_per_column": 20,
+    "seed": 42,
+    "p": 4675,
+    "n": 2000
+}
