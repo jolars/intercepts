@@ -20,14 +20,31 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       @eq-rate-gap-asymptotic as the $|\beta_0^\star|/\|\beta^\star\| \to \infty$
       limit; surrounding paragraphs now attribute the residual offset to
       CD-bound slack rather than to dropped subdominant terms.
-- [ ] **Widen the production-solver evidence past one design.**
-      @fig-real-biglasso, @fig-real-skglm, @fig-real-proxnewton, and
-      @fig-real-adelie all run on the single $\mu_0 = 0.99$ shared problem; only
-      @fig-real-glmnet (w1a) and @fig-skglm-controlled (heatmap) span a second
-      design. Either extend biglasso, adelie, and the prox-Newton pair across a
-      coarse $(\mu_0, \lambda)$ grid (e.g. 3 $\mu_0 \times$ 2 $\lambda$), repeat
-      them on w1a or news20-3pct, or scope the discussion claim explicitly to
-      single-problem evidence.
+- [x] **Widen the production-solver evidence past one design.** biglasso,
+      adelie, skglm, and the prox-Newton pair now run on w1a and news20-3pct
+      in addition to the synthetic $\mu_0 = 0.99$ problem; each figure in
+      §2.2 facets by dataset. biglasso and adelie were switched to path
+      mode (warm-start from $\lambda_{\max}$ down to
+      $0.05\,\lambda_{\max}$) to sidestep the cold-start single-lambda
+      overshoot glmnet already worked around (see new item below). skglm
+      runs with `max_iter=2000` and a tol grid trimmed at $10^{-7}$ to bound
+      gradient-stall wall time on news20-3pct. `X.csv` files are gitignored
+      and regenerate from `experiments/sim-real-problem.jl`.
+- [ ] **Document the cold-start intercept overshoot in production solvers.**
+      Diagnostic on w1a (biglasso `alg.logistic = "Newton"`, single-lambda,
+      `eps = 1e-1`, `max.iter` up to $10^5$) shows biglasso's unguarded
+      Newton intercept overshoots from $\beta_0 = 0$ to $\approx -1500$
+      (vs optimum $\approx -3.5$) and oscillates indefinitely; the
+      conservative MM majorant ($w \equiv 1/4$) converges in 2 iterations
+      on the same problem. adelie's outer-IRLS step shows the analogous
+      failure. Both are real-world demonstrations of the unguarded-Newton
+      failure mode that motivates the Armijo guard, and both are why the
+      production-solver figures use path mode. Decide how to surface:
+      footnote at the path-mode mention citing the diagnostic, a small
+      appendix table ($\beta_0^{\text{final}}$, primal, iter at varying
+      `max.iter`), or fold into @fig-cold-start as a production-solver
+      instance. Closely related to "Isolate the Armijo guard's
+      contribution" below; might subsume it.
 - [ ] **Isolate the Armijo guard's contribution.** @fig-cold-start is consistent
       with both "guard saved us at cold start" and "guard never fires." Add an
       unguarded-Newton baseline on the most adversarial $\mu_0$ row, or
