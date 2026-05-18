@@ -1061,7 +1061,7 @@ $\mu_0 = 0.99$ where the unguarded analysis predicts the worst-case overshoot.
 The exact strategy is competitive in this experiment but pays the
 within-pass-drift cost identified in @prp-exact-cost.
 
-#### Extension to vector intercepts
+#### Extension to Vector Intercepts
 
 The scalar story extends almost verbatim to multinomial logistic regression with
 $K$ classes, where the intercept is a vector $\beta_0 \in \mathbb{R}^{K-1}$
@@ -1547,52 +1547,18 @@ repository.
 The first prediction we test in §Theory is @prp-gradient-partial: the gradient
 strategy's effective per-pass step on the intercept is the bare gradient step
 shrunk by $H_{00}/L_0$, so the strategy slows as the imbalance $\mu_0$ pushes
-$H_{00}$ toward zero with $L_0 = 1/4$ unchanged. We instantiate a standardized
-binary-logistic design (n=500, p=1000, s=10, $\rho = 0.6$,
-$\lambda = 0.05\,\lambda_{\max}$) and sweep $\mu_0 \in \{0.5, 0.7, 0.9\}$,
-comparing the three strategies under cyclic coordinate descent.
-
-```{julia}
-#| label: fig-simulated
-#| fig-cap: Convergence trajectories for the three intercept strategies on a
-#|   standardized binary-logistic design ($n=500$, $p=1000$, $s=10$, $\rho =
-#|   0.6$, $\lambda = 0.05\,\lambda_{\max}$) under cyclic CD, across three
-#|   class-imbalance levels. The gradient strategy is competitive only at $\mu_0
-#|   = 0.5$ (where $H_{00} \approx L_0$) and falls behind as $\mu_0$ grows,
-#|   matching @prp-gradient-partial. The Newton and exact strategies trace
-#|   nearly identical trajectories on all three panels.
-
-dd = JLD2.load(@projectroot("results", "sim-logreg-mu.jld2"))
-df = DataFrame(dd["results"])
-df = flatten(df, [:time, :relgaps, :gaps, :primals])
-df.μ0 = "μₒ = " .* string.(df.μ0)
-
-df.relgaps .= max.(df.relgaps, 1.0e-20)
-
-spec = data(df) * mapping(
-    :time => "Time (s)",
-    :relgaps => "Relative duality gap",
-    color = :strategy,
-    col = :μ0,
-)
-
-draw(
-    visual(Lines) * spec,
-    axis = (yscale = log10,),
-    facet = (; linkxaxes = :none),
-    figure = (; size = (800, 300))
-)
-```
-
-@fig-simulated confirms the qualitative prediction: at $\mu_0 = 0.5$ the
-gradient strategy keeps up, by $\mu_0 = 0.7$ it has visibly slowed, and at
-$\mu_0 = 0.9$ it trails the Newton-class strategies by more than an order of
-magnitude in pass count to reach a fixed relative gap. The bare-Newton and
-convergence trajectories overlay each other throughout, consistent with
-@prp-exact-cost predicting equal per-pass progress and differing only in
-inner-step cost---a difference we make visible in @sec-per-pass-cost. The
-quantitative scaling of the gradient/Newton ratio with $\mu_0$ and $\lambda$ is
-taken up in @sec-imbalance-reg.
+$H_{00}$ toward zero with $L_0 = 1/4$ unchanged. @fig-mu-extreme already
+exhibits this collapse on the standardized binary-logistic design ($n=500$,
+$p=1000$, $s=10$, $\rho = 0.6$, $\lambda = 0.05\,\lambda_{\max}$) used
+throughout the simulated experiments below: the gradient strategy is
+competitive at $\mu_0 = 0.5$, slows visibly past $\mu_0 = 0.9$, and fails to
+reach the tolerance within budget at $\mu_0 = 0.99$, while the Newton and
+exact strategies overlay each other across every level. The bare-Newton and
+exact trajectories agreeing is the outer-pass content of @prp-exact-cost;
+the per-pass inner cost the two strategies differ on is made visible in
+@sec-per-pass-cost. The quantitative scaling of the gradient/Newton ratio
+with $\mu_0$ and $\lambda$ on the same design is taken up in
+@sec-imbalance-reg and @fig-mu-reg-gradient.
 
 ### Real Data
 
@@ -1671,33 +1637,23 @@ draw(
 )
 ```
 
-@fig-real-logreg confirms the prediction in both directions. w1a is the extreme
-imbalance case ($\mu_0 = 0.029$): the gradient strategy needs $436$ passes to
-reach relative gap $10^{-6}$ where Newton needs $86$, a $5\times$ slowdown that
-matches the leading-order $L_0/H_{00} \approx 8.8$ ratio after the usual
-constant-factor offset of @fig-rate-gap. The exact strategy converges in $79$
-passes, tracking bare Newton to within a handful of passes throughout.
-news20-3pct is the same severity ($\mu_0 = 0.030$) on a totally
-different sparse design---a $4\,675$-feature bag-of-words text panel after
-dropping low-support vocabulary---and the gradient slowdown reproduces:
-$402$ passes to relative gap $10^{-4}$ before hitting the $120\,\mathrm{s}$
-wall-time cap (final relgap $\approx 2 \cdot 10^{-6}$) against $110$ passes for
-Newton, a ${\approx}4\times$ ratio in the same regime as w1a. The exact
-strategy converges on news20-3pct in $108$ passes, again essentially
-indistinguishable from bare Newton. a4a sits at the framework's predicted mild-slowdown regime
-($H_{00}/L_0 \approx 0.75$): the gradient strategy needs $39$ passes to
-$10^{-6}$ against $30$ for Newton, a $1.3\times$ ratio. Leukemia is at the
-opposite extreme of the regularization-vs-data ratio: with only $38$ samples
-against $7\,129$ features at $\lambda = 0.05\,\lambda_{\max}$, the penalty
-dominates and all three strategies converge in essentially the same time.
-Breast-cancer shows the gradient strategy slower than the Newton-class
-strategies by roughly a factor of $2.3$ at $10^{-6}$. gisette is the predicted
-benign cell: dense, balanced, $\mu_0 = 0.5$ so $H_{00}/L_0 = 1$ and the three
-strategies overlay each other on the convergence panel. The cross-dataset
-variation does not isolate a single mechanism the way the simulated $\mu_0$
-sweep does, but it shows the framework's prediction holds across the
-$L_0/H_{00}$ range covered by these problems: gradient is slow when and only
-when $H_{00}/L_0$ is small.
+@fig-real-logreg confirms the prediction in both directions. The two
+severe-imbalance points reproduce the simulated gradient slowdown on very
+different sparse designs: w1a ($\mu_0 = 0.029$, a $300$-feature web indicator
+panel) needs ${\approx}5\times$ more gradient passes than Newton to relative
+gap $10^{-6}$, and news20-3pct ($\mu_0 = 0.030$, a $4\,675$-feature
+bag-of-words text panel after dropping low-support vocabulary) reproduces a
+${\approx}4\times$ ratio at $10^{-4}$ before hitting the $120\,\mathrm{s}$
+wall-time cap. Both sit within the constant-factor offset of the leading-order
+$L_0/H_{00}$ prediction that @fig-rate-gap exhibits, and the cross-design
+agreement shows the gap is a property of the response imbalance, not of the
+w1a design specifically. The mild-slowdown middle (a4a, breast-cancer) gives
+gradient/Newton ratios between $1.3$ and $2.3$, consistent with their
+$H_{00}/L_0 \in [0.75,\,0.91]$. The two predicted-benign cells are the
+framework's negative controls: leukemia ($n \ll p$, penalty-dominated) and
+gisette (dense, balanced, $\mu_0 = 0.5$, $H_{00}/L_0 = 1$) both have the three
+strategies overlay each other. The exact strategy tracks bare Newton on every
+panel, consistent with @prp-exact-cost at this tolerance.
 
 ### Cyclic vs Permuted Ordering {#sec-ordering}
 
@@ -1889,7 +1845,7 @@ drive $|\partial_0 F| < \varepsilon$ at the end of the pass via quadratic Newton
 convergence on the 1D intercept subproblem. We instrument the solver to record
 $k_0$ for every outer pass and compare the resulting cost trajectories against
 the relative-gap trajectories on the imbalanced simulated design of
-@fig-simulated ($n = 500$, $p = 1000$, $s = 10$, cyclic CD,
+@fig-mu-extreme ($n = 500$, $p = 1000$, $s = 10$, cyclic CD,
 $\lambda / \lambda_{\max} = 0.05$, tolerance $10^{-8}$), sweeping
 $\mu_0 \in \{0.5,\,0.9,\,0.99\}$ to vary the cold-start magnitude of
 $|\partial_0 F|$.
@@ -1983,7 +1939,7 @@ gradient/Newton pass-count ratio scales with $L_0/H_{00}(\hat\eta)$, and both
 $\lambda$ and $\mu_0$ shift $\hat\eta$ and therefore $H_{00}$. We sweep
 $\mu_0 \in \{0.5, 0.7, 0.9, 0.95, 0.99\}$ against
 $\lambda/\lambda_{\max} \in \{0.5, 0.2, 0.1, 0.05, 0.02, 0.01\}$ on the
-standardized binary-logistic design of @fig-simulated (3 seeds per cell),
+standardized binary-logistic design of @fig-mu-extreme (3 seeds per cell),
 running each strategy to a relative-gap tolerance of $10^{-8}$ or a budget of
 5000 outer passes. We report pass counts rather than wall-clock to decouple the
 per-coordinate Lipschitz-mismatch prediction from BLAS and memory effects.

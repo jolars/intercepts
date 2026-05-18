@@ -84,20 +84,19 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       converge on w1a + cyclic in $\approx 144$ passes (vs $\approx 94$ for
       Newton), consistent with @prp-exact-cost's constant-factor verdict and
       *not* with a fundamental pathology. The trap fires for all three
-      strategies on w1a but is only absorbing for exact, because exact makes
-      the largest per-pass intercept move (Newton and gradient drift past it
-      after a few line-search hits). A constructed sparse-binary
-      severe-imbalance design (n=2477, p=300, density=0.04, $\mu_0=0.05$)
-      with higher within-pass drift coherence (0.87 vs 0.28 on w1a) converges
-      in 80 passes, so the design property "sparse + severe imbalance + cyclic"
-      is not sufficient to reproduce the stall. Prose edits demote the stall
-      to a solver-heuristic anecdote: @fig-first-example surrounding text,
-      the @prp-exact-cost discussion, @fig-real-logreg analysis, and
-      @sec-ordering are rewritten to scope the failure as a
-      (line-search$\times$cyclic$\times$w1a) interaction rather than as
-      generalisable evidence against the exact strategy. The per-pass cost
-      verdict against exact rests on @prp-exact-cost alone, which survives
-      the demotion.
+      strategies on w1a but is only absorbing for exact, because exact makes the
+      largest per-pass intercept move (Newton and gradient drift past it after a
+      few line-search hits). A constructed sparse-binary severe-imbalance design
+      (n=2477, p=300, density=0.04, $\mu_0=0.05$) with higher within-pass drift
+      coherence (0.87 vs 0.28 on w1a) converges in 80 passes, so the design
+      property "sparse + severe imbalance + cyclic" is not sufficient to
+      reproduce the stall. Prose edits demote the stall to a solver-heuristic
+      anecdote: @fig-first-example surrounding text, the @prp-exact-cost
+      discussion, @fig-real-logreg analysis, and @sec-ordering are rewritten to
+      scope the failure as a (line-search$\times$cyclic$\times$w1a) interaction
+      rather than as generalisable evidence against the exact strategy. The
+      per-pass cost verdict against exact rests on @prp-exact-cost alone, which
+      survives the demotion.
 
 - [x] **Trim the skglm 0.6 PR references.** The pull request is cited as
       validating evidence in the introduction, related work, theory, results,
@@ -132,30 +131,30 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       `NewtonStrategy` intercept update gains a matching Armijo guard so the
       whole pass is descent by construction. The post-pass scaling block is
       gone. `QuadraticLoss.loss` was corrected from `0.5*norm(η)^2` to
-      `0.5*sum((η-y)^2)` to make it consistent with the gradient `η-y` (the
-      old form would have falsely tripped per-coord Armijo). w1a + cyclic +
-      exact now converges in $\sim 149$ passes (was the original stall);
-      w1a + cyclic + Newton in $\sim 157$ passes; w1a + permuted unchanged.
-      Synthetic problems show identical trajectories to the prior algorithm
-      (per-coord Armijo accepts $\alpha=1$ at every well-conditioned coord).
-      Subtle implementation note: the inner-loop `continue` used when
-      $d_j = 0$ must not be reached when $j$ is the last coord with an
-      in-pass intercept update --- otherwise the intercept refresh is
-      skipped and convergence stalls. Tests in `test/cd.jl` and
-      `test/multinomial.jl` assert monotone primals across the five
-      strategies plus a `NewtonStrategy` intercept-descent check on
+      `0.5*sum((η-y)^2)` to make it consistent with the gradient `η-y` (the old
+      form would have falsely tripped per-coord Armijo). w1a + cyclic + exact
+      now converges in $\sim 149$ passes (was the original stall); w1a + cyclic +
+      Newton in $\sim 157$ passes; w1a + permuted unchanged. Synthetic problems
+      show identical trajectories to the prior algorithm (per-coord Armijo
+      accepts $\alpha=1$ at every well-conditioned coord). Subtle implementation
+      note: the inner-loop `continue` used when $d_j = 0$ must not be reached
+      when $j$ is the last coord with an in-pass intercept update --- otherwise
+      the intercept refresh is skipped and convergence stalls. Tests in
+      `test/cd.jl` and `test/multinomial.jl` assert monotone primals across the
+      five strategies plus a `NewtonStrategy` intercept-descent check on
       $\mu_0 = 0.99$. All `experiments/sim-*.jl` `.jld2` caches refreshed
       (rate-gap, rho-centering, per-pass-cost, first-example-ordering,
-      logreg-mu, logreg-reg, multinomial-imbalance, mu-extreme,
-      irls-comparison, cold-start, real-data, warmstart-path,
-      real-multinomial-yeoh, h00-heatmap, mu-reg-heatmap,
-      multinomial-imbalance-sweep).
+      logreg-mu, logreg-reg, multinomial-imbalance, mu-extreme, irls-comparison,
+      cold-start, real-data, warmstart-path, real-multinomial-yeoh, h00-heatmap,
+      mu-reg-heatmap, multinomial-imbalance-sweep).
 
-      Follow-up items broken out below: qmd render bugs from the
-      `convergence → exact` strategy rename
-      (see *Fix the `convergence` plot-chunk references*) and the
-      cyclic-vs-permuted rewrite (see *Rewrite @sec-ordering and
-      @fig-first-example-ordering*).
+      ```
+        Follow-up items broken out below: qmd render bugs from the
+        `convergence → exact` strategy rename
+        (see *Fix the `convergence` plot-chunk references*) and the
+        cyclic-vs-permuted rewrite (see *Rewrite @sec-ordering and
+        @fig-first-example-ordering*).
+      ```
 
 ## Reproducibility and provenance
 
@@ -180,70 +179,66 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       configuration (OpenBLAS in Julia/R/Python via `devenv.nix`, no thread
       pinning) plus the single-workstation hardware note.
 
-- [x] **Fix the `convergence` plot-chunk references after the strategy
-      rename.** Done. Substituted `convergence` → `exact` in the three
-      chunk-internal references (`filter(:strategy => ==("exact"), …)` in
-      the per-pass-cost chunk; `wide.exact_ratio = wide.exact ./ wide.newton`
-      and the matching `:exact_ratio => log10 => "log₁₀(T_exact /
-      T_Newton)"` mapping in the $\mu_0$-$\lambda$ heatmap chunk). Local
-      bindings (`df_conv` → `df_exact`, `spec_conv` → `spec_exact`) were
-      renamed for consistency. Two prose strategy-name uses in the
-      @fig-per-pass-cost discussion ("total inner Newton steps for
-      convergence", "Newton: 122/122/125; convergence: 112/116/130") were
-      also updated; the inline numbers themselves still need the refresh
-      tracked separately under *Refresh inline number citations*. After
-      the swap `task paper-render` produces both `intercepts.html` and
-      `intercepts.pdf` cleanly (the remaining `jog.lua` "TableBody"
-      warnings are a pre-existing pandoc-filter artefact unrelated to
-      this rename).
+- [x] **Fix the `convergence` plot-chunk references after the strategy rename.**
+      Done. Substituted `convergence` → `exact` in the three chunk-internal
+      references (`filter(:strategy => ==("exact"), ...)` in the per-pass-cost
+      chunk; `wide.exact_ratio = wide.exact ./ wide.newton` and the matching
+      `:exact_ratio => log10 => "log₁₀(T_exact /       T_Newton)"` mapping in
+      the $\mu_0$-$\lambda$ heatmap chunk). Local bindings (`df_conv` →
+      `df_exact`, `spec_conv` → `spec_exact`) were renamed for consistency. Two
+      prose strategy-name uses in the @fig-per-pass-cost discussion ("total
+      inner Newton steps for convergence", "Newton: 122/122/125; convergence:
+      112/116/130") were also updated; the inline numbers themselves still need
+      the refresh tracked separately under *Refresh inline number citations*.
+      After the swap `task paper-render` produces both `intercepts.html` and
+      `intercepts.pdf` cleanly (the remaining `jog.lua` "TableBody" warnings are
+      a pre-existing pandoc-filter artefact unrelated to this rename).
 
 - [x] **Refresh inline number citations against the new caches.** Done.
       Reconciled against the refreshed `.jld2` files:
       - @fig-per-pass-cost discussion: $k_0$ peaks (6, 4, 4) → (6, 4, 3);
         relative-overhead row $1.19\times/1.38\times/1.62\times$ →
         $1.30\times/1.50\times/1.59\times$; pass-count comparison Newton
-        $122/122/125$, convergence $112/116/130$ → Newton $109/107/121$,
-        exact $109/108/120$.
+        $122/122/125$, convergence $112/116/130$ → Newton $109/107/121$, exact
+        $109/108/120$.
       - @fig-mu-reg-gradient discussion: empirical row at $\lambda =
-        0.05\,\lambda_{\max}$ $\{1.0, 1.1, 1.8, 2.9, 6.6\} \to \{1.0,
-        1.1, 1.8, 3.0, 6.8\}$; iterate-level $L_0/H_{00}(\hat\eta)$ last
-        entry $12.4 \to 12.3$ (cross-checked against
-        `sim-h00-heatmap.jld2`); the $\lambda = 0.01\,\lambda_{\max}$ row
-        was rewritten from $\{1.6, 1.7, 4.2, 6.7, \ge 10.2\}$ to $\{1.7,
-        1.8, 4.0, 5.4\}$ for $\mu_0 \le 0.95$ with an explicit note that
-        the $\mu_0 = 0.99$ corner now has both Newton and gradient
-        saturating the 5000-pass budget so the ratio collapses.
-      - @fig-real-multinomial discussion: comparison ratio
-        $\approx 10\times$ → $\approx 15\times$ to match the refreshed
+        0.05\,\lambda\_{\max}$ $\{1.0, 1.1, 1.8, 2.9, 6.6\} \to \{1.0, 1.1, 1.8,
+        3.0, 6.8\}$; iterate-level $L_0/H_{00}(\hat\eta)$ last entry
+        $12.4 \to 12.3$ (cross-checked against `sim-h00-heatmap.jld2`); the
+        $\lambda = 0.01\,\lambda_{\max}$ row was rewritten from
+        $\{1.6, 1.7, 4.2, 6.7, \ge 10.2\}$ to $\{1.7, 1.8, 4.0, 5.4\}$ for
+        $\mu_0 \le 0.95$ with an explicit note that the $\mu_0 = 0.99$ corner
+        now has both Newton and gradient saturating the 5000-pass budget so the
+        ratio collapses.
+      - @fig-real-multinomial discussion: comparison ratio $\approx 10\times$ →
+        $\approx 15\times$ to match the refreshed
         `sim-multinomial-imbalance.jld2`.
-      - @fig-warm-start prose: cap-hit counts on w1a Newton-class
-        "$\sim 8$ to $\sim 3$ out of 20" replaced with the current
-        "$2$--$4$ cold to $2$ warm" range; the "diverges entirely" claim
-        about Newton at very small $\lambda$ replaced with a "two to
-        three orders of magnitude looser relative gap" framing (the
-        cold trajectory now hits the budget at relgap $\sim 10^{-5}$
-        rather than diverging); the gradient cap-hit count "11 of 20"
-        loosened to "$11$--$12$ of $20$" to match the actual
-        cold-vs-warm breakdown. `task paper-render` succeeds.
+      - @fig-warm-start prose: cap-hit counts on w1a Newton-class "$\sim 8$ to
+        $\sim 3$ out of 20" replaced with the current "$2$--$4$ cold to $2$
+        warm" range; the "diverges entirely" claim about Newton at very small
+        $\lambda$ replaced with a "two to three orders of magnitude looser
+        relative gap" framing (the cold trajectory now hits the budget at relgap
+        $\sim 10^{-5}$ rather than diverging); the gradient cap-hit count "11 of
+        20" loosened to "$11$--$12$ of $20$" to match the actual cold-vs-warm
+        breakdown. `task paper-render` succeeds.
 
 - [x] **Rewrite @sec-ordering and @fig-first-example-ordering.** Done.
       @sec-ordering now opens by stating that the per-coordinate Armijo
-      backtrack neutralises the residual cyclic-vs-permuted concern; on
-      w1a all three strategies converge under both orderings with cyclic
-      slightly faster than permuted (Newton $157$ vs $187$, exact $149$
-      vs $197$, gradient $\sim 840$ either way), and the qualitative
-      ranking is the same. @fig-first-example-ordering is kept as a brief
-      illustration that the choice no longer matters; the figure caption
-      and the two surrounding stall paragraphs are gone. Parallel updates:
-      @fig-first-example's intro/follow-up prose, @prp-exact-cost's
-      cyclic-stall discussion paragraph, @fig-real-logreg's caption and
-      analysis (including the "exact plateaus at $0.28$" and the
-      cyclic-CD-localisation framing), the @fig-cold-start follow-up
-      mentioning a line-search-trap, and the @fig-mu-reg-exact caption
-      and discussion paragraph that referenced the "cyclic-CD pathology"
-      have all been rewritten or removed. `results/first-example.jld2`
-      was refreshed (it had not been included in the prior per-coord
-      Armijo refresh list).
+      backtrack neutralises the residual cyclic-vs-permuted concern; on w1a all
+      three strategies converge under both orderings with cyclic slightly faster
+      than permuted (Newton $157$ vs $187$, exact $149$ vs $197$, gradient
+      $\sim 840$ either way), and the qualitative ranking is the same.
+      @fig-first-example-ordering is kept as a brief illustration that the
+      choice no longer matters; the figure caption and the two surrounding stall
+      paragraphs are gone. Parallel updates: @fig-first-example's
+      intro/follow-up prose, @prp-exact-cost's cyclic-stall discussion
+      paragraph, @fig-real-logreg's caption and analysis (including the "exact
+      plateaus at $0.28$" and the cyclic-CD-localisation framing), the
+      @fig-cold-start follow-up mentioning a line-search-trap, and the
+      @fig-mu-reg-exact caption and discussion paragraph that referenced the
+      "cyclic-CD pathology" have all been rewritten or removed.
+      `results/first-example.jld2` was refreshed (it had not been included in
+      the prior per-coord Armijo refresh list).
 
 - [x] **Fix the cache-script naming mismatch and remove the orphan cache.**
       `results/real-logreg.jld2` is loaded at line 1473 but produced by
@@ -251,33 +246,43 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       `X.jld2`. Rename one or the other. Separately,
       `results/failure-examples.jld2` is produced by
       `experiments/sim-strategy-failure.jl` but loaded by no chunk in
-      `intercepts.qmd` --- wire it in or drop both.
-      (Done: renamed `sim-real-data.jl` → `sim-real-logreg.jl` to align with
-      `real-logreg.jld2` and the `@fig-real-logreg` labels; dropped
-      `sim-strategy-failure.jl` and `failure-examples.jld2`---the script no
-      longer writes the file and nothing in the paper loads it.)
+      `intercepts.qmd` --- wire it in or drop both. (Done: renamed
+      `sim-real-data.jl` → `sim-real-logreg.jl` to align with `real-logreg.jld2`
+      and the `@fig-real-logreg` labels; dropped `sim-strategy-failure.jl` and
+      `failure-examples.jld2`---the script no longer writes the file and nothing
+      in the paper loads it.)
 
 - [x] **Source-pin LIBLINEAR on parity with BlitzL1 and adelie.** The BlitzL1
       (line 211) and adelie (line 234) footnotes pin specific commits when
       describing intercept handling. The LIBLINEAR row in `@tbl-classification`
       cites only the published papers. A SHA-pinned source footnote for
-      newGLMNET's post-step intercept Newton loop closes the audit chain.
-      (Done: LIBLINEAR pinned to commit 491c9f1; in the process discovered
-      LIBLINEAR has no separate post-step intercept loop---the intercept is
-      the unregularized last coordinate of the prox-Newton inner CD. Rewrote
-      the prose throughout the paper to describe the actual mechanism and
+      newGLMNET's post-step intercept Newton loop closes the audit chain. (Done:
+      LIBLINEAR pinned to commit 491c9f1; in the process discovered LIBLINEAR
+      has no separate post-step intercept loop---the intercept is the
+      unregularized last coordinate of the prox-Newton inner CD. Rewrote the
+      prose throughout the paper to describe the actual mechanism and
       distinguish it from BlitzL1's explicit post-step loop.)
 
 ## Framing and presentation
 
-- [ ] **Compress overlapping single-$\lambda$ figures.** @fig-first-example,
+- [x] **Compress overlapping single-$\lambda$ figures.** @fig-first-example,
       @fig-mu-extreme, @fig-simulated, and @fig-real-logreg all carry the same
       qualitative message ("gradient is slow under imbalance") in slightly
       different framings. Pick the two most informative (probably
       @fig-mu-extreme and the 30-cell heatmap @fig-mu-reg-gradient) and reduce
       or merge the others. The genuinely novel empirical artifacts (heatmap,
       multinomial sweep, per-pass cost decomposition) deserve more visual real
-      estate; the redundant convergence-trajectory plots deserve less.
+      estate; the redundant convergence-trajectory plots deserve less. (Done:
+      dropped @fig-simulated entirely --- its $\mu_0 \in \{0.5, 0.7, 0.9\}$
+      sweep is a strict subset of @fig-mu-extreme's $\{0.5, 0.9, 0.95, 0.99\}$
+      sweep on the same standardized design. §"Simulated Data" shrank to a
+      forwarding paragraph; cross-references in §"Per-Pass Cost Decomposition"
+      and §"Imbalance and Regularization" now point at @fig-mu-extreme. §"Real
+      Data" prose condensed from per-dataset enumeration to three regime
+      paragraphs. @fig-first-example kept as the intro hook and @fig-real-logreg
+      kept at six panels per user direction. The orphaned
+      `experiments/sim-logreg-mu.jl` / `results/sim-logreg-mu.jld2` remain in
+      place; removal is a separate cleanup.)
 
 - [x] **Fix the section reference and the algorithm typo.** The paragraph after
       `@cor-newton-coupling` references "§Numerical experiments"; the section is
