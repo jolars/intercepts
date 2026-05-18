@@ -12,17 +12,14 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       $\tilde F^{(t)} = (1/(2n))\sum w_i(\cdot)^2$. Scaling-invariant ratios
       ($H_{00}/L_0 = 4\mu_0(1-\mu_0)$, etc.) are unchanged, so the figure
       results and @cor-rate-gap predictions remain valid.
-- [ ] **Reframe @cor-rate-gap → @eq-rate-gap-asymptotic.** The reduction to
-      $L_0/H_{00}$ requires the intercept's $R_0^2$ term to dominate
-      $\sum_{j\ge 1}\tilde H_{jj} R_j^2$, which fails at $\mu_0 = 0.5$ where
-      $|\mathrm{logit}(0.5)| = 0$. Yet @fig-rate-gap compares the leading-order
-      formula to empirical across the full $\mu_0$ range and reads the
-      $\sim 3\times$ gap at $\mu_0 = 0.5$ as a constant offset. Options: (a)
-      reframe the asymptotic as a bound approached only when
-      $|\beta_0^\star| \gg \|\beta^\star\|$ and drop the small-$\mu_0$
-      comparison; (b) report the magnitude of the dropped $\sum_j R_j^2$ terms
-      per cell so the reader sees where the limit is valid; (c) plot the full
-      @eq-rate-gap expression instead of the asymptotic.
+- [x] **Reframe @cor-rate-gap → @eq-rate-gap-asymptotic.** Took option (c):
+      `experiments/sim-rate-gap.jl` now records $R_0^2$, $R_j^2$, and the full
+      @eq-rate-gap ratio (evaluated at the Newton-converged iterate on the
+      standardized design); @fig-rate-gap plots empirical vs that full ratio
+      instead of $L_0/H_{00}$. Corollary title and prose retightened to frame
+      @eq-rate-gap-asymptotic as the $|\beta_0^\star|/\|\beta^\star\| \to \infty$
+      limit; surrounding paragraphs now attribute the residual offset to
+      CD-bound slack rather than to dropped subdominant terms.
 - [ ] **Widen the production-solver evidence past one design.**
       @fig-real-biglasso, @fig-real-skglm, @fig-real-proxnewton, and
       @fig-real-adelie all run on the single $\mu_0 = 0.99$ shared problem; only

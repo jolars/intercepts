@@ -22,7 +22,7 @@ function standardize_features(X)
     centers = mean(X; dims = 1)
     scales = stdm(X, centers; corrected = false, dims = 1)
     scales[scales.==0] .= 1.0
-    return (X .- centers) ./ scales
+    return (X .- centers) ./ scales, centers, scales
 end
 
 function rate_quantities(X_std, η, lossfun)
@@ -52,7 +52,7 @@ for μ0 in Μ0_GRID
     # Reference Newton run: same parameters as cdsolver uses internally, but we
     # use save_history=true to recover η at convergence on the standardized
     # design.
-    X_std = standardize_features(X)
+    X_std, x_centers, x_scales = standardize_features(X)
     lossfun = LogisticLoss()
     L0 = lossfun.lipschitz * N  # global Lipschitz on intercept: n * sup f''
 
@@ -71,6 +71,22 @@ for μ0 in Μ0_GRID
     # original X scale; η = X β + β0 is scale-invariant.
     η_hat = X * newton_res.coef .+ newton_res.intercept
     q = rate_quantities(X_std, η_hat, lossfun)
+
+    # β on the standardized design: invert the rescaling done by
+    # `rescalecoefs` in src/normalize.jl. With cold start β = 0, the CD-bound
+    # distances are R_0² = (β₀⋆)², R_j² = (β_j⋆)² in standardized coords.
+    β_std = newton_res.coef .* vec(x_scales)
+    β0_std = newton_res.intercept + dot(vec(x_centers), newton_res.coef)
+    @assert isapprox(X_std * β_std .+ β0_std, η_hat; atol = 1.0e-8)
+    R0_sq = β0_std^2
+    Rj_sq = β_std .^ 2
+
+    # Full @eq-rate-gap ratio evaluated at the Newton-converged iterate.
+    num_intercept = L0 * R0_sq
+    den_intercept = q.H00 * R0_sq
+    num_slope = sum(q.Hjj .* (1 .- (q.H00 / L0) .* q.ρ2) .* Rj_sq)
+    den_slope = sum(q.Hjj .* (1 .- q.ρ2) .* Rj_sq)
+    full_ratio = (num_intercept + num_slope) / (den_intercept + den_slope)
 
     predicted_ratio = (1 - (q.H00 / L0) * q.barρ2) / (1 - q.barρ2)
 
@@ -113,6 +129,13 @@ for μ0 in Μ0_GRID
         "H00" => q.H00,
         "H00_over_L0" => q.H00 / L0,
         "barρ2" => q.barρ2,
+        "R0_sq" => R0_sq,
+        "sum_Rj_sq" => sum(Rj_sq),
+        "num_intercept" => num_intercept,
+        "den_intercept" => den_intercept,
+        "num_slope" => num_slope,
+        "den_slope" => den_slope,
+        "full_ratio" => full_ratio,
         "predicted_ratio" => predicted_ratio,
         "T_newton" => T_newt,
         "T_gradient" => T_grad,
@@ -121,7 +144,7 @@ for μ0 in Μ0_GRID
         "gradient_reached_tol" => grad_reached,
     ))
 
-    @info "μ0=$(μ0)  H00/L0=$(round(q.H00/L0; sigdigits=3))  ρ̄²=$(round(q.barρ2; sigdigits=3))  predicted=$(round(predicted_ratio; sigdigits=3))  empirical=$(round(empirical_ratio; sigdigits=3))  (T_N=$(T_newt), T_G=$(T_grad))"
+    @info "μ0=$(μ0)  H00/L0=$(round(q.H00/L0; sigdigits=3))  ρ̄²=$(round(q.barρ2; sigdigits=3))  full=$(round(full_ratio; sigdigits=3))  L0/H00=$(round(L0/q.H00; sigdigits=3))  empirical=$(round(empirical_ratio; sigdigits=3))  (T_N=$(T_newt), T_G=$(T_grad))"
 end
 
 outfile = @projectroot("results", "rate-gap.jld2")
