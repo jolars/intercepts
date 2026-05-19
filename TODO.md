@@ -52,13 +52,19 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       construct a Poisson regime with large $f'''$ where the guard fires
       nontrivially. If the guard never fires anywhere, simplify the
       recommendation to bare Newton.
-- [ ] **Trim the formal apparatus.** @thm-profile-equiv is the envelope theorem;
-      @prp-exact-cost, @prp-newton-approx, @prp-newton-coupling, and
-      @prp-gradient-partial are one-step Taylor identities or substitutions.
-      Either collapse them into in-text remarks anchored to the canonical
-      identity, or keep them numbered but shorten each proof to one line naming
-      the identity ("envelope theorem at $\partial_0 F = 0$"). Either way the
-      contribution does not depend on the scaffolding.
+- [x] **Trim the formal apparatus.** Hybrid landing: kept @thm-profile-equiv
+      as a labeled theorem (it's the substantive bridge result the rest of
+      the paper anchors to) with its proof shortened to a one-liner naming
+      the envelope theorem; collapsed @prp-exact-cost, @prp-newton-approx,
+      @prp-newton-coupling, and @prp-gradient-partial to in-text remarks
+      anchored to the canonical identity. Preserved @eq-intercept-drift,
+      @eq-newton-error, @eq-newton-coupling, @eq-newton-good-enough,
+      @eq-grad-residual as the citable handles for the four collapsed
+      propositions. Rewrote ~45 prop-level cross-references to use the
+      surviving equation labels or named-identity phrasing ("within-pass
+      drift", "Newton-coupling bias", "Schur-coupling residual"); the 5
+      @thm-profile-equiv cites remain unchanged. No code/result changes;
+      paper renders without unresolved references.
 
 ## Minor
 
