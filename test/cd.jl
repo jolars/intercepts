@@ -215,43 +215,6 @@ end
     @test f_new <= f0 + 1.0e-10
 end
 
-@testset "DampedNewtonStrategy aliases NewtonStrategy" begin
-    Random.seed!(2024)
-    n = 200
-    p = 20
-
-    X, y = generatedata(
-        n,
-        p;
-        response = :normal,
-        x_type = :normal,
-        ρ = 0.3,
-        s = 5,
-        amplitude = 1.0,
-    )
-
-    reg = 0.05
-    res_newt = cdsolver(
-        X,
-        y,
-        reg,
-        lossfun = QuadraticLoss(),
-        intercept_strategy = NewtonStrategy(),
-        maxit = 500,
-    )
-    res_damp = cdsolver(
-        X,
-        y,
-        reg,
-        lossfun = QuadraticLoss(),
-        intercept_strategy = DampedNewtonStrategy(),
-        maxit = 500,
-    )
-
-    @test isapprox(res_newt.coef, res_damp.coef; atol = 1e-6)
-    @test isapprox(res_newt.intercept, res_damp.intercept; atol = 1e-6)
-end
-
 @testset "UnguardedNewtonStrategy matches Newton on quadratic loss" begin
     Random.seed!(2024)
     n = 200

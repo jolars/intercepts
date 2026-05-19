@@ -23,7 +23,6 @@ export InterceptStrategy
 export GradientStrategy
 export NewtonStrategy
 export UnguardedNewtonStrategy
-export DampedNewtonStrategy
 export BacktrackingGradientStrategy
 export ExactStrategy
 export update_intercept

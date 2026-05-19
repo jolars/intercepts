@@ -24,8 +24,6 @@ function get_intercept_strategy(strategy)
         return NewtonStrategy()
     elseif strategy == :unguarded_newton
         return UnguardedNewtonStrategy()
-    elseif strategy == :damped_newton
-        return DampedNewtonStrategy()
     elseif strategy == :bt_gradient
         return BacktrackingGradientStrategy()
     elseif strategy == :exact

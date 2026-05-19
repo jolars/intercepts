@@ -18,22 +18,6 @@ production use.
 """
 struct UnguardedNewtonStrategy <: InterceptStrategy end
 
-"""
-    DampedNewtonStrategy(; armijo_c = 1e-4, backtrack = 0.5, max_backtracks = 20)
-
-Deprecated alias for [`NewtonStrategy`](@ref). The Newton intercept update
-now performs its own Armijo line search, so the historically separate
-damped variant produces the same iterates as the bare strategy. The
-keyword arguments are accepted for backward compatibility but ignored;
-`update_intercept` delegates to `NewtonStrategy()` in both the scalar and
-vector dispatch.
-"""
-@kwdef struct DampedNewtonStrategy <: InterceptStrategy
-    armijo_c::Float64 = 1.0e-4
-    backtrack::Float64 = 0.5
-    max_backtracks::Int = 20
-end
-
 @kwdef struct BacktrackingGradientStrategy <: InterceptStrategy
     armijo_c::Float64 = 1.0e-4
     backtrack::Float64 = 0.5
@@ -112,16 +96,6 @@ function update_intercept(
     end
 
     return intercept - grad / hess
-end
-
-function update_intercept(
-    ::DampedNewtonStrategy,
-    f::LossFunction,
-    intercept::Real,
-    η::AbstractVector{<:Real},
-    y::AbstractVector{<:Real},
-)
-    return update_intercept(NewtonStrategy(), f, intercept, η, y)
 end
 
 # Gradient step (with global Lipschitz step size) protected by Armijo backtracking
@@ -351,16 +325,6 @@ function update_intercept(
     end
 
     return intercept .+ δ
-end
-
-function update_intercept(
-    ::DampedNewtonStrategy,
-    f::LossFunction,
-    intercept::AbstractVector{<:Real},
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
-    return update_intercept(NewtonStrategy(), f, intercept, η, y)
 end
 
 function update_intercept(
