@@ -57,6 +57,8 @@
             biglasso
             LiblineaR
             adelie
+            textir
+            Matrix
           ];
         }
       );

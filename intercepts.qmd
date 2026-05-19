@@ -1689,6 +1689,69 @@ gisette (dense, balanced, $\mu_0 = 0.5$, $H_{00}/L_0 = 1$) both have the three
 strategies overlay each other. The exact strategy tracks bare Newton on every
 panel, consistent with @eq-intercept-drift at this tolerance.
 
+The Poisson family puts a sharper version of the same prediction on real data.
+PoissonLoss has no global upper bound on $f''(\eta) = e^\eta$, so $L_0 = \infty$
+and the gradient-strategy update degenerates: the per-pass change is
+$-\sum_i (\hat\mu_i - y_i)/(L_0 n) = 0$, an exact no-op on the intercept. We
+test this on the congress109 phrase-count corpus of @taddy2015distributed:
+$n = 529$ speakers from the 107th--109th US Congress, $p = 999$ political
+phrases (the 1\,000-phrase vocabulary with the response phrase removed). The
+response $y_i$ is speaker $i$'s count of the phrase `american.people`
+($\bar y = 11.83$, $y_{\max} = 396$), the highest-frequency phrase in the
+corpus; the features are the remaining $999$ phrase counts after column
+standardisation. This is the distributed-multinomial-regression construction
+of @taddy2015distributed---a multinomial-over-vocabulary approximated by an
+independent Poisson lasso per term---and the baseline rate $\bar y \approx 12$
+puts the cold-start intercept overshoot $\bar y - 1 \approx 10.83$ versus the
+exact $\log(\bar y) \approx 2.47$ in the regime where the synthetic cold-start
+sweep in @fig-cold-start-poisson starts ($\mu_0 = 10$). Same $\lambda =
+0.05\,\lambda_{\max}$ convention as the logistic panel; cyclic CD with a
+$1\,000$-pass budget.
+
+```{julia}
+#| label: fig-real-poisson
+#| fig-cap: Convergence trajectories for the four intercept strategies on the
+#|   congress109 Poisson problem ($n = 529$, $p = 999$, $\bar y = 11.83$,
+#|   $\lambda = 0.05\,\lambda_{\max}$). The gradient strategy is a flat
+#|   no-op---$L_0 = \infty$ for PoissonLoss makes the per-pass intercept
+#|   update vanish identically, so the iterate cannot benefit from any
+#|   imbalance correction and the relative gap plateaus at the cold-start
+#|   value (the $\approx 0.31$ asymptote in the figure is the relative gap of
+#|   the no-intercept solution). The Newton, unguarded-Newton, and exact
+#|   strategies trace a single overlapping curve to relative gap $10^{-10}$
+#|   in $\approx 3$ seconds. The per-coordinate Armijo loop inside cdsolver
+#|   absorbs the unguarded-Newton transient before the next intercept update
+#|   fires, which is why @fig-cold-start-poisson requires $\mu_0 \ge 30$ to
+#|   see daylight between the guarded and unguarded curves; congress109 sits
+#|   at the lower edge of that regime.
+
+dd = JLD2.load(@projectroot("results", "real-poisson.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals])
+df.relgaps .= max.(df.relgaps, 1.0e-20)
+
+spec = data(df) * mapping(
+    :time => "Time (s)",
+    :relgaps => "Relative duality gap",
+    color = :strategy,
+)
+draw(
+    visual(Lines) * spec,
+    axis = (yscale = log10,),
+    figure = (; size = (600, 380))
+)
+```
+
+The gradient-strategy collapse in @fig-real-poisson is the strongest empirical
+form of the $L_0 = \infty$ structural-inadequacy claim from
+@eq-grad-residual---no tuning, no problem-specific imbalance level, just the
+loss family. The Newton-class strategies agree on a single trajectory because
+the cdsolver's per-coordinate Armijo loop (Tseng--Yun sufficient decrease,
+@algo-cd) absorbs the cold-start overshoot before the first intercept update
+fires; the synthetic sweep of @fig-cold-start-poisson at $\mu_0 = 10$ shows
+the same coincidence and requires $\mu_0 \ge 30$ to separate the guarded and
+unguarded curves visibly.
+
 ### Cyclic vs Permuted Ordering {#sec-ordering}
 
 The within-pass drift argument of @eq-intercept-drift is agnostic to
@@ -2463,6 +2526,92 @@ draw(
 )
 ```
 
+#### Poisson Family
+
+The Poisson family separates the production solvers structurally before any
+trajectory is recorded. PoissonLoss has $f''(\eta) = e^\eta$ unbounded on
+$\mathbb{R}$, so no global Lipschitz upper bound exists; consequently neither
+the $w \equiv 1/4$ MM majorant of glmnet `modified.Newton` and biglasso `MM`
+nor the constant-Lipschitz coordinate step of skglm `AndersonCD` has a
+Poisson analog. The status of each solver on this family is structural, not
+empirical:
+
+- **glmnet** supports `family = "poisson"` with a single fitting mode
+  (local-IRLS); no `type.poisson` switch exists.
+- **biglasso** does not implement `family = "poisson"` at all; its signature
+  is restricted to `gaussian`, `binomial`, `cox`, and `mgaussian`.
+- **skglm** `AndersonCD` requires `datafit.get_lipschitz()`, which the
+  `Poisson` datafit declines to implement (`AttributeError: Poisson is not
+  compatible with solver AndersonCD`). The Bucket-A entry vanishes at the
+  attribute-resolution layer.
+- **skglm** `ProxNewton` pairs with the `Poisson` datafit through local
+  prox-Newton subproblems and is the prox-Newton representative in the
+  panel.
+- **adelie** supports `glm.poisson(y)` through the same direct-Newton /
+  weighted-centered-features parameterisation as the logistic case.
+
+Three Bucket-B solvers therefore remain: glmnet, adelie, and skglm
+`ProxNewton`. We run each in path mode on congress109 with $\lambda =
+0.05\,\lambda_{\max}$, sweeping the solver-specific tolerance.
+
+```{julia}
+#| label: fig-real-poisson-production
+#| fig-cap: Three Bucket-B production solvers on the congress109 Poisson
+#|   problem ($n = 529$, $p = 999$, $\bar y = 11.83$, $\lambda =
+#|   0.05\,\lambda_{\max}$), each in path mode (warm-start from
+#|   $\lambda_{\max}$ down to $\lambda$ in $50$ geometric steps). Primal
+#|   suboptimality (vertical) versus wall-clock time (horizontal); reference
+#|   $F^\star$ taken as the minimum primal observed across all three solvers
+#|   and tolerances. The three trajectories agree on $F^\star$ to within
+#|   $\approx 10^{-5}$ and converge in well under a second; glmnet reaches
+#|   the tightest reported suboptimality, adelie's outer-IRLS criterion
+#|   places a floor at $\approx 10^{-4}$ as in @fig-real-adelie, and skglm
+#|   `ProxNewton` plateaus after $\approx 15$ outer prox-Newton iterations.
+#|   The Bucket-A panel is absent by construction (skglm `AndersonCD` and
+#|   biglasso are structurally unavailable for Poisson, see above) and there
+#|   is no within-package mode toggle the way @fig-real-glmnet shows for
+#|   logistic; every working solver on Poisson is local-IRLS-equivalent.
+
+probdir = @projectroot("results", "real-solvers-poisson", "congress109")
+df_gl = DataFrame(CSV.File(joinpath(probdir, "glmnet.csv")))
+df_ad = DataFrame(CSV.File(joinpath(probdir, "adelie.csv")))
+df_pn = DataFrame(CSV.File(joinpath(probdir, "proxnewton.csv")))
+
+df = vcat(
+    DataFrame(solver = "glmnet", runtime = df_gl.runtime, primal = df_gl.primal),
+    DataFrame(solver = "adelie", runtime = df_ad.runtime, primal = df_ad.primal),
+    DataFrame(solver = "skglm ProxNewton", runtime = df_pn.runtime, primal = df_pn.primal),
+)
+F_star = minimum(df.primal)
+df.subopt = max.(df.primal .- F_star, 1.0e-15)
+sort!(df, [:solver, :runtime])
+
+spec = data(df) * mapping(
+    :runtime,
+    :subopt,
+    color = :solver,
+)
+draw(
+    visual(Lines) * spec + visual(Scatter) * spec,
+    axis = (
+        xscale = log10,
+        yscale = log10,
+        xlabel = "Time (s)",
+        ylabel = "Primal suboptimality",
+    ),
+    figure = (; size = (700, 380)),
+)
+```
+
+The Poisson panel therefore makes a structural rather than an empirical
+point: the within-package weight-scheme toggle that drives @fig-real-glmnet
+and @fig-real-biglasso has no analog here, not because the production
+authors chose to omit it but because the underlying loss family does not
+admit the $w \equiv 1/4$ surrogate that powers the Bucket-A entries. Every
+working Poisson solver in production CD lives in Bucket B---a closed-form
+read of the framework's recommendation, expressed at the source-code level
+rather than the trajectory level.
+
 #### Single-Lambda Cold Start {#sec-cold-start-diag}
 
 The path-mode protocol used above warm-starts the inner CD past the cold-start
@@ -2527,7 +2676,11 @@ load-bearing: bare Newton overshoots the cold-start intercept by a factor
 that scales with $\mu_0$, and although the cdsolver's per-coordinate
 backtracking absorbs the transient eventually, the guarded variant descends
 monotonically while the unguarded variant exhibits a pass-one relative gap
-several orders of magnitude above. The gradient
+several orders of magnitude above. On real Poisson data (congress109,
+@fig-real-poisson) the gradient strategy fails outright---$L_0 = \infty$
+makes the per-pass intercept update vanish identically and the iterate
+plateaus at the cold-start relative gap---while the Newton-class strategies
+agree on a single trajectory. The gradient
 strategy, by contrast, inherits a per-coordinate Lipschitz mismatch $H_{00}/L_0$
 that shrinks toward zero under imbalance---the same scaling that produces the
 order-of-magnitude pass-count gaps in @fig-mu-extreme, @fig-mu-reg-gradient, and
@@ -2542,7 +2695,14 @@ safe bucket and glmnet `modified.Newton`, biglasso `MM`, and skglm 0.5 in the
 imbalance-sensitive bucket, with the predicted pass-count separation confirmed
 empirically on three imbalanced problems (@fig-real-glmnet--@fig-real-adelie).
 The within-package mode toggles in glmnet and biglasso turn this into a
-controlled experiment whose outcome is consistent with the framework.
+controlled experiment whose outcome is consistent with the framework. The
+Poisson family carries the same diagnostic one step further:
+@fig-real-poisson-production shows the Bucket-A entry vanishing at the
+attribute layer rather than the trajectory layer (skglm `AndersonCD` rejects
+the Poisson datafit because `get_lipschitz` is unimplemented; biglasso
+ships no Poisson family at all), so every working production Poisson CD
+solver is local-IRLS-equivalent by construction. This is the framework's
+prediction read directly from the source code.
 
 The multinomial setting amplifies the practical relevance of the choice. Whereas
 binary logistic regression needs an explicit imbalance ($\mu_0$ near zero or

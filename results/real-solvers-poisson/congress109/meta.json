@@ -1,0 +1,16 @@
+{
+  "dataset": "congress109",
+  "source": "textir::congress109Counts",
+  "construction": "drop target phrase; regress its count on remaining phrase counts",
+  "n": 529,
+  "p": 999,
+  "target_phrase": "american.people",
+  "target_column_index_in_original": 1000,
+  "y_mean": 11.8261,
+  "y_var": 833.4508,
+  "y_max": 396,
+  "y_zero_share": 0.2174,
+  "reg": 0.05,
+  "lambda": 1.0544,
+  "lambda_max": 21.088
+}

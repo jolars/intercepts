@@ -75,6 +75,7 @@ devenv.local.yaml
 # enough to keep tracked for documentation of the (n, p, lambda, mu0) cells.
 /results/real-solvers/X.csv
 /results/real-solvers/*/X.csv
+/results/real-solvers-poisson/*/X.csv
 
 # Locally-cached external datasets (e.g. Yeoh2002 from iowabiostat);
 # fetched on demand by experiments/fetch-yeoh.R and similar drivers.

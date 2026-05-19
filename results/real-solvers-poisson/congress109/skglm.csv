@@ -1,0 +1,2 @@
+problem,tol,n_iter,primal,runtime,status
+congress109,,-1,,0.16419916200175066,unsupported_no_lipschitz
