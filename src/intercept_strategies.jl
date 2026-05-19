@@ -8,6 +8,17 @@ struct NewtonStrategy <: InterceptStrategy end
 struct ExactStrategy <: InterceptStrategy end
 
 """
+    UnguardedNewtonStrategy()
+
+Newton intercept update with the Armijo backtracking guard removed: always
+takes the full step `δ = -∂₀F / H₀₀`. Used by the cold-start diagnostics
+in @fig-cold-start and @fig-cold-start-poisson to isolate the contribution
+of the safeguard inside [`NewtonStrategy`](@ref); not recommended for
+production use.
+"""
+struct UnguardedNewtonStrategy <: InterceptStrategy end
+
+"""
     DampedNewtonStrategy(; armijo_c = 1e-4, backtrack = 0.5, max_backtracks = 20)
 
 Deprecated alias for [`NewtonStrategy`](@ref). The Newton intercept update
@@ -84,6 +95,23 @@ function update_intercept(
     end
 
     return intercept
+end
+
+function update_intercept(
+    ::UnguardedNewtonStrategy,
+    f::LossFunction,
+    intercept::Real,
+    η::AbstractVector{<:Real},
+    y::AbstractVector{<:Real},
+)
+    grad = sum(gradient(f, η, y))
+    hess = sum(hessian(f, η, y))
+
+    if hess <= 0 || !isfinite(hess) || grad == 0
+        return intercept
+    end
+
+    return intercept - grad / hess
 end
 
 function update_intercept(
@@ -293,6 +321,36 @@ function update_intercept(
     end
 
     return copy(intercept)
+end
+
+function update_intercept(
+    ::UnguardedNewtonStrategy,
+    f::LossFunction,
+    intercept::AbstractVector{<:Real},
+    η::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    n = size(η, 1)
+    g = _intercept_grad(f, η, y)
+    H = _intercept_hess(f, η, y)
+    local δ
+    try
+        δ = -(H \ g)
+    catch err
+        if err isa LinearAlgebra.SingularException
+            δ = -g ./ (f.lipschitz * n)
+        else
+            rethrow()
+        end
+    end
+    if any(!isfinite, δ)
+        δ = -g ./ (f.lipschitz * n)
+    end
+    if all(==(0), δ)
+        return copy(intercept)
+    end
+
+    return intercept .+ δ
 end
 
 function update_intercept(

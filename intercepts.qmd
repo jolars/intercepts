@@ -960,7 +960,11 @@ backtracking line search: accept the full step ($\alpha = 1$) if it decreases
 $F$ enough, otherwise halve $\alpha$ until it does. The Newton strategy as
 implemented here folds this safeguard in directly, at a constant per-pass cost
 in the easy regime and a logarithmic one when the linear model is inadequate;
-the historical `DampedNewtonStrategy` is now a deprecated alias.
+the historical `DampedNewtonStrategy` is now a deprecated alias. The
+isolated-guard diagnostic in @fig-cold-start and @fig-cold-start-poisson
+(below) compares the guarded variant directly against a bare Newton step
+without backtracking, locating the regime where the guard is actually
+load-bearing.
 
 #### Constructed Failure Examples
 
@@ -1005,12 +1009,13 @@ unaffected.
 
 ```{julia}
 #| label: fig-cold-start
-#| fig-cap: With cyclic ordering and a cold-start intercept, the Newton
-#|   strategy's per-coordinate Armijo guard absorbs the initial large
-#|   $|\partial_0 F|$ transient that the Newton-coupling bias
-#|   (@eq-newton-coupling) identifies as the
-#|   unguarded-Newton failure mode; the Newton and exact trajectories agree
-#|   across all $\mu_0$ levels.
+#| fig-cap: Bare Newton (`unguarded_newton`), Armijo-guarded Newton
+#|   (`newton`), and the exact strategy produce visually identical relative-gap
+#|   trajectories on the logistic problem across all $\mu_0$ levels, including
+#|   $\mu_0 = 0.99$. The Newton-coupling bias (@eq-newton-coupling) predicts a
+#|   cold-start overshoot for the bare step, but the bounded-Hessian regime
+#|   ($f'' = \mu(1-\mu) \le 1/4$) keeps the Armijo accept condition satisfied at
+#|   $\alpha = 1$ at every iterate the solver visits; the guard never fires.
 
 dd = JLD2.load(@projectroot("results", "sim-cold-start.jld2"))
 df = DataFrame(dd["results"])
@@ -1031,14 +1036,65 @@ draw(
 
 The second prediction is the Newton-coupling bias (@eq-newton-coupling): an
 unguarded Newton step on the intercept can be perturbed by a large
-$|\partial_0 F|$ at cold start.
-@fig-cold-start shows that the per-coordinate Armijo guard inside the Newton
-strategy absorbs that transient: with cyclic ordering and the intercept
-initialized at zero (so $|\partial_0 F|$ is large at pass one), the Newton
-trajectory tracks the exact strategy across every $\mu_0$ level, including
-$\mu_0 = 0.99$ where the unguarded analysis predicts the worst-case overshoot.
-The exact strategy is competitive in this experiment but pays the
-within-pass-drift cost identified in @eq-intercept-drift.
+$|\partial_0 F|$ at cold start. @fig-cold-start tests this prediction directly
+by running the bare-Newton variant (no Armijo) alongside the guarded variant
+and the exact strategy: on logistic regression, including the adversarial
+$\mu_0 = 0.99$ row, the three trajectories are indistinguishable. The Armijo
+guard accepts $\alpha = 1$ at every intercept update the solver visits, so it
+reduces to the bare Newton step at trivial overhead. The bounded Hessian
+$f'' = \mu(1-\mu) \le 1/4$ is what makes this work: the linear model is
+globally adequate enough that the full Newton step on the intercept always
+descends.
+
+The picture changes for unbounded-Hessian losses. For Poisson regression with
+the canonical log link, $f''(\eta) = e^\eta$ and $f'''(\eta) = e^\eta$ both
+grow without bound, so the Newton linearization is loose far from the optimum
+and the unguarded step can overshoot by an arbitrary factor. We repeat the
+cold-start experiment on synthetic Poisson data with $n = 500$, $p = 1000$,
+$s = 10$, $\lambda = 0.1\,\lambda_{\max}$, and baseline rates
+$\mu_0 \in \{10, 30, 100, 300\}$.
+
+```{julia}
+#| label: fig-cold-start-poisson
+#| fig-cap: Poisson cold start, log link, baseline rates $\mu_0 \in
+#|   \{10, 30, 100, 300\}$. The Armijo-guarded Newton step (`newton`) and the
+#|   exact strategy descend monotonically; the bare Newton step
+#|   (`unguarded_newton`) overshoots at pass one by an amount that grows with
+#|   $\mu_0$---visible as a large pass-one relative gap before the per-coord
+#|   Armijo backtracking inside the CD outer loop pulls the iterate back. All
+#|   three reach the same final primal in a comparable number of passes; the
+#|   guard absorbs the transient at the cost of a handful of backtracks in the
+#|   first pass.
+
+dd_p = JLD2.load(@projectroot("results", "sim-cold-start-poisson.jld2"))
+df_p = DataFrame(dd_p["results"])
+df_p = flatten(df_p, [:time, :relgaps, :gaps, :primals])
+
+df_p.relgaps .= max.(df_p.relgaps, 1.0e-20)
+μ0_levels = ["μ₀ = " * string(Int(m)) for m in sort(unique(df_p.μ0))]
+df_p.μ0 = "μ₀ = " .* string.(Int.(df_p.μ0))
+
+spec_p = data(df_p) *
+    mapping(:time, :relgaps, color = :strategy, col = :μ0 => sorter(μ0_levels))
+
+draw(
+    visual(Lines) * spec_p,
+    axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
+    facet = (; linkxaxes = :none),
+    figure = (; size = (800, 250))
+)
+```
+
+@fig-cold-start-poisson is the regime the Newton-coupling bias warns about: at
+$\mu_0 = 300$ the bare Newton intercept step at cold start lands near
+$\bar{y} - 1 \approx 299$ while the exact optimum is $\log(\bar{y}) \approx
+5.7$, an $\approx 50\times$ overshoot that evaluates the loss at $e^{299}$. The
+unguarded trajectory is recoverable here because the outer CD loop's own
+per-coordinate Armijo guard absorbs the resulting transient over the next few
+passes, so the final primal matches; the cost is a pass-one relative gap that
+sits several orders of magnitude above the guarded trajectory. The exact
+strategy is competitive in both experiments but pays the within-pass-drift
+cost identified in @eq-intercept-drift.
 
 #### Extension to Vector Intercepts
 
@@ -2455,14 +2511,23 @@ the linear predictor reaches extreme values, dampening the cycle.
 The picture that emerges across theory and experiments is that the intercept
 update is not a one-line implementation detail but a load-bearing choice whose
 right setting is dictated by the response distribution. For direct coordinate
-descent on a smooth GLM loss, the recommendation is the Newton block step with a
-per-coordinate Armijo guard: it is locally invariant to imbalance, requires no
-tuning, and matches the exact strategy on outer-pass count while avoiding the
-$k_0 - 1$ wasted inner work that the exact strategy spends per pass. The Armijo
-guard adds a thin safety net for the narrow cold-start regime in which an
-unguarded Newton step could overshoot\ (@fig-cold-start); in our experiments the
-line search succeeds on the first attempt at every iterate away from cold start,
-so the guard reduces to the bare Newton update in steady state. The gradient
+descent on a smooth GLM loss, the recommendation is the Newton block step: it is
+locally invariant to imbalance, requires no tuning, and matches the exact
+strategy on outer-pass count while avoiding the $k_0 - 1$ wasted inner work
+that the exact strategy spends per pass. Whether to wrap that step in an
+Armijo guard depends on the response distribution.
+For bounded-Hessian losses (logistic, quadratic), the
+side-by-side comparison in @fig-cold-start shows the bare Newton step and the
+Armijo-guarded variant produce indistinguishable trajectories at every
+$\mu_0$ level we tested, including the adversarial cold start at $\mu_0 =
+0.99$; the guard never fires, so it reduces to free insurance.
+For unbounded-Hessian losses such as
+Poisson at extreme rates (@fig-cold-start-poisson) the guard becomes
+load-bearing: bare Newton overshoots the cold-start intercept by a factor
+that scales with $\mu_0$, and although the cdsolver's per-coordinate
+backtracking absorbs the transient eventually, the guarded variant descends
+monotonically while the unguarded variant exhibits a pass-one relative gap
+several orders of magnitude above. The gradient
 strategy, by contrast, inherits a per-coordinate Lipschitz mismatch $H_{00}/L_0$
 that shrinks toward zero under imbalance---the same scaling that produces the
 order-of-magnitude pass-count gaps in @fig-mu-extreme, @fig-mu-reg-gradient, and

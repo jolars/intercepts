@@ -251,3 +251,80 @@ end
     @test isapprox(res_newt.coef, res_damp.coef; atol = 1e-6)
     @test isapprox(res_newt.intercept, res_damp.intercept; atol = 1e-6)
 end
+
+@testset "UnguardedNewtonStrategy matches Newton on quadratic loss" begin
+    Random.seed!(2024)
+    n = 200
+    p = 20
+
+    X, y = generatedata(
+        n,
+        p;
+        response = :normal,
+        x_type = :normal,
+        ρ = 0.3,
+        s = 5,
+        amplitude = 1.0,
+    )
+
+    reg = 0.05
+    res_newt = cdsolver(
+        X,
+        y,
+        reg,
+        lossfun = QuadraticLoss(),
+        intercept_strategy = NewtonStrategy(),
+        maxit = 500,
+    )
+    res_ung = cdsolver(
+        X,
+        y,
+        reg,
+        lossfun = QuadraticLoss(),
+        intercept_strategy = UnguardedNewtonStrategy(),
+        maxit = 500,
+    )
+
+    # Quadratic loss: the Armijo accept condition holds at α = 1 trivially
+    # (the linear model is the true loss), so the unguarded and guarded
+    # variants must produce identical iterates.
+    @test isapprox(res_newt.coef, res_ung.coef; atol = 1e-6)
+    @test isapprox(res_newt.intercept, res_ung.intercept; atol = 1e-6)
+end
+
+@testset "UnguardedNewtonStrategy vs Newton at extreme imbalance cold start" begin
+    Random.seed!(8888)
+    n = 200
+    p = 50
+
+    X, y = generatedata(
+        n,
+        p;
+        response = :binomial,
+        μ0 = 0.99,
+        x_type = :normal,
+        ρ = 0.3,
+        s = 5,
+        amplitude = 1.0,
+    )
+
+    # Same adversarial cold-start η as the descent test above.
+    η = -3.0 .* ones(n) .+ 0.1 .* randn(n)
+    f = LogisticLoss()
+
+    f0 = loss(f, η, y)
+    intercept_newt = update_intercept(NewtonStrategy(), f, 0.0, η, y)
+    intercept_ung = update_intercept(UnguardedNewtonStrategy(), f, 0.0, η, y)
+
+    η_newt = η .+ intercept_newt
+    η_ung = η .+ intercept_ung
+    f_newt = loss(f, η_newt, y)
+    f_ung = loss(f, η_ung, y)
+
+    # The guarded variant must descend (asserted in the earlier testset, repeated
+    # here for the side-by-side narrative). The unguarded variant may or may not
+    # descend on a given regime — what we want to record is the gap between the
+    # two in this adversarial cold start.
+    @test f_newt <= f0 + 1.0e-10
+    @info "Adversarial cold start ΔF" guarded = f_newt - f0 unguarded = f_ung - f0
+end

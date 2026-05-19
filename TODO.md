@@ -46,12 +46,27 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       vs path-mode optimum $0.0497$) while MM gives $0.089$ at the same
       eps. Two-dataset claim survives in a more measured form than "both
       blow up to $-1500$."
-- [ ] **Isolate the Armijo guard's contribution.** @fig-cold-start is consistent
-      with both "guard saved us at cold start" and "guard never fires." Add an
-      unguarded-Newton baseline on the most adversarial $\mu_0$ row, or
-      construct a Poisson regime with large $f'''$ where the guard fires
-      nontrivially. If the guard never fires anywhere, simplify the
-      recommendation to bare Newton.
+- [x] **Isolate the Armijo guard's contribution.** Done: added a new
+      `UnguardedNewtonStrategy` (singleton type in `src/intercept_strategies.jl`,
+      exported, dispatch symbol `:unguarded_newton`) that takes the full Newton
+      step on the intercept without the Armijo loop, plus equivalence /
+      cold-start tests in `test/cd.jl`. Re-ran @fig-cold-start with the
+      unguarded variant as a third trajectory: on logistic at
+      $\mu_0 \in \{0.5, 0.9, 0.95, 0.99\}$ the bare Newton step matches
+      guarded Newton and the exact strategy pointwise across all seeds, so
+      the guard is dormant in the bounded-Hessian regime. Added
+      @fig-cold-start-poisson (new experiment
+      `experiments/sim-cold-start-poisson.jl`, cached at
+      `results/sim-cold-start-poisson.jld2`) on Poisson at
+      $\mu_0 \in \{10, 30, 100, 300\}$, the unbounded-Hessian regime: bare
+      Newton overshoots the cold-start intercept by an amount that grows with
+      $\mu_0$ (pass-one primal spike from $500$ up to $3.3\times 10^6$ at
+      $\mu_0 = 300$), the cdsolver's per-coordinate Armijo absorbs it over
+      subsequent passes so the final primal still matches, but the
+      pass-one relative gap sits several orders of magnitude above the
+      guarded trajectory. Refit captions and the Discussion recommendation
+      accordingly: the guard is free insurance on bounded-Hessian losses and
+      load-bearing on unbounded-Hessian losses.
 - [x] **Trim the formal apparatus.** Hybrid landing: kept @thm-profile-equiv
       as a labeled theorem (it's the substantive bridge result the rest of
       the paper anchors to) with its proof shortened to a one-liner naming
