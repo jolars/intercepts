@@ -33,14 +33,14 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       replaced the `proof` environment with a running-prose derivation that
       flags the three heuristic substitutions inline (schedule, iterate-level
       $H_{00}$, one-step Schur) and shrunk the trailing remark.*
-- [x] Reframe @fig-rate-gap as a post-hoc diagnostic, not a prediction.
-      *Took option (b). `experiments/sim-rate-gap.jl` now also evaluates
-      @eq-rate-gap at $\eta_i^{(0)} = \mathrm{logit}(\mu_0)$ (the cold-start
-      proxy of @sec-imbalance-reg). The figure plots three curves: cold-start
-      prediction, iterate-level diagnostic, empirical. They cross near
-      $\mu_0 \approx 0.97$; neither bound uniformly tighter. Caption and
-      surrounding prose rewritten to label each curve's evaluation point and
-      flag the heuristic-substitution slack.*
+- [x] Reframe @fig-rate-gap as a post-hoc diagnostic, not a prediction. *Took
+      option (b). `experiments/sim-rate-gap.jl` now also evaluates @eq-rate-gap
+      at $\eta_i^{(0)} = \mathrm{logit}(\mu_0)$ (the cold-start proxy of
+      @sec-imbalance-reg). The figure plots three curves: cold-start prediction,
+      iterate-level diagnostic, empirical. They cross near $\mu_0 \approx 0.97$;
+      neither bound uniformly tighter. Caption and surrounding prose rewritten
+      to label each curve's evaluation point and flag the heuristic-substitution
+      slack.*
 - [x] Spell out the substitution $|\beta_0 - \beta_0^*| = |\partial_0 F|/H_{00}$
       in the derivation of @eq-newton-error. The bound currently mixes
       Newton-residual in iterate space with $\partial_0 F$; the first-order
@@ -48,9 +48,9 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       lead-in with a three-step chain: Taylor identity for $\partial_0 F$ at
       $\beta_0^*$ (`@eq-intercept-taylor`), divide-by-$H_{00}$ recovers the
       iterate-space Newton bound (`@eq-newton-iterate`), then the first-order
-      reading of the same identity supplies $\beta_0 - \beta_0^* = \partial_0
-      F/H_{00} + O(\cdot)$ and substitutes into @eq-newton-iterate to give
-      @eq-newton-error.*
+      reading of the same identity supplies $\beta\_0 - \beta\_0^* = \partial\_0
+      F/H\_{00} + O(\cdot)$ and substitutes into @eq-newton-iterate to give
+      @eq-newton-error.\*
 
 ## Reproducibility plumbing
 
@@ -77,18 +77,31 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       annotate the omission. *Inlined the Armijo loop into the Newton branch:
       compute $\delta$ from the Newton direction, initialize $\alpha = 1$,
       shrink $\alpha \gets \alpha/2$ while the sufficient-decrease condition
-      $F(\beta_0 + \alpha\delta) > F(\beta_0) + c\,\alpha\,\delta\,\partial_0
+      $F(\beta\_0 + \alpha\delta) > F(\beta\_0) + c\,\alpha\,\delta\,\partial\_0
       F$ fails, then step $\beta_0 \gets \beta_0 + \alpha\delta$. Updated the
-      trailing prose to identify $c \in (0,1)$ (we use $10^{-4}$). Gradient
-      and Exact branches unchanged — they are not Armijo-guarded in the
+      trailing prose to identify $c \in (0,1)$ (we use $10^{-4}$). Gradient and
+      Exact branches unchanged --- they are not Armijo-guarded in the
       implementation.*
-- [ ] Fix the Multinomial row in @tbl-glm. The link entry $\log(\mu/(1-\mu))$ is
+- [x] Fix the Multinomial row in @tbl-glm. The link entry $\log(\mu/(1-\mu))$ is
       the binary logit. Replace with the reference-class per-component formula
       the body uses, or note explicitly that the entry shows the per-class form.
-- [ ] Define the exact strategy once, and use one name for it. Currently it has
+      *Replaced the link cell with $\log(\mu/(1 - \sum_{j=1}^{m-1}\mu_j))$ ---
+      the reference-class form consistent with the loss and inverse-link cells.
+      Extended the caption to spell out the reference-class parameterization
+      ($\eta_m \equiv 0$, $\mu_m = 1 - \sum_{j<m}\mu_j$, $\eta$/$\mu$ are
+      $(m-1)$-vectors with element-wise $\log$/$\exp$) so the row reads
+      unambiguously.*
+- [x] Define the exact strategy once, and use one name for it. Currently it has
       three definitions (intro, theory, figures) and oscillates between "exact"
       and "convergence" across @sec-warmstart-path. Pick "exact" and use it
-      everywhere.
+      everywhere. *Promoted the intro "Exact Strategy" bullet (cleaned up the
+      awkward "in the intercept convergence" phrasing) to the canonical
+      definition; trimmed the theory enumeration item 3 to just name "the* exact
+      strategy*" without redefining; and swapped every remaining strategy-named
+      "convergence" → "exact" (the contribution bullet, the @sec-theory lead
+      paragraph, the @prp-profile-equiv statement, and the @sec-warmstart-path
+      warm-start commentary). Descriptive uses of "convergence" (loop,
+      tolerance, speed) left alone.*
 - [ ] Define Bucket A / Bucket B at the opening of @sec-production-solvers. The
       mapping is implicit in @tbl-classification but the section uses the labels
       before defining them.

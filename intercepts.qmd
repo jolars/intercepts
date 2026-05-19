@@ -105,9 +105,8 @@ Newton Strategy
     regime where an undamped step could overshoot.
 
 Exact Strategy
-:   The intercept is updated by solving the optimization problem in the
-    intercept convergence before each pass over the coordinates, using either
-    gradient or Newton steps.
+:   The intercept is updated by iterating Newton steps on the 1-D intercept
+    subproblem to convergence before each pass over the coordinates.
 
 For a first illustration, see @fig-first-example, which compares the three main
 strategies on $\ell_1$-regularized logistic regression on the w1a
@@ -162,8 +161,8 @@ Our main contributions are as follows:
 
 Strategy Taxonomy
 :   We introduce and formalize three intercept-update strategies---gradient,
-    Newton, and convergence---that span the design space used by current CD
-    solvers for regularized GLMs. The Newton strategy folds in an
+    Newton, and exact---that span the design space used by current CD solvers
+    for regularized GLMs. The Newton strategy folds in an
     Armijo-backtracking safeguard that absorbs the cold-start regime where an
     undamped step could overshoot.
 
@@ -288,15 +287,15 @@ classification, it is the common regime, not a corner case (@sec-irls,
 
 ## Theory {#sec-theory}
 
-The three intercept-update strategies from the introduction---a single gradient
-step, a single Newton step, and iterating the intercept subproblem to
-convergence---disagree on logistic and related GLM losses, and on imbalanced
-data the disagreement is large enough to determine convergence speed. This
+The three intercept-update strategies from the introduction---gradient,
+Newton, and exact---disagree on logistic and related GLM losses, and on
+imbalanced data the disagreement is large enough to determine convergence
+speed. This
 section identifies the cause. A gradient step rests on the global per-coordinate
 Lipschitz constant $L_0$, which does not adapt to the iterate-level intercept
 curvature $H_{00}$, and under response imbalance the ratio $L_0/H_{00}$ diverges.
 The gradient strategy pays that ratio as a per-iteration cost; the Newton and
-convergence strategies, which track $H_{00}$ directly, do not. The rest of
+exact strategies, which track $H_{00}$ directly, do not. The rest of
 @sec-theory makes the picture quantitative.
 
 Throughout, we work with the per-observation-averaged GLM loss
@@ -324,12 +323,13 @@ will work with throughout the paper.
   | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                          | $\mu$                                  | $\eta$                                               |
   | Binomial    | $\log(1 + e^\eta) - \eta y$                                                                        | $\log\left(\frac{\mu}{1 - \mu}\right)$ | $\frac{e^\eta}{1 + e^\eta}$                          |
   | Poisson     | $e^\eta - \eta y$                                                                                  | $\log(\mu)$                            | $e^\eta$                                             |
-  | Multinomial | $\log\left(1 + \sum_{j=1}^{m-1} e^{\eta_j}\right) - \sum_{k=1}^{m-1} y_k \eta_k$                    | $\log\left(\frac{\mu}{1 - \mu}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
+  | Multinomial | $\log\left(1 + \sum_{j=1}^{m-1} e^{\eta_j}\right) - \sum_{k=1}^{m-1} y_k \eta_k$                    | $\log\!\left(\frac{\mu}{1 - \sum_{j=1}^{m-1} \mu_j}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
 
   : Loss functions, link functions, and inverse link functions for generalized
-    linear models. Note that in the case of multinomial logistic regression, the
-    input is vector-valued, and we allow $\log$ and $\exp$ to be overloaded to
-    apply element-wise in these cases. {#tbl-glm}
+    linear models. The multinomial row uses the reference-class
+    parameterization with class $m$ as the reference ($\eta_m \equiv 0$,
+    $\mu_m = 1 - \sum_{j<m}\mu_j$), so $\eta$ and $\mu$ in that row are
+    $(m-1)$-vectors and $\log$ / $\exp$ are applied element-wise. {#tbl-glm}
 
 ### Coordinate Descent
 
@@ -383,9 +383,8 @@ these:
 1. A Newton step, setting $\gamma_0$ as above.
 2. A gradient descent step, setting $\gamma_0$ to either the global Lipschitz
    constant with respect to $\beta_0$ or via a backtracking line search.
-3. Solving the optimization problem of the intercept iteratively to convergence,
-   using either Newton or gradient steps. In this paper, we will use Newton
-   steps. And we will refer to this method as the *exact strategy*.
+3. Iterating Newton steps on the intercept subproblem to convergence---the
+   *exact strategy*.
 
 The coordinate descent algorithm, with the difference intercept update
 strategies, is summarized in @algo-cd.
@@ -575,7 +574,7 @@ viewpoint operationally.
 ::: {.proposition #prp-profile-equiv}
 **(First-update profile equivalence.)** Let $F$ be twice continuously
 differentiable and strictly convex in $\beta_0$ for every $\beta$, and let
-$\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$. Suppose the convergence
+$\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$. Suppose the exact
 strategy has driven $\beta_0$ to the conditional minimizer
 $\beta_0^{(t)} = \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$. Then the *first*
 coefficient update of the next pass uses the gradient
@@ -2000,7 +1999,7 @@ simulated problem and $1.2 \times 10^3$ on w1a, identical across strategies.
 
 The pass-count panel (@fig-warm-start) shows the predicted compression with one
 caveat. On both problems and both orderings, warm-starting trims the few
-pass-budget-capped subproblems for the Newton and convergence strategies (on w1a
+pass-budget-capped subproblems for the Newton and exact strategies (on w1a
 from $2$--$4$ out of $20$ cold to $2$ out of $20$ warm, depending on ordering
 and strategy) and brings their curves on top of each other---this is the
 steelman prediction of @eq-intercept-drift: with $|\partial_0 F|$ already small,
