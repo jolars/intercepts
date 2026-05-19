@@ -408,7 +408,12 @@ strategies, is summarized in @algo-cd.
             \EndFor
 
             \If{intercept strategy is "Newton"}
-                \State $\beta_0 \gets \beta_0 - \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
+                \State $\delta \gets -\left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
+                \State $\alpha \gets 1$
+                \While{$F(\beta_0 + \alpha\,\delta, \beta) > F(\beta_0, \beta) + c\,\alpha\,\delta\,\frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$}
+                    \State $\alpha \gets \alpha / 2$
+                \EndWhile
+                \State $\beta_0 \gets \beta_0 + \alpha\,\delta$
             \ElsIf{intercept strategy is "Gradient"}
                 \State $\beta_0 \gets \beta_0 - \frac{1}{L_0} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
             \ElsIf{intercept strategy is "Exact"}
@@ -423,7 +428,8 @@ strategies, is summarized in @algo-cd.
 ```
 
 The Newton branch of @algo-cd wraps the same Newton direction in an Armijo
-backtracking line search, accepting the full step on the first attempt in the
+backtracking line search (with slope-tolerance constant $c \in (0, 1)$; we
+use $c = 10^{-4}$), accepting the full step on the first attempt in the
 common case and shrinking $\alpha$ only when the line search detects an
 overshoot.
 

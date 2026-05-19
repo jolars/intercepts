@@ -71,10 +71,17 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## Smaller fixes
 
-- [ ] @algo-cd shows the Newton branch without Armijo, while the prose says the
+- [x] @algo-cd shows the Newton branch without Armijo, while the prose says the
       Newton branch wraps Armijo. Either include the Armijo loop in the
       pseudocode (as a sub-procedure or with $\alpha$ as a parameter) or
-      annotate the omission.
+      annotate the omission. *Inlined the Armijo loop into the Newton branch:
+      compute $\delta$ from the Newton direction, initialize $\alpha = 1$,
+      shrink $\alpha \gets \alpha/2$ while the sufficient-decrease condition
+      $F(\beta_0 + \alpha\delta) > F(\beta_0) + c\,\alpha\,\delta\,\partial_0
+      F$ fails, then step $\beta_0 \gets \beta_0 + \alpha\delta$. Updated the
+      trailing prose to identify $c \in (0,1)$ (we use $10^{-4}$). Gradient
+      and Exact branches unchanged — they are not Armijo-guarded in the
+      implementation.*
 - [ ] Fix the Multinomial row in @tbl-glm. The link entry $\log(\mu/(1-\mu))$ is
       the binary logit. Replace with the reference-class per-component formula
       the body uses, or note explicitly that the entry shows the per-class form.
