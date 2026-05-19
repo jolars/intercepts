@@ -325,7 +325,7 @@ we will consider in this paper in @tbl-glm.
   | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                          | $\mu$                                  | $\eta$                                               |
   | Binomial    | $\log(1 + e^\eta) - \eta y$                                                                        | $\log\left(\frac{\mu}{1 - \mu}\right)$ | $\frac{e^\eta}{1 + e^\eta}$                          |
   | Poisson     | $e^\eta - \eta y$                                                                                  | $\log(\mu)$                            | $e^\eta$                                             |
-  | Multinomial | $\sum_{k=1}^{m-1}\left( \log \left( 1 +  \sum_{j=1}^{m-1} e^{\eta_j}\right) - y_k \eta_k  \right)$ | $\log\left(\frac{\mu}{1 - \mu}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
+  | Multinomial | $\log\left(1 + \sum_{j=1}^{m-1} e^{\eta_j}\right) - \sum_{k=1}^{m-1} y_k \eta_k$                    | $\log\left(\frac{\mu}{1 - \mu}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
 
   : Loss functions, link functions, and inverse link functions for generalized
     linear models. Note that in the case of multinomial logistic regression, the
@@ -959,9 +959,8 @@ fix is to wrap the Newton direction $-\partial_0 F / H_{00}$ in an Armijo
 backtracking line search: accept the full step ($\alpha = 1$) if it decreases
 $F$ enough, otherwise halve $\alpha$ until it does. The Newton strategy as
 implemented here folds this safeguard in directly, at a constant per-pass cost
-in the easy regime and a logarithmic one when the linear model is inadequate;
-the historical `DampedNewtonStrategy` is now a deprecated alias. The
-isolated-guard diagnostic in @fig-cold-start and @fig-cold-start-poisson
+in the easy regime and a logarithmic one when the linear model is inadequate.
+The isolated-guard diagnostic in @fig-cold-start and @fig-cold-start-poisson
 (below) compares the guarded variant directly against a bare Newton step
 without backtracking, locating the regime where the guard is actually
 load-bearing.
@@ -1572,8 +1571,8 @@ cache, so to refresh a cell re-run the corresponding script. The Julia, R, and
 Python toolchains are pinned by `devenv.nix` (the `glmnet`, `biglasso`,
 `adelie`, `skglm`, and `blitzl1` versions above included) and all use their
 default OpenBLAS builds with no thread pinning. Hardware: a single x86_64 Linux
-workstation; wall-clock numbers in this paper are indicative rather than
-benchmark-grade. Source code and cached results ship with the paper repository.
+workstation with an AMD Ryzen 9 7900 (12 cores, 24 threads) and 64 GB of RAM;
+wall-clock numbers in this paper are indicative rather than benchmark-grade. Source code and cached results ship with the paper repository.
 
 ### Simulated Data
 
@@ -1624,10 +1623,14 @@ property of the w1a design specifically.
   : LIBSVM problems used in @fig-real-logreg. $\mu_0$ is the positive-class
     marginal; $H_{00}/L_0 = 4\mu_0(1-\mu_0)$ is the fraction-of-correction
     predicted by @eq-grad-residual. news20-3pct is a 60/1\,940 deterministic
-    subsample of `news20.binary` after dropping the $\approx 1.35\,\mathrm{M}$
-    word features that appear in fewer than 20 of the surviving 2\,000
-    documents---low-support features otherwise standardise to extreme values and
-    destabilise the CD solve. {#tbl-real-logreg-problems}
+    subsample of `news20.binary`: with `MersenneTwister(42)` seeding a single
+    RNG, the positive-class row indices are shuffled and the first 60 retained,
+    then the negative-class row indices are shuffled and the first 1\,940
+    retained, and the union is sorted to preserve the original row order.
+    After subsampling, the $\approx 1.35\,\mathrm{M}$ word features that appear
+    in fewer than 20 of the surviving 2\,000 documents are dropped---low-support
+    features otherwise standardise to extreme values and destabilise the CD
+    solve. {#tbl-real-logreg-problems}
 
 ```{julia}
 #| label: fig-real-logreg
@@ -1929,7 +1932,7 @@ The takeaway: warm-starting validates the steelman for Newton-class strategies
 the gradient strategy's scope. The recommendation that follows from
 @eq-intercept-drift---bare Newton in direct CD, exact strategy at the
 prox-Newton/IRLS boundary---stands,
-with the addendum that the convergence strategy becomes a defensible alternative
+with the addendum that the exact strategy becomes a defensible alternative
 to bare Newton whenever a path solve is in fact used.
 
 ### Per-Pass Cost Decomposition {#sec-per-pass-cost}
@@ -2288,7 +2291,9 @@ draw(
 #|   @sec-theory. The trajectory on the synthetic panel exhibits a slow early
 #|   ramp (hundreds of outer iterations spent reducing suboptimality before
 #|   sharp convergence once the intercept has caught up); this is the
-#|   @eq-grad-residual signature. The post-convergence scatter at high
+#|   @eq-grad-residual signature, matching the rate-gap prediction of
+#|   @cor-rate-gap on a production gradient-strategy solver. The
+#|   post-convergence scatter at high
 #|   $n_{\text{iter}}$ reflects Anderson acceleration's non-monotonic stopping
 #|   behaviour near $F^\star$.
 
@@ -2663,8 +2668,12 @@ right setting is dictated by the response distribution. For direct coordinate
 descent on a smooth GLM loss, the recommendation is the Newton block step: it is
 locally invariant to imbalance, requires no tuning, and matches the exact
 strategy on outer-pass count while avoiding the $k_0 - 1$ wasted inner work
-that the exact strategy spends per pass. Whether to wrap that step in an
-Armijo guard depends on the response distribution.
+that the exact strategy spends per pass. The one scoped exception is the
+warm-started path setting of @sec-warmstart-path: with $|\partial_0 F|$ already
+small at each warm-started subproblem, the $k_0 - 1$ per-pass penalty of the
+exact strategy evaporates and it becomes a defensible alternative to bare
+Newton whenever a path solve is in fact used. Whether to wrap the Newton step
+in an Armijo guard depends on the response distribution.
 For bounded-Hessian losses (logistic, quadratic), the
 side-by-side comparison in @fig-cold-start shows the bare Newton step and the
 Armijo-guarded variant produce indistinguishable trajectories at every
@@ -2711,7 +2720,7 @@ distributes the same failure mode across every rare class, so any classification
 problem with a long-tailed label distribution sits in the regime where the
 gradient strategy is slow on at least one intercept coordinate
 (@fig-multinomial-imbalance, @fig-multinomial-sweep). The same multinomial block
-structure couples the Newton step with the convergence strategy, so the residual
+structure couples the Newton step with the exact strategy, so the residual
 scalar wedge collapses---a structural property rather than a tuning artefact, as
 the 2-D sweep shows.
 

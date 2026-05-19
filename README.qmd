@@ -47,7 +47,7 @@ the [Computo extension](https://github.com/computorg/computo-quarto-extension)
 to prepare your document. The latter can be installed as follows:
 
 ```.bash
-quarto add computorg/computo-quarto-extension
+quarto add computorg/computo-quarto-extension@v0.2.6
 ```
 
 ### Install Julia

@@ -83,30 +83,3 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## Minor
 
-- [ ] Unify naming: "Exact Strategy" (introduction, propositions) vs
-      "convergence strategy" (@sec-irls, @sec-warmstart-path, Discussion). Pick
-      one and replace throughout.
-- [ ] Fix the multinomial loss in @tbl-glm: the $\log(1 + \sum_j e^{\eta_j})$
-      normaliser is repeated $(m-1)$ times as written. Move it outside the outer
-      sum or use $\log(1 + \sum_j e^{\eta_j}) - \sum_k y_k \eta_k$.
-- [ ] Reconcile `DampedNewtonStrategy`: line 987 calls it a deprecated alias,
-      but the source still exports it. Either commit to the deprecation in the
-      source or stop calling it deprecated in the prose.
-- [ ] Reconcile the warm-start carve-out (@sec-warmstart-path: "convergence
-      strategy becomes a defensible alternative to bare Newton whenever a path
-      solve is in fact used") with the Discussion's flat "bare Newton in direct
-      CD" recommendation. Either fold the warm-start regime into the Discussion
-      or note it as a scoped exception.
-- [ ] Name the deterministic procedure for the news20-3pct subsample in the
-      @tbl-real-logreg-problems caption (seed, sampling order); currently only
-      `experiments/sim-real-logreg.jl` has it.
-- [ ] Pin the Computo Quarto extension version in the README's `quarto add`
-      instruction, matching the devenv.nix pinning story for Julia, R, and
-      Python.
-- [ ] Add CPU model and memory to the hardware line in @sec-methodology so a
-      referee replicating @fig-real-proxnewton's "tens of milliseconds" can tell
-      hardware mismatch from code-path mismatch.
-- [ ] Fix the @fig-real-skglm caption citations: the slow ramp is the signature
-      of @prp-gradient-partial and @cor-rate-gap, not @prp-newton-coupling.
-- [ ] Add a one-line README inside `results/skglm-controlled/` describing what
-      `index.csv` and `results.csv` each contain.
