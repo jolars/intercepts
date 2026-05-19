@@ -813,28 +813,33 @@ same $H_{00}/L_0 \to 0$ regime.
 
 ```{julia}
 #| label: fig-rate-gap
-#| fig-cap: Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ (pass count to relative
-#|   gap $10^{-6}$) versus the full bound-ratio @eq-rate-gap evaluated at the
-#|   Newton-converged iterate ($R_j^2 = (\beta_j^\star)^2$ on the standardized
-#|   design, with $H_{00}$, $H_{jj}$, and $\rho_{0j}^2$ taken at the same
-#|   iterate), swept over response imbalance $\mu_0$ on the standardized
-#|   logistic problem of @fig-mu-extreme ($n = 500$, $p = 1000$, $s = 10$,
-#|   $\lambda = 0.05\,\lambda_{\max}$). The two curves track across the full
-#|   $\mu_0$ range; the large-imbalance reduction $L_0/H_{00}(\hat\eta)$ of
-#|   @eq-rate-gap-asymptotic is the limit reached only as $\mu_0 \to 1$, when
-#|   $|\beta_0^\star| \gg \|\beta^\star\|$.
+#| fig-cap: Two evaluations of @eq-rate-gap against empirical
+#|   $T_{\mathrm{G}}/T_{\mathrm{N}}$ (pass count to relative gap $10^{-6}$),
+#|   swept over response imbalance $\mu_0$ on the standardized logistic
+#|   problem of @fig-mu-extreme ($n = 500$, $p = 1000$, $s = 10$,
+#|   $\lambda = 0.05\,\lambda_{\max}$). The **cold-start prediction**
+#|   evaluates $H_{00}$, $H_{jj}$, $\rho_{0j}^2$ at $\eta_i^{(0)} =
+#|   \mathrm{logit}(\mu_0)$---the weights a solver would compute before any
+#|   coefficient fitting---and is therefore computable a priori. The
+#|   **iterate-level diagnostic** evaluates the same expression at the
+#|   Newton-converged $\hat\eta$; it is post-hoc. Both use
+#|   $R_j^2 = (\beta_j^\star)^2$ in standardized coordinates. The two
+#|   curves bracket the empirical ratio across the $\mu_0$ range and cross
+#|   near $\mu_0 \approx 0.97$, neither uniformly tighter; both diverge in
+#|   the predicted $H_{00}/L_0 \to 0$ regime.
 
 dd = JLD2.load(@projectroot("results", "rate-gap.jld2"))
 df = DataFrame(dd["records"])
 df_long = stack(
     df,
-    [:empirical_ratio, :full_ratio];
+    [:empirical_ratio, :full_ratio, :cold_start_ratio];
     variable_name = :quantity,
     value_name = :ratio,
 )
 df_long.quantity = map(df_long.quantity) do q
     q == "empirical_ratio" ? "Empirical T_G / T_N" :
-    "Predicted (eq-rate-gap)"
+    q == "cold_start_ratio" ? "Cold-start prediction" :
+    "Iterate-level diagnostic"
 end
 
 spec = data(df_long) * mapping(:μ0, :ratio, color = :quantity)
@@ -850,17 +855,24 @@ draw(
 )
 ```
 
-@fig-rate-gap shows the full bound ratio @eq-rate-gap tracking empirical
-$T_{\mathrm{G}}/T_{\mathrm{N}}$ across the full $\mu_0$ range. At $\mu_0 = 0.5$
-the intercept's $R_0^2$ term vanishes and @eq-rate-gap reduces to a
-slope-weighted ratio close to one---matching the empirical pass-count parity
-there, which the large-imbalance limit $L_0/H_{00}(\hat\eta)$ of
-@eq-rate-gap-asymptotic would have over-predicted by a factor of $\sim 3$. The
-empirical ratio sits a roughly constant factor below the predicted curve at
-every $\mu_0$; that residual is the upper-bound slack of the CD inequality
-itself (see the remark following @eq-rate-gap). As $\mu_0 \to 1$, the intercept
-term dominates and the predicted curve approaches $L_0/H_{00}(\hat\eta)$,
-recovering @eq-rate-gap-asymptotic.
+@fig-rate-gap shows both evaluations of @eq-rate-gap against the empirical
+ratio. The cold-start prediction, evaluated at $\eta^{(0)} =
+\mathrm{logit}(\mu_0)$, is computable before solving and reduces analytically
+to a convex combination of $L_0/H_{00}(\eta^{(0)}) = 1/(4\mu_0(1-\mu_0))$
+(the @sec-imbalance-reg proxy) on the intercept share and one on the slope
+share---the Schur correction is inactive on the standardized design because
+$H_{0j} = \mu_0(1-\mu_0)\sum_i X_{ij}^{\mathrm{std}} = 0$ exactly. The
+iterate-level diagnostic substitutes $H_{00}(\hat\eta)$, which is below
+$\mu_0(1-\mu_0)\,n$ at moderate imbalance (active features pull predictions
+away from the symmetric center, decreasing weights) and above it at extreme
+imbalance (active features pull some predictions away from the majority-class
+corner, increasing weights). Neither curve uniformly dominates: the
+cold-start curve is tighter for $\mu_0 \le 0.95$ and the iterate-level curve
+is tighter at $\mu_0 = 0.99$. The empirical ratio sits below both curves at
+every $\mu_0$, consistent with @prp-rate-gap being an upper bound with
+heuristic substitutions. As $\mu_0 \to 1$, both curves approach the
+intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic at their
+respective evaluation points.
 
 @fig-rate-gap sweeps $\mu_0$ and so probes the $H_{00}/L_0$ axis of the framing
 while keeping the second axis $\bar\rho^2$ close to zero (the design is

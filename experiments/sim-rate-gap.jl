@@ -90,6 +90,25 @@ for μ0 in Μ0_GRID
 
     predicted_ratio = (1 - (q.H00 / L0) * q.barρ2) / (1 - q.barρ2)
 
+    # Cold-start ratio: same expression evaluated at η_i = logit(μ0) for all i,
+    # i.e. weights as if the intercept were initialized at its unconditional
+    # MLE before any coefficient fitting. This is the cold-start proxy of
+    # @sec-imbalance-reg and is computable before solving. On the standardized
+    # design with constant weights, H_{0j} = w * sum(X_std[:,j]) = 0 exactly,
+    # so the Schur correction is inactive (ρ² = 0) and the ratio reduces to a
+    # convex combination of L_0/H_{00}(η^{(0)}) = 1/(4 μ0(1-μ0)) on the
+    # intercept share and 1 on the slope share.
+    η_cold = fill(log(μ0 / (1 - μ0)), N)
+    q_cold = rate_quantities(X_std, η_cold, lossfun)
+    num_intercept_cold = L0 * R0_sq
+    den_intercept_cold = q_cold.H00 * R0_sq
+    num_slope_cold =
+        sum(q_cold.Hjj .* (1 .- (q_cold.H00 / L0) .* q_cold.ρ2) .* Rj_sq)
+    den_slope_cold = sum(q_cold.Hjj .* (1 .- q_cold.ρ2) .* Rj_sq)
+    cold_start_ratio =
+        (num_intercept_cold + num_slope_cold) /
+        (den_intercept_cold + den_slope_cold)
+
     # Empirical pass counts at TOL_TARGET.
     Random.seed!(1)
     grad_res = cdsolver(
@@ -136,6 +155,7 @@ for μ0 in Μ0_GRID
         "num_slope" => num_slope,
         "den_slope" => den_slope,
         "full_ratio" => full_ratio,
+        "cold_start_ratio" => cold_start_ratio,
         "predicted_ratio" => predicted_ratio,
         "T_newton" => T_newt,
         "T_gradient" => T_grad,
@@ -144,7 +164,7 @@ for μ0 in Μ0_GRID
         "gradient_reached_tol" => grad_reached,
     ))
 
-    @info "μ0=$(μ0)  H00/L0=$(round(q.H00/L0; sigdigits=3))  ρ̄²=$(round(q.barρ2; sigdigits=3))  full=$(round(full_ratio; sigdigits=3))  L0/H00=$(round(L0/q.H00; sigdigits=3))  empirical=$(round(empirical_ratio; sigdigits=3))  (T_N=$(T_newt), T_G=$(T_grad))"
+    @info "μ0=$(μ0)  H00/L0=$(round(q.H00/L0; sigdigits=3))  ρ̄²=$(round(q.barρ2; sigdigits=3))  full=$(round(full_ratio; sigdigits=3))  cold=$(round(cold_start_ratio; sigdigits=3))  L0/H00=$(round(L0/q.H00; sigdigits=3))  empirical=$(round(empirical_ratio; sigdigits=3))  (T_N=$(T_newt), T_G=$(T_grad))"
 end
 
 outfile = @projectroot("results", "rate-gap.jld2")

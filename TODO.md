@@ -33,12 +33,14 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       replaced the `proof` environment with a running-prose derivation that
       flags the three heuristic substitutions inline (schedule, iterate-level
       $H_{00}$, one-step Schur) and shrunk the trailing remark.*
-- [ ] Reframe @fig-rate-gap as a post-hoc diagnostic, not a prediction. The
-      caption already says $R_j^2$, $H_{00}$, $H_{jj}$, $\rho_{0j}^2$ are taken
-      at the Newton-converged iterate, so the "predicted" curve is computed at
-      the optimum. Either (a) relabel the figure and surrounding prose, or (b)
-      evaluate @eq-rate-gap at both a cold-start surrogate ($\beta = 0$) and the
-      optimum and show both.
+- [x] Reframe @fig-rate-gap as a post-hoc diagnostic, not a prediction.
+      *Took option (b). `experiments/sim-rate-gap.jl` now also evaluates
+      @eq-rate-gap at $\eta_i^{(0)} = \mathrm{logit}(\mu_0)$ (the cold-start
+      proxy of @sec-imbalance-reg). The figure plots three curves: cold-start
+      prediction, iterate-level diagnostic, empirical. They cross near
+      $\mu_0 \approx 0.97$; neither bound uniformly tighter. Caption and
+      surrounding prose rewritten to label each curve's evaluation point and
+      flag the heuristic-substitution slack.*
 - [ ] Spell out the substitution $|\beta_0 - \beta_0^*| = |\partial_0 F|/H_{00}$
       in the derivation of @eq-newton-error. The bound currently mixes
       Newton-residual in iterate space with $\partial_0 F$; the first-order
