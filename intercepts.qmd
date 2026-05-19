@@ -566,7 +566,7 @@ three strategies differ in how closely the residual gradient in
 The first claim is the substantive one and justifies the profiled-objective
 viewpoint operationally.
 
-::: {.theorem #thm-profile-equiv}
+::: {.proposition #prp-profile-equiv}
 **(First-update profile equivalence.)** Let $F$ be twice continuously
 differentiable and strictly convex in $\beta_0$ for every $\beta$, and let
 $\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$. Suppose the convergence
@@ -585,7 +585,7 @@ $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$ from @eq-schur-diag
 gives the step-size ordering.
 :::
 
-@thm-profile-equiv is the bridge between the Schur analysis and CD theory: at
+@prp-profile-equiv is the bridge between the Schur analysis and CD theory: at
 the start of each pass, the exact strategy aligns with CD on $\tilde F$. The
 catch is that the alignment lasts for exactly one coefficient update---by the
 second update, $\beta_0^{(t)}$ is no longer the conditional minimizer, and the
@@ -601,7 +601,7 @@ $$
   H_{0j}\,\delta_j + O(\delta_j^2).
 $$ {#eq-intercept-drift}
 After one coordinate update of pass $t+1$, the intercept gradient is no longer
-zero, and the conditional-minimizer property that @thm-profile-equiv depends on
+zero, and the conditional-minimizer property that @prp-profile-equiv depends on
 is lost.
 
 The practical reading of @eq-intercept-drift is a *cost-versus-progress*
@@ -633,7 +633,7 @@ direct-CD setting that drives this paper. Three regimes soften it.
 $|\partial_0 F|$ already small, so $k_0$ drops to one or two inner Newton
 steps and the $k_0 - 1$ penalty shrinks to zero---bare Newton and the exact
 strategy converge to each other in this regime. *Strongly coupled designs*,
-where the envelope alignment of @thm-profile-equiv buys a meaningful
+where the envelope alignment of @prp-profile-equiv buys a meaningful
 first-update gain, partially offset the per-pass overhead, though the cyclic
 drift of @eq-intercept-drift still applies. *At the prox-Newton or IRLS
 linearization boundary*, the Hessian is recomputed for the next subproblem
@@ -738,7 +738,7 @@ differently on the intercept: the gradient strategy plugs in the global
 $L_0 = \sup f''$, while the Newton and exact strategies use the iterate-level
 $H_{00}$, which may be orders of magnitude smaller.
 
-::: {.corollary #cor-rate-gap}
+::: {.proposition #prp-rate-gap}
 **(Rate gap, with a large-imbalance reduction.)** Let
 $R_j^2 = (\beta_j^{(0)} - \beta_j^\star)^2$ denote the squared cold-start
 distance to the optimum along coordinate $j$, with the intercept as coordinate
@@ -768,34 +768,38 @@ asymptotic in @eq-rate-gap-asymptotic does not apply, and the full @eq-rate-gap
 is needed.
 :::
 
-::: {.proof}
-The standard sublinear bound for randomized proximal CD on a convex composite
-$F = f + \psi$ with $f$ having coordinate-wise Lipschitz constants $L_j$ grows
-with $\sum_j L_j R_j^2$. The Newton strategy's intercept update is exact at
-leading order (@eq-newton-error) and aligns with CD on the profiled objective
-$\tilde F$ (@thm-profile-equiv), whose coefficient curvatures are
-$\tilde H_{jj} = H_{jj}(1-\rho_{0j}^2)$ by @eq-schur-diag. The gradient strategy
-uses the global Lipschitz $L_0$ on the intercept and, by @eq-grad-residual,
-removes only fraction $H_{00}/L_0$ of the coupling, leaving an effective
-coefficient curvature $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$.
-Substituting these into the $L_j R_j^2$ sum gives @eq-rate-gap; retaining only
-the $R_0^2$ term in the $|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit gives
+@eq-rate-gap is derived from the standard sublinear bound for randomized
+proximal CD on a convex composite $F = f + \psi$ with $f$ having
+coordinate-wise Lipschitz constants $L_j$
+[@wright2015; @nesterov2012; @richtarik2014], which grows with
+$\sum_j L_j R_j^2$. Three substitutions enter the derivation, each of which
+departs from the bound's standing assumptions; we keep the leading-order
+scaling and accept the slack. *(i) Schedule.* The strategies fix the
+intercept update at every pass, rather than drawing it with the uniform
+coordinate probability the bound assumes; we treat the coordinate sum as a
+per-coordinate-cost surrogate. *(ii) Intercept curvature.* On the Newton and
+exact strategies we plug in the iterate-level entry $H_{00}$, not the fixed
+coordinate Lipschitz constant the CD bound ingests; this is the substitution
+that delivers the $H_{00}(\hat\eta) \to 0$ scaling the figures track. The
+gradient strategy keeps the global $L_0 = \sup f''$, as the bound prescribes.
+*(iii) Schur reduction on the coefficients.* By @prp-profile-equiv the
+Newton strategy aligns with CD on the profiled objective $\tilde F$ at the
+*first* coefficient update of each pass, whose curvatures are
+$\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ by @eq-schur-diag; we extend this
+to the full pass, treating the single-step Schur curvature as the effective
+coefficient curvature. The gradient strategy removes only fraction
+$H_{00}/L_0$ of the coupling (@eq-grad-residual), giving effective curvature
+$H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$. Substituting (ii)--(iii)
+into the $L_j R_j^2$ sum gives @eq-rate-gap; retaining only the $R_0^2$ term
+in the $|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit gives
 @eq-rate-gap-asymptotic.
-:::
 
-::: {.remark}
-@eq-rate-gap is a ratio of upper bounds, not the iteration-complexity ratio
-$T_{\mathrm{G}}(\varepsilon)/T_{\mathrm{N}}(\varepsilon)$ itself, and three
-substitutions inside that derivation are sharp only under further structure: the
-strategies fix the intercept-update schedule rather than sampling it uniformly
-with the coefficient draws; $H_{00}$ is an iterate-level Hessian entry, not the
-fixed coordinate Lipschitz constant the CD bound ingests; and the Schur
-reduction is exact at iterates where the intercept has reached its conditional
-minimum and only approximate after a single Newton step. What survives is the
-scaling: as the intercept channel degrades ($H_{00}/L_0 \to 0$) the upper-bound
-ratio diverges, and @fig-rate-gap confirms the empirical ratio follows the same
-scaling.
-:::
+@eq-rate-gap is therefore a ratio of upper bounds with heuristic
+substitutions, not the iteration-complexity ratio
+$T_{\mathrm{G}}(\varepsilon)/T_{\mathrm{N}}(\varepsilon)$ itself. What
+survives is the scaling: as the intercept channel degrades
+($H_{00}/L_0 \to 0$) the upper-bound ratio diverges, and @fig-rate-gap
+confirms the empirical ratio follows the same scaling.
 
 Two regimes inside @eq-rate-gap are worth flagging. **Strongly coupled designs**
 ($\bar\rho^2 \to 1$, e.g. uncentered designs where the intercept absorbs the
@@ -871,7 +875,7 @@ $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ captures the direction, and the
 empirical jump sits a constant factor above the prediction---the same
 upper-bound slack visible in @fig-rate-gap. The Schur framing's second axis is
 therefore visible empirically, not just absorbed into the asymptotic limit of
-@cor-rate-gap.
+@prp-rate-gap.
 
 ```{julia}
 #| label: fig-rho-centering
@@ -913,10 +917,10 @@ draw(
 )
 ```
 
-@cor-rate-gap connects directly to §Production solvers. glmnet's
+@prp-rate-gap connects directly to §Production solvers. glmnet's
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
-at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves; the
-corollary predicts their pass counts should grow with $L_0/H_{00}$ at
+at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
+@prp-rate-gap predicts their pass counts should grow with $L_0/H_{00}$ at
 $\mu_0 = 0.99$, matching the empirical ≈5× and ≈10× slowdowns reported in
 @fig-real-glmnet and @fig-real-biglasso. skglm 0.5, the direct-CD solver,
 exhibits the same scaling on a continuous trajectory in @fig-real-skglm: the
@@ -1106,7 +1110,7 @@ $-p_{ik} p_{il}$. The intercept Hessian
 $H_{00} = (1/n)\sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\intercal\bigr)$
 is a $(K-1) \times (K-1)$ matrix; the Newton strategy becomes a small block
 solve $\delta = -H_{00}^{-1}\,\nabla_0 F$ followed by Armijo backtracking on the
-loss along that direction. @thm-profile-equiv, the within-pass drift
+loss along that direction. @prp-profile-equiv, the within-pass drift
 (@eq-intercept-drift), and the Newton-coupling bias (@eq-newton-coupling) all
 carry through with matrix-valued $H_{00}$ in place of the scalar.
 
@@ -2089,7 +2093,7 @@ window of the first few outer passes; the steelman regimes in
 ### Imbalance and Regularization {#sec-imbalance-reg}
 
 The single-$\lambda$ experiments above test the framework along one axis at a
-time. The quantitative prediction of @cor-rate-gap is two-dimensional: the
+time. The quantitative prediction of @prp-rate-gap is two-dimensional: the
 gradient/Newton pass-count ratio scales with $L_0/H_{00}(\hat\eta)$, and both
 $\lambda$ and $\mu_0$ shift $\hat\eta$ and therefore $H_{00}$. We sweep
 $\mu_0 \in \{0.5, 0.7, 0.9, 0.95, 0.99\}$ against
@@ -2107,7 +2111,7 @@ per-coordinate Lipschitz-mismatch prediction from BLAS and memory effects.
 #|   5000-pass budget are clipped; the ratio there is a lower bound. Ratio
 #|   increases monotonically with $\mu_0$ along every column and with
 #|   $1/\lambda$ along every row, matching the qualitative form of
-#|   @cor-rate-gap.
+#|   @prp-rate-gap.
 
 dd = JLD2.load(@projectroot("results", "sim-mu-reg-heatmap.jld2"))
 df = DataFrame(dd["results"])
@@ -2171,7 +2175,7 @@ Newton-converged iterate on the same cells (mean over three seeds). The
 prediction sits a constant factor above empirical that narrows from
 $\sim 3\times$ at $\mu_0 = 0.5$ to $\sim 2\times$ at $\mu_0 = 0.99$, the same
 bound-vs-empirical offset @fig-rate-gap exhibits on a single-$\lambda$ sweep and
-consistent with @cor-rate-gap being a leading-order upper bound. The cold-start
+consistent with @prp-rate-gap being a leading-order upper bound. The cold-start
 proxy $L_0/H_{00}(0) = 1/(4\mu_0(1-\mu_0)) = \{1.00, 1.19, 2.78, 5.26, 25.25\}$
 is looser still at high imbalance because active features pull $H_{00}$ above
 its intercept-only value $\mu_0(1-\mu_0)$ at this $\lambda$. As $\lambda$
@@ -2189,7 +2193,7 @@ outer-pass content of @eq-intercept-drift: the exact strategy consumes the same
 number of outer passes as bare Newton when both converge. The cost of the exact
 strategy is therefore an inner-step overhead, not an outer-pass overhead---the
 quantitative form of which is the $k_0 - 1$ wasted-inner-work claim of
-@sec-per-pass-cost. Together the two heatmaps verify @cor-rate-gap on a 30-cell
+@sec-per-pass-cost. Together the two heatmaps verify @prp-rate-gap on a 30-cell
 grid: the gradient strategy carries a Lipschitz-mismatch penalty whose
 pass-count signature scales with $\mu_0$ and $1/\lambda$, and the convergence
 strategy does not.
@@ -2343,7 +2347,7 @@ draw(
 #|   ramp (hundreds of outer iterations spent reducing suboptimality before
 #|   sharp convergence once the intercept has caught up); this is the
 #|   @eq-grad-residual signature, matching the rate-gap prediction of
-#|   @cor-rate-gap on a production gradient-strategy solver. The
+#|   @prp-rate-gap on a production gradient-strategy solver. The
 #|   post-convergence scatter at high
 #|   $n_{\text{iter}}$ reflects Anderson acceleration's non-monotonic stopping
 #|   behaviour near $F^\star$.
@@ -2420,7 +2424,7 @@ $1/\lambda$, with no other algorithmic differences confounding the comparison.
 #|   $(\mu_0,\,\lambda/\lambda_{\max})$ grid as @fig-mu-reg-gradient. Cells
 #|   where the pre-fix commit hits the 5000-iteration cap are clipped; the ratio
 #|   there is a lower bound. The monotone increase in $\mu_0$ and $1/\lambda$
-#|   matches the prediction of @cor-rate-gap on a production solver whose only
+#|   matches the prediction of @prp-rate-gap on a production solver whose only
 #|   change between the two trials is the intercept update.
 
 df_sk = DataFrame(
@@ -2777,8 +2781,8 @@ Two limitations bound the present analysis. First, the Newton-strategy results
 are *local*: @eq-newton-error and @eq-newton-coupling are Taylor identities
 for a single Newton step, not a global convergence proof for
 CD-with-Newton-intercept, and the empirical evidence in §Results stands in for
-that. A tighter rate analysis under restricted strong convexity would let the
-corollary of @cor-rate-gap predict the empirical pass-count constant rather than
+that. A tighter rate analysis under restricted strong convexity would let
+@prp-rate-gap predict the empirical pass-count constant rather than
 only its scaling---currently the prediction matches within a factor of two to
 four\ (@fig-mu-reg-gradient). Second, the production-solver experiments in
 @sec-production-solvers run on a single shared problem; the heatmap of

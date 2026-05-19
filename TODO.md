@@ -28,13 +28,11 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## Theory framing
 
-- [ ] Downgrade @thm-profile-equiv and @cor-rate-gap. The first is a one-line
-      envelope-theorem application; the second is, by the author's own remark, a
-      heuristic upper bound that departs from the standard randomized-CD bound
-      at three points (schedule mismatch, iterate-level $H_{00}$, one-step
-      Schur). Either restate them as numbered Observations / Propositions, or
-      keep the labels and rewrite the proofs to track each substitution honestly
-      against the randomized-CD bound they corollarize.
+- [x] Downgrade @thm-profile-equiv and @cor-rate-gap. *Demoted both to
+      Propositions (`@prp-profile-equiv`, `@prp-rate-gap`). For the rate gap,
+      replaced the `proof` environment with a running-prose derivation that
+      flags the three heuristic substitutions inline (schedule, iterate-level
+      $H_{00}$, one-step Schur) and shrunk the trailing remark.*
 - [ ] Reframe @fig-rate-gap as a post-hoc diagnostic, not a prediction. The
       caption already says $R_j^2$, $H_{00}$, $H_{jj}$, $\rho_{0j}^2$ are taken
       at the Newton-converged iterate, so the "predicted" curve is computed at
