@@ -644,10 +644,29 @@ recommendation against it in the rest of this paper should be read as scoped
 to the cold-start, direct-CD setting outside all three.
 
 A single Newton step on the intercept matches the conditional minimizer at
-leading order. The standard one-step Newton error bound for the 1-D intercept
-subproblem $\beta_0 \mapsto F(\beta_0, \beta)$, combined with $|\partial_{000}
-F| = |(1/n)\sum_i f'''(\eta_i)| \le \sup|f'''|$ and the linear-model estimate
-$|\beta_0 - \beta_0^*| = |\partial_0 F|/H_{00}$, gives
+leading order. Taylor-expanding $\partial_0 F$ around the conditional
+minimizer $\beta_0^*(\beta)$, where $\partial_0 F(\beta_0^*, \beta) = 0$,
+gives
+$$
+\partial_0 F(\beta_0, \beta)
+  \;=\;
+  H_{00}\,(\beta_0 - \beta_0^*)
+  \;+\; \tfrac{1}{2}\,\partial_{000} F(\xi)\,(\beta_0 - \beta_0^*)^2,
+$$ {#eq-intercept-taylor}
+for some $\xi$ between $\beta_0$ and $\beta_0^*(\beta)$. Dividing by $H_{00}$
+and recognizing $\beta_0^{\text{Newton}} = \beta_0 - \partial_0 F/H_{00}$ on
+the left rewrites @eq-intercept-taylor as the standard iterate-space Newton
+bound
+$$
+\bigl|\beta_0^{\text{Newton}} - \beta_0^*(\beta)\bigr|
+  \;=\;
+  \frac{|\partial_{000} F(\xi)|}{2 H_{00}}\,(\beta_0 - \beta_0^*)^2.
+$$ {#eq-newton-iterate}
+The same identity kept to first order returns the linear-model estimate
+$\beta_0 - \beta_0^* = \partial_0 F/H_{00} + O\bigl((\beta_0 - \beta_0^*)^2
+\bigr)$, so $(\beta_0 - \beta_0^*)^2 = (\partial_0 F)^2/H_{00}^2$ to leading
+order. Substituting this into @eq-newton-iterate and bounding
+$|\partial_{000} F| = |(1/n)\sum_i f'''(\eta_i)| \le \sup|f'''|$ yields
 $$
 \bigl|\beta_0^{\text{Newton}} - \beta_0^*(\beta)\bigr|
   \;=\;
@@ -1596,7 +1615,8 @@ fig
 ### Methodology and Reproducibility {#sec-methodology}
 
 All internal-solver experiments use the `Intercepts` Julia package on Julia
-1.11+ with the default OpenBLAS. We report outer-pass counts as the primary work
+1.12 (CI pins 1.12.6, matching the version under which `Manifest.toml` was
+generated) with the default OpenBLAS. We report outer-pass counts as the primary work
 metric: one pass is one sweep through all $p$ coordinates plus an intercept
 update, and "passes to tolerance" use a target relative duality gap of $10^{-8}$
 unless noted. Pass budgets (`maxit`) are set generously (1000 for the

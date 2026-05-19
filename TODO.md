@@ -41,10 +41,16 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       $\mu_0 \approx 0.97$; neither bound uniformly tighter. Caption and
       surrounding prose rewritten to label each curve's evaluation point and
       flag the heuristic-substitution slack.*
-- [ ] Spell out the substitution $|\beta_0 - \beta_0^*| = |\partial_0 F|/H_{00}$
+- [x] Spell out the substitution $|\beta_0 - \beta_0^*| = |\partial_0 F|/H_{00}$
       in the derivation of @eq-newton-error. The bound currently mixes
       Newton-residual in iterate space with $\partial_0 F$; the first-order
-      substitution that bridges them should be visible.
+      substitution that bridges them should be visible. *Replaced the one-line
+      lead-in with a three-step chain: Taylor identity for $\partial_0 F$ at
+      $\beta_0^*$ (`@eq-intercept-taylor`), divide-by-$H_{00}$ recovers the
+      iterate-space Newton bound (`@eq-newton-iterate`), then the first-order
+      reading of the same identity supplies $\beta_0 - \beta_0^* = \partial_0
+      F/H_{00} + O(\cdot)$ and substitutes into @eq-newton-iterate to give
+      @eq-newton-error.*
 
 ## Reproducibility plumbing
 
@@ -53,11 +59,15 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       the editorial-phase contract is "load cache, not solvers". Add an
       `experiments/sim-parametric.jl` that writes the contour grid and the three
       intercept/coefficient trajectories to a JLD2; load and plot.
-- [ ] Align CI Julia version with `Project.toml`. The workflow installs
+- [x] Align CI Julia version with `Project.toml`. The workflow installs
       `julia: 1.12.6`; `Project.toml` declares `julia = "1.11"`; AGENTS.md says
       CI pins 1.11.7. Either bump CI to 1.11.x or widen the compat to
       `"1.11, 1.12"` and regenerate the Manifest under the chosen version.
-      Document the choice in @sec-methodology.
+      Document the choice in @sec-methodology. *Aligned upward: bumped
+      `Project.toml` compat to `julia = "1.12"` to match the already-pinned CI
+      (`1.12.6`) and the `Manifest.toml` (`julia_version = "1.12.6"`). Updated
+      AGENTS.md's "Project targets Julia 1.11 (CI pins 1.11.7)" note and the
+      @sec-methodology sentence to spell out 1.12 with the 1.12.6 CI pin.*
 
 ## Smaller fixes
 
