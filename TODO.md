@@ -2,84 +2,82 @@
 
 Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
-## Major
+## Framing and accessibility
 
-- [x] **Unify the $F$ scaling.** Committed to averaged
-      $F = (1/n)\sum_i f$ with $L_0 = 1/4$. Propagated through loss definitions,
-      gradient/Hessian displays, every numbered proposition (including the
-      $H_{00}^3$ correction in @prp-newton-approx), @algo-cd is symbolic and
-      unchanged, @tbl-classification updated, and the IRLS section now uses
-      $\tilde F^{(t)} = (1/(2n))\sum w_i(\cdot)^2$. Scaling-invariant ratios
-      ($H_{00}/L_0 = 4\mu_0(1-\mu_0)$, etc.) are unchanged, so the figure
-      results and @cor-rate-gap predictions remain valid.
-- [x] **Reframe @cor-rate-gap → @eq-rate-gap-asymptotic.** Took option (c):
-      `experiments/sim-rate-gap.jl` now records $R_0^2$, $R_j^2$, and the full
-      @eq-rate-gap ratio (evaluated at the Newton-converged iterate on the
-      standardized design); @fig-rate-gap plots empirical vs that full ratio
-      instead of $L_0/H_{00}$. Corollary title and prose retightened to frame
-      @eq-rate-gap-asymptotic as the $|\beta_0^\star|/\|\beta^\star\| \to \infty$
-      limit; surrounding paragraphs now attribute the residual offset to
-      CD-bound slack rather than to dropped subdominant terms.
-- [x] **Widen the production-solver evidence past one design.** biglasso,
-      adelie, skglm, and the prox-Newton pair now run on w1a and news20-3pct
-      in addition to the synthetic $\mu_0 = 0.99$ problem; each figure in
-      §2.2 facets by dataset. biglasso and adelie were switched to path
-      mode (warm-start from $\lambda_{\max}$ down to
-      $0.05\,\lambda_{\max}$) to sidestep the cold-start single-lambda
-      overshoot glmnet already worked around (see new item below). skglm
-      runs with `max_iter=2000` and a tol grid trimmed at $10^{-7}$ to bound
-      gradient-stall wall time on news20-3pct. `X.csv` files are gitignored
-      and regenerate from `experiments/sim-real-problem.jl`.
-- [x] **Document the cold-start intercept overshoot in production solvers.**
-      Done: `experiments/sim-cold-start-real.R` runs biglasso (Newton vs
-      MM) and adelie at single $\lambda$, cold start, $\text{eps} = 10^{-1}$,
-      sweeping the iterate cap from $10^1$ to $10^5$ on w1a and news20-3pct.
-      Results in `results/real-solvers/cold-start-diag.csv` and surfaced in
-      @sec-cold-start-diag (subsubsection of Production Solvers, with
-      @tbl-cold-start-diag and a forward-pointing footnote at the path-mode
-      methodology paragraph). Findings: on w1a, biglasso `Newton`
-      oscillates ($\beta_0 \in [-1722, -291]$ across the sweep, primal
-      stuck near $10^1$), adelie returns an empty state regardless of
-      `irls_max_iters`, and biglasso `MM` converges in 2 iterations. On
-      news20-3pct the catastrophic divergence does not reproduce; biglasso
-      `Newton` instead exits its eps criterion prematurely (primal $0.31$
-      vs path-mode optimum $0.0497$) while MM gives $0.089$ at the same
-      eps. Two-dataset claim survives in a more measured form than "both
-      blow up to $-1500$."
-- [x] **Isolate the Armijo guard's contribution.** Done: added a new
-      `UnguardedNewtonStrategy` (singleton type in `src/intercept_strategies.jl`,
-      exported, dispatch symbol `:unguarded_newton`) that takes the full Newton
-      step on the intercept without the Armijo loop, plus equivalence /
-      cold-start tests in `test/cd.jl`. Re-ran @fig-cold-start with the
-      unguarded variant as a third trajectory: on logistic at
-      $\mu_0 \in \{0.5, 0.9, 0.95, 0.99\}$ the bare Newton step matches
-      guarded Newton and the exact strategy pointwise across all seeds, so
-      the guard is dormant in the bounded-Hessian regime. Added
-      @fig-cold-start-poisson (new experiment
-      `experiments/sim-cold-start-poisson.jl`, cached at
-      `results/sim-cold-start-poisson.jld2`) on Poisson at
-      $\mu_0 \in \{10, 30, 100, 300\}$, the unbounded-Hessian regime: bare
-      Newton overshoots the cold-start intercept by an amount that grows with
-      $\mu_0$ (pass-one primal spike from $500$ up to $3.3\times 10^6$ at
-      $\mu_0 = 300$), the cdsolver's per-coordinate Armijo absorbs it over
-      subsequent passes so the final primal still matches, but the
-      pass-one relative gap sits several orders of magnitude above the
-      guarded trajectory. Refit captions and the Discussion recommendation
-      accordingly: the guard is free insurance on bounded-Hessian losses and
-      load-bearing on unbounded-Hessian losses.
-- [x] **Trim the formal apparatus.** Hybrid landing: kept @thm-profile-equiv
-      as a labeled theorem (it's the substantive bridge result the rest of
-      the paper anchors to) with its proof shortened to a one-liner naming
-      the envelope theorem; collapsed @prp-exact-cost, @prp-newton-approx,
-      @prp-newton-coupling, and @prp-gradient-partial to in-text remarks
-      anchored to the canonical identity. Preserved @eq-intercept-drift,
-      @eq-newton-error, @eq-newton-coupling, @eq-newton-good-enough,
-      @eq-grad-residual as the citable handles for the four collapsed
-      propositions. Rewrote ~45 prop-level cross-references to use the
-      surviving equation labels or named-identity phrasing ("within-pass
-      drift", "Newton-coupling bias", "Schur-coupling residual"); the 5
-      @thm-profile-equiv cites remain unchanged. No code/result changes;
-      paper renders without unresolved references.
+- [x] Rewrite the abstract for a computational statistician outside
+      CD/regularized-GLMs. Lead with the empirical phenomenon ("production GLM
+      solvers disagree on how to update the intercept, and the disagreement
+      matters under response imbalance") and defer "Schur-complement",
+      "MM-IRLS", "prox-Newton" to the body. Mirror the change in the opening
+      paragraph of @sec-theory's intro.
+- [x] Split the Newton recommendation by loss family in the Discussion. Bare
+      Newton for bounded-Hessian losses (logistic, quadratic); Newton + Armijo
+      guard for unbounded-Hessian losses (Poisson at extreme rates). Currently
+      the Discussion claims "requires no tuning", which contradicts the
+      cold-start Poisson figure. *Resolved differently: single unconditional
+      recommendation of the Armijo-guarded Newton step, so the contradiction
+      dissolves rather than the recommendation splitting.*
+- [x] Either add a second real multinomial dataset at a different $(K, n, p)$
+      regime --- e.g. a long-tailed text classification benchmark --- or temper
+      the abstract's "common regime" phrasing to "verified on a real multinomial
+      benchmark." One panel does not carry the universality claim the abstract
+      makes. *Added StatLog Shuttle ($K = 7$, $n = 58\,000$, $p = 9$, rarest
+      class $0.02\%$) via `experiments/sim-real-multinomial-shuttle.jl` and
+      `@fig-real-multinomial-shuttle`. Inverse $(K, n, p)$ regime to Yeoh, much
+      stronger gradient stall.*
 
-## Minor
+## Theory framing
 
+- [ ] Downgrade @thm-profile-equiv and @cor-rate-gap. The first is a one-line
+      envelope-theorem application; the second is, by the author's own remark, a
+      heuristic upper bound that departs from the standard randomized-CD bound
+      at three points (schedule mismatch, iterate-level $H_{00}$, one-step
+      Schur). Either restate them as numbered Observations / Propositions, or
+      keep the labels and rewrite the proofs to track each substitution honestly
+      against the randomized-CD bound they corollarize.
+- [ ] Reframe @fig-rate-gap as a post-hoc diagnostic, not a prediction. The
+      caption already says $R_j^2$, $H_{00}$, $H_{jj}$, $\rho_{0j}^2$ are taken
+      at the Newton-converged iterate, so the "predicted" curve is computed at
+      the optimum. Either (a) relabel the figure and surrounding prose, or (b)
+      evaluate @eq-rate-gap at both a cold-start surrogate ($\beta = 0$) and the
+      optimum and show both.
+- [ ] Spell out the substitution $|\beta_0 - \beta_0^*| = |\partial_0 F|/H_{00}$
+      in the derivation of @eq-newton-error. The bound currently mixes
+      Newton-residual in iterate space with $\partial_0 F$; the first-order
+      substitution that bridges them should be visible.
+
+## Reproducibility plumbing
+
+- [ ] Move the @fig-parametric solver call out of the notebook. The chunk at
+      line 1484 runs `cdsolver` three times at render time. Cost is trivial, but
+      the editorial-phase contract is "load cache, not solvers". Add an
+      `experiments/sim-parametric.jl` that writes the contour grid and the three
+      intercept/coefficient trajectories to a JLD2; load and plot.
+- [ ] Align CI Julia version with `Project.toml`. The workflow installs
+      `julia: 1.12.6`; `Project.toml` declares `julia = "1.11"`; AGENTS.md says
+      CI pins 1.11.7. Either bump CI to 1.11.x or widen the compat to
+      `"1.11, 1.12"` and regenerate the Manifest under the chosen version.
+      Document the choice in @sec-methodology.
+
+## Smaller fixes
+
+- [ ] @algo-cd shows the Newton branch without Armijo, while the prose says the
+      Newton branch wraps Armijo. Either include the Armijo loop in the
+      pseudocode (as a sub-procedure or with $\alpha$ as a parameter) or
+      annotate the omission.
+- [ ] Fix the Multinomial row in @tbl-glm. The link entry $\log(\mu/(1-\mu))$ is
+      the binary logit. Replace with the reference-class per-component formula
+      the body uses, or note explicitly that the entry shows the per-class form.
+- [ ] Define the exact strategy once, and use one name for it. Currently it has
+      three definitions (intro, theory, figures) and oscillates between "exact"
+      and "convergence" across @sec-warmstart-path. Pick "exact" and use it
+      everywhere.
+- [ ] Define Bucket A / Bucket B at the opening of @sec-production-solvers. The
+      mapping is implicit in @tbl-classification but the section uses the labels
+      before defining them.
+- [ ] Trim the "rare-class regime turns the slowdown from a corner case into the
+      common regime" phrasing. It appears verbatim in the intro, the multinomial
+      extension, and the Discussion.
+- [ ] Spell out the diverging colormap range
+      ($|\log_{10}\,\mathrm{ratio}| \le 0.1$) in the @fig-mu-reg-exact axis as
+      well as the caption, so the figure stands alone when printed.

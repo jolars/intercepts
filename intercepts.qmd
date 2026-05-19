@@ -200,11 +200,13 @@ Empirical Verification on Production Codebases
 Multinomial Extension
 :   We extend the analysis to vector intercepts (multinomial logistic) and show
     that the rare-class regime turns the slowdown from a corner case into the
-    common regime. Verified empirically on the Yeoh2002 pediatric ALL
-    gene-expression panel (@fig-real-multinomial; $K = 6$ subtypes, rare classes
-    at 6\% and 8\%), where the gradient strategy stalls along the rare-class
-    intercept components while the Newton and exact strategies collapse onto a
-    single trajectory.
+    common regime. Verified empirically on two real datasets in opposite
+    $(K, n, p)$ regimes: the Yeoh2002 pediatric ALL gene-expression panel
+    (@fig-real-multinomial; $K = 6$, $p \gg n$, rarest class $6\%$) and the
+    StatLog Shuttle sensor-data dataset (@fig-real-multinomial-shuttle; $K =
+    7$, $n \gg p$, rarest class $0.02\%$). On both, the gradient strategy
+    stalls along the rare-class intercept components while the Newton and
+    exact strategies collapse onto a single trajectory.
 
 ## Related Work
 
@@ -286,39 +288,36 @@ classification, it is the common regime, not a corner case (@sec-irls,
 
 ## Theory {#sec-theory}
 
-In this work, we consider models where the loss function is the
-per-observation-averaged GLM loss
+The three intercept-update strategies from the introduction---a single gradient
+step, a single Newton step, and iterating the intercept subproblem to
+convergence---disagree on logistic and related GLM losses, and on imbalanced
+data the disagreement is large enough to determine convergence speed. This
+section identifies the cause. A gradient step rests on the global per-coordinate
+Lipschitz constant $L_0$, which does not adapt to the iterate-level intercept
+curvature $H_{00}$, and under response imbalance the ratio $L_0/H_{00}$ diverges.
+The gradient strategy pays that ratio as a per-iteration cost; the Newton and
+convergence strategies, which track $H_{00}$ directly, do not. The rest of
+@sec-theory makes the picture quantitative.
+
+Throughout, we work with the per-observation-averaged GLM loss
 $$
 F(\beta_0, \beta) = \frac{1}{n}\sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
-which includes the full family of generalized linear models (GLMs). We let
-$\eta : \mathbb{R} \mapsto \mathbb{R}$ be the function that maps the linear
-predictor to the domain of the response variable. For GLMs, this corresponds to
-the inverse link function. To simplify notation, we equivalently define $\eta\_i
-= x_i^\intercal \beta + \beta\_0$ to be the linear predictor. In a GLM, the
-response $y_i$ is modelled as a random variable from an exponential family, and
-is assumed to depend conditionally on the linear predictor $\eta_i$ via $\E(y_i
-\mid \eta\_i) = \ilink(\eta\_i)$, where $\ilink$ is the inverse link function.
+which covers the full family of generalized linear models. We write
+$\eta_i = x_i^\intercal \beta + \beta_0$ for the linear predictor of observation
+$i$ and let $\ilink$ denote the inverse link, so the exponential-family mean
+takes the form $\E(y_i \mid \eta_i) = \ilink(\eta_i)$. The per-observation loss
+$f$ is the negative log-likelihood with its mean parameter expressed through
+this inverse link, and its derivative in $\eta$ collapses to the *generalized
+residual*,
+$$
+f'(\eta_i; y_i) = \ilink(\eta_i) - y_i = r_i.
+$$
+Every gradient and Hessian quantity that appears below resolves through this
+identity.
 
-To estimate the parameters of the model, $(\beta_0, \beta)$, we form a loss
-function from the negative log-likelihood of the target distribution, modeling
-its mean parameter through the inverse link function applied to the linear
-predictor. A special property of the resulting loss function is that its partial
-derivative with respect to $\eta$ is
-$$
-f'(\eta_i; y) = \ilink(\eta_i) - y_i = r_i,
-$$
-where we define $r_i$ to be the $i$th component of the *generalized residual*.
-As a consequence, the gradient of the loss function with respect to $\beta_j$
-can be expressed as
-$$
-\frac{\partial}{\partial \beta_j} F(\beta_0,\beta)
-  = \frac{1}{n} \sum_{i=1}^n x_{ij} \frac{\partial}{\partial \eta_i} f(\eta_i; y_i)
-  = \frac{1}{n} \sum_{i=1}^n x_{ij} r_i.
-$$
-
-We summarize the loss, link, and inverse link functions for the loss functions
-we will consider in this paper in @tbl-glm.
+@tbl-glm lists the per-observation loss, link, and inverse link functions we
+will work with throughout the paper.
 
   | Model       | $f(\eta; y)$                                                                                       | $\link(\mu)$                           | $\ilink(\eta)$                                       |
   | :---------- | :------------------------------------------------------------------------------------------------- | :------------------------------------- | :--------------------------------------------------- |
@@ -1274,9 +1273,61 @@ strategies---including exact---collapse onto a single curve. The slowdown ratio
 $\approx 15\times$ ratio of @fig-multinomial-imbalance because Yeoh2002's rarest
 class is at $6\,\%$ rather than the $5\,\%$ floor of the synthetic design, and
 the penalty contribution at $n \ll p$ damps the absolute scale of the per-pass
-intercept correction. The qualitative diagnostic is intact: rare classes are the
-regime where the gradient strategy fails the multinomial intercept update on
-real data, exactly as the block-Schur analysis predicts.
+intercept correction.
+
+The same separation appears in the inverse $(K, n, p)$ regime. The StatLog
+Shuttle dataset\ [@michie1994] is a $K = 7$ sensor-data classification with $n
+= 58\,000$ observations and $p = 9$ features---the opposite shape to
+Yeoh2002---and class frequencies that span four orders of magnitude ($78.6\%$,
+$0.09\%$, $0.30\%$, $15.4\%$, $5.6\%$, $0.02\%$, $0.02\%$). The three rarest
+classes have ten, thirteen, and fifty samples, so the per-class diagonal
+$H_{00,kk}$ collapses much further below $L_0$ than in Yeoh2002.
+
+```{julia}
+#| label: fig-real-multinomial-shuttle
+#| fig-cap: Multinomial logistic on the StatLog Shuttle dataset
+#|   [@michie1994] ($n = 58\,000$, $p = 9$, $K = 7$; class frequencies range
+#|   from $78.6\%$ down to $0.02\%$) at $\lambda = 0.05\,\lambda_{\max}$
+#|   under cyclic CD. The Newton and exact strategies reach relative primal
+#|   suboptimality $10^{-6}$ in $32$ and $30$ outer passes respectively; the
+#|   gradient strategy stalls near $5 \times 10^{-3}$ and does not reach
+#|   $10^{-4}$ within $1000$ passes. Relative primal suboptimality is
+#|   computed against the minimum primal observed across the three runs, so
+#|   the gradient strategy's stall is visible rather than collapsed to its
+#|   own run-local minimum.
+
+dd_sh = JLD2.load(@projectroot("results", "real-multinomial-shuttle.jld2"))
+df_sh = DataFrame(dd_sh["results"])
+pmin_sh = minimum(minimum(p) for p in df_sh.primals)
+df_sh.relgaps_global = [
+    max.((p .- pmin_sh) ./ max(abs(pmin_sh), 1.0e-15), 1.0e-20) for
+    p in df_sh.primals
+]
+df_sh = flatten(df_sh, [:time, :relgaps_global, :primals])
+
+draw(
+    visual(Lines) * data(df_sh) * mapping(
+        :time => "Time (s)",
+        :relgaps_global => "Relative primal suboptimality",
+        color = :strategy,
+    ),
+    axis = (yscale = log10,),
+    figure = (; size = (550, 300))
+)
+```
+
+@fig-real-multinomial-shuttle sharpens the diagnostic. The Newton and exact
+strategies reach relative primal suboptimality $10^{-6}$ in $32$ and $30$
+passes respectively, while the gradient strategy fails to reach $10^{-4}$
+within $1000$ passes and stalls at a relative gap near $5 \times 10^{-3}$ on
+the rare-class intercept coordinates. The slowdown is qualitatively worse than
+Yeoh's $\approx 3\times$ pass-count ratio because the rarest Shuttle classes
+are two orders of magnitude rarer than Yeoh's rarest, and the block-Schur
+prediction sharpens with class imbalance exactly as the scalar theory says it
+should. With one $p \gg n$ panel on gene expression and one $n \gg p$ panel on
+sensor data, the rare-class multinomial slowdown is documented across the
+practical range of high-dimensional shapes a CD-based multinomial solver
+encounters.
 
 The class-by-class scheme of glmnet's symmetric-multinomial path tells a
 different but parallel story. Holding all $\eta_{il}$ for $l \neq k$ fixed, the
@@ -2665,35 +2716,33 @@ the linear predictor reaches extreme values, dampening the cycle.
 The picture that emerges across theory and experiments is that the intercept
 update is not a one-line implementation detail but a load-bearing choice whose
 right setting is dictated by the response distribution. For direct coordinate
-descent on a smooth GLM loss, the recommendation is the Newton block step: it is
-locally invariant to imbalance, requires no tuning, and matches the exact
-strategy on outer-pass count while avoiding the $k_0 - 1$ wasted inner work
-that the exact strategy spends per pass. The one scoped exception is the
-warm-started path setting of @sec-warmstart-path: with $|\partial_0 F|$ already
-small at each warm-started subproblem, the $k_0 - 1$ per-pass penalty of the
-exact strategy evaporates and it becomes a defensible alternative to bare
-Newton whenever a path solve is in fact used. Whether to wrap the Newton step
-in an Armijo guard depends on the response distribution.
-For bounded-Hessian losses (logistic, quadratic), the
-side-by-side comparison in @fig-cold-start shows the bare Newton step and the
-Armijo-guarded variant produce indistinguishable trajectories at every
-$\mu_0$ level we tested, including the adversarial cold start at $\mu_0 =
-0.99$; the guard never fires, so it reduces to free insurance.
-For unbounded-Hessian losses such as
-Poisson at extreme rates (@fig-cold-start-poisson) the guard becomes
-load-bearing: bare Newton overshoots the cold-start intercept by a factor
-that scales with $\mu_0$, and although the cdsolver's per-coordinate
-backtracking absorbs the transient eventually, the guarded variant descends
-monotonically while the unguarded variant exhibits a pass-one relative gap
-several orders of magnitude above. On real Poisson data (congress109,
-@fig-real-poisson) the gradient strategy fails outright---$L_0 = \infty$
-makes the per-pass intercept update vanish identically and the iterate
-plateaus at the cold-start relative gap---while the Newton-class strategies
-agree on a single trajectory. The gradient
-strategy, by contrast, inherits a per-coordinate Lipschitz mismatch $H_{00}/L_0$
-that shrinks toward zero under imbalance---the same scaling that produces the
-order-of-magnitude pass-count gaps in @fig-mu-extreme, @fig-mu-reg-gradient, and
-the gradient curve of @fig-multinomial-sweep.
+descent on a smooth GLM loss, the recommendation is the Newton block step with
+an Armijo backtracking safeguard: it is locally invariant to imbalance,
+requires no tuning, and matches the exact strategy on outer-pass count while
+avoiding the $k_0 - 1$ wasted inner work that the exact strategy spends per
+pass. The one scoped exception is the warm-started path setting of
+@sec-warmstart-path: with $|\partial_0 F|$ already small at each warm-started
+subproblem, the $k_0 - 1$ per-pass penalty of the exact strategy evaporates
+and it becomes a defensible alternative whenever a path solve is in fact used.
+
+The Armijo guard belongs in the recommendation unconditionally rather than as
+a conditional add-on the user must select by loss family. On bounded-Hessian
+losses (logistic, quadratic) it is invisible: @fig-cold-start shows the bare
+and guarded variants produce indistinguishable trajectories at every $\mu_0$
+level we tested, including the adversarial cold start at $\mu_0 = 0.99$,
+because the guard never fires. On unbounded-Hessian losses such as Poisson at
+extreme rates (@fig-cold-start-poisson) the same guard becomes load-bearing:
+bare Newton overshoots the cold-start intercept by a factor that scales with
+$\mu_0$, and although the cdsolver's per-coordinate backtracking absorbs the
+transient eventually, the guarded variant descends monotonically while the
+unguarded variant exhibits a pass-one relative gap several orders of magnitude
+above. The gradient strategy, by contrast, fails outright on real Poisson data
+(congress109, @fig-real-poisson): $L_0 = \infty$ makes the per-pass intercept
+update vanish identically and the iterate plateaus at the cold-start relative
+gap, while the Newton-class strategies agree on a single trajectory. The same
+Lipschitz mismatch $H_{00}/L_0$ that shrinks toward zero under imbalance
+produces the order-of-magnitude pass-count gaps in @fig-mu-extreme,
+@fig-mu-reg-gradient, and the gradient curve of @fig-multinomial-sweep.
 
 The structural classification of production solvers in @sec-production-solvers
 tightens the recommendation into a diagnostic: given a CD-based GLM solver, the
