@@ -7,7 +7,6 @@ using ProjectRoot
 using CSV
 using DataFrames
 using JSON3
-using LIBSVMdata
 
 # Shared problem for the three production-solver experiments (glmnet, biglasso,
 # skglm). Generates the imbalanced logistic problem of fig-irls-comparison and
@@ -94,7 +93,7 @@ println("  lambda_max = $lambda_max, lambda = $lambda")
 # construction. Standardization, lambda convention, and storage layout match
 # the synthetic block exactly.
 
-X_w1a_raw, y_w1a = load_dataset("w1a"; verbose = false)
+X_w1a_raw, y_w1a = load_local_dataset("w1a")
 X_w1a_raw = Matrix(X_w1a_raw)
 y01_w1a = Float64.(Int.(y_w1a .== 1))
 
@@ -157,7 +156,7 @@ news20_npos = 60
 news20_nneg = 1940
 news20_min_nnz = 20
 
-X_news_raw, y_news = load_dataset("news20.binary"; verbose = false)
+X_news_raw, y_news = load_local_dataset("news20.binary")
 y_news_pos_label = maximum(y_news)
 y01_news_full = Float64.(Int.(y_news .== y_news_pos_label))
 

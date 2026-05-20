@@ -1,4 +1,3 @@
-using LIBSVMdata
 using Random
 using SparseArrays
 
@@ -161,7 +160,7 @@ function real_experiment(
     min_nnz_per_column::Int = 1,
 )
 
-    X, y = load_dataset(dataset, verbose = false)
+    X, y = load_local_dataset(dataset)
 
     if response == :binomial
         # LIBSVM binary datasets ship in several encodings ({-1, 1}, {0, 1},

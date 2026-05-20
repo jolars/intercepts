@@ -11,17 +11,15 @@ using Random
 using DrWatson
 using ProjectRoot
 using DataFrames
-using LIBSVMdata
 using JLD2
 using Statistics
 
 Random.seed!(1234)
 
-# LIBSVMdata caches downloaded files under ~/.julia/datadeps/. Combine the
-# train and test splits; we are profiling optimization speed, not
+# Combine the train and test splits; we are profiling optimization speed, not
 # generalization, so the held-out split is not needed.
-X_tr_raw, y_tr_raw = load_dataset("shuttle.scale"; verbose = false)
-X_te_raw, y_te_raw = load_dataset("shuttle.scale.t"; verbose = false)
+X_tr_raw, y_tr_raw = load_local_dataset("shuttle.scale")
+X_te_raw, y_te_raw = load_local_dataset("shuttle.scale.t")
 
 X = vcat(Matrix(X_tr_raw), Matrix(X_te_raw))
 y = vcat(Int.(y_tr_raw), Int.(y_te_raw))

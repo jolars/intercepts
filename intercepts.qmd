@@ -1650,8 +1650,10 @@ script. The heatmap of @sec-imbalance-reg replicates each cell across three
 seeds; the other figures use a single seed because cell-to-cell variability is
 dwarfed by the strategy effect we are isolating.
 
-Real-data experiments load LIBSVM problems via `LIBSVMdata.jl` 0.1.4 and the
-solver standardizes each column internally before fitting. The production-solver
+Real-data experiments load the LIBSVM problems from a pinned data archive on
+Zenodo---the exact inputs behind every real-data figure, retrieved with
+`experiments/fetch-data.sh` (see the README)---and the solver standardizes each
+column internally before fitting. The production-solver
 panel runs glmnet 4.1-10 (R), biglasso 1.6-1 (R), adelie 1.0-8 (R), skglm 0.5
 (Python), LIBLINEAR through scikit-learn's `solver="liblinear"` wrapper, and
 BlitzL1 at commit `aef8d02` on the shared standardized problem produced by

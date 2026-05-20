@@ -26,7 +26,6 @@
 ## meta.json for reproducibility.
 
 suppressPackageStartupMessages({
-  library(textir)
   library(Matrix)
   library(jsonlite)
 })
@@ -45,9 +44,21 @@ get_script_dir <- function() {
 }
 root <- normalizePath(file.path(get_script_dir(), ".."))
 
-data(congress109, package = "textir")
-# congress109Counts is already a dgCMatrix; use it directly.
-counts <- congress109Counts
+# Read the shipped congress109 snapshot (MatrixMarket counts + phrase list)
+# instead of loading textir at run time. The snapshot is produced by
+# experiments/snapshot-congress109.R and retrieved via experiments/fetch-data.sh;
+# writeMM/readMM preserve the column order, so the deterministic target-phrase
+# pick below lands on the same phrase as on the original textir object.
+counts_path <- file.path(root, "data", "congress109", "counts.mtx")
+phrases_path <- file.path(root, "data", "congress109", "phrases.txt")
+if (!file.exists(counts_path) || !file.exists(phrases_path)) {
+  stop(
+    "congress109 snapshot not found under data/congress109/.\n",
+    "Retrieve the real-data inputs first with `bash experiments/fetch-data.sh`."
+  )
+}
+counts <- as(readMM(counts_path), "CsparseMatrix")
+colnames(counts) <- readLines(phrases_path)
 n_total <- nrow(counts)
 p_total <- ncol(counts)
 cat(sprintf("congress109Counts: %d speakers x %d phrases\n", n_total, p_total))

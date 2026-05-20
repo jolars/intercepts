@@ -2,7 +2,6 @@ using Intercepts
 using Random
 using LinearAlgebra
 using SparseArrays
-using LIBSVMdata
 using DrWatson
 using ProjectRoot
 using JLD2
@@ -29,7 +28,7 @@ function load_problem(name::Symbol)
         )
         return X, Float64.(y)
     elseif name == :w1a
-        X, y = load_dataset("w1a", verbose = false)
+        X, y = load_local_dataset("w1a")
         y = Float64.(Int.(y .== 1))
         return X, y
     else

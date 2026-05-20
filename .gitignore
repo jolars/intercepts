@@ -77,6 +77,17 @@ devenv.local.yaml
 /results/real-solvers/*/X.csv
 /results/real-solvers-poisson/*/X.csv
 
-# Locally-cached external datasets (e.g. Yeoh2002 from iowabiostat);
-# fetched on demand by experiments/fetch-yeoh.R and similar drivers.
-/data/
+# Real-data inputs: large files retrieved from the pinned Zenodo archive via
+# experiments/fetch-data.sh (and rebuilt by experiments/build-data-archive.jl).
+# Only the small checksum manifest, the dataset manifest, and the README are
+# tracked; the data files themselves are ignored. The cached results/ render
+# the paper without them.
+/data/*
+!/data/README.md
+!/data/MANIFEST.sha256
+!/data/libsvm/
+/data/libsvm/*
+!/data/libsvm/manifest.json
+
+# Upload-ready data archive produced by experiments/build-data-archive.jl.
+/intercepts-data-*.tar.gz

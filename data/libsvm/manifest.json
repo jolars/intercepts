@@ -1,0 +1,66 @@
+{
+    "news20.binary": {
+        "n_samples": 19996,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/news20.binary.bz2",
+        "ncls": 2,
+        "file": "news20.binary",
+        "n_features": 1355191,
+        "type": "binary"
+    },
+    "shuttle.scale": {
+        "n_samples": 43500,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/shuttle.scale",
+        "ncls": 7,
+        "file": "shuttle.scale",
+        "n_features": 9,
+        "type": "multiclass"
+    },
+    "shuttle.scale.t": {
+        "n_samples": 14500,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/multiclass/shuttle.scale.t",
+        "ncls": 7,
+        "file": "shuttle.scale.t",
+        "n_features": 9,
+        "type": "multiclass"
+    },
+    "w1a": {
+        "n_samples": 2477,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/w1a",
+        "ncls": 2,
+        "file": "w1a",
+        "n_features": 300,
+        "type": "binary"
+    },
+    "a4a": {
+        "n_samples": 4781,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a4a",
+        "ncls": 2,
+        "file": "a4a",
+        "n_features": 123,
+        "type": "binary"
+    },
+    "breast-cancer": {
+        "n_samples": 683,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/breast-cancer",
+        "ncls": 2,
+        "file": "breast-cancer",
+        "n_features": 10,
+        "type": "binary"
+    },
+    "leukemia": {
+        "n_samples": 38,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/leu.bz2",
+        "ncls": 2,
+        "file": "leukemia",
+        "n_features": 7129,
+        "type": "binary"
+    },
+    "gisette_scale": {
+        "n_samples": 6000,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/gisette_scale.bz2",
+        "ncls": 2,
+        "file": "gisette_scale",
+        "n_features": 5000,
+        "type": "binary"
+    }
+}

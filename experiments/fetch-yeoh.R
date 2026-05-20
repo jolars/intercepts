@@ -8,8 +8,11 @@
 ## high-dimensional (p > n) gene-expression space -- the real-data analogue
 ## of @fig-multinomial-imbalance.
 ##
-## Run once before `experiments/sim-real-multinomial-yeoh.jl`; output goes to
-## `data/yeoh/`, which is gitignored.
+## Converts the shipped `data/yeoh/Yeoh2002.rds` (retrieved via
+## `experiments/fetch-data.sh`) into the plain CSV inputs the Julia driver
+## consumes. Run once before `experiments/sim-real-multinomial-yeoh.jl`; output
+## goes to `data/yeoh/`, which is gitignored. This script no longer downloads
+## anything --- the RDS ships in the pinned data archive.
 
 suppressPackageStartupMessages({
   library(jsonlite)
@@ -29,15 +32,24 @@ project_root <- normalizePath(file.path(get_script_dir(), ".."))
 out_dir <- file.path(project_root, "data", "yeoh")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
-rds_url <- "https://github.com/IowaBiostat/data-sets/raw/main/Yeoh2002/Yeoh2002.rds"
+# Provenance of the shipped RDS, recorded in meta.json. The file originates
+# from the IowaBiostat data-sets collection and is redistributed in the pinned
+# data archive; it is no longer fetched at run time.
+rds_source <- paste0(
+  "Yeoh2002 (St. Jude), originally ",
+  "https://github.com/IowaBiostat/data-sets (Yeoh2002/Yeoh2002.rds); ",
+  "redistributed in the pinned data archive on Zenodo"
+)
 rds_path <- file.path(out_dir, "Yeoh2002.rds")
 
 if (!file.exists(rds_path)) {
-  message("Downloading Yeoh2002.rds (~33 MB) ...")
-  download.file(rds_url, rds_path, mode = "wb", quiet = FALSE)
-} else {
-  message("Using cached ", rds_path)
+  stop(
+    "Yeoh2002.rds not found at ", rds_path, ".\n",
+    "Retrieve the real-data inputs first with `bash experiments/fetch-data.sh` ",
+    "(see the README's \"Retrieve the real-data inputs\" section)."
+  )
 }
+message("Using shipped ", rds_path)
 
 data <- readRDS(rds_path)
 stopifnot(all(c("X", "y") %in% names(data)))
@@ -84,7 +96,7 @@ write_json(
     K = length(class_labels),
     class_labels = class_labels,
     class_counts = as.list(class_counts),
-    source = rds_url
+    source = rds_source
   ),
   meta_path,
   pretty = TRUE,

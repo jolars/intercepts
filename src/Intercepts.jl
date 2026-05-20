@@ -6,6 +6,7 @@ include("cdsolver.jl")
 include("gdsolver.jl")
 include("math.jl")
 include("data.jl")
+include("datasets.jl")
 include("normalize.jl")
 include("multinomial_cdsolver.jl")
 include("irlssolver.jl")
@@ -46,6 +47,8 @@ export weight
 export loss
 export workingresponse
 export generatedata
+export load_libsvm
+export load_local_dataset
 export simulated_experiment
 export real_experiment
 

@@ -14,5 +14,8 @@ using Statistics
     @testset "IRLS" begin
         include("irls.jl")
     end
+    @testset "Datasets" begin
+        include("datasets.jl")
+    end
 end
 

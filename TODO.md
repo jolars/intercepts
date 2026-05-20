@@ -73,7 +73,7 @@ are analysis or presentation judgments to weigh.
 
 ### Data provenance (major)
 
-- [ ] Ship the real-data inputs instead of fetching them at run time.
+- [x] Ship the real-data inputs instead of fetching them at run time.
       `experiments/fetch-yeoh.R` writes Yeoh2002 into a gitignored `data/yeoh/`,
       and Shuttle / w1a / news20 load via `LIBSVMdata.jl` and external sources.
       Computo expects all necessary data to ship (Zenodo or a pinned versioned

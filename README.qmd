@@ -68,6 +68,26 @@ do this by running the following command in the root directory of the project:
 This will use the `Project.toml` and `Manifest.toml` files to set up the Julia
 environment with the required dependencies.
 
+### (Optional) Retrieve the real-data inputs
+
+The real-data experiments read their inputs from a pinned archive deposited on
+Zenodo (DOI: `10.5281/zenodo.20315625`), rather than fetching datasets at run
+time. The archive holds the exact inputs behind the real-data figures: the
+Yeoh2002 gene-expression panel, the LIBSVM datasets (w1a, news20.binary,
+shuttle.scale, a4a, leukemia, breast-cancer, gisette), and the congress109
+phrase-count matrix. To stage them under `data/`, run:
+
+```bash
+bash experiments/fetch-data.sh
+```
+
+This downloads the archive, verifies every file against the committed
+`data/MANIFEST.sha256`, unpacks it, and derives the Yeoh CSV inputs from the
+shipped RDS. See <data/README.md> for the provenance of each dataset.
+
+You only need this step to re-run the real-data experiments. The cached results
+in <results/> already render the paper without it.
+
 ### (Optional) Reproduce results
 
 Many of the results have already been computed and are included in the
