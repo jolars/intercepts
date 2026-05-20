@@ -7,7 +7,7 @@ function gdsolver(
     x::AbstractMatrix,
     y::AbstractVector,
     reg::Real = 0.1;
-    lossfun::LossFunction = Quadratic(),
+    lossfun::LossFunction = QuadraticLoss(),
     intercept_strategy::InterceptStrategy = GradientStrategy(),
     tol::Real = 1e-10,
     normalization::Symbol = :standardize,

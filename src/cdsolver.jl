@@ -6,7 +6,7 @@ function cdsolver(
     x::AbstractMatrix,
     y::AbstractVector,
     reg::Real = 0.1;
-    lossfun::LossFunction = Quadratic(),
+    lossfun::LossFunction = QuadraticLoss(),
     intercept_strategy::InterceptStrategy = GradientStrategy(),
     update_freq::Int = 1,
     tol::Real = 1e-10,

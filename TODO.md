@@ -101,7 +101,7 @@ are analysis or presentation judgments to weigh.
 - [x] `README.qmd:56` says "Julia 1.11", but `Project.toml` (`julia = "1.12"`)
       and both CI workflows pin 1.12.6. Align the README so a re-runner picks
       the right toolchain. (verified)
-- [ ] Fix the dead loss default: `src/cdsolver.jl:9` and `src/gdsolver.jl:10`
+- [x] Fix the dead loss default: `src/cdsolver.jl:9` and `src/gdsolver.jl:10`
       default `lossfun::LossFunction = Quadratic()`, but the type is
       `QuadraticLoss` and `Quadratic()` is undefined. It is never triggered (all
       call sites pass `lossfun` explicitly), so results are unaffected, but it
