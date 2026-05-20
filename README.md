@@ -74,7 +74,8 @@ quarto add computorg/computo-quarto-extension@v0.2.6
 ### Install Julia
 
 You need to have [Julia](https://julialang.org/) installed on your
-computer. This project is built using Julia 1.11, which you can install
+computer. This project is built using Julia 1.12.6 (the version CI pins
+and under which `Manifest.toml` was generated), which you can install
 through juliaup, a tool to manage Julia installations.
 
 After this, you need to activate the Julia environment for this project.

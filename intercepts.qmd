@@ -717,7 +717,7 @@ recovers the leading-order accuracy that @eq-newton-coupling promises.
 Both @eq-newton-error and @eq-newton-coupling are local: a single Newton step
 at the current iterate. They pin down the per-step bias and coupling
 correction the Newton strategy delivers; how those per-step gains compound
-across an outer solve is a complementary question, which §Results answers
+across an outer solve is a complementary question, which @sec-results answers
 empirically across the benchmark suite.
 
 The gradient strategy is the Schur-coupling correction with step size $\alpha
@@ -892,11 +892,11 @@ away from the symmetric center, decreasing weights) and above it at extreme
 imbalance (active features pull some predictions away from the majority-class
 corner, increasing weights). Neither curve uniformly dominates: the
 cold-start curve is tighter for $\mu_0 \le 0.95$ and the iterate-level curve
-is tighter at $\mu_0 = 0.99$. The empirical ratio sits below both curves at
-every $\mu_0$, consistent with @prp-rate-gap being an upper bound with
-heuristic substitutions. As $\mu_0 \to 1$, both curves approach the
-intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic at their
-respective evaluation points.
+is tighter at $\mu_0 = 0.99$. The two bracket the empirical ratio at
+low-to-moderate imbalance and both sit above it as $\mu_0 \to 1$, where they
+approach the intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic
+at their respective evaluation points. @sec-imbalance-reg consolidates what this
+bound-to-empirical gap implies for the proposition's reach.
 
 @fig-rate-gap sweeps $\mu_0$ and so probes the $H_{00}/L_0$ axis of the framing
 while keeping the second axis $\bar\rho^2$ close to zero (the design is
@@ -908,10 +908,9 @@ below $5\times 10^{-3}$. @fig-rho-centering shows the resulting jump in
 $T_{\mathrm{G}}/T_{\mathrm{N}}$ at $\mu_0 \in \{0.5,\, 0.9\}$: centering matters
 in both regimes, the leading-order ratio
 $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ captures the direction, and the
-empirical jump sits a constant factor above the prediction---the same
-upper-bound slack visible in @fig-rate-gap. The Schur framing's second axis is
-therefore visible empirically, not just absorbed into the asymptotic limit of
-@prp-rate-gap.
+empirical jump sits a constant factor above this leading-order prediction. The
+Schur framing's second axis is therefore visible empirically, not just absorbed
+into the asymptotic limit of @prp-rate-gap.
 
 ```{julia}
 #| label: fig-rho-centering
@@ -919,11 +918,10 @@ therefore visible empirically, not just absorbed into the asymptotic limit of
 #|   feature centering moves $\bar\rho^2$ from $\approx 0$ (standardized) to
 #|   $\approx 0.5$ (uncentered, with $O(1)$ per-column means) while leaving
 #|   $H_{00}/L_0$ approximately fixed. Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$
-#|   at relative-gap tolerance $10^{-6}$ tracks the eq-rate-gap leading-order
+#|   at relative-gap tolerance $10^{-6}$ tracks the @eq-rate-gap leading-order
 #|   prediction $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ along this
-#|   second axis, with the same constant-factor upper-bound slack @fig-rate-gap
-#|   exhibits, on a problem with $n = 500$, $p = 1000$, $s = 10$, and $\lambda =
-#|   0.05\,\lambda_{\max}$.
+#|   second axis, a constant factor above it, on a problem with $n = 500$, $p =
+#|   1000$, $s = 10$, and $\lambda = 0.05\,\lambda_{\max}$.
 
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
 df = DataFrame(dd["records"])
@@ -953,7 +951,7 @@ draw(
 )
 ```
 
-@prp-rate-gap connects directly to §Production solvers. glmnet's
+@prp-rate-gap connects directly to @sec-production-solvers. glmnet's
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
 at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
 @prp-rate-gap predicts their pass counts should grow with $L_0/H_{00}$ at
@@ -1211,26 +1209,29 @@ off-diagonal coupling $H_{00,kl} = -\sum_i p_{ik} p_{il}$, so the rare-class
 step is computed in concert with the dominant-class step rather than amplified
 proportionally to the rare-class gradient, and the Armijo guard absorbs any
 residual cold-start transient that the Newton-coupling bias
-(@eq-newton-coupling) identifies in the scalar setting. @fig-multinomial-sweep extends the test to a 2-D grid that shrinks the
-rarest class probability $\bar p_K$ down to $0.005$ and grows the feature
-amplitude to four times the anchor value. The Newton and exact trajectories
-overlap in every one of the sixteen cells, while the gradient strategy stalls
-monotonically harder as $\bar p_K$ shrinks and as amplitude grows. This is
-consistent with a structural property of the $(K-1)$-block Hessian rather than a
-tuning artefact of the single anchor configuration.
+(@eq-newton-coupling) identifies in the scalar setting. A 2-D grid extends the
+test, shrinking the rarest class probability $\bar p_K$ down to $0.005$ and
+growing the feature amplitude to four times the anchor value.
+@fig-multinomial-sweep shows the four corners of this grid; across the full
+sweep (@fig-multinomial-sweep-full) the Newton and exact trajectories overlap in
+every one of the sixteen cells, while the gradient strategy stalls monotonically
+harder as $\bar p_K$ shrinks and as amplitude grows. This is consistent with a
+structural property of the $(K-1)$-block Hessian rather than a tuning artefact of
+the single anchor configuration.
 
 ```{julia}
 #| label: fig-multinomial-sweep
-#| fig-cap: Multinomial logistic sweep over the rarest-class marginal $\bar p_K
-#|   \in \{0.05, 0.02, 0.01, 0.005\}$ (rows, top to bottom) and feature
-#|   amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$ (columns, left to right), on the
-#|   same $K=5$, $n=500$, $p=200$, $s=5$, $\lambda = 0.05\,\lambda_{\max}$,
-#|   $\rho = 0.3$ design as @fig-multinomial-imbalance. Relative primal
-#|   suboptimality versus outer-pass index, median over three seeds. The Newton
-#|   and exact strategies overlap on a single curve in every cell; the gradient
-#|   strategy stalls progressively harder as $\bar p_K$ shrinks (down the rows)
-#|   and as amplitude grows (across the columns). The anchor cell (top-left)
-#|   reproduces the trajectories of @fig-multinomial-imbalance.
+#| fig-cap: Multinomial logistic sweep, the four corners of the rarest-class
+#|   marginal $\bar p_K \in \{0.05, 0.005\}$ (rows) and feature amplitude $\in
+#|   \{0.5, 2.0\}$ (columns) grid, on the same $K=5$, $n=500$, $p=200$, $s=5$,
+#|   $\lambda = 0.05\,\lambda_{\max}$, $\rho = 0.3$ design as
+#|   @fig-multinomial-imbalance. Relative primal suboptimality versus outer-pass
+#|   index, median over three seeds. The Newton and exact strategies overlap on
+#|   a single curve in every cell; the gradient strategy stalls progressively
+#|   harder as $\bar p_K$ shrinks (top to bottom) and as amplitude grows (left to
+#|   right). The top-left corner is the anchor cell, reproducing the trajectories
+#|   of @fig-multinomial-imbalance; the full $4 \times 4$ grid is
+#|   @fig-multinomial-sweep-full.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
 df = DataFrame(dd["results"])
@@ -1246,19 +1247,28 @@ agg = combine(
 agg.p_K_str = "p̄_K = " .* string.(agg.p_K)
 agg.amp_str = "amp = " .* string.(agg.amplitude)
 
-spec = data(agg) * mapping(
+# In-text slice: the four corners of the (p̄_K, amplitude) grid. The full 4×4
+# sweep is @fig-multinomial-sweep-full in the appendix.
+corners = filter(
+    r ->
+        r.p_K_str in ("p̄_K = 0.05", "p̄_K = 0.005") &&
+            r.amp_str in ("amp = 0.5", "amp = 2.0"),
+    agg,
+)
+
+spec = data(corners) * mapping(
     :pass => "Pass",
     :relgaps => "Relative primal suboptimality",
     color = :strategy,
-    row = :p_K_str => sorter("p̄_K = 0.05", "p̄_K = 0.02", "p̄_K = 0.01", "p̄_K = 0.005"),
-    col = :amp_str => sorter("amp = 0.5", "amp = 1.0", "amp = 1.5", "amp = 2.0"),
+    row = :p_K_str => sorter("p̄_K = 0.05", "p̄_K = 0.005"),
+    col = :amp_str => sorter("amp = 0.5", "amp = 2.0"),
 )
 
 draw(
     visual(Lines) * spec,
     axis = (yscale = log10,),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 600)),
+    figure = (; size = (560, 420)),
 )
 ```
 
@@ -1620,7 +1630,7 @@ fig[1, 2] = Legend(fig, ax)
 fig
 ```
 
-## Results
+## Results {#sec-results}
 
 ### Methodology and Reproducibility {#sec-methodology}
 
@@ -1675,7 +1685,7 @@ wall-clock numbers in this paper are indicative rather than benchmark-grade. Sou
 
 ### Simulated Data
 
-The first prediction we test in §Theory is the Schur-coupling residual
+The first prediction we test in @sec-theory is the Schur-coupling residual
 (@eq-grad-residual): the gradient strategy's effective per-pass step on the
 intercept is the bare gradient step
 shrunk by $H_{00}/L_0$, so the strategy slows as the imbalance $\mu_0$ pushes
@@ -1924,15 +1934,17 @@ tolerance $10^{-8}$ or to a budget of 300 outer passes / 20 wall-seconds,
 whichever comes first. We compare the three strategies, each under both warm
 start (initialized from the previous-$\lambda$ solution) and cold start
 (re-initialized at zero), and under both cyclic and permuted feature ordering.
+The main-text panels show cyclic CD; @fig-warm-start-full and
+@fig-warm-start-mechanism-full give the full grid over both orderings.
 
 ```{julia}
 #| label: fig-warm-start
 #| fig-cap: Outer passes per subproblem along a logistic-regression $\lambda$
-#|   path (lower is better). Solid lines mark warm-starts from the previous
-#|   $\lambda$; dashed lines mark cold starts at zero. Curves capped at 300
-#|   indicate the pass budget was hit before the tolerance. Top row uses cyclic
-#|   CD, bottom row uses permuted CD; left column is the simulated imbalanced
-#|   problem ($\mu_0 = 0.9$) and right column is w1a.
+#|   path (lower is better), under cyclic CD. Solid lines mark warm starts from
+#|   the previous $\lambda$; dashed lines mark cold starts at zero. Curves capped
+#|   at 300 indicate the pass budget was hit before the tolerance. Left is the
+#|   simulated imbalanced problem ($\mu_0 = 0.9$), right is w1a. The
+#|   permuted-ordering row is in @fig-warm-start-full.
 
 dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
 df = DataFrame(dd["results"])
@@ -1952,48 +1964,52 @@ df = flatten(
 df.start_kind = ifelse.(df.warm_start, "warm", "cold")
 df.ordering = ifelse.(df.randomize, "permuted", "cyclic")
 
+# In-text slice: cyclic ordering only (the paper's default; @sec-ordering shows
+# permuted differs by ≤1.4× and never changes the ranking). The full
+# ordering × dataset grid is @fig-warm-start-full in the appendix.
+df_cyclic = filter(:ordering => ==("cyclic"), df)
+
 spec_passes =
-    data(df) * mapping(
+    data(df_cyclic) * mapping(
         :reg_grid => "λ / λ_max",
         :passes => "Outer passes",
         color = :strategy,
         linestyle = :start_kind => "Start",
         col = :dataset,
-        row = :ordering,
     )
 
 draw(
     visual(Lines) * spec_passes,
     axis = (xscale = log10, yscale = log10),
-    figure = (; size = (800, 500)),
+    figure = (; size = (800, 320)),
 )
 ```
 
 ```{julia}
 #| label: fig-warm-start-mechanism
 #| fig-cap: Magnitude of the intercept partial derivative $|\partial_0 F|$ at
-#|   the initial iterate of each subproblem along the same $\lambda$ path. Cold
-#|   start (dashed) is independent of $\lambda$ ---the initial iterate is always
-#|   zero, so $|\partial_0 F|$ is the marginal class imbalance and the three
-#|   strategies coincide on top of each other. Warm start (solid) shrinks
-#|   $|\partial_0 F|$ by several orders of magnitude, placing each subproblem in
-#|   the regime where @eq-newton-coupling predicts strategy differences to
-#|   compress.
+#|   the initial iterate of each subproblem along the same $\lambda$ path, under
+#|   cyclic CD. Cold start (dashed) is independent of $\lambda$---the initial
+#|   iterate is always zero, so $|\partial_0 F|$ is the marginal class imbalance
+#|   and the three strategies coincide on top of each other. Warm start (solid)
+#|   shrinks $|\partial_0 F|$ by several orders of magnitude, placing each
+#|   subproblem in the regime where @eq-newton-coupling predicts strategy
+#|   differences to compress. The permuted-ordering row is in
+#|   @fig-warm-start-mechanism-full.
 
 spec_partial =
-    data(df) * mapping(
+    data(df_cyclic) * mapping(
         :reg_grid => "λ / λ_max",
         :init_partial0F => "|∂₀F| at initialization",
         color = :strategy,
         linestyle = :start_kind => "Start",
         col = :dataset,
-        row = :ordering,
     )
 
 draw(
     visual(Lines) * spec_partial,
     axis = (xscale = log10, yscale = log10),
-    figure = (; size = (800, 500)),
+    figure = (; size = (800, 320)),
 )
 ```
 
@@ -2217,9 +2233,7 @@ $\{1.0, 1.1, 1.8, 3.0, 6.8\}$, against an iterate-level
 $L_0/H_{00}(\hat\eta) = \{3.2, 3.3, 4.4, 5.7, 12.3\}$ measured at the
 Newton-converged iterate on the same cells (mean over three seeds). The
 prediction sits a constant factor above empirical that narrows from
-$\sim 3\times$ at $\mu_0 = 0.5$ to $\sim 2\times$ at $\mu_0 = 0.99$, the same
-bound-vs-empirical offset @fig-rate-gap exhibits on a single-$\lambda$ sweep and
-consistent with @prp-rate-gap being a leading-order upper bound. The cold-start
+$\sim 3\times$ at $\mu_0 = 0.5$ to $\sim 2\times$ at $\mu_0 = 0.99$. The cold-start
 proxy $L_0/H_{00}(0) = 1/(4\mu_0(1-\mu_0)) = \{1.00, 1.19, 2.78, 5.26, 25.25\}$
 is looser still at high imbalance because active features pull $H_{00}$ above
 its intercept-only value $\mu_0(1-\mu_0)$ at this $\lambda$. As $\lambda$
@@ -2241,6 +2255,22 @@ quantitative form of which is the $k_0 - 1$ wasted-inner-work claim of
 grid: the gradient strategy carries a Lipschitz-mismatch penalty whose
 pass-count signature scales with $\mu_0$ and $1/\lambda$, and the convergence
 strategy does not.
+
+This grid, with @fig-rate-gap and @fig-rho-centering, fixes the level at which
+@prp-rate-gap holds: scaling and monotonicity, not magnitude. The empirical
+ratio reproduces every trend the proposition predicts---it diverges as the
+intercept channel degrades ($H_{00}/L_0 \to 0$) and grows monotonically with
+$\mu_0$, with $1/\lambda$, and with the design coupling $\bar\rho^2$. The
+magnitude is another matter: across this grid the empirical ratio runs a roughly
+constant factor of two to four below the iterate-level @eq-rate-gap prediction
+(@fig-mu-reg-gradient), the expected signature of @eq-rate-gap being a ratio of
+upper bounds built from heuristic substitutions rather than the
+iteration-complexity ratio itself. The same constant-factor offset appears in
+the single-$\lambda$ sweeps: the iterate-level curve sits above the empirical
+ratio in @fig-rate-gap, and the leading-order centering ratio of
+@fig-rho-centering, a first-order approximation rather than the full bound, sits
+a comparable factor below it. The divergence curves are therefore predictions of
+shape, not tight point predictions of $T_{\mathrm{G}}/T_{\mathrm{N}}$.
 
 ### Production Solvers {#sec-production-solvers}
 
@@ -2458,17 +2488,24 @@ $p=1000$, $\mu_0 = 0.99$, dense Gaussian), w1a (real, $n > p$, sparse binary,
 $\mu_0 = 0.029$), and news20-3pct (real, $n < p$, sparse text, $\mu_0 = 0.030$);
 each problem fixes $\lambda = 0.05\,\lambda_{\max}$. The three regimes together
 test whether the within-package gap is a property of the intercept update or of
-any single problem construction. Cross-package comparisons remain confounded by
+any single problem construction. All these trajectory panels---glmnet,
+biglasso, and skglm here, and the @fig-real-proxnewton and @fig-real-adelie
+panels that follow---fix one $(\mu_0, \lambda)$ per problem, so they establish
+the *direction* of the strategy-class split (Bucket A slow, Bucket B fast)
+rather than how the Bucket-A slowdown scales across the $(\mu_0,\,\lambda)$
+plane. That sweep is the work of two 30-cell grids on the same plane: the
+in-house @fig-mu-reg-gradient and its production-solver companion
+@fig-skglm-controlled below. Cross-package comparisons remain confounded by
 between-package algorithmic differences. The merged skglm patch eliminates that
 confound on the skglm row. With `b03644fe` (the last commit before the fix,
 behaviourally identical to the released 0.5) and `8f9cbd77` (the merge
 introducing the Newton intercept update) we can run the same `AndersonCD` driver
 against itself, on the same problem-generation pipeline, and isolate the
 intercept-update change. @fig-skglm-controlled reports the pass-count ratio
-between the two commits across the same $(\mu_0,\,\lambda/\lambda_{\max})$ grid
-as @fig-mu-reg-gradient. The empirical pattern matches the in-house heatmap: the
-ratio sits near unity at low imbalance and grows monotonically with $\mu_0$ and
-$1/\lambda$, with no other algorithmic differences confounding the comparison.
+between the two commits across the 30-cell $(\mu_0,\,\lambda/\lambda_{\max})$
+grid. The empirical pattern matches the in-house heatmap: the ratio sits near
+unity at low imbalance and grows monotonically with $\mu_0$ and $1/\lambda$,
+with no other algorithmic differences confounding the comparison.
 
 ```{julia}
 #| label: fig-skglm-controlled
@@ -2835,17 +2872,135 @@ the 2-D sweep shows.
 Two limitations bound the present analysis. First, the Newton-strategy results
 are *local*: @eq-newton-error and @eq-newton-coupling are Taylor identities
 for a single Newton step, not a global convergence proof for
-CD-with-Newton-intercept, and the empirical evidence in §Results stands in for
-that. A tighter rate analysis under restricted strong convexity would let
-@prp-rate-gap predict the empirical pass-count constant rather than
-only its scaling---currently the prediction matches within a factor of two to
-four\ (@fig-mu-reg-gradient). Second, the production-solver experiments in
-@sec-production-solvers run on a single shared problem; the heatmap of
+CD-with-Newton-intercept, and the empirical evidence in @sec-results stands in
+for that. A tighter rate analysis under restricted strong convexity would let
+@prp-rate-gap predict the empirical pass-count constant rather than only its
+scaling and monotonicity (@sec-imbalance-reg). Second, the production-solver
+experiments in @sec-production-solvers run on a single shared problem; the
+heatmap of
 @sec-imbalance-reg replicates the binary direct-CD predictions across a 30-cell
 grid but the cross-package comparison does not yet sweep the $(\mu_0, \lambda)$
 plane. Extending the production-solver sweep along those axes, and verifying the
 multinomial predictions against glmnet's symmetric-multinomial path and adelie's
 multi-response solver, are natural follow-ups.
+
+# Supplementary Figures {.unnumbered}
+
+These are the full versions of the dense grids that the main text shows as
+representative slices: the complete multinomial sweep
+(@fig-multinomial-sweep-full, sliced to its four corners in
+@fig-multinomial-sweep) and the warm-started-path grids over both coordinate
+orderings (@fig-warm-start-full and @fig-warm-start-mechanism-full, shown for
+cyclic CD only in @fig-warm-start and @fig-warm-start-mechanism).
+
+```{julia}
+#| label: fig-multinomial-sweep-full
+#| fig-cap: Full version of @fig-multinomial-sweep, the complete $4 \times 4$
+#|   sweep over the rarest-class marginal $\bar p_K \in \{0.05, 0.02, 0.01,
+#|   0.005\}$ (rows, top to bottom) and feature amplitude $\in \{0.5, 1.0, 1.5,
+#|   2.0\}$ (columns, left to right). The Newton and exact strategies overlap on
+#|   a single curve in every one of the sixteen cells; the gradient strategy
+#|   stalls progressively harder as $\bar p_K$ shrinks and as amplitude grows.
+
+dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(df, [:time, :relgaps, :gaps, :primals, :pass])
+
+df.relgaps .= max.(df.relgaps, 1.0e-20)
+
+agg = combine(
+    groupby(df, [:p_K, :amplitude, :strategy, :pass]),
+    :relgaps => median => :relgaps,
+)
+
+agg.p_K_str = "p̄_K = " .* string.(agg.p_K)
+agg.amp_str = "amp = " .* string.(agg.amplitude)
+
+spec = data(agg) * mapping(
+    :pass => "Pass",
+    :relgaps => "Relative primal suboptimality",
+    color = :strategy,
+    row = :p_K_str => sorter("p̄_K = 0.05", "p̄_K = 0.02", "p̄_K = 0.01", "p̄_K = 0.005"),
+    col = :amp_str => sorter("amp = 0.5", "amp = 1.0", "amp = 1.5", "amp = 2.0"),
+)
+
+draw(
+    visual(Lines) * spec,
+    axis = (yscale = log10,),
+    facet = (; linkxaxes = :none),
+    figure = (; size = (800, 600)),
+)
+```
+
+```{julia}
+#| label: fig-warm-start-full
+#| fig-cap: Full version of @fig-warm-start. Outer passes per subproblem along
+#|   the logistic-regression $\lambda$ path, with cyclic CD (top row) and
+#|   permuted CD (bottom row); left column the simulated imbalanced problem
+#|   ($\mu_0 = 0.9$), right column w1a. Solid lines mark warm starts, dashed
+#|   lines cold starts; curves capped at 300 hit the pass budget before the
+#|   tolerance.
+
+dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
+df = DataFrame(dd["results"])
+df = flatten(
+    df,
+    [
+        :reg_grid,
+        :passes,
+        :times,
+        :init_relgap,
+        :final_relgap,
+        :init_partial0F,
+        :nnz_solution,
+    ],
+)
+
+df.start_kind = ifelse.(df.warm_start, "warm", "cold")
+df.ordering = ifelse.(df.randomize, "permuted", "cyclic")
+
+spec_passes =
+    data(df) * mapping(
+        :reg_grid => "λ / λ_max",
+        :passes => "Outer passes",
+        color = :strategy,
+        linestyle = :start_kind => "Start",
+        col = :dataset,
+        row = :ordering,
+    )
+
+draw(
+    visual(Lines) * spec_passes,
+    axis = (xscale = log10, yscale = log10),
+    figure = (; size = (800, 500)),
+)
+```
+
+```{julia}
+#| label: fig-warm-start-mechanism-full
+#| fig-cap: Full version of @fig-warm-start-mechanism. The intercept partial
+#|   derivative $|\partial_0 F|$ at the initial iterate of each subproblem along
+#|   the $\lambda$ path, with cyclic CD (top row) and permuted CD (bottom row),
+#|   simulated problem (left) and w1a (right). Cold start (dashed) is
+#|   $\lambda$-independent and identical across strategies; warm start (solid)
+#|   shrinks $|\partial_0 F|$ by several orders of magnitude.
+
+spec_partial =
+    data(df) * mapping(
+        :reg_grid => "λ / λ_max",
+        :init_partial0F => "|∂₀F| at initialization",
+        color = :strategy,
+        linestyle = :start_kind => "Start",
+        col = :dataset,
+        row = :ordering,
+    )
+
+draw(
+    visual(Lines) * spec_partial,
+    axis = (xscale = log10, yscale = log10),
+    figure = (; size = (800, 500)),
+)
+```
 
 # References {.unnumbered}
 

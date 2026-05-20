@@ -58,13 +58,13 @@ are analysis or presentation judgments to weigh.
 
 ### Claims and evidence (major)
 
-- [ ] State once, prominently (Discussion or @sec-imbalance-reg), that
+- [x] State once, prominently (Discussion or @sec-imbalance-reg), that
       @prp-rate-gap is validated at the level of scaling and monotonicity, not
       magnitude: the empirical $T_G/T_N$ runs a constant factor of roughly 2 to
       4 below the bound throughout (@fig-rate-gap, @fig-rho-centering,
       @fig-mu-reg-gradient). The caveat is currently scattered; consolidate it
       so the divergence curves are not read as tight predictions.
-- [ ] Flag the single-operating-point nature of the production-solver comparison
+- [x] Flag the single-operating-point nature of the production-solver comparison
       in the @sec-production-solvers prose. Each panel (@fig-real-glmnet through
       @fig-real-adelie) tests one $(\mu_0, \lambda)$ per problem, against the
       30-cell grid for the in-house predictions (@fig-mu-reg-gradient). Either
@@ -83,22 +83,22 @@ are analysis or presentation judgments to weigh.
 
 ### Cross-references and presentation (minor)
 
-- [ ] Convert the four literal section references to `@sec-*` cross-references,
+- [x] Convert the four literal section references to `@sec-*` cross-references,
       adding anchors where missing: `§Results` (lines 720, 2838),
       `§Production       solvers` (956), `§Theory` (1678). The literal `§` forms
       do not render as links and can drift from the heading text. (verified)
-- [ ] Fix the @fig-rho-centering caption (line 922): it writes the literal
+- [x] Fix the @fig-rho-centering caption (line 922): it writes the literal
       `eq-rate-gap` instead of `@eq-rate-gap`, so it does not render as a link.
       The legend string "Predicted (eq-rate-gap)" at line 939 is a plot label;
       leave it. (verified)
-- [ ] Consider thinning the densest figures against Computo's "uncluttered"
+- [x] Consider thinning the densest figures against Computo's "uncluttered"
       preference: @fig-multinomial-sweep (16 panels) and the crossed-factor 2x2
       grids @fig-warm-start / @fig-warm-start-mechanism, e.g. a representative
       slice in-text with the full grid in an appendix. Not blocking.
 
 ### Environment and package code (minor)
 
-- [ ] `README.qmd:56` says "Julia 1.11", but `Project.toml` (`julia = "1.12"`)
+- [x] `README.qmd:56` says "Julia 1.11", but `Project.toml` (`julia = "1.12"`)
       and both CI workflows pin 1.12.6. Align the README so a re-runner picks
       the right toolchain. (verified)
 - [ ] Fix the dead loss default: `src/cdsolver.jl:9` and `src/gdsolver.jl:10`
