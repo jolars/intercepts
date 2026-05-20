@@ -54,11 +54,20 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## Reproducibility plumbing
 
-- [ ] Move the @fig-parametric solver call out of the notebook. The chunk at
-      line 1484 runs `cdsolver` three times at render time. Cost is trivial, but
-      the editorial-phase contract is "load cache, not solvers". Add an
-      `experiments/sim-parametric.jl` that writes the contour grid and the three
-      intercept/coefficient trajectories to a JLD2; load and plot.
+- [x] ~~Move the @fig-parametric solver call out of the notebook.~~ Rejected:
+      this had Computo backwards. Computo's ideal is direct reproducibility (the
+      notebook runs its own code; referees reproduce by running it), and caching
+      is the heavy-work exception, not the default. A trivial deterministic
+      solve is exactly the "small toy-sized live example" the long-running-code
+      guidance asks for, so it stays inline. Added a local `Random.seed!(42)` so
+      it is deterministic across renders.
+- [ ] Flip the fast internal-solver experiments back into the notebook. Audit
+      `experiments/*.jl` and inline the cheap, deterministic ones (e.g. the
+      single-$\lambda$ figures) so they run at render time, moving toward
+      Computo's direct-reproducibility ideal. Keep cached only the genuinely
+      heavy sweeps (the multi-seed heatmaps of @sec-imbalance-reg) and the
+      multi-language production-solver drivers under `results/`. Watch the CI
+      render time as chunks move inline; keep it within a sane budget.
 - [x] Align CI Julia version with `Project.toml`. The workflow installs
       `julia: 1.12.6`; `Project.toml` declares `julia = "1.11"`; AGENTS.md says
       CI pins 1.11.7. Either bump CI to 1.11.x or widen the compat to
@@ -102,12 +111,17 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
       paragraph, the @prp-profile-equiv statement, and the @sec-warmstart-path
       warm-start commentary). Descriptive uses of "convergence" (loop,
       tolerance, speed) left alone.*
-- [ ] Define Bucket A / Bucket B at the opening of @sec-production-solvers. The
+- [x] Define Bucket A / Bucket B at the opening of @sec-production-solvers. The
       mapping is implicit in @tbl-classification but the section uses the labels
-      before defining them.
-- [ ] Trim the "rare-class regime turns the slowdown from a corner case into the
+      before defining them. (Added a definitional paragraph before the panel
+      walkthrough; the table itself never printed the labels, so the definition
+      names the member solvers and ties them to the Family column.)
+- [x] Trim the "rare-class regime turns the slowdown from a corner case into the
       common regime" phrasing. It appears verbatim in the intro, the multinomial
-      extension, and the Discussion.
-- [ ] Spell out the diverging colormap range
+      extension, and the Discussion. (Reframed only the Related Work instance;
+      kept the intro/multinomial-section pairing, where the promise-then-payoff
+      repetition is structural.)
+- [x] Spell out the diverging colormap range
       ($|\log_{10}\,\mathrm{ratio}| \le 0.1$) in the @fig-mu-reg-exact axis as
-      well as the caption, so the figure stands alone when printed.
+      well as the caption, so the figure stands alone when printed. (Appended
+      "range ±0.1" to the colorbar label.)
