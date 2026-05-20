@@ -1,6 +1,6 @@
 # How to Train Your Intercept
 Johan Larsson
-2026-05-12
+2026-05-20
 
 *How the intercept is updated inside coordinate descent for regularized
 generalized linear models, and why the choice matters under response
@@ -17,27 +17,26 @@ License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommo
 
 ### Abstract
 
-Proximal coordinate descent is the default method for fitting
-regularized generalized linear models (GLMs), yet the strategy used to
-update the intercept varies widely across production implementations and
-is rarely studied. We frame the choice as three strategies: a single
-gradient step, a single Newton step (optionally with an Armijo
-safeguard), or iterating the intercept subproblem to convergence. We
-analyze each through a Schur-complement decomposition of the joint
-coefficient–intercept Hessian. The decomposition yields a leading-order
-iteration-complexity ratio
-$T_{\mathrm{gradient}}/T_{\mathrm{Newton}} \sim L_0/H_{00}$ that
-diverges as response imbalance grows, and an outer-pass equivalence
-between the Newton and convergence strategies with a bounded inner-step
-overhead. We use the same lens to classify CD-based GLM solvers into
-four algorithmic families: direct CD, local-IRLS, MM-IRLS, and
-prox-Newton, and identify the intercept strategy realized by each.
-Experiments on a shared imbalanced logistic problem confirm the
-predicted ordering across six production solvers (glmnet, biglasso,
-skglm, adelie, LIBLINEAR, BlitzL1). A multinomial extension shows that
-the rare-class regime turns the gradient-strategy slowdown from a corner
-case into the common one; the practical recommendation is to update the
-intercept with a Newton step.
+Production coordinate descent solvers for regularized generalized linear
+models (GLMs) disagree on how to update the intercept, and the
+disagreement matters under response imbalance. Three strategies span the
+design space: a single gradient step, a single Newton step (with an
+Armijo safeguard), or iterating the intercept subproblem to convergence.
+The mechanism is a mismatch between the per-coordinate Lipschitz
+constant $L_0$ and the iterate-level intercept curvature $H_{00}$: under
+imbalance $L_0/H_{00}$ diverges, so the gradient strategy slows by that
+factor, while the Newton strategy tracks the local curvature and matches
+the convergence strategy up to a bounded per-pass overhead. When
+coordinate descent runs inside an IRLS or other quadratic-surrogate
+inner solve, the three strategies collapse onto the same update on the
+inner quadratic, so the distinction has bite only on solvers that run
+coordinate descent directly on the GLM loss and on the
+global-upper-bound IRLS modes of glmnet and biglasso. Experiments on a
+shared imbalanced logistic problem confirm the predicted ordering across
+six production solvers (glmnet, biglasso, skglm, adelie, LIBLINEAR,
+BlitzL1), and a multinomial extension shows that rare classes turn the
+gradient-strategy slowdown into the common regime. The practical
+recommendation is to update the intercept with a single Newton step.
 
 ## Project structure
 
@@ -98,7 +97,7 @@ scripts in the <experiments/> directory. For example, to reproduce the
 results for the `intercepts` module, you can run:
 
 ``` bash
-julia --project=. experiments/sim-logreg-reg.jl
+julia --project=. experiments/sim-mu-extreme.jl
 ```
 
 ### Render the Quarto document

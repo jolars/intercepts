@@ -75,7 +75,7 @@ the <experiments/> directory. For example, to reproduce the results for the
 `intercepts` module, you can run:
 
 ```bash
-julia --project=. experiments/sim-logreg-reg.jl
+julia --project=. experiments/sim-mu-extreme.jl
 ```
 
 ### Render the Quarto document
