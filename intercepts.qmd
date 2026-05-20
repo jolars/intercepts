@@ -281,8 +281,8 @@ The Schur-coupling residual @eq-grad-residual gives the quantitative cost:
 when the response is
 imbalanced, $H_{00}/L_0$ shrinks to zero and the MM step loses progress in
 proportion. The MM literature treats this as loose majorization; what this paper
-adds is that for imbalanced logistic regression and rare-class multinomial
-classification, it is the common regime, not a corner case (@sec-irls,
+adds is that imbalanced logistic and rare-class multinomial problems make that
+looseness the rule rather than the exception (@sec-irls,
 @fig-multinomial-sweep).
 
 ## Theory {#sec-theory}
@@ -1554,6 +1554,11 @@ against the gradient strategy and in favour of Newton carries through.
 
 using Intercepts
 
+# Local seed: this figure computes inline (a deterministic illustration that
+# doubles as a render-time smoke test of the solver), so seed it independently
+# of upstream chunks rather than riding the global RNG state.
+Random.seed!(42)
+
 n = 100
 p = 1
 k = 10
@@ -1658,8 +1663,10 @@ operating points that hit the cap appear at the cap.
 
 All experiment outputs are cached. Internal-solver scripts at
 `experiments/sim-*.jl` write `.jld2` files to `results/`; production-solver
-scripts write `.csv` to `results/real-solvers/`. The paper re-renders from
-cache, so to refresh a cell re-run the corresponding script. The Julia, R, and
+scripts write `.csv` to `results/real-solvers/`. Figures backed by an experiment
+re-render from cache, so to refresh one re-run the corresponding script; the
+illustrative @fig-parametric instead runs the solver live at render time, as a
+small reproducible example. The Julia, R, and
 Python toolchains are pinned by `devenv.nix` (the `glmnet`, `biglasso`,
 `adelie`, `skglm`, and `blitzl1` versions above included) and all use their
 default OpenBLAS builds with no thread pinning. Hardware: a single x86_64 Linux
@@ -2189,7 +2196,7 @@ spec_exact =
     data(wide) * mapping(
         :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => "λ / λ_max",
         :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => "μ₀",
-        :exact_ratio => log10 => "log₁₀(T_exact / T_Newton)",
+        :exact_ratio => log10 => "log₁₀(T_exact / T_Newton), range ±0.1",
     )
 
 draw(
@@ -2260,6 +2267,17 @@ that solver across all configurations on each problem.
     `alg.logistic = "Newton"` and adelie exhibit the unguarded-Newton cold-start
     failure of @eq-newton-coupling on the two extreme-imbalance real datasets
     used here; @sec-cold-start-diag reports the diagnostic.
+
+We sort these solvers into two buckets by the intercept update each realizes on
+the original loss (@tbl-classification). Bucket A, the gradient strategy, holds
+the MM-IRLS and constant-Lipschitz solvers---glmnet `modified.Newton`, biglasso
+`MM`, and skglm---each taking one $L_0 = 1/4$ step per outer iteration. Bucket B,
+the Newton strategy, holds the local-IRLS solvers---glmnet `Newton`, biglasso
+`Newton`, and adelie---each driving the intercept to its conditional optimum on
+every quadratic surrogate. The framework predicts Bucket A to stall under
+imbalance and Bucket B to converge fast; the two prox-Newton solvers (LIBLINEAR,
+BlitzL1) reach the exact strategy at each subproblem boundary and sit outside the
+A/B split.
 
 The within-package mode comparisons (glmnet, biglasso) isolate the weight-scheme
 choice: identical solver, identical problem, identical tolerance, only the IRLS
