@@ -50,60 +50,69 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
         (`sim-logreg-mu`, `sim-logreg-reg`, `sim-h00-heatmap`, scripts +
         `.jld2`).
 
-## Referee-pass follow-ups
+## Referee-pass follow-ups (2026-05-20)
 
-From a Computo-referee read of the current draft. Major items first, then minor
+From a fresh Computo-referee read of the current draft. The previous referee-pass
+items are all addressed and have been cleared. Major items first, then minor
 fixes. Items tagged `(verified)` were checked against the working tree; the rest
 are analysis or presentation judgments to weigh.
 
-### Claims and evidence (major)
+### Reproducibility (major --- the necessary condition)
 
-- [x] State once, prominently (Discussion or @sec-imbalance-reg), that
-      @prp-rate-gap is validated at the level of scaling and monotonicity, not
-      magnitude: the empirical $T_G/T_N$ runs a constant factor of roughly 2 to
-      4 below the bound throughout (@fig-rate-gap, @fig-rho-centering,
-      @fig-mu-reg-gradient). The caveat is currently scattered; consolidate it
-      so the divergence curves are not read as tight predictions.
-- [x] Flag the single-operating-point nature of the production-solver comparison
-      in the @sec-production-solvers prose. Each panel (@fig-real-glmnet through
-      @fig-real-adelie) tests one $(\mu_0, \lambda)$ per problem, against the
-      30-cell grid for the in-house predictions (@fig-mu-reg-gradient). Either
-      say so explicitly, or sweep $\mu_0$ for the clean within-package
-      glmnet/biglasso toggles.
+- [ ] Publish the Zenodo deposit. `experiments/fetch-data.sh:21` and
+      `README.qmd:74` pin DOI `10.5281/zenodo.20315625`, but it is a *reserved*
+      DOI --- the record 404s, so a referee following the README cannot fetch
+      `intercepts-data-v1.tar.gz` (gitignored, not committed). The committed
+      caches under `results/` let the notebook render, but Computo's
+      reproducibility condition covers re-running, and "all necessary data (e.g.
+      via Zenodo)" must resolve. Build the archive (`build-data-archive.jl`),
+      publish the deposit, and confirm `data/MANIFEST.sha256` verifies against
+      it. Until then, document the `INTERCEPTS_DATA_ARCHIVE=...` local override
+      as the working path. (verified: DOI reserved, archive gitignored)
+- [ ] Reconcile the README with the actual environment files. `README.qmd:117`
+      and `:121` tell the re-runner to `nix develop` against a `flake.nix`, but
+      the repo ships `devenv.nix` / `devenv.lock` and there is no root
+      `flake.nix` --- the documented path dead-ends. Point the README at the
+      real files (or add the flake). (verified: no `flake.nix`)
 
-### Data provenance (major)
+### Claims and framing (major)
 
-- [x] Ship the real-data inputs instead of fetching them at run time.
-      `experiments/fetch-yeoh.R` writes Yeoh2002 into a gitignored `data/yeoh/`,
-      and Shuttle / w1a / news20 load via `LIBSVMdata.jl` and external sources.
-      Computo expects all necessary data to ship (Zenodo or a pinned versioned
-      archive): deposit the exact inputs and document retrieval in the README.
-      The committed `.jld2` / `.csv` caches are fine for the heavy external
-      phase; it is the inputs behind them that must be retrievable.
+- [ ] Reconsider the "Proposition" label on @prp-rate-gap. As written
+      (@eq-rate-gap, @eq-rate-gap-asymptotic) it is a ratio of upper bounds built
+      from three assumption-violating substitutions, and the empirical ratio
+      runs a constant factor of 2--4 below it. The surviving content is scaling
+      and monotonicity (already consolidated as a caveat), which the data
+      support --- but a numbered Proposition implies a tightness it lacks.
+      Downgrade to a scaling argument / remark, or justify the numbered framing.
+      Distinct from the (done) caveat-consolidation item: this is about the
+      structural label, not the prose hedge.
+- [ ] Soften the abstract's "confirm the predicted ordering across six
+      production solvers." The single-operating-point caveat is already in the
+      @sec-production-solvers prose, but the abstract still reads stronger than
+      single-$(\mu_0,\lambda)$ panels can show. State that the scaling evidence
+      is the within-package toggles, the skglm before/after patch, and the
+      in-house heatmaps; the six-solver panels establish direction.
 
-### Cross-references and presentation (minor)
+### Clarity and presentation (minor)
 
-- [x] Convert the four literal section references to `@sec-*` cross-references,
-      adding anchors where missing: `§Results` (lines 720, 2838),
-      `§Production       solvers` (956), `§Theory` (1678). The literal `§` forms
-      do not render as links and can drift from the heading text. (verified)
-- [x] Fix the @fig-rho-centering caption (line 922): it writes the literal
-      `eq-rate-gap` instead of `@eq-rate-gap`, so it does not render as a link.
-      The legend string "Predicted (eq-rate-gap)" at line 939 is a plot label;
-      leave it. (verified)
-- [x] Consider thinning the densest figures against Computo's "uncluttered"
-      preference: @fig-multinomial-sweep (16 panels) and the crossed-factor 2x2
-      grids @fig-warm-start / @fig-warm-start-mechanism, e.g. a representative
-      slice in-text with the full grid in an appendix. Not blocking.
+- [ ] Make the abstract and the opening of @sec-introduction readable by a
+      computational scientist who does not yet know $H_{00}$, the Schur
+      complement, or IRLS. Defer the notation; lead with the phenomenon
+      (gradient updates stall when the response is imbalanced) and the
+      recommendation (one Newton step). Computo wants the abstract/intro as
+      nontechnical as possible.
+- [ ] Reduce the $H_{00}/L_0 \leftrightarrow L_0/H_{00}$ alternation, or add a
+      signpost. @tbl-real-logreg-problems is internally consistent (header and
+      caption both use $H_{00}/L_0 = 4\mu_0(1-\mu_0)$; the slowdown ordering at
+      line 1712 uses the reciprocal $L_0/H_{00}$), so this is signposting for a
+      reader checking the arithmetic, not a bug. (verified: not a
+      header/caption mismatch)
+- [ ] Consider folding the two Poisson no-op demonstrations into one subsection:
+      @fig-cold-start-poisson and @fig-real-poisson make near-identical points.
+      The densest grids (@fig-multinomial-sweep-full, @fig-warm-start-full,
+      @fig-warm-start-mechanism-full) are already in the supplement. Not
+      blocking.
 
-### Environment and package code (minor)
-
-- [x] `README.qmd:56` says "Julia 1.11", but `Project.toml` (`julia = "1.12"`)
-      and both CI workflows pin 1.12.6. Align the README so a re-runner picks
-      the right toolchain. (verified)
-- [x] Fix the dead loss default: `src/cdsolver.jl:9` and `src/gdsolver.jl:10`
-      default `lossfun::LossFunction = Quadratic()`, but the type is
-      `QuadraticLoss` and `Quadratic()` is undefined. It is never triggered (all
-      call sites pass `lossfun` explicitly), so results are unaffected, but it
-      is a dead default in a package Computo archives and assesses. Change to
-      `QuadraticLoss()`. (verified, both files)
+Not actionable from this pass: the review's "README structure boilerplate"
+point does not apply --- `README.qmd:31` already uses `<experiments/>` and the
+capitalized `Intercepts` module, and `README.qmd:56` already pins Julia 1.12.6.
