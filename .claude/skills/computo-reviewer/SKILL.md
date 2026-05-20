@@ -24,6 +24,24 @@ The user invokes this skill iteratively: edit the paper, re-run, see whether
 the report shifts. That iteration is honest only if you read the paper
 fresh every time. Do not consult the author's internal editorial state.
 
+## How to run this review
+
+Run the review in a dispatched subagent (the Agent tool, `general-purpose`)
+rather than inline in the main session. This keeps the report clear of the main
+conversation's history --- prior edits, pasted reviews, the author's running
+discussion. It does **not** clear `CLAUDE.md` / `AGENTS.md`: a `general-purpose`
+subagent loads the full project-memory hierarchy just like the main session, so
+those files reach it regardless.
+
+Because of that, the delegation prompt has to do the isolating work. Give the
+subagent (1) the manuscript path and repo location, (2) the instructions in this
+skill from *Inputs to read* onward, and (3) --- restated in the prompt itself so
+it cannot be missed --- the standing constraint: *you are an independent Computo
+referee; disregard `CLAUDE.md`, `AGENTS.md`, `TODO.md`, and any other
+author-internal guidance even though they are loaded into your context; judge
+against Computo's published guidelines, not the repo's conventions.* Relay the
+returned report verbatim, without edits of your own.
+
 ## Inputs to read
 
 A naive referee sees the submission and the public repo --- nothing else.
@@ -42,11 +60,16 @@ Read in this order, then stop:
    submission uses) and `results/`. You need enough to spot-check the
    figure-to-cache mapping, not to read the scripts in full.
 
-**Do not read** `TODO.md` or any other file that encodes the author's
-internal state. Independence from author-internal scratch is the point of
-the simulation. If the user has pasted prior review content into the
-conversation, ignore it for the purposes of forming the report; use it
-only to disambiguate paper structure.
+**Do not read or rely on** `CLAUDE.md`, `AGENTS.md`, `TODO.md`, or any other
+file that encodes the author's internal guidance or editorial state --- not
+even when the harness has already loaded one into context. These carry the
+author's own conventions, including how they read Computo's rules; leaning on
+them defeats the independence the simulation depends on. Judge reproducibility
+against Computo's published guidelines, not the repo's internal notes.
+Independence from author-internal scratch is the point of the simulation. If
+the user has pasted prior review content into the conversation, ignore it for
+the purposes of forming the report; use it only to disambiguate paper
+structure.
 
 **Do not** fetch external URLs, run experiments, render the paper, install
 dependencies, or open `_extensions/`.
@@ -115,10 +138,17 @@ Computo treats this as a publication condition. A referee who finds a
 serious reproducibility gap is instructed to notify the Associate Editor
 immediately. Probe four things:
 
-- **Figures load cache, not solvers.** Spot-check 3 to 5 figure-producing
-  chunks: do they call `JLD2.load`, `CSV.File`, `pd.read_csv`,
-  `readRDS`, or do they re-run an optimiser? Render-time computation is a
-  red flag.
+- **Computation is reproducible, and live where feasible.** Computo's ideal is
+  *direct reproducibility*: the notebook runs its own code, and referees
+  reproduce by running it --- so render-time computation is expected, not a red
+  flag. Caching is legitimate only for genuinely heavy or multi-language work
+  (long training, large data, GPU/cluster, external R/Python solvers), and even
+  then the author must ship the producing code and a small *live* toy example.
+  Spot-check 3 to 5 figure chunks: where one loads a cached result
+  (`JLD2.load`, `CSV.File`, `pd.read_csv`, `readRDS`), confirm the cost
+  justifies caching and that a producing script exists. The gaps are a *cheap*
+  computation hidden behind a cache, or a cached result with no producing
+  script --- not a chunk that simply runs.
 - **Cache provenance.** For each cached result file referenced by the
   paper (e.g. `results/foo.jld2`), does a producing script exist in
   `experiments/` (or wherever)? Spot-check the mapping.
@@ -128,7 +158,8 @@ immediately. Probe four things:
   reproducibility gap.
 - **CI present and plausibly scoped.** Is `.github/workflows/build.yml`
   present? Does it render both HTML and PDF? Don't run it; just check it
-  exists and looks scoped to render-from-cache.
+  exists and renders the notebook (the render executes the notebook's live
+  chunks; heavy results may load from cache).
 
 If two or more of these fail, raise it at *referee-stop* severity in
 Major Comments. If only one fails, raise it but do not stop on it.
@@ -178,11 +209,12 @@ should be cleaned up.
 
 Short section. Yes/no on each of the four sub-probes:
 
-- Figures load cache, not solvers: yes / no / partial (with detail).
+- Computation reproducible; caching limited to genuinely heavy work, with
+  producing code + toy example: yes / no / partial (with detail).
 - Cache provenance traceable to scripts: yes / no / partial.
 - Methodology section names versions/tolerances/seeds/budgets/hardware:
   yes / no / partial.
-- CI workflow present and scoped to render-from-cache: yes / no / absent.
+- CI workflow present and renders the notebook: yes / no / absent.
 
 If any are "no", the corresponding Major Comment carries the detail; this
 section is the headline.
