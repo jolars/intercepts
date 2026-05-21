@@ -123,11 +123,22 @@ are analysis or presentation judgments to weigh.
       ordering rationale and is used in both the prose and the @fig-real-logreg
       caption---and added a one-clause signpost at the table handoff noting the
       column lists the reciprocal $H_{00}/L_0$.)
-- [ ] Consider folding the two Poisson no-op demonstrations into one subsection:
+- [x] Consider folding the two Poisson no-op demonstrations into one subsection:
       @fig-cold-start-poisson and @fig-real-poisson make near-identical points.
       The densest grids (@fig-multinomial-sweep-full, @fig-warm-start-full,
       @fig-warm-start-mechanism-full) are already in the supplement. Not
-      blocking.
+      blocking. (declined: the two figures do not make near-identical points.
+      @fig-cold-start-poisson is a synthetic constructed-failure example in the
+      Theory section whose protagonist is the unguarded-Newton overshoot and
+      whether the Armijo guard absorbs it; @fig-real-poisson is real-data
+      (congress109) confirmation in Results whose protagonist is the
+      gradient-strategy no-op ($L_0=\infty$). They serve the theory→experiment
+      arc, sit in different sections, and already cross-reference rather than
+      repeat---@fig-real-poisson cites @fig-cold-start-poisson to explain the
+      guarded/unguarded curve coincidence. Folding would relocate a synthetic
+      example into the empirical section. Kept all three Poisson figures
+      (@fig-real-poisson-production is the production-solver landscape, a
+      distinct point).)
 
 Not actionable from this pass: the review's "README structure boilerplate"
 point does not apply --- `README.qmd:31` already uses `<experiments/>` and the
