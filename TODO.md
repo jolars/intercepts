@@ -52,10 +52,10 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
 
 ## Referee-pass follow-ups (2026-05-20)
 
-From a fresh Computo-referee read of the current draft. The previous referee-pass
-items are all addressed and have been cleared. Major items first, then minor
-fixes. Items tagged `(verified)` were checked against the working tree; the rest
-are analysis or presentation judgments to weigh.
+From a fresh Computo-referee read of the current draft. The previous
+referee-pass items are all addressed and have been cleared. Major items first,
+then minor fixes. Items tagged `(verified)` were checked against the working
+tree; the rest are analysis or presentation judgments to weigh.
 
 ### Reproducibility (major --- the necessary condition)
 
@@ -81,15 +81,23 @@ are analysis or presentation judgments to weigh.
 
 ### Claims and framing (major)
 
-- [ ] Reconsider the "Proposition" label on @prp-rate-gap. As written
-      (@eq-rate-gap, @eq-rate-gap-asymptotic) it is a ratio of upper bounds built
-      from three assumption-violating substitutions, and the empirical ratio
-      runs a constant factor of 2--4 below it. The surviving content is scaling
-      and monotonicity (already consolidated as a caveat), which the data
-      support --- but a numbered Proposition implies a tightness it lacks.
+- [x] Reconsider the "Proposition" label on @prp-rate-gap. As written
+      (@eq-rate-gap, @eq-rate-gap-asymptotic) it is a ratio of upper bounds
+      built from three assumption-violating substitutions, and the empirical
+      ratio runs a constant factor of 2--4 below it. The surviving content is
+      scaling and monotonicity (already consolidated as a caveat), which the
+      data support --- but a numbered Proposition implies a tightness it lacks.
       Downgrade to a scaling argument / remark, or justify the numbered framing.
       Distinct from the (done) caveat-consolidation item: this is about the
-      structural label, not the prose hedge.
+      structural label, not the prose hedge. (resolved: relabeled the block from
+      `.proposition #prp-rate-gap` to `.remark` --- Quarto renders it unnumbered
+      and non-cross-referenceable, so it no longer sits beside the proven
+      @prp-profile-equiv as a peer. Content unchanged. Re-pointed all 10
+      `@prp-rate-gap` citations to `@eq-rate-gap` (or `@eq-rate-gap-asymptotic`
+      where the text means the asymptotic limit), rewording the two sites where
+      an equation could not be the grammatical agent to "the rate-gap argument";
+      also fixed two prose uses of the word "proposition" that referred to this
+      block. No broken refs: both equation labels still resolve.)
 - [x] Soften the abstract's "confirm the predicted ordering across six
       production solvers." The single-operating-point caveat is already in the
       @sec-production-solvers prose, but the abstract still reads stronger than
@@ -97,9 +105,9 @@ are analysis or presentation judgments to weigh.
       is the within-package toggles, the skglm before/after patch, and the
       in-house heatmaps; the six-solver panels establish direction. (abstract
       now reads "the predicted ordering holds at the operating points tested,
-      establishing the direction ... rather than its scaling"; the scaling
-      claim is attributed to the within-package toggles, the before/after skglm
-      patch, and in-house sweeps---mirroring the @sec-production-solvers
+      establishing the direction ... rather than its scaling"; the scaling claim
+      is attributed to the within-package toggles, the before/after skglm patch,
+      and in-house sweeps---mirroring the @sec-production-solvers
       direction-vs-scaling split.)
 
 ### Clarity and presentation (minor)
@@ -118,9 +126,9 @@ are analysis or presentation judgments to weigh.
       signpost. @tbl-real-logreg-problems is internally consistent (header and
       caption both use $H_{00}/L_0 = 4\mu_0(1-\mu_0)$; the slowdown ordering at
       line 1712 uses the reciprocal $L_0/H_{00}$), so this is signposting for a
-      reader checking the arithmetic, not a bug. (verified: not a
-      header/caption mismatch) (resolved: kept the slowdown framing---it is the
-      ordering rationale and is used in both the prose and the @fig-real-logreg
+      reader checking the arithmetic, not a bug. (verified: not a header/caption
+      mismatch) (resolved: kept the slowdown framing---it is the ordering
+      rationale and is used in both the prose and the @fig-real-logreg
       caption---and added a one-clause signpost at the table handoff noting the
       column lists the reciprocal $H_{00}/L_0$.)
 - [x] Consider folding the two Poisson no-op demonstrations into one subsection:
@@ -140,6 +148,6 @@ are analysis or presentation judgments to weigh.
       (@fig-real-poisson-production is the production-solver landscape, a
       distinct point).)
 
-Not actionable from this pass: the review's "README structure boilerplate"
-point does not apply --- `README.qmd:31` already uses `<experiments/>` and the
+Not actionable from this pass: the review's "README structure boilerplate" point
+does not apply --- `README.qmd:31` already uses `<experiments/>` and the
 capitalized `Intercepts` module, and `README.qmd:56` already pins Julia 1.12.6.

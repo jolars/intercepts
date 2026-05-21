@@ -770,7 +770,7 @@ differently on the intercept: the gradient strategy plugs in the global
 $L_0 = \sup f''$, while the Newton and exact strategies use the iterate-level
 $H_{00}$, which may be orders of magnitude smaller.
 
-::: {.proposition #prp-rate-gap}
+::: {.remark}
 **(Rate gap, with a large-imbalance reduction.)** Let
 $R_j^2 = (\beta_j^{(0)} - \beta_j^\star)^2$ denote the squared cold-start
 distance to the optimum along coordinate $j$, with the intercept as coordinate
@@ -904,7 +904,7 @@ is tighter at $\mu_0 = 0.99$. The two bracket the empirical ratio at
 low-to-moderate imbalance and both sit above it as $\mu_0 \to 1$, where they
 approach the intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic
 at their respective evaluation points. @sec-imbalance-reg consolidates what this
-bound-to-empirical gap implies for the proposition's reach.
+bound-to-empirical gap implies for the rate-gap argument's reach.
 
 @fig-rate-gap sweeps $\mu_0$ and so probes the $H_{00}/L_0$ axis of the framing
 while keeping the second axis $\bar\rho^2$ close to zero (the design is
@@ -918,7 +918,7 @@ in both regimes, the leading-order ratio
 $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ captures the direction, and the
 empirical jump sits a constant factor above this leading-order prediction. The
 Schur framing's second axis is therefore visible empirically, not just absorbed
-into the asymptotic limit of @prp-rate-gap.
+into the asymptotic limit @eq-rate-gap-asymptotic.
 
 ```{julia}
 #| label: fig-rho-centering
@@ -959,10 +959,10 @@ draw(
 )
 ```
 
-@prp-rate-gap connects directly to @sec-production-solvers. glmnet's
+The rate-gap argument connects directly to @sec-production-solvers. glmnet's
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
 at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
-@prp-rate-gap predicts their pass counts should grow with $L_0/H_{00}$ at
+@eq-rate-gap predicts their pass counts should grow with $L_0/H_{00}$ at
 $\mu_0 = 0.99$, matching the empirical ≈5× and ≈10× slowdowns reported in
 @fig-real-glmnet and @fig-real-biglasso. skglm 0.5, the direct-CD solver,
 exhibits the same scaling on a continuous trajectory in @fig-real-skglm: the
@@ -2164,7 +2164,7 @@ window of the first few outer passes; the steelman regimes in
 ### Imbalance and Regularization {#sec-imbalance-reg}
 
 The single-$\lambda$ experiments above test the framework along one axis at a
-time. The quantitative prediction of @prp-rate-gap is two-dimensional: the
+time. The quantitative prediction of @eq-rate-gap is two-dimensional: the
 gradient/Newton pass-count ratio scales with $L_0/H_{00}(\hat\eta)$, and both
 $\lambda$ and $\mu_0$ shift $\hat\eta$ and therefore $H_{00}$. We sweep
 $\mu_0 \in \{0.5, 0.7, 0.9, 0.95, 0.99\}$ against
@@ -2182,7 +2182,7 @@ per-coordinate Lipschitz-mismatch prediction from BLAS and memory effects.
 #|   5000-pass budget are clipped; the ratio there is a lower bound. Ratio
 #|   increases monotonically with $\mu_0$ along every column and with
 #|   $1/\lambda$ along every row, matching the qualitative form of
-#|   @prp-rate-gap.
+#|   @eq-rate-gap.
 
 dd = JLD2.load(@projectroot("results", "sim-mu-reg-heatmap.jld2"))
 df = DataFrame(dd["results"])
@@ -2262,14 +2262,14 @@ outer-pass content of @eq-intercept-drift: the exact strategy consumes the same
 number of outer passes as bare Newton when both converge. The cost of the exact
 strategy is therefore an inner-step overhead, not an outer-pass overhead---the
 quantitative form of which is the $k_0 - 1$ wasted-inner-work claim of
-@sec-per-pass-cost. Together the two heatmaps verify @prp-rate-gap on a 30-cell
+@sec-per-pass-cost. Together the two heatmaps verify @eq-rate-gap on a 30-cell
 grid: the gradient strategy carries a Lipschitz-mismatch penalty whose
 pass-count signature scales with $\mu_0$ and $1/\lambda$, and the convergence
 strategy does not.
 
 This grid, with @fig-rate-gap and @fig-rho-centering, fixes the level at which
-@prp-rate-gap holds: scaling and monotonicity, not magnitude. The empirical
-ratio reproduces every trend the proposition predicts---it diverges as the
+@eq-rate-gap holds: scaling and monotonicity, not magnitude. The empirical
+ratio reproduces every trend the rate-gap argument predicts---it diverges as the
 intercept channel degrades ($H_{00}/L_0 \to 0$) and grows monotonically with
 $\mu_0$, with $1/\lambda$, and with the design coupling $\bar\rho^2$. The
 magnitude is another matter: across this grid the empirical ratio runs a roughly
@@ -2443,7 +2443,7 @@ draw(
 #|   ramp (hundreds of outer iterations spent reducing suboptimality before
 #|   sharp convergence once the intercept has caught up); this is the
 #|   @eq-grad-residual signature, matching the rate-gap prediction of
-#|   @prp-rate-gap on a production gradient-strategy solver. The
+#|   @eq-rate-gap on a production gradient-strategy solver. The
 #|   post-convergence scatter at high
 #|   $n_{\text{iter}}$ reflects Anderson acceleration's non-monotonic stopping
 #|   behaviour near $F^\star$.
@@ -2527,7 +2527,7 @@ with no other algorithmic differences confounding the comparison.
 #|   $(\mu_0,\,\lambda/\lambda_{\max})$ grid as @fig-mu-reg-gradient. Cells
 #|   where the pre-fix commit hits the 5000-iteration cap are clipped; the ratio
 #|   there is a lower bound. The monotone increase in $\mu_0$ and $1/\lambda$
-#|   matches the prediction of @prp-rate-gap on a production solver whose only
+#|   matches the prediction of @eq-rate-gap on a production solver whose only
 #|   change between the two trials is the intercept update.
 
 df_sk = DataFrame(
@@ -2885,7 +2885,7 @@ are *local*: @eq-newton-error and @eq-newton-coupling are Taylor identities
 for a single Newton step, not a global convergence proof for
 CD-with-Newton-intercept, and the empirical evidence in @sec-results stands in
 for that. A tighter rate analysis under restricted strong convexity would let
-@prp-rate-gap predict the empirical pass-count constant rather than only its
+@eq-rate-gap predict the empirical pass-count constant rather than only its
 scaling and monotonicity (@sec-imbalance-reg). Second, the production-solver
 experiments in @sec-production-solvers run on a single shared problem; the
 heatmap of
