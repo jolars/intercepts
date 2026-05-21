@@ -3,80 +3,21 @@ name: build
 on:
   schedule:
     - cron: "0 8 * * 0"
-  workflow_dispatch:
   push:
-    branches:
-      - main
-
-permissions:
-  actions: write
-  contents: write
-  pages: write
+    branches: ["main", "master"]
+  repository_dispatch:
+    types: [custom-event]
+  workflow_dispatch:
+  pull_request:
+    branches: ["main", "master"]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
-
-      - name: Set up quarto
-        uses: quarto-dev/quarto-actions/setup@v2
-        with:
-          version: pre-release
-          tinytex: true
-
-      - name: register tinytex globally for diagram.lua
-        run: |
-          mkdir -p ~/.local/bin
-          ~/.TinyTeX/bin/x86_64-linux/tlmgr update --self
-          ~/.TinyTeX/bin/x86_64-linux/tlmgr option sys_bin ~/.local/bin
-          ~/.TinyTeX/bin/x86_64-linux/tlmgr path add
-          ~/.TinyTeX/bin/x86_64-linux/tlmgr install libertinus-fonts
-
-      - name: Install Computo extension for Quarto
-        run: |
-          quarto add --no-prompt computorg/computo-quarto-extension
-
-      - name: Install System dependencies
-        run: sudo apt-get install -y librsvg2-bin
-
-      - name: Install Julia
-        uses: julia-actions/setup-julia@v2
-        with:
-          version: "1.12.6"
-      - uses: julia-actions/cache@v2
-        with:
-          cache-registries: "true"
-
-      - name: Install Julia Dependencies
-        uses: julia-actions/julia-buildpkg@v1
-
-      - name: Render
-        run: |
-          quarto render --output-dir=public
-          if [[ ! -f ./public/index.html ]]; then
-            echo "No index.html found in public directory. copying the first HTML file."
-            cp $(ls ./public/*.html | head -n 1) ./public/index.html
-          fi
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: ./public
-
-  deploy:
+  call_env_workflow:
+    uses: computorg/workflows/.github/workflows/global-env.yml@main
+  call_quartopublish_workflow:
     permissions:
-      pages: write
       id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      contents: write
+      pages: write
+    uses: computorg/workflows/.github/workflows/publish-render.yml@main
+    needs: call_env_workflow
