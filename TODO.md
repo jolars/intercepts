@@ -164,15 +164,16 @@ there was a conscious call recorded above.
 
 ### Reproducibility (major --- the necessary condition)
 
-- [ ] Document the CI split in @sec-methodology. `build.yml` only renders the
-      paper (it installs Julia, runs `quarto render`, deploys Pages) and never
-      runs the test suite; `test.yml` runs `Pkg.test()` separately on push / PR.
-      Since Computo treats CI as a reproducibility instrument and `src/` quality
-      is under review, state plainly which workflow guarantees what, and confirm
-      the render job does not silently skip the cached-result chunks. Note that
-      `build.yml` is the journal-managed builder (do not modify it); this is a
-      documentation change in the paper, not a workflow change. (verified:
-      `build.yml` has no test step; `test.yml` runs `julia-runtest`)
+- [x] Document the CI split. Decided this is repo infrastructure, not scientific
+      methodology, so it lives in `README.qmd` (a new "Continuous integration"
+      subsection under Reproducibility) rather than in `@sec-methodology` ---
+      keeps the paper's methodology uncluttered, and a referee checking
+      reproducibility reads the repo, not the prose. `build.yml` now delegates to
+      Computo's reusable workflows (`global-env.yml` builds the env,
+      `publish-render.yml` renders + deploys Pages) and never runs the test
+      suite; `test.yml` runs `Pkg.test()` on push / PR and guarantees `src/`.
+      Both pin Julia 1.11 to match the manifest. `build.yml` stays the
+      journal-managed builder (not modified).
 
 ### Claims and framing (major)
 

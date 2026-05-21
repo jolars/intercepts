@@ -53,9 +53,9 @@ quarto add computorg/computo-quarto-extension@v0.2.6
 ### Install Julia
 
 You need to have [Julia](https://julialang.org/) installed on your computer.
-This project is built using Julia 1.12.6 (the version CI pins and under which
-`Manifest.toml` was generated), which you can install through juliaup, a tool to
-manage Julia installations.
+This project is built using Julia 1.11 (currently 1.11.9 --- the version CI pins
+and under which `Manifest.toml` was resolved), which you can install through
+juliaup, a tool to manage Julia installations.
 
 After this, you need to activate the Julia environment for this project. You can
 do this by running the following command in the root directory of the project:
@@ -125,3 +125,16 @@ devenv shell
 and this will set up the environment with all the dependencies needed to run the
 project. But you will still need to activate the Julia environment as described
 above, and resolve the dependencies.
+
+### Continuous integration
+
+Two GitHub Actions workflows cover the project, and they guarantee different
+things. `build.yml` renders and publishes the paper: it delegates to Computo's
+reusable workflows---`global-env.yml` builds the pinned environment, and
+`publish-render.yml` runs `quarto render` and deploys to GitHub Pages---and it
+never runs the test suite. It is the journal-managed builder, so per Computo's
+[author guidelines](https://computo-journal.org/site/guidelines-authors.html) we
+do not modify it. `test.yml` is ours: it builds the package and runs the
+`Intercepts` test suite (`Pkg.test()`) on every push and pull request, which is
+what guarantees the correctness of the code in `src/`. Both pin Julia 1.11 to
+match the version under which `Manifest.toml` is resolved.
