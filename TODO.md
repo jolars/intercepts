@@ -151,3 +151,81 @@ tree; the rest are analysis or presentation judgments to weigh.
 Not actionable from this pass: the review's "README structure boilerplate" point
 does not apply --- `README.qmd:31` already uses `<experiments/>` and the
 capitalized `Intercepts` module, and `README.qmd:56` already pins Julia 1.12.6.
+
+## Referee-pass follow-ups (2026-05-21)
+
+From another fresh Computo-referee read. Items tagged `(verified)` were checked
+against the working tree; the rest are framing or presentation judgments to
+weigh. Two of this pass's points are already tracked above and not repeated: the
+Zenodo deposit (open major item under the 2026-05-20 reproducibility section),
+and the abstract/intro nontechnical rewrite (done) --- the referee re-flagged
+the notation in the contributions list, but keeping the Schur-complement naming
+there was a conscious call recorded above.
+
+### Reproducibility (major --- the necessary condition)
+
+- [ ] Document the CI split in @sec-methodology. `build.yml` only renders the
+      paper (it installs Julia, runs `quarto render`, deploys Pages) and never
+      runs the test suite; `test.yml` runs `Pkg.test()` separately on push / PR.
+      Since Computo treats CI as a reproducibility instrument and `src/` quality
+      is under review, state plainly which workflow guarantees what, and confirm
+      the render job does not silently skip the cached-result chunks. Note that
+      `build.yml` is the journal-managed builder (do not modify it); this is a
+      documentation change in the paper, not a workflow change. (verified:
+      `build.yml` has no test step; `test.yml` runs `julia-runtest`)
+
+### Claims and framing (major)
+
+- [ ] Substantiate the Local-IRLS strategy-collapse claim (@fig-irls-comparison,
+      @sec-irls). The text says the three strategies "coincide ... numerically
+      (verified in unit tests)" (`intercepts.qmd:1524`) and again that the
+      collapse "is verified numerically in the unit tests rather than the"
+      figure (`:1546`), but neither is checkable from the manuscript. Add a
+      panel / inset showing the strategies coincide on the inner quadratic, or
+      report the numerical agreement tolerance and point to the specific test.
+      (verified: claim is asserted, not shown)
+- [ ] Reconcile the per-run suboptimality reference across the multinomial
+      figures. @fig-multinomial-imbalance (`:1204`) and @fig-multinomial-sweep
+      (`:1303`) measure suboptimality against each run's own lowest primal,
+      which can understate a stalling gradient run --- exactly the risk
+      @fig-real-multinomial-shuttle already guards against by referencing the
+      minimum primal across the three runs (`:1353`, with a caption noting the
+      stall "is not understated by its own run-local minimum"). Propagate the
+      global / shared reference to the imbalance and sweep figures, or carry the
+      shuttle-style caveat into their captions. (verified: imbalance + sweep use
+      per-run; shuttle uses global)
+- [ ] Reword the rate-gap bullet in the introduction's contributions list. The
+      "A Unifying Schur-Complement Analysis" item calls
+      $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ a "leading-order
+      iteration-complexity ratio" (`intercepts.qmd:183`), but @sec-imbalance-reg
+      frames the same quantity as scaling and monotonicity only, with a 2--4x
+      slack between bound and empirics. Distinct from the done remark-relabel of
+      @prp-rate-gap (that was the structural label); this is the intro framing,
+      where a reader of the contributions alone should see a *scaling*
+      prediction, not a complexity result. (verified: bullet still says
+      "iteration-complexity ratio")
+
+### Clarity and presentation (minor)
+
+- [ ] Distinguish measured from source-read placements in @tbl-classification.
+      ncvreg and Lasso.jl appear in the table (`intercepts.qmd:1482`--`:1483`)
+      and in "correctly orders every package in our survey" (`:191`), but
+      neither is benchmarked --- the production figures cover glmnet, biglasso,
+      adelie, and skglm, with LIBLINEAR / BlitzL1 already openly flagged as
+      source-read. Either add ncvreg / Lasso.jl to a figure or soften the "every
+      package" claim to separate measured from classified-from-source
+      placements. (verified: ncvreg / Lasso.jl absent from `experiments/`)
+- [ ] Add a numerical-stability note for the logistic loss. `src/loss.jl:51`
+      computes `sum(log1p.(exp.(η)) .- η .* y)` with no overflow-safe
+      reformulation, so large $\eta$ overflows `exp` to `Inf`. The Armijo guards
+      keep this off the hot path in practice, but given the paper's
+      saturated-logistic and extreme-rate emphasis a one-line comment (or a
+      `log1pexp`-style guard) is worth it. (verified)
+- [ ] Decide on the main-text / supplement `-full` pairing. A cold referee read
+      @fig-multinomial-sweep vs @fig-multinomial-sweep-full and
+      @fig-warm-start(-mechanism) vs their `-full` twins as near-duplicate. The
+      compact-main / full-supplement split is the intended structure (the
+      2026-05-20 pass routed the dense grids to the supplement on purpose), so
+      this is likely a signposting fix --- a one-clause pointer from each compact
+      main figure to its supplement twin --- rather than a cut. Low priority.
+      (verified: `-full` versions live in the supplement)
