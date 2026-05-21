@@ -69,11 +69,15 @@ are analysis or presentation judgments to weigh.
       publish the deposit, and confirm `data/MANIFEST.sha256` verifies against
       it. Until then, document the `INTERCEPTS_DATA_ARCHIVE=...` local override
       as the working path. (verified: DOI reserved, archive gitignored)
-- [ ] Reconcile the README with the actual environment files. `README.qmd:117`
+- [x] Reconcile the README with the actual environment files. `README.qmd:117`
       and `:121` tell the re-runner to `nix develop` against a `flake.nix`, but
       the repo ships `devenv.nix` / `devenv.lock` and there is no root
       `flake.nix` --- the documented path dead-ends. Point the README at the
-      real files (or add the flake). (verified: no `flake.nix`)
+      real files (or add the flake). (verified: no `flake.nix`) (resolved:
+      rewrote the README section to point at `devenv.nix`/`devenv.lock`, enter
+      with `devenv shell`, and link to the devenv install docs; fixed the same
+      stale `nix develop` in `AGENTS.md`. Regenerate `README.md` with
+      `task readme`.)
 
 ### Claims and framing (major)
 

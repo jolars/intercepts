@@ -1,6 +1,6 @@
 # How to Train Your Intercept
 Johan Larsson
-2026-05-20
+2026-05-21
 
 *How the intercept is updated inside coordinate descent for regularized
 generalized linear models, and why the choice matters under response
@@ -19,24 +19,31 @@ License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommo
 
 Production coordinate descent solvers for regularized generalized linear
 models (GLMs) disagree on how to update the intercept, and the
-disagreement matters under response imbalance. Three strategies span the
-design space: a single gradient step, a single Newton step (with an
-Armijo safeguard), or iterating the intercept subproblem to convergence.
-The mechanism is a mismatch between the per-coordinate Lipschitz
-constant $L_0$ and the iterate-level intercept curvature $H_{00}$: under
-imbalance $L_0/H_{00}$ diverges, so the gradient strategy slows by that
-factor, while the Newton strategy tracks the local curvature and matches
-the convergence strategy up to a bounded per-pass overhead. When
-coordinate descent runs inside an IRLS or other quadratic-surrogate
-inner solve, the three strategies collapse onto the same update on the
-inner quadratic, so the distinction has bite only on solvers that run
-coordinate descent directly on the GLM loss and on the
-global-upper-bound IRLS modes of glmnet and biglasso. Experiments on a
-shared imbalanced logistic problem confirm the predicted ordering across
-six production solvers (glmnet, biglasso, skglm, adelie, LIBLINEAR,
-BlitzL1), and a multinomial extension shows that rare classes turn the
-gradient-strategy slowdown into the common regime. The practical
-recommendation is to update the intercept with a single Newton step.
+disagreement matters under response imbalance. Three strategies span
+what these solvers do: a single gradient step, a single Newton step
+(with a backtracking safeguard), or solving the one-dimensional
+intercept subproblem exactly. The gradient step is the culprit. It
+scales every update by a fixed, worst-case constant, and when the
+response is imbalanced—one class rare, or counts heavily skewed—that
+constant is far too cautious for the intercept, so it barely moves while
+the other coordinates wait on it; the slowdown grows as the imbalance
+worsens. A Newton step instead uses the curvature at the current
+iterate, which stays well-scaled however imbalanced the data are. It
+matches the exact strategy pass for pass, and avoids the wasted inner
+iterations that strategy spends. The distinction has bite only for
+solvers that run coordinate descent directly on the GLM loss and for the
+global-upper-bound modes of glmnet and biglasso; solvers that reduce
+each step to a weighted-least-squares problem already get the adaptive
+update for free. Across six production solvers (glmnet, biglasso, skglm,
+adelie, LIBLINEAR, BlitzL1), the predicted ordering holds at the
+operating points tested, establishing the direction of the effect rather
+than its scaling. The scaling claim, that the slowdown grows with
+imbalance, rests on controlled evidence: the within-package mode toggles
+in glmnet and biglasso, the same skglm solver measured before and after
+a merged intercept-update patch, and in-house parameter sweeps. A
+multinomial extension shows that rare classes turn the gradient-strategy
+slowdown into the common regime. The practical recommendation is to
+update the intercept with a single Newton step.
 
 ## Project structure
 
@@ -92,20 +99,22 @@ Julia environment with the required dependencies.
 
 ### (Optional) Retrieve the real-data inputs
 
-The real-data experiments read their inputs from a pinned archive deposited
-on Zenodo (DOI: `10.5281/zenodo.20315625`), rather than fetching datasets at
-run time. The archive holds the exact inputs behind the real-data figures:
-the Yeoh2002 gene-expression panel, the LIBSVM datasets (w1a, news20.binary,
-shuttle.scale, a4a, leukemia, breast-cancer, gisette), and the congress109
-phrase-count matrix. To stage them under `data/`, run:
+The real-data experiments read their inputs from a pinned archive
+deposited on Zenodo (DOI: `10.5281/zenodo.20315625`), rather than
+fetching datasets at run time. The archive holds the exact inputs behind
+the real-data figures: the Yeoh2002 gene-expression panel, the LIBSVM
+datasets (w1a, news20.binary, shuttle.scale, a4a, leukemia,
+breast-cancer, gisette), and the congress109 phrase-count matrix. To
+stage them under `data/`, run:
 
 ``` bash
 bash experiments/fetch-data.sh
 ```
 
 This downloads the archive, verifies every file against the committed
-`data/MANIFEST.sha256`, unpacks it, and derives the Yeoh CSV inputs from the
-shipped RDS. See <data/README.md> for the provenance of each dataset.
+`data/MANIFEST.sha256`, unpacks it, and derives the Yeoh CSV inputs from
+the shipped RDS. See \<data/README.md\> for the provenance of each
+dataset.
 
 You only need this step to re-run the real-data experiments. The cached
 results in <results/> already render the paper without it.
@@ -133,14 +142,15 @@ quarto render intercepts.qmd
 This will generate the HTML and PDF versions of the document in the
 `_site/` directory.
 
-### (Optional) Reproduce using nix
+### (Optional) Reproduce using devenv
 
-If you are using [Nix](https://nixos.org/), then we have provided a
-development flake (`flake.nix` file) that can be used to reproduce the
-environment for the project. To use it, simply run:
+We provide a [devenv](https://devenv.sh) configuration (`devenv.nix` /
+`devenv.lock`) that pins the system-level dependencies for the project.
+After [installing devenv](https://devenv.sh/getting-started/), enter the
+environment from the root of the project with:
 
 ``` bash
-nix develop
+devenv shell
 ```
 
 and this will set up the environment with all the dependencies needed to
