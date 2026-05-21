@@ -1718,7 +1718,8 @@ The complementary prediction is that the same scaling holds across real problems
 with different $(\mu_0,\text{density},n,p)$. We run the three strategies on six
 LIBSVM benchmark problems at $\lambda = 0.05\,\lambda_{\max}$, listed in
 @tbl-real-logreg-problems and ordered by predicted slowdown
-$L_0/H_{00} = 1 / (4 \mu_0 (1 - \mu_0))$. The set spans a $9\times$ range in
+$L_0/H_{00} = 1 / (4 \mu_0 (1 - \mu_0))$ (the table lists its reciprocal
+$H_{00}/L_0$). The set spans a $9\times$ range in
 $L_0/H_{00}$ and five distinct design families: the Webb web-pages binary w1a, a
 subsampled news20.binary bag-of-words text design (news20-3pct, 60 positives and
 1\,940 negatives drawn deterministically from `news20.binary`), the UCI Adult

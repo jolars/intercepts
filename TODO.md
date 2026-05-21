@@ -114,11 +114,15 @@ are analysis or presentation judgments to weigh.
       deferred to intro para 2 with IRLS defined at first use; the
       Schur-complement naming stays in the contributions list, which now comes
       after the phenomenon and the strategies.)
+- [x] Reduce the $H_{00}/L_0 \leftrightarrow L_0/H_{00}$ alternation, or add a
       signpost. @tbl-real-logreg-problems is internally consistent (header and
       caption both use $H_{00}/L_0 = 4\mu_0(1-\mu_0)$; the slowdown ordering at
       line 1712 uses the reciprocal $L_0/H_{00}$), so this is signposting for a
       reader checking the arithmetic, not a bug. (verified: not a
-      header/caption mismatch)
+      header/caption mismatch) (resolved: kept the slowdown framing---it is the
+      ordering rationale and is used in both the prose and the @fig-real-logreg
+      caption---and added a one-clause signpost at the table handoff noting the
+      column lists the reciprocal $H_{00}/L_0$.)
 - [ ] Consider folding the two Poisson no-op demonstrations into one subsection:
       @fig-cold-start-poisson and @fig-real-poisson make near-identical points.
       The densest grids (@fig-multinomial-sweep-full, @fig-warm-start-full,
