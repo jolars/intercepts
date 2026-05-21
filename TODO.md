@@ -195,16 +195,14 @@ there was a conscious call recorded above.
       global / shared reference to the imbalance and sweep figures, or carry the
       shuttle-style caveat into their captions. (verified: imbalance + sweep use
       per-run; shuttle uses global)
-- [ ] Reword the rate-gap bullet in the introduction's contributions list. The
-      "A Unifying Schur-Complement Analysis" item calls
+- [x] Reword the rate-gap bullet in the introduction's contributions list. The
+      "A Unifying Schur-Complement Analysis" item called
       $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ a "leading-order
-      iteration-complexity ratio" (`intercepts.qmd:183`), but @sec-imbalance-reg
-      frames the same quantity as scaling and monotonicity only, with a 2--4x
-      slack between bound and empirics. Distinct from the done remark-relabel of
-      @prp-rate-gap (that was the structural label); this is the intro framing,
-      where a reader of the contributions alone should see a *scaling*
-      prediction, not a complexity result. (verified: bullet still says
-      "iteration-complexity ratio")
+      iteration-complexity ratio" (`intercepts.qmd:183`), contradicting the body
+      (`intercepts.qmd:829`), which frames the same quantity as a ratio of upper
+      bounds whose scaling survives, not a complexity result. Now reads
+      "predicts the leading-order scaling ... of the gradient strategy's
+      slowdown ... a scaling the experiments confirm up to a constant factor."
 
 ### Clarity and presentation (minor)
 

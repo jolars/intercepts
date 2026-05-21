@@ -180,9 +180,11 @@ A Unifying Schur-Complement Analysis
     $H_{00}/L_0$. Short Taylor expansions and an envelope-theorem identity tie
     the gradient strategy's slow regime to the per-coordinate Lipschitz mismatch
     $H_{00} \ll L_0$, and a decomposition of the standard randomized-CD bound by
-    coordinate yields the leading-order iteration-complexity ratio
-    $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ in the imbalance regime,
-    which diverges as $\mu_0 \to 1$ for binary logistic regression.
+    coordinate predicts the leading-order scaling
+    $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ of the gradient strategy's
+    slowdown in the imbalance regime, which diverges as $\mu_0 \to 1$ for binary
+    logistic regression---a scaling the experiments confirm up to a constant
+    factor.
 
 Structural Classification of Production Solvers
 :   We derive a classification of CD-based GLM solvers into four algorithmic
