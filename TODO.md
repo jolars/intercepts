@@ -232,3 +232,59 @@ there was a conscious call recorded above.
       this is likely a signposting fix --- a one-clause pointer from each compact
       main figure to its supplement twin --- rather than a cut. Low priority.
       (verified: `-full` versions live in the supplement)
+
+## Referee-pass follow-ups (2026-05-21, second read)
+
+From another fresh Computo-referee read. Items tagged `(verified)` were checked
+against the working tree. One major item from this read --- a stale Julia
+version in `@sec-methodology` --- was fixed directly rather than left open.
+
+### Reproducibility / claims (major)
+
+- [x] Fixed: `@sec-methodology` (`intercepts.qmd:1655`) said the internal-solver
+      experiments ran on "Julia 1.12 (CI pins 1.12.6, matching the version under
+      which `Manifest.toml` was generated)", but every other artifact says
+      1.11.9 --- `README.qmd:56`, `Manifest.toml` (`julia_version = "1.11.9"`),
+      `Project.toml` (`julia = "1.11"`), and `test.yml` (`version: "1.11"`). The
+      "Fix version discrepancy in docs" commit fixed the README but missed the
+      methodology prose. Reworded to Julia 1.11 / 1.11.9. (verified)
+
+### Clarity and presentation (minor)
+
+- [ ] Document the cross-panel $F^\star$ convention in @fig-real-adelie. The
+      adelie panel references skglm's minimum primal as $F^\star$ (`df_ref` from
+      `skglm.csv`, `intercepts.qmd:2670`), while @fig-real-glmnet /
+      @fig-real-biglasso / @fig-real-skglm / @fig-real-proxnewton each use their
+      own panel's minimum (`p .- minimum(p)`). The caption explains adelie's
+      coarser outer-IRLS criterion flooring its suboptimality but never says
+      $F^\star$ comes from a different solver. State the convention in the
+      caption. The shared-reference choice is defensible --- it stops a stalling
+      solver from understating its own gap, the same principle the 2026-05-20
+      pass propagated to @fig-real-multinomial-shuttle --- but the asymmetry
+      should be visible to a reader comparing panels. (verified: adelie uses
+      skglm's primal; the other four real-data panels use their own minimum)
+
+### Correctness (minor)
+
+- [x] Tighten the @prp-profile-equiv proof. It was a one-line envelope-theorem
+      invocation, and the step-size claim ($1/H_{jj}$ is "a valid descent step
+      size") was asserted without naming the curvature regime. (resolved:
+      expanded the proof to carry the envelope derivation explicitly --- define
+      $\beta_0^\star(\beta)$, differentiate $\tilde F = F(\beta_0^\star, \beta)$,
+      and show the indirect term vanishes by stationarity $\partial_0 F = 0$ ---
+      and reworded the proposition's step-size sentence: the realized
+      $1/H_{jj}$ step is *conservative* for $\tilde F$ because
+      $1/H_{jj} \le 1/\tilde H_{jj}$, never exceeding the exact
+      coordinate-minimization step of $\tilde F$'s local quadratic model along
+      $e_j$, so it descends rather than overshoots --- not "barely sufficient".)
+
+Not actionable from this read: the "six vs eight production solvers" point is
+stale --- ncvreg / Lasso.jl were already stripped from @tbl-classification
+(commit `45d27fa`); its eight rows are six packages with glmnet and biglasso
+each appearing in two configurations, and the contributions bullet
+(`intercepts.qmd:195`) already splits the benchmarked solvers from the two
+placed by source-reading. The "theory equation density" point is a
+Computo-allowed clarity judgment already weighed in the 2026-05-20 pass. The
+@eq-rate-gap-asymptotic prominence point sits adjacent to the (done) rate-gap
+relabeling work and is left unrecorded as a framing judgment unless raised
+again.

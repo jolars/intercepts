@@ -590,15 +590,31 @@ strategy has driven $\beta_0$ to the conditional minimizer
 $\beta_0^{(t)} = \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$. Then the *first*
 coefficient update of the next pass uses the gradient
 $\partial_j F(\beta_0^{(t)}, \beta^{(t)}) = \partial_j \tilde F(\beta^{(t)})$,
-and is therefore identical to a CD step on $\tilde F$ at $\beta^{(t)}$ with
-step size $1/H_{jj}$. The step size satisfies $1/H_{jj} \leq 1/\tilde H_{jj}$
-by @eq-schur-diag, so it is a valid descent step size for $\tilde F$.
+and is therefore identical to a coordinate-descent step on $\tilde F$ at
+$\beta^{(t)}$ with step size $1/H_{jj}$. Because $\tilde H_{jj} \leq H_{jj}$ by
+@eq-schur-diag, that step is *conservative* for $\tilde F$: it never exceeds the
+exact coordinate-minimization step $1/\tilde H_{jj}$ of $\tilde F$'s local
+quadratic model along $e_j$, so it descends rather than overshoots.
 :::
 
 ::: {.proof}
-The envelope theorem at $\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$;
-$\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$ from @eq-schur-diag
-gives the step-size ordering.
+Let $\beta_0^\star(\beta) = \arg\min_{\beta_0} F(\beta_0, \beta)$, which is
+well-defined and differentiable because $F$ is strictly convex in $\beta_0$, so
+that $\tilde F(\beta) = F(\beta_0^\star(\beta), \beta)$. Differentiating through
+$\beta_0^\star$ and using the stationarity condition
+$\partial_0 F(\beta_0^\star(\beta), \beta) = 0$,
+$$
+\partial_j \tilde F(\beta)
+  = \partial_j F(\beta_0^\star(\beta), \beta)
+  + \partial_0 F(\beta_0^\star(\beta), \beta)\,\partial_j \beta_0^\star(\beta)
+  = \partial_j F(\beta_0^\star(\beta), \beta),
+$$
+the envelope identity: stationarity kills the indirect term that runs through
+$\beta_0^\star$. Evaluating at $\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives
+the gradient equality. For the step size,
+$\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$ from @eq-schur-diag gives
+$1/H_{jj} \leq 1/\tilde H_{jj}$, so the realized step is at most $\tilde F$'s
+exact coordinate-minimization step $1/\tilde H_{jj}$ along $e_j$.
 :::
 
 @prp-profile-equiv is the bridge between the Schur analysis and CD theory: at
@@ -1652,7 +1668,7 @@ fig
 ### Methodology and Reproducibility {#sec-methodology}
 
 All internal-solver experiments use the `Intercepts` Julia package on Julia
-1.12 (CI pins 1.12.6, matching the version under which `Manifest.toml` was
+1.11 (CI pins 1.11.9, matching the version under which `Manifest.toml` was
 generated) with the default OpenBLAS. We report outer-pass counts as the primary work
 metric: one pass is one sweep through all $p$ coordinates plus an intercept
 update, and "passes to tolerance" use a target relative duality gap of $10^{-8}$
