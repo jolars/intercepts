@@ -90,22 +90,30 @@ are analysis or presentation judgments to weigh.
       Downgrade to a scaling argument / remark, or justify the numbered framing.
       Distinct from the (done) caveat-consolidation item: this is about the
       structural label, not the prose hedge.
-- [ ] Soften the abstract's "confirm the predicted ordering across six
+- [x] Soften the abstract's "confirm the predicted ordering across six
       production solvers." The single-operating-point caveat is already in the
       @sec-production-solvers prose, but the abstract still reads stronger than
       single-$(\mu_0,\lambda)$ panels can show. State that the scaling evidence
       is the within-package toggles, the skglm before/after patch, and the
-      in-house heatmaps; the six-solver panels establish direction.
+      in-house heatmaps; the six-solver panels establish direction. (abstract
+      now reads "the predicted ordering holds at the operating points tested,
+      establishing the direction ... rather than its scaling"; the scaling
+      claim is attributed to the within-package toggles, the before/after skglm
+      patch, and in-house sweeps---mirroring the @sec-production-solvers
+      direction-vs-scaling split.)
 
 ### Clarity and presentation (minor)
 
-- [ ] Make the abstract and the opening of @sec-introduction readable by a
+- [x] Make the abstract and the opening of @sec-introduction readable by a
       computational scientist who does not yet know $H_{00}$, the Schur
       complement, or IRLS. Defer the notation; lead with the phenomenon
       (gradient updates stall when the response is imbalanced) and the
       recommendation (one Newton step). Computo wants the abstract/intro as
-      nontechnical as possible.
-- [ ] Reduce the $H_{00}/L_0 \leftrightarrow L_0/H_{00}$ alternation, or add a
+      nontechnical as possible. (abstract in `_quarto.yml` and intro para 1--2
+      rewritten: $L_0$/$H_{00}$/Armijo gone from the abstract, IRLS/prox-Newton
+      deferred to intro para 2 with IRLS defined at first use; the
+      Schur-complement naming stays in the contributions list, which now comes
+      after the phenomenon and the strategies.)
       signpost. @tbl-real-logreg-problems is internally consistent (header and
       caption both use $H_{00}/L_0 = 4\mu_0(1-\mu_0)$; the slowdown ordering at
       line 1712 uses the reciprocal $L_0/H_{00}$), so this is signposting for a

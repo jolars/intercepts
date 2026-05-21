@@ -27,19 +27,27 @@ Random.seed!(14)
 
 # Introduction
 
-The dominating method for fitting regularized regression models is proximal
-coordinate descent, which serves as the default optimization method in a range
-of software packages, including glmnet\ [@friedman2010; @tay2023],
-biglasso\ [@zeng2017], ncvreg\ [@breheny2011], skglm\ [@bertrand2022],
-adelie\ [@yang2024], LIBLINEAR\ [@fan2008; @yuan2012], and
-BlitzL1\ [@johnson2015]. These packages do not in fact run a single algorithm:
-glmnet, biglasso, adelie, and ncvreg solve a sequence of weighted-least-squares
-subproblems via inner CD (the IRLS-CD family); LIBLINEAR and BlitzL1 do the same
-with a proximal-Newton linearization\ [@lee2014]; skglm runs CD directly on the
-original GLM loss with constant per-coordinate Lipschitz steps. Coordinate
-descent has been investigated extensively, for instance with respect to
-acceleration and parallelization, yet one aspect that has so far not been
-investigated is the strategy of fitting the intercept.
+Proximal coordinate descent is the dominant method for fitting regularized
+regression models, and the default optimizer in glmnet\ [@friedman2010;
+@tay2023], biglasso\ [@zeng2017], ncvreg\ [@breheny2011],
+skglm\ [@bertrand2022], adelie\ [@yang2024], LIBLINEAR\ [@fan2008; @yuan2012],
+and BlitzL1\ [@johnson2015]. The method itself has been studied
+extensively---its acceleration, its parallelization, its convergence
+rates---but one question has gone unasked: how should a solver update the
+intercept? Every regularized GLM has one. The intercept is unpenalized and
+never drops out of the model, yet these packages disagree on how to fit it, and
+the disagreement is nowhere examined. The choice looks like a detail. We show
+that it can dominate convergence speed whenever the response is imbalanced, and
+that the fix is a single Newton step.
+
+These packages do not all run the same algorithm. glmnet, biglasso, adelie, and
+ncvreg fit the GLM by solving a sequence of weighted-least-squares problems,
+each by inner coordinate descent---iteratively reweighted least squares (IRLS).
+LIBLINEAR and BlitzL1 do the same through a proximal-Newton
+linearization\ [@lee2014]. skglm runs coordinate descent directly on the
+original GLM loss. As we make precise in @sec-theory and @sec-irls, which of
+these settings a solver sits in is exactly what decides whether its intercept
+update stays well-scaled under imbalance.
 
 In this paper, we are interested in the following optimization problem:
 $$

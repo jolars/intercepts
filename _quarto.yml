@@ -25,23 +25,30 @@ description: >
 abstract: >
   Production coordinate descent solvers for regularized generalized linear
   models (GLMs) disagree on how to update the intercept, and the disagreement
-  matters under response imbalance. Three strategies span the design space: a
-  single gradient step, a single Newton step (with an Armijo safeguard), or
-  iterating the intercept subproblem to convergence. The mechanism is a
-  mismatch between the per-coordinate Lipschitz constant $L_0$ and the
-  iterate-level intercept curvature $H_{00}$: under imbalance $L_0/H_{00}$
-  diverges, so the gradient strategy slows by that factor, while the Newton
-  strategy tracks the local curvature and matches the convergence strategy up
-  to a bounded per-pass overhead. When coordinate descent runs inside an IRLS
-  or other quadratic-surrogate inner solve, the three strategies collapse onto
-  the same update on the inner quadratic, so the distinction has bite only on
-  solvers that run coordinate descent directly on the GLM loss and on the
-  global-upper-bound IRLS modes of glmnet and biglasso. Experiments on a
-  shared imbalanced logistic problem confirm the predicted ordering across six
-  production solvers (glmnet, biglasso, skglm, adelie, LIBLINEAR, BlitzL1),
-  and a multinomial extension shows that rare classes turn the
-  gradient-strategy slowdown into the common regime. The practical
-  recommendation is to update the intercept with a single Newton step.
+  matters under response imbalance. Three strategies span what these solvers
+  do: a single gradient step, a single Newton step (with a backtracking
+  safeguard), or solving the one-dimensional intercept subproblem exactly. The
+  gradient step is the culprit. It scales every update by a fixed, worst-case
+  constant, and when the response is imbalanced---one class rare, or counts
+  heavily skewed---that constant is far too cautious for the intercept, so it
+  barely moves while the other coordinates wait on it; the slowdown grows as
+  the imbalance worsens. A Newton step instead uses the curvature at the
+  current iterate, which stays well-scaled however imbalanced the data are. It
+  matches the exact strategy pass for pass, and avoids the wasted inner
+  iterations that strategy spends. The distinction has bite only for solvers
+  that run coordinate descent directly on the GLM loss and for the
+  global-upper-bound modes of glmnet and biglasso; solvers that reduce each
+  step to a weighted-least-squares problem already get the adaptive update for
+  free. Across six production solvers (glmnet, biglasso, skglm, adelie,
+  LIBLINEAR, BlitzL1), the predicted ordering holds at the operating points
+  tested, establishing the direction of the effect rather than its scaling. The
+  scaling claim, that the slowdown grows with imbalance, rests on controlled
+  evidence: the within-package mode toggles in glmnet and biglasso, the same
+  skglm solver measured before and after a merged intercept-update patch, and
+  in-house parameter sweeps. A multinomial extension shows that rare classes
+  turn the gradient-strategy slowdown into the common regime. The
+  practical recommendation is to update the intercept with a single Newton
+  step.
 
 keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib
