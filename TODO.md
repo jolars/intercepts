@@ -206,14 +206,18 @@ there was a conscious call recorded above.
 
 ### Clarity and presentation (minor)
 
-- [ ] Distinguish measured from source-read placements in @tbl-classification.
-      ncvreg and Lasso.jl appear in the table (`intercepts.qmd:1482`--`:1483`)
-      and in "correctly orders every package in our survey" (`:191`), but
-      neither is benchmarked --- the production figures cover glmnet, biglasso,
-      adelie, and skglm, with LIBLINEAR / BlitzL1 already openly flagged as
-      source-read. Either add ncvreg / Lasso.jl to a figure or soften the "every
-      package" claim to separate measured from classified-from-source
-      placements. (verified: ncvreg / Lasso.jl absent from `experiments/`)
+- [x] Distinguish measured from source-read placements in @tbl-classification.
+      ncvreg and Lasso.jl appeared in the table but are never benchmarked (no
+      `experiments/` script), and their rows duplicated the glmnet-`Newton` /
+      biglasso-`Newton` local-IRLS rows verbatim. Dropped both rows from the
+      table (every remaining row is now a measured solver: glmnet, biglasso,
+      skglm, adelie, LIBLINEAR, BlitzL1), kept their classification in the survey
+      prose (`:32`, `:1468`), reworded the contributions bullet so "every package
+      in our survey" splits the six benchmarked from ncvreg / Lasso.jl placed
+      from source-reading, and replaced the caption's fragile "rows three to six"
+      with "the MM-IRLS and local-IRLS rows". (Note: LIBLINEAR / BlitzL1 *are*
+      benchmarked via `sim-real-proxnewton.py` --- the original TODO wrongly
+      called them source-read.)
 - [x] Add a numerical-stability note for the logistic loss. `src/loss.jl:51`
       computes `sum(log1p.(exp.(η)) .- η .* y)` with no overflow-safe
       reformulation, so large $\eta$ overflows `exp` to `Inf`. The Armijo guards

@@ -189,11 +189,12 @@ A Unifying Schur-Complement Analysis
 Structural Classification of Production Solvers
 :   We derive a classification of CD-based GLM solvers into four algorithmic
     families---direct CD, local-IRLS, MM-IRLS, and prox-Newton---and identify
-    the intercept strategy realized by each. The classification correctly orders
-    every package in our survey (glmnet, biglasso, skglm, adelie, LIBLINEAR,
-    BlitzL1, ncvreg, Lasso.jl) and turns the configuration options in glmnet
-    (`type.logistic`) and biglasso (`alg.logistic`) into a controlled empirical
-    experiment.
+    the intercept strategy realized by each. The classification accounts for
+    every package in our survey: the six we benchmark (glmnet, biglasso, skglm,
+    adelie, LIBLINEAR, BlitzL1) confirm the predicted ordering, while we place
+    ncvreg and Lasso.jl from source-reading alone. It also turns the
+    configuration options in glmnet (`type.logistic`) and biglasso
+    (`alg.logistic`) into a controlled empirical experiment.
 
 Empirical Verification on Production Codebases
 :   Five figures on the same imbalanced logistic problem confirm the framework's
@@ -1483,8 +1484,6 @@ table.)
   | biglasso (`alg.logistic = "MM"`)              | MM-IRLS               | Gradient ($L_0 = 1/4$) per outer iteration                  |
   | glmnet (`type.logistic = "Newton"`)           | Local-IRLS            | Convergence on the local quadratic per outer iter           |
   | biglasso (`alg.logistic = "Newton"`, default) | Local-IRLS            | Convergence on the local quadratic per outer iter           |
-  | Lasso.jl                                      | Local-IRLS            | Convergence on the local quadratic per outer iter           |
-  | ncvreg                                        | Local-IRLS            | Convergence on the local quadratic per outer iter           |
   | adelie                                        | Local-IRLS            | Implicit, via weighted-centered-features parameterization   |
   | LIBLINEAR (newGLMNET, L1-LR)                  | Prox-Newton           | Convergence on the quadratic; intercept unregularized       |
   | BlitzL1                                       | Prox-Newton           | Combined-direction backtrack + post-step Newton convergence |
@@ -1494,11 +1493,12 @@ table.)
     prox-Newton solvers freeze the Hessian at the start of a subproblem, so the
     three strategies of this paper coincide *within* one subproblem; the
     distinction reappears only when comparing weight schemes across outer
-    iterations (rows three to six). BlitzL1 additionally follows each
-    prox-Newton subproblem with a separate sequence of 1-D Newton iterations on
-    the intercept on the original loss; LIBLINEAR arrives at the same end
-    without that loop, because its inner CD already drives the unregularized
-    intercept to its conditional minimum on the quadratic. {#tbl-classification}
+    iterations (the MM-IRLS and local-IRLS rows). BlitzL1 additionally follows
+    each prox-Newton subproblem with a separate sequence of 1-D Newton
+    iterations on the intercept on the original loss; LIBLINEAR arrives at the
+    same end without that loop, because its inner CD already drives the
+    unregularized intercept to its conditional minimum on the quadratic.
+    {#tbl-classification}
 
 A consequence of the table is that two production solvers---LIBLINEAR
 (newGLMNET) and BlitzL1---end up with the exact strategy on the intercept at the
