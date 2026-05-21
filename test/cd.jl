@@ -291,3 +291,20 @@ end
     @test f_newt <= f0 + 1.0e-10
     @info "Adversarial cold start ΔF" guarded = f_newt - f0 unguarded = f_ung - f0
 end
+
+@testset "LogisticLoss stays finite under saturation" begin
+    f = LogisticLoss()
+
+    # Naive log1p(exp(η)) overflows to Inf for η ≳ 709; the loss must not.
+    η = [1000.0, -1000.0, 50.0, 0.0]
+    y = [1.0, 0.0, 1.0, 1.0]
+    L = loss(f, η, y)
+    @test isfinite(L)
+    # softplus(η) - η y per observation: (1000-1000) + (0-0) + (50-50) + (log2-0).
+    @test isapprox(L, log(2); atol = 1.0e-9)
+
+    # Where the naive form does not overflow, the stable form agrees with it.
+    ηs = [-8.0, -1.0, 0.0, 2.0, 9.0]
+    ys = [0.0, 1.0, 0.0, 1.0, 0.0]
+    @test isapprox(loss(f, ηs, ys), sum(log1p.(exp.(ηs)) .- ηs .* ys); atol = 1.0e-12)
+end

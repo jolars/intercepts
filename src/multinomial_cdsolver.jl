@@ -84,6 +84,9 @@ function multinomial_cdsolver(
     η = zeros(n, Km1)
 
     primals = Float64[]
+    duals = Float64[]
+    gaps = Float64[]
+    relgaps = Float64[]
     times = Float64[]
     intercepts_history = Vector{Vector{Float64}}(undef, 0)
     coefs_history = Vector{Matrix{Float64}}(undef, 0)
@@ -104,6 +107,34 @@ function multinomial_cdsolver(
         primal = loss(lossfun, η, y) + λ * sum(abs, coef)
         push!(primals, primal)
         push!(times, time() - t0)
+
+        # Dual point by dual scaling (mirrors cdsolver/irlssolver): center the
+        # residual per free class to meet the unpenalized-intercept stationarity
+        # condition Σ_i Θ_ik = 0, then rescale onto the ℓ∞ ball ‖XᵀΘ‖_∞ ≤ λ. The
+        # result is dual-feasible, so primal - dual is a true relative duality
+        # gap---a lower-bound certificate, unlike a run-local primal minimum.
+        Θ = residual(lossfun, η, y)
+        if fit_intercept
+            @inbounds for k = 1:Km1
+                colsum = 0.0
+                for i = 1:n
+                    colsum += Θ[i, k]
+                end
+                colmean = colsum / n
+                for i = 1:n
+                    Θ[i, k] -= colmean
+                end
+            end
+        end
+        grad_outer = x' * Θ
+        dual_scale = max(1.0, norm(grad_outer, Inf) / λ)
+        Θ ./= dual_scale
+        dua = dual(lossfun, Θ, y)
+        gap = primal - dua
+        relgap = gap / max(abs(primal), 1.0e-10)
+        push!(duals, dua)
+        push!(gaps, gap)
+        push!(relgaps, relgap)
 
         if save_history
             intercept_resc, coef_resc = rescalecoefs_multinomial(
@@ -213,6 +244,9 @@ function multinomial_cdsolver(
         intercept = intercept_out,
         coef = coef_out,
         primals = primals,
+        duals = duals,
+        gaps = gaps,
+        relgaps = relgaps,
         time = times,
         passes = it,
         λ = λ,

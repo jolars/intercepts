@@ -1201,15 +1201,22 @@ draw(
 )
 ```
 
-@fig-multinomial-imbalance reports relative primal suboptimality measured
-against the lowest primal observed during each run; the multinomial CD solver
-does not maintain a duality scaling.
+@fig-multinomial-imbalance reports relative primal suboptimality against
+$F^\star$, the lowest primal any strategy attains on the problem. The multinomial
+CD solver now maintains a duality gap---the intercept-centered residual rescaled
+onto the $\ell_\infty$ ball $\lVert X^\intercal \Theta \rVert_\infty \le \lambda$,
+the same dual scaling the binary solvers use---and on every problem the Newton
+and exact strategies drive that gap below $10^{-4}$, certifying $F^\star$ as the
+optimum. A stalling run is therefore scored against the shared optimum, not
+against its own lowest primal.
 
 The gradient strategy stalls, as expected. With the marginal class probabilities
 above, the rare-class diagonal entries $H_{00,4,4}, H_{00,5,5}$ are roughly
 twentieth-of-$L_0$ small, and the gradient strategy's per-class correction along
-those coordinates is correspondingly microscopic. The strategy converges to the
-same primal but takes roughly an order of magnitude longer.
+those coordinates is correspondingly microscopic. The strategy reaches the same
+optimum but takes roughly an order of magnitude longer: the Newton and exact
+strategies converge in under a hundred passes, while the gradient strategy needs
+most of the thousand-pass budget.
 
 The Newton and exact strategies collapse to a single visible curve. The
 $(K-1)$-block Newton solve distributes each per-class correction through the
@@ -1299,10 +1306,9 @@ per-class fraction $H_{00,kk}/L_0$ predicts a stall under the gradient strategy.
 #|   outer passes to reach relative primal suboptimality $10^{-6}$ where the
 #|   Newton-class strategies need $142$, a $\approx 3\times$ ratio driven by the
 #|   two rare classes. The Newton and exact trajectories coincide exactly---the
-#|   same block-Hessian collapse seen in @fig-multinomial-imbalance. Relative
-#|   primal suboptimality measured against the lowest primal observed during
-#|   each run, since the multinomial CD solver does not maintain a duality
-#|   scaling.
+#|   same block-Hessian collapse seen in @fig-multinomial-imbalance.
+#|   Suboptimality is measured against $F^\star$, the best primal across
+#|   strategies, which the solver's duality gap certifies as the optimum.
 
 dd = JLD2.load(@projectroot("results", "real-multinomial-yeoh.jld2"))
 df = DataFrame(dd["results"])
@@ -1325,13 +1331,13 @@ draw(
 
 @fig-real-multinomial reproduces the synthetic pattern on a genuine $p > n$
 gene-expression multinomial problem with rare classes: the gradient strategy
-stalls along the rare-class intercept components while the Newton-class
+lags along the rare-class intercept components while the Newton-class
 strategies---including exact---collapse onto a single curve. The slowdown ratio
 ($\approx 3\times$ at relative suboptimality $10^{-6}$) is milder than the
-$\approx 15\times$ ratio of @fig-multinomial-imbalance because Yeoh2002's rarest
-class is at $6\,\%$ rather than the $5\,\%$ floor of the synthetic design, and
-the penalty contribution at $n \ll p$ damps the absolute scale of the per-pass
-intercept correction.
+order-of-magnitude slowdown of @fig-multinomial-imbalance because Yeoh2002's
+rarest class is at $6\,\%$ rather than the $5\,\%$ floor of the synthetic design,
+and the penalty contribution at $n \ll p$ damps the absolute scale of the
+per-pass intercept correction.
 
 The same separation appears in the inverse $(K, n, p)$ regime. The StatLog
 Shuttle dataset\ [@michie1994] is a $K = 7$ sensor-data classification with $n
@@ -1349,24 +1355,20 @@ $H_{00,kk}$ collapses much further below $L_0$ than in Yeoh2002.
 #|   under cyclic CD. The Newton and exact strategies reach relative primal
 #|   suboptimality $10^{-6}$ in $32$ and $30$ outer passes respectively; the
 #|   gradient strategy stalls near $5 \times 10^{-3}$ and does not reach
-#|   $10^{-4}$ within $1000$ passes. Relative primal suboptimality is
-#|   computed against the minimum primal observed across the three runs, so
-#|   the gradient strategy's stall is visible rather than collapsed to its
-#|   own run-local minimum.
+#|   $10^{-4}$ within $1000$ passes. Suboptimality is measured against
+#|   $F^\star$, the best primal across the three runs, which the solver's
+#|   duality gap certifies as the optimum, so the gradient strategy's stall is
+#|   visible rather than collapsed to its own run-local minimum.
 
 dd_sh = JLD2.load(@projectroot("results", "real-multinomial-shuttle.jld2"))
 df_sh = DataFrame(dd_sh["results"])
-pmin_sh = minimum(minimum(p) for p in df_sh.primals)
-df_sh.relgaps_global = [
-    max.((p .- pmin_sh) ./ max(abs(pmin_sh), 1.0e-15), 1.0e-20) for
-    p in df_sh.primals
-]
-df_sh = flatten(df_sh, [:time, :relgaps_global, :primals])
+df_sh = flatten(df_sh, [:time, :relgaps, :primals])
+df_sh.relgaps .= max.(df_sh.relgaps, 1.0e-20)
 
 draw(
     visual(Lines) * data(df_sh) * mapping(
         :time => "Time (s)",
-        :relgaps_global => "Relative primal suboptimality",
+        :relgaps => "Relative primal suboptimality",
         color = :strategy,
     ),
     axis = (yscale = log10,),
@@ -1380,12 +1382,12 @@ passes respectively, while the gradient strategy fails to reach $10^{-4}$
 within $1000$ passes and stalls at a relative gap near $5 \times 10^{-3}$ on
 the rare-class intercept coordinates. The slowdown is qualitatively worse than
 Yeoh's $\approx 3\times$ pass-count ratio because the rarest Shuttle classes
-are two orders of magnitude rarer than Yeoh's rarest, and the block-Schur
-prediction sharpens with class imbalance exactly as the scalar theory says it
-should. With one $p \gg n$ panel on gene expression and one $n \gg p$ panel on
-sensor data, the rare-class multinomial slowdown is documented across the
-practical range of high-dimensional shapes a CD-based multinomial solver
-encounters.
+(ten, thirteen, and fifty samples) are two orders of magnitude rarer than
+Yeoh's rarest, and the block-Schur prediction sharpens with class imbalance
+exactly as the scalar theory says it should. With one $p \gg n$ panel on gene
+expression and one $n \gg p$ panel on sensor data, the rare-class multinomial
+slowdown is documented across the practical range of high-dimensional shapes a
+CD-based multinomial solver encounters.
 
 The class-by-class scheme of glmnet's symmetric-multinomial path tells a
 different but parallel story. Holding all $\eta_{il}$ for $l \neq k$ fixed, the
@@ -1520,8 +1522,9 @@ exactly this prescription.
 #|   Direct-CD with the gradient strategy as the algebra above predicts---both
 #|   stall at the same per-iteration correction fraction. Local-weight IRLS
 #|   converges, matching the strategy collapse argument. The Local-IRLS curve
-#|   uses Newton at the inner level; the gradient and exact strategies coincide
-#|   with it numerically (verified in unit tests).
+#|   uses Newton at the inner level; the gradient and exact strategies produce
+#|   identical iterates by the $L_0^{\text{inner}} = H_{00}$ collapse derived
+#|   above and would lie exactly on the same curve.
 
 dd = JLD2.load(@projectroot("results", "sim-irls-comparison.jld2"))
 df = DataFrame(dd["results"])
@@ -1542,10 +1545,14 @@ draw(
 
 @fig-irls-comparison realizes both predictions empirically: MM-IRLS stalls on
 the same plateau as Direct-CD with the gradient strategy under $\mu_0 = 0.99$,
-while Local-IRLS converges on the same problem. The strategy-collapse claim
-within Local-IRLS is verified numerically in the unit tests rather than the
-figure, since by construction the three strategies produce identical iterates on
-the inner quadratic.
+while Local-IRLS converges on the same problem. The strategy collapse within
+Local-IRLS is exact, not approximate: once $L_0^{\text{inner}} = H_{00}$, all
+three strategies share the single inner update
+$-\partial_0 \tilde F^{(t)} / H_{00}$ and so produce bit-identical iterates; the
+figure therefore plots only one of them. The unit tests assert this
+directly---the "Local-weight IRLS strategy collapse" testset in `test/irls.jl`
+checks that the intercept and coefficient paths under the gradient, Newton, and
+exact strategies agree exactly (`==`, not within a tolerance).
 
 A reader may notice that Local-IRLS also outpaces Direct-CD with the Newton
 strategy on this problem. This reflects the broader trade-off between

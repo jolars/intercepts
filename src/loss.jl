@@ -48,7 +48,9 @@ function validateresponse(::QuadraticLoss, y::AbstractVector) end
 
 # LogisticLoss regression
 function loss(::LogisticLoss, η::AbstractVector, y::AbstractVector)
-    return sum(log1p.(exp.(η)) .- η .* y)
+    # log1pexp keeps the loss finite under saturation (η ≳ 709), where the naive
+    # log1p(exp(η)) would overflow to Inf.
+    return sum(log1pexp.(η) .- η .* y)
 end
 
 function dual(f::LogisticLoss, θ::AbstractVector, y::AbstractVector)
@@ -273,6 +275,52 @@ function residual(
     y::AbstractVector{<:Integer},
 )
     return gradient(f, η, y)
+end
+
+# Inverse softmax link: recover the K-1 free-class linear predictors from a
+# probability matrix P (n × K, rows summing to one) with reference class K
+# pinned at η_iK = 0, so η_ik = log(P_ik) - log(P_iK).
+function link(f::MultinomialLogisticLoss, P::AbstractMatrix{<:Real})
+    n, K = size(P)
+    η = Matrix{Float64}(undef, n, K - 1)
+    @inbounds for i = 1:n
+        logref = log(P[i, K])
+        for k = 1:(K-1)
+            η[i, k] = log(P[i, k]) - logref
+        end
+    end
+    return η
+end
+
+# Fenchel dual of the multinomial logistic loss at a dual point Θ (n × K-1).
+# Θ is a dual-feasible variable (the intercept-centered, ℓ∞-rescaled residual
+# built by the solver). The conjugate is evaluated by recovering its maximizing
+# η: the implied class probabilities are u_ik = Θ_ik + 𝟙{y_i = k} for the free
+# classes and u_iK = 1 - Σ_k u_ik for the reference, so the dual value is
+# loss(η⋆) - ⟨Θ, η⋆⟩ with η⋆ = link(u). For the scaled residual u is a convex
+# combination of the softmax row and a simplex vertex and so stays in the
+# simplex; the small floor only guards the logarithm against a boundary point
+# far from the optimum.
+function dual(
+    f::MultinomialLogisticLoss,
+    Θ::AbstractMatrix{<:Real},
+    y::AbstractVector{<:Integer},
+)
+    n, Km1 = size(Θ)
+    K = f.K
+    U = Matrix{Float64}(undef, n, K)
+    @inbounds for i = 1:n
+        ref = 1.0
+        for k = 1:Km1
+            u = Θ[i, k] + (y[i] == k ? 1.0 : 0.0)
+            U[i, k] = u
+            ref -= u
+        end
+        U[i, K] = ref
+    end
+    U .= max.(U, 1.0e-12)
+    η = link(f, U)
+    return loss(f, η, y) - sum(Θ .* η)
 end
 
 function validateresponse(f::MultinomialLogisticLoss, y::AbstractVector{<:Integer})

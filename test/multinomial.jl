@@ -197,3 +197,61 @@ end
     @test isapprox(res_bin.intercept, res_mult.intercept[1]; atol = 1e-4)
 end
 
+@testset "Multinomial dual is a valid optimum certificate" begin
+    Random.seed!(909)
+    n, p, K = 300, 40, 4
+    X, y = generatedata(
+        n,
+        p;
+        response = :multinomial,
+        K = K,
+        class_probs = [0.6, 0.2, 0.15, 0.05],
+        x_type = :normal,
+        ρ = 0.3,
+        s = 4,
+        amplitude = 1.0,
+    )
+    res = multinomial_cdsolver(
+        X,
+        y,
+        0.05;
+        lossfun = MultinomialLogisticLoss(K = K),
+        intercept_strategy = ExactStrategy(),
+        maxit = 500,
+        randomize = false,
+        tol = 1e-12,
+    )
+
+    scale = max.(abs.(res.primals), 1.0)
+    # Weak duality: the dual point lower-bounds the primal, so the gap is
+    # nonnegative up to floating-point noise.
+    @test all(res.gaps .>= -1e-9 .* scale)
+    @test all(res.duals .<= res.primals .+ 1e-9 .* scale)
+    # The gap shrinks enough to certify the iterate as a near-optimum, which is
+    # how the experiments establish a trustworthy F* for primal-suboptimality
+    # plots. It need not reach machine zero: the dual point is a feasible
+    # lower-bound construction, not the exact dual optimum.
+    @test minimum(res.relgaps) < 1e-4
+end
+
+@testset "Multinomial K=2 dual matches binary logistic dual" begin
+    Random.seed!(77)
+    n = 60
+    η_scalar = randn(n)
+    y_bin = rand([0.0, 1.0], n)
+    y_mult = Int.(2 .- y_bin)
+
+    fbin = LogisticLoss()
+    fmult = MultinomialLogisticLoss(K = 2, lipschitz = 0.25)
+
+    # Dual point: the binary residual scaled toward the interior so the implied
+    # probabilities stay strictly inside the (here one-dimensional) simplex.
+    θ = residual(fbin, η_scalar, y_bin) ./ 1.5
+
+    @test isapprox(
+        dual(fbin, θ, y_bin),
+        dual(fmult, reshape(θ, n, 1), y_mult);
+        atol = 1e-10,
+    )
+end
+

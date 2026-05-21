@@ -176,7 +176,7 @@ there was a conscious call recorded above.
 
 ### Claims and framing (major)
 
-- [ ] Substantiate the Local-IRLS strategy-collapse claim (@fig-irls-comparison,
+- [x] Substantiate the Local-IRLS strategy-collapse claim (@fig-irls-comparison,
       @sec-irls). The text says the three strategies "coincide ... numerically
       (verified in unit tests)" (`intercepts.qmd:1524`) and again that the
       collapse "is verified numerically in the unit tests rather than the"
@@ -184,7 +184,7 @@ there was a conscious call recorded above.
       panel / inset showing the strategies coincide on the inner quadratic, or
       report the numerical agreement tolerance and point to the specific test.
       (verified: claim is asserted, not shown)
-- [ ] Reconcile the per-run suboptimality reference across the multinomial
+- [x] Reconcile the per-run suboptimality reference across the multinomial
       figures. @fig-multinomial-imbalance (`:1204`) and @fig-multinomial-sweep
       (`:1303`) measure suboptimality against each run's own lowest primal,
       which can understate a stalling gradient run --- exactly the risk
@@ -215,7 +215,7 @@ there was a conscious call recorded above.
       source-read. Either add ncvreg / Lasso.jl to a figure or soften the "every
       package" claim to separate measured from classified-from-source
       placements. (verified: ncvreg / Lasso.jl absent from `experiments/`)
-- [ ] Add a numerical-stability note for the logistic loss. `src/loss.jl:51`
+- [x] Add a numerical-stability note for the logistic loss. `src/loss.jl:51`
       computes `sum(log1p.(exp.(η)) .- η .* y)` with no overflow-safe
       reformulation, so large $\eta$ overflows `exp` to `Inf`. The Armijo guards
       keep this off the hot path in practice, but given the paper's

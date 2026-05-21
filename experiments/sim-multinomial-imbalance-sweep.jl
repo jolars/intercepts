@@ -64,11 +64,6 @@ for (i, d) in enumerate(params)
         maxit = MAXIT,
     )
 
-    relgaps = res.relgaps
-    idx_tol = findfirst(g -> g <= TOL, relgaps)
-    reached = idx_tol !== nothing
-    passes = reached ? idx_tol : length(relgaps)
-
     d_exp = Dict{String,Any}(copy(d))
     d_exp["strategy"] = String(strategy)
     d_exp["time"] = res.time
@@ -76,16 +71,30 @@ for (i, d) in enumerate(params)
     d_exp["relgaps"] = res.relgaps
     d_exp["primals"] = res.primals
     d_exp["pass"] = collect(1:length(res.relgaps))
-    d_exp["passes"] = passes
-    d_exp["reached_tol"] = reached
-    d_exp["final_relgap"] = max(relgaps[end], 1.0e-20)
-
-    println(
-        "[$i/$(length(params))] p_K=$p_K amp=$amplitude strategy=$strategy seed=$it " *
-        "passes=$passes reached=$reached final_relgap=$(d_exp["final_relgap"])",
-    )
 
     push!(results, d_exp)
+end
+
+# Shared optimum F* per (p_K, amplitude, seed) cell, certified by the duality
+# gap; relgaps become relative primal suboptimality against it. Each cell is a
+# distinct random problem, so F* is computed per cell.
+suboptimality_against_certified_optimum!(
+    results;
+    instance_of = r -> (r["p_K"], r["amplitude"], r["it"]),
+)
+
+for d_exp in results
+    relgaps = d_exp["relgaps"]
+    idx_tol = findfirst(g -> g <= TOL, relgaps)
+    reached = idx_tol !== nothing
+    d_exp["passes"] = reached ? idx_tol : length(relgaps)
+    d_exp["reached_tol"] = reached
+    d_exp["final_relgap"] = max(relgaps[end], 1.0e-20)
+    println(
+        "p_K=$(d_exp["p_K"]) amp=$(d_exp["amplitude"]) strategy=$(d_exp["strategy"]) " *
+        "seed=$(d_exp["it"]) passes=$(d_exp["passes"]) reached=$(d_exp["reached_tol"]) " *
+        "final_relgap=$(d_exp["final_relgap"])",
+    )
 end
 
 outfile = @projectroot("results", "sim-multinomial-imbalance-sweep.jld2")

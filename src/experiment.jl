@@ -59,17 +59,15 @@ function run_solver(
             randomize = randomize,
             update_freq = update_freq,
         )
-        # No duality-gap path for multinomial; report primal suboptimality
-        # against the run's minimum primal as a proxy for relgap.
-        primals = res.primals
-        pmin = minimum(primals)
-        relgaps = max.((primals .- pmin) ./ max(abs(pmin), 1e-15), 1e-20)
+        # The multinomial solver now maintains a dual-feasible point by dual
+        # scaling, so report the true relative duality gap (floored for the
+        # log-scale plots) rather than a run-local primal-suboptimality proxy.
         return (
             time = res.time,
-            gaps = primals .- pmin,
-            relgaps = relgaps,
-            primals = primals,
-            duals = fill(pmin, length(primals)),
+            gaps = res.gaps,
+            relgaps = max.(res.relgaps, 1e-20),
+            primals = res.primals,
+            duals = res.duals,
         )
     end
 
@@ -93,6 +91,44 @@ function run_solver(
         primals = res.primals,
         duals = res.duals,
     )
+end
+
+# Re-express each multinomial run's suboptimality as relative *primal*
+# suboptimality against a shared optimum F*, the best primal achieved by any
+# strategy on the same problem instance. The multinomial CD solver maintains a
+# duality gap (the per-iteration `relgaps`), and we use it the way a referee
+# would: confirm that at least one strategy drove the gap to ~0 --- certifying
+# that F* is the true optimum --- then measure every run against that F*. This
+# avoids the run-local-minimum understatement (a stalling run is scored against
+# the shared optimum, not its own floor) and avoids reporting the raw gap, which
+# can sit slightly above zero when a converged primal has a not-yet-tight dual
+# point. `instance_of` maps a result dict to the key identifying its problem
+# instance; results sharing a key share an F*. The original gap is preserved as
+# `dual_relgaps`, and the certifying gap as `dual_cert`.
+function suboptimality_against_certified_optimum!(
+    results;
+    instance_of::Function,
+    cert_tol::Real = 1.0e-4,
+)
+    groups = Dict{Any,Vector{Any}}()
+    for r in results
+        push!(get!(groups, instance_of(r), Any[]), r)
+    end
+    for (key, group) in groups
+        fstar = minimum(minimum(r["primals"]) for r in group)
+        cert = minimum(minimum(r["relgaps"]) for r in group)
+        cert <= cert_tol ||
+            @warn "F* only weakly certified by the duality gap" instance = key gap = cert
+        for r in group
+            r["dual_relgaps"] = r["relgaps"]
+            r["dual_cert"] = cert
+            r["Fstar"] = fstar
+            r["gaps"] = r["primals"] .- fstar
+            r["relgaps"] =
+                max.((r["primals"] .- fstar) ./ max(abs(fstar), 1.0e-15), 1.0e-20)
+        end
+    end
+    return results
 end
 
 function simulated_experiment(
