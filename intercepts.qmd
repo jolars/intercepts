@@ -14,6 +14,11 @@ using DataFrames
 using CSV
 using Statistics
 
+# Typeset every figure---plain strings, tick labels, and LaTeXStrings alike---in
+# the LaTeX font (New Computer Modern), so labels match the math and there is no
+# sans/serif split within or across figures. AlgebraOfGraphics' draw honors this.
+set_theme!(theme_latexfonts())
+
 Random.seed!(14)
 ```
 
@@ -189,8 +194,9 @@ end
 fig = Figure()
 ax = Axis(
     fig[1, 1],
-    xlabel = "Intercept (β₀)",
-    ylabel = "Coefficient (β₁)",
+    xlabel = L"Intercept ($\beta_0$)",
+    ylabel = L"Coefficient ($\beta_1$)",
+    size = (500, 300),
 )
 
 levels = geomspace(minimum(primal_values), maximum(primal_values), 20)
@@ -715,9 +721,8 @@ conditional minimizer, using $\partial_{0j} F = H_{0j}$ and $\partial\_0
 F(\beta\_0^{(t)}, \beta^{(t)}) = 0$, quantifies how fast. A single coefficient
 update $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$ produces
 $$
-\partial_0 F\bigl(\beta_0^{(t)}, \beta^{(t)} + \delta_j e_j\bigr)
-  \;=\;
-  H_{0j}\,\delta_j + O(\delta_j^2).
+\partial_0 F \big(\beta_0^{(t)}, \beta^{(t)} + \delta_j e_j \big)
+  = H_{0j}\,\delta_j + O(\delta_j^2).
 $$ {#eq-intercept-drift}
 After one coordinate update of pass $t+1$, the intercept gradient is no longer
 zero, and the conditional-minimizer property that @prp-profile-equiv depends on
@@ -967,10 +972,14 @@ df_long = stack(
     variable_name = :quantity,
     value_name = :ratio,
 )
+# Legend labels mix upright words with math. The words sit OUTSIDE the $...$ so
+# their hyphens stay hyphens---inside math mode (e.g. via \text{}) they render as
+# spaced minus signs. The empty ${}$ gives the pure-text labels a math span so
+# @L_str does not wrap the whole string in math mode.
 df_long.quantity = map(df_long.quantity) do q
-    q == "empirical_ratio" ? "Empirical T_G / T_N" :
+    q == "empirical_ratio" ? L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
     q == "cold_start_ratio" ? "Cold-start prediction" :
-    "Iterate-level diagnostic"
+    L"Iterate-level diagnostic${}$"
 end
 
 spec = data(df_long) * mapping(:μ0, :ratio, color = :quantity)
@@ -979,8 +988,8 @@ draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
         yscale = log10,
-        xlabel = "Response imbalance μ₀",
-        ylabel = "T_G / T_N",
+        xlabel = L"Response imbalance $\mu_0$",
+        ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}",
     ),
     figure = (; size = (550, 300)),
 )
@@ -1040,15 +1049,15 @@ df_long = stack(
     value_name = :ratio,
 )
 df_long.quantity = map(df_long.quantity) do q
-    q == "empirical_ratio" ? "Empirical T_G / T_N" :
-    "Predicted (eq-rate-gap)"
+    q == "empirical_ratio" ? L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
+    L"Predicted (eq-rate-gap)${}$"
 end
 
 spec = data(df_long) * mapping(
-    :barρ2 => "Weighted ρ̄²",
-    :ratio => "T_G / T_N",
+    :barρ2 => L"Weighted $\bar{\rho}^2$",
+    :ratio => L"$T_{\mathrm{G}}/T_{\mathrm{N}}$",
     color = :quantity,
-    marker = :μ0 => nonnumeric => "μ₀",
+    marker = :μ0 => nonnumeric => L"$\mu_0$",
 )
 
 draw(
@@ -1129,7 +1138,7 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
-df.μ0 = "μ₀ = " .* string.(df.μ0)
+df.μ0 = [L"$\mu_0 = %$(v)$" for v in df.μ0]
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
 
@@ -1163,7 +1172,7 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
-df.μ0 = "μ₀ = " .* string.(df.μ0)
+df.μ0 = [L"$\mu_0 = %$(v)$" for v in df.μ0]
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
 
@@ -1210,8 +1219,8 @@ df_p = DataFrame(dd_p["results"])
 df_p = flatten(df_p, [:time, :relgaps, :gaps, :primals])
 
 df_p.relgaps .= max.(df_p.relgaps, 1.0e-10)
-μ0_levels = ["μ₀ = " * string(Int(m)) for m in sort(unique(df_p.μ0))]
-df_p.μ0 = "μ₀ = " .* string.(Int.(df_p.μ0))
+μ0_levels = [L"$\mu_0 = %$(Int(m))$" for m in sort(unique(df_p.μ0))]
+df_p.μ0 = [L"$\mu_0 = %$(Int(m))$" for m in df_p.μ0]
 
 spec_p = data(df_p) *
     mapping(:time, :relgaps, color = :strategy, col = :μ0 => sorter(μ0_levels))
@@ -1354,14 +1363,14 @@ agg = combine(
     :relgaps => median => :relgaps,
 )
 
-agg.p_K_str = "p̄_K = " .* string.(agg.p_K)
+agg.p_K_str = [L"$\bar{p}_K = %$(v)$" for v in agg.p_K]
 agg.amp_str = "amp = " .* string.(agg.amplitude)
 
 # In-text slice: the four corners of the (p̄_K, amplitude) grid. The full 4×4
 # sweep is @fig-multinomial-sweep-full in the appendix.
 corners = filter(
     r ->
-        r.p_K_str in ("p̄_K = 0.05", "p̄_K = 0.005") &&
+        r.p_K_str in (L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$") &&
             r.amp_str in ("amp = 0.5", "amp = 2.0"),
     agg,
 )
@@ -1370,7 +1379,7 @@ spec = data(corners) * mapping(
     :pass => "Pass",
     :relgaps => "Relative primal suboptimality",
     color = :strategy,
-    row = :p_K_str => sorter("p̄_K = 0.05", "p̄_K = 0.005"),
+    row = :p_K_str => sorter(L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$"),
     col = :amp_str => sorter("amp = 0.5", "amp = 2.0"),
 )
 
@@ -2003,7 +2012,7 @@ df_cyclic = filter(:ordering => ==("cyclic"), df)
 
 spec_passes =
     data(df_cyclic) * mapping(
-        :reg_grid => "λ / λ_max",
+        :reg_grid => L"$\lambda / \lambda_{\max}$",
         :passes => "Outer passes",
         color = :strategy,
         linestyle = :start_kind => "Start",
@@ -2031,8 +2040,8 @@ draw(
 
 spec_partial =
     data(df_cyclic) * mapping(
-        :reg_grid => "λ / λ_max",
-        :init_partial0F => "|∂₀F| at initialization",
+        :reg_grid => L"$\lambda / \lambda_{\max}$",
+        :init_partial0F => L"$|\partial_0 F|$ at initialization",
         color = :strategy,
         linestyle = :start_kind => "Start",
         col = :dataset,
@@ -2112,13 +2121,13 @@ $|\partial_0 F|$.
 dd = JLD2.load(@projectroot("results", "sim-per-pass-cost.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:pass, :inner_steps, :cum_inner_steps, :relgap_after, :time])
-df.μ0_label = "μ₀ = " .* string.(df.μ0)
+df.μ0_label = [L"$\mu_0 = %$(v)$" for v in df.μ0]
 df_exact = filter(:strategy => ==("exact"), df)
 
 spec_cost =
     data(df_exact) * mapping(
         :pass => "Outer pass",
-        :inner_steps => "Inner Newton steps per pass (k₀)",
+        :inner_steps => L"Inner Newton steps per pass ($k_0$)",
         col = :μ0_label,
     ) * visual(Lines)
 
@@ -2218,9 +2227,9 @@ wide.μ0_str = string.(wide.μ0)
 
 spec_grad =
     data(wide) * mapping(
-        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => "λ / λ_max",
-        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => "μ₀",
-        :gradient_ratio => log10 => "log₁₀(T_grad / T_Newton)",
+        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => L"$\lambda / \lambda_{\max}$",
+        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
+        :gradient_ratio => log10 => L"$\log_{10}(T_{\mathrm{grad}}/T_{\mathrm{Newton}})$",
     )
 
 draw(
@@ -2239,9 +2248,9 @@ draw(
 
 spec_exact =
     data(wide) * mapping(
-        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => "λ / λ_max",
-        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => "μ₀",
-        :exact_ratio => log10 => "log₁₀(T_exact / T_Newton), range ±0.1",
+        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => L"$\lambda / \lambda_{\max}$",
+        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
+        :exact_ratio => log10 => L"$\log_{10}(T_{\mathrm{exact}}/T_{\mathrm{Newton}})$, range $\pm 0.1$",
     )
 
 draw(
@@ -2328,7 +2337,7 @@ that solver across all configurations on each problem.
     used here; @sec-cold-start-diag reports the diagnostic.
 
 We sort these solvers into two buckets by the intercept update each realizes on
-the original loss (@tbl-classification). Bucket A, the gradient strategy, holds
+the original loss\ (@tbl-classification). Bucket A, the gradient strategy, holds
 the MM-IRLS and constant-Lipschitz solvers---glmnet `modified.Newton`, biglasso
 `MM`, and skglm---each taking one $L_0 = 1/4$ step per outer iteration. Bucket
 B, the Newton strategy, holds the local-IRLS solvers---glmnet `Newton`, biglasso
@@ -2393,17 +2402,16 @@ spec =
         :npasses,
         :subopt,
         color = :mode,
-        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
     )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
-        xscale = log10,
         yscale = log10,
         xlabel = "Inner CD passes",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (1000, 300)),
+    figure = (; size = (800, 300)),
 )
 ```
 
@@ -2436,17 +2444,16 @@ spec =
         :npasses,
         :subopt,
         color = :mode,
-        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
     )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
-        xscale = log10,
         yscale = log10,
         xlabel = "Inner CD passes",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (1000, 300)),
+    figure = (; size = (800, 300)),
 )
 ```
 
@@ -2483,17 +2490,17 @@ spec =
     data(df) * mapping(
         :n_iter,
         :subopt,
-        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
     )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
-        xscale = log10,
+        # xscale = log10,
         yscale = log10,
         xlabel = "AndersonCD outer iterations",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (1000, 300)),
+    figure = (; size = (700, 300)),
 )
 ```
 
@@ -2563,9 +2570,9 @@ wide_sk.μ0_str = string.(wide_sk.mu0)
 
 spec_sk =
     data(wide_sk) * mapping(
-        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => "λ / λ_max",
-        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => "μ₀",
-        :skglm_ratio => log10 => "log₁₀(T_pre / T_post)",
+        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => L"$\lambda / \lambda_{\max}$",
+        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
+        :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{pre}}/T_{\mathrm{post}})$",
     )
 
 draw(
@@ -2622,17 +2629,17 @@ spec =
         :runtime,
         :subopt,
         color = :solver,
-        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
     )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
-        xscale = log10,
         yscale = log10,
         xlabel = "Time (s)",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (1000, 300)),
+    figure = (; size = (800, 300)),
+    facet = (; linkxaxes = false)
 )
 ```
 
@@ -2691,18 +2698,17 @@ spec =
     data(df) * mapping(
         :tol,
         :subopt,
-        layout = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
     )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
-        xscale = log10,
         xreversed = true,
         yscale = log10,
         xlabel = "Convergence tolerance (tol = irls_tol)",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (1000, 300)),
+    figure = (; size = (800, 300)),
 )
 ```
 
@@ -2771,13 +2777,13 @@ spec = data(df) * mapping(
 )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
+    legend = (; titlevisible=false),
     axis = (
-        xscale = log10,
         yscale = log10,
         xlabel = "Time (s)",
         ylabel = "Primal suboptimality",
     ),
-    figure = (; size = (700, 380)),
+    figure = (; size = (500, 280)),
 )
 ```
 
@@ -2939,14 +2945,14 @@ agg = combine(
     :relgaps => median => :relgaps,
 )
 
-agg.p_K_str = "p̄_K = " .* string.(agg.p_K)
+agg.p_K_str = [L"$\bar{p}_K = %$(v)$" for v in agg.p_K]
 agg.amp_str = "amp = " .* string.(agg.amplitude)
 
 spec = data(agg) * mapping(
     :pass => "Pass",
     :relgaps => "Relative primal suboptimality",
     color = :strategy,
-    row = :p_K_str => sorter("p̄_K = 0.05", "p̄_K = 0.02", "p̄_K = 0.01", "p̄_K = 0.005"),
+    row = :p_K_str => sorter(L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.02$", L"$\bar{p}_K = 0.01$", L"$\bar{p}_K = 0.005$"),
     col = :amp_str => sorter("amp = 0.5", "amp = 1.0", "amp = 1.5", "amp = 2.0"),
 )
 
@@ -2987,7 +2993,7 @@ df.ordering = ifelse.(df.randomize, "permuted", "cyclic")
 
 spec_passes =
     data(df) * mapping(
-        :reg_grid => "λ / λ_max",
+        :reg_grid => L"$\lambda / \lambda_{\max}$",
         :passes => "Outer passes",
         color = :strategy,
         linestyle = :start_kind => "Start",
@@ -2997,7 +3003,7 @@ spec_passes =
 
 draw(
     visual(Lines) * spec_passes,
-    axis = (xscale = log10, yscale = log10),
+    axis = (; xscale = log10, yscale = log10),
     figure = (; size = (800, 500)),
 )
 ```
@@ -3013,8 +3019,8 @@ draw(
 
 spec_partial =
     data(df) * mapping(
-        :reg_grid => "λ / λ_max",
-        :init_partial0F => "|∂₀F| at initialization",
+        :reg_grid => L"$\lambda / \lambda_{\max}$",
+        :init_partial0F => L"$|\partial_0 F|$ at initialization",
         color = :strategy,
         linestyle = :start_kind => "Start",
         col = :dataset,
@@ -3023,7 +3029,7 @@ spec_partial =
 
 draw(
     visual(Lines) * spec_partial,
-    axis = (xscale = log10, yscale = log10),
+    axis = (; xscale = log10, yscale = log10),
     figure = (; size = (800, 500)),
 )
 ```
