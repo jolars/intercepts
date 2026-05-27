@@ -123,8 +123,91 @@ Exact Strategy
 :   The intercept is updated by iterating Newton steps on the 1-D intercept
     subproblem to convergence before each pass over the coordinates.
 
-For a first illustration, see @fig-first-example, which compares the three main
-strategies on $\ell_1$-regularized logistic regression on the w1a
+@fig-parametric shows the three strategies at work on a toy problem with a
+single feature and an intercept. Each path traces one strategy's iterates across
+the level sets of the objective in @eq-primal-problem on the way to the optimum:
+the gradient strategy creeps toward the solution in many small steps, while the
+Newton and exact strategies reach it in a handful---the per-pass behavior that
+the rest of the paper makes precise.
+
+```{julia}
+#| label: fig-parametric
+#| fig-cap: The three intercept strategies on a simple logistic problem with one
+#|   feature and an intercept. Each path traces a strategy's iterates across the
+#|   level sets of the objective toward the optimum.
+#| fig-show: true
+#| message: false
+
+using Intercepts
+
+# Local seed: this figure computes inline (a deterministic illustration that
+# doubles as a render-time smoke test of the solver), so seed it independently
+# of upstream chunks rather than riding the global RNG state.
+Random.seed!(42)
+
+n = 100
+p = 1
+k = 10
+μ0 = 0.9
+
+X, y = generatedata(
+    n, p; response = :binomial, μ0 = μ0, x_type = :normal, x_density = 0.9, ρ = 0.99, s = k, amplitude = 1,
+)
+
+strategies = [
+    (strategy = GradientStrategy(), name = "Gradient"),
+    (strategy = NewtonStrategy(), name = "Newton"),
+    (strategy = ExactStrategy(), name = "Exact"),
+]
+
+reg = 0.2
+
+results = [
+    cdsolver(
+            X,
+            y,
+            reg,
+            lossfun = LogisticLoss(),
+            intercept_strategy = s.strategy,
+            save_history = true,
+        ) for s in strategies
+]
+
+λ = results[1].λ
+
+β0 = range(-0.5, 3.5, length = 100)
+β = range(-0.5, 1.2, length = 100)
+grid = [(b0, b) for b0 in β0, b in β]
+
+primal_values = zeros(size(grid))
+
+for (i, (b0, b)) in enumerate(grid)
+    η = b0 .+ X[:, 1] * b
+    primal_values[i] = loss(LogisticLoss(), η, y) + λ * abs(b)
+end
+
+fig = Figure()
+ax = Axis(
+    fig[1, 1],
+    xlabel = "Intercept (β₀)",
+    ylabel = "Coefficient (β₁)",
+)
+
+levels = geomspace(minimum(primal_values), maximum(primal_values), 20)
+
+contour!(β0, β, primal_values, levels = levels, colormap = :grays)
+
+for (res, s) in zip(results, strategies)
+    scatterlines!(res.intercepts, dropdims(res.coefs, dims = 1), label = s.name)
+end
+
+fig[1, 2] = Legend(fig, ax)
+
+fig
+```
+
+@fig-first-example turns from geometry to convergence speed, comparing the three
+main strategies on $\ell_1$-regularized logistic regression on the w1a
 dataset\ [@platt1998]. The Newton and exact strategies reach the optimal
 solution at indistinguishable pass counts, and the gradient strategy is markedly
 slower. The per-pass overhead of the exact strategy that we develop in
@@ -140,7 +223,7 @@ dd = JLD2.load(@projectroot("results", "first-example.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy)
 
@@ -1045,7 +1128,7 @@ dd = JLD2.load(@projectroot("results", "sim-mu-extreme.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 df.μ0 = "μ₀ = " .* string.(df.μ0)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
@@ -1079,7 +1162,7 @@ dd = JLD2.load(@projectroot("results", "sim-cold-start.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 df.μ0 = "μ₀ = " .* string.(df.μ0)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
@@ -1126,7 +1209,7 @@ dd_p = JLD2.load(@projectroot("results", "sim-cold-start-poisson.jld2"))
 df_p = DataFrame(dd_p["results"])
 df_p = flatten(df_p, [:time, :relgaps, :gaps, :primals])
 
-df_p.relgaps .= max.(df_p.relgaps, 1.0e-20)
+df_p.relgaps .= max.(df_p.relgaps, 1.0e-10)
 μ0_levels = ["μ₀ = " * string(Int(m)) for m in sort(unique(df_p.μ0))]
 df_p.μ0 = "μ₀ = " .* string.(Int.(df_p.μ0))
 
@@ -1200,7 +1283,7 @@ dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 df.it = "seed = " .* string.(df.it)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :it)
@@ -1264,7 +1347,7 @@ dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals, :pass])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 
 agg = combine(
     groupby(df, [:p_K, :amplitude, :strategy, :pass]),
@@ -1326,7 +1409,7 @@ dd = JLD2.load(@projectroot("results", "real-multinomial-yeoh.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 
 spec = data(df) * mapping(
     :time => "Time (s)",
@@ -1375,7 +1458,7 @@ $H_{00,kk}$ collapses much further below $L_0$ than in Yeoh2002.
 dd_sh = JLD2.load(@projectroot("results", "real-multinomial-shuttle.jld2"))
 df_sh = DataFrame(dd_sh["results"])
 df_sh = flatten(df_sh, [:time, :relgaps, :primals])
-df_sh.relgaps .= max.(df_sh.relgaps, 1.0e-20)
+df_sh.relgaps .= max.(df_sh.relgaps, 1.0e-10)
 
 draw(
     visual(Lines) * data(df_sh) * mapping(
@@ -1540,7 +1623,7 @@ dd = JLD2.load(@projectroot("results", "sim-irls-comparison.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 df.it = "seed = " .* string.(df.it)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :it)
@@ -1576,84 +1659,6 @@ when screening and working-set methods (standard in modern $\ell_1$ solvers)
 compose poorly with re-linearization [@bertrand2022]. Our strategy analysis is
 orthogonal to this family choice: within either family, the recommendation
 against the gradient strategy and in favour of Newton carries through.
-
-### Geometric Illustration
-
-```{julia}
-#| label: fig-parametric
-#| fig-cap: Example illustrating the three main intercept fitting strategies
-#|   considered in our paper on a simple problem with one feature and an
-#|   intercept.
-#| fig-show: true
-#| message: false
-
-using Intercepts
-
-# Local seed: this figure computes inline (a deterministic illustration that
-# doubles as a render-time smoke test of the solver), so seed it independently
-# of upstream chunks rather than riding the global RNG state.
-Random.seed!(42)
-
-n = 100
-p = 1
-k = 10
-μ0 = 0.9
-
-X, y = generatedata(
-    n, p; response = :binomial, μ0 = μ0, x_type = :normal, x_density = 0.9, ρ = 0.99, s = k, amplitude = 1,
-)
-
-strategies = [
-    (strategy = GradientStrategy(), name = "Gradient"),
-    (strategy = NewtonStrategy(), name = "Newton"),
-    (strategy = ExactStrategy(), name = "Exact"),
-]
-
-reg = 0.2
-
-results = [
-    cdsolver(
-            X,
-            y,
-            reg,
-            lossfun = LogisticLoss(),
-            intercept_strategy = s.strategy,
-            save_history = true,
-        ) for s in strategies
-]
-
-λ = results[1].λ
-
-β0 = range(-0.5, 3.5, length = 100)
-β = range(-0.5, 1.2, length = 100)
-grid = [(b0, b) for b0 in β0, b in β]
-
-primal_values = zeros(size(grid))
-
-for (i, (b0, b)) in enumerate(grid)
-    η = b0 .+ X[:, 1] * b
-    primal_values[i] = loss(LogisticLoss(), η, y) + λ * abs(b)
-end
-
-fig = Figure()
-ax = Axis(
-    fig[1, 1],
-    xlabel = "Intercept (β₀)",
-    ylabel = "Coefficient (β₁)",
-)
-
-levels = geomspace(minimum(primal_values), maximum(primal_values), 20)
-
-contour!(β0, β, primal_values, levels = levels, colormap = :grays)
-
-for (res, s) in zip(results, strategies)
-    scatterlines!(res.intercepts, dropdims(res.coefs, dims = 1), label = s.name)
-end
-
-fig[1, 2] = Legend(fig, ax)
-
-fig
-```
 
 ## Results {#sec-results}
 
@@ -1786,7 +1791,7 @@ dd = JLD2.load(@projectroot("results", "real-logreg.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 df.dataset = replace.(
     df.dataset,
     "gisette_scale" => "gisette",
@@ -1868,7 +1873,7 @@ $1\,000$-pass budget.
 dd = JLD2.load(@projectroot("results", "real-poisson.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 
 spec = data(df) * mapping(
     :time => "Time (s)",
@@ -1920,7 +1925,7 @@ dd = JLD2.load(@projectroot("results", "first-example-ordering.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 
 spec = data(df) * mapping(
     :time => "Time (s)",
@@ -2927,7 +2932,7 @@ dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals, :pass])
 
-df.relgaps .= max.(df.relgaps, 1.0e-20)
+df.relgaps .= max.(df.relgaps, 1.0e-10)
 
 agg = combine(
     groupby(df, [:p_K, :amplitude, :strategy, :pass]),
