@@ -77,7 +77,7 @@ $n$, and aligns with the $(1/n)\cdot\text{loss} + \lambda\,\|\beta\|_1$
 $\lambda$-scale used by the packaged solvers we compare against in
 @sec-production-solvers. For brevity, we use the convention of denoting the
 $i$th row and $j$th column of the design matrix $X$ as $x_i$ and $x_j$
-respectively. Finally, we let $(\hat{\beta}\_0, \hat{\beta})$ denote a solution
+respectively. Finally, we let $(\hat{\beta}_0, \hat{\beta})$ denote a solution
 to the problem in @eq-primal-problem. Although we will not generally assume that
 $P$ is convex, we will focus on this case in our empirical work.
 
@@ -98,8 +98,10 @@ existing CD implementations differ widely in their treatment of it:
   while the MM surrogate reduces to a constant-Lipschitz gradient step;
 
 - skglm\ 0.5[^1] picks the gradient scheme implicitly through its
-  constant-Lipschitz design; adelie keeps the intercept implicit through a
-  weighted-centered-features parameterization of the inner Gaussian surrogate;
+  constant-Lipschitz design;
+
+- adelie keeps the intercept implicit through a weighted-centered-features
+  parameterization of the inner Gaussian surrogate;
 
 - LIBLINEAR leaves the intercept unregularized inside the prox-Newton inner CD,
   whose QP-convergent sweep drives it to its conditional minimum on the
@@ -200,8 +202,7 @@ fig = Figure()
 ax = Axis(
     fig[1, 1],
     xlabel = L"Intercept ($\beta_0$)",
-    ylabel = L"Coefficient ($\beta_1$)",
-    size = (500, 300),
+    ylabel = L"Coefficient ($\beta_1$)"
 )
 
 levels = geomspace(minimum(primal_values), maximum(primal_values), 20)
