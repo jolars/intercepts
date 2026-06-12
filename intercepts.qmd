@@ -33,12 +33,12 @@ Random.seed!(14)
 # Introduction
 
 Proximal coordinate descent is the dominant method for fitting regularized
-regression models, and the default optimizer in
+regression models, and the default optimizer in many popular packages, such as
 glmnet\ [@friedman2010;
 @tay2023], biglasso\ [@zeng2017],
 ncvreg\ [@breheny2011], skglm\ [@bertrand2022], adelie\ [@yang2024],
 LIBLINEAR\ [@fan2008; @yuan2012], and BlitzL1\ [@johnson2015]. The method itself
-has been studied extensively in terms of its acceleration, parallelization, and
+has been studied extensively in terms of acceleration, parallelization, and
 convergence rates, but one question has gone unasked: how should a solver update
 the intercept? Every regularized generalized linear model\ (GLM) has one. The
 intercept is unpenalized and never drops out of the model, yet these packages
@@ -64,7 +64,7 @@ $$
   \Big)
 $$ {#eq-primal-problem}
 where $P$ is the primal objective, $F$ is the loss function, which when
-minimized leads to betters fits to the data. $G$ is the penalty function that
+minimized leads to better fits to the data. $G$ is the penalty function that
 penalizes solutions with large coefficients, $\beta_j$ is the $j$th coefficient,
 and $\beta_0$ is the intercept. Throughout the paper, we assume that $P$ is
 separable and that $F$ is the per-observation-averaged loss
@@ -88,22 +88,30 @@ intercept be omitted without leading to unwanted results. Yet, despite the
 importance of the intercept and the maturity of coordinate descent as a method
 for fitting regularized regression models, the issue of how to update the
 intercept has not been studied in the literature. This may serve to explain why
-existing CD implementations differ widely in their treatment of it: glmnet (via
-the argument `type.logistic`) and biglasso (via `alg.logistic`) expose a toggle
-between a local-Newton and an
-majorization--minimiazation\ (MM)\ ($1/4$-Lipschitz) IRLS surrogate, and this
-choice happens to also determine which intercept update is realized---the
-local-Newton surrogate induces an exact 1-D Newton step on the intercept, while
-the MM surrogate reduces to a constant-Lipschitz gradient step; skglm\ 0.5[^1]
-picks the gradient scheme implicitly through its constant-Lipschitz design;
-adelie keeps the intercept implicit through a weighted-centered-features
-parameterization of the inner Gaussian surrogate; LIBLINEAR leaves the intercept
-unregularized inside the prox-Newton inner CD, whose QP-convergent sweep drives
-it to its conditional minimum on the quadratic each outer iteration; BlitzL1
-does the same and additionally runs a separate 1-D Newton convergence loop on
-the intercept on the original loss after each subproblem. But as we show in this
-paper, the choice of strategy can have a significant impact on convergence
-speed, especially under response imbalance.
+existing CD implementations differ widely in their treatment of it:
+
+- glmnet (via the argument `type.logistic`) and biglasso (via `alg.logistic`)
+  expose a toggle between a local-Newton and an
+  majorization--minimiazation\ (MM)\ ($1/4$-Lipschitz) IRLS surrogate, and this
+  choice happens to also determine which intercept update is realized---the
+  local-Newton surrogate induces an exact 1-D Newton step on the intercept,
+  while the MM surrogate reduces to a constant-Lipschitz gradient step;
+
+- skglm\ 0.5[^1] picks the gradient scheme implicitly through its
+  constant-Lipschitz design; adelie keeps the intercept implicit through a
+  weighted-centered-features parameterization of the inner Gaussian surrogate;
+
+- LIBLINEAR leaves the intercept unregularized inside the prox-Newton inner CD,
+  whose QP-convergent sweep drives it to its conditional minimum on the
+  quadratic each outer iteration;
+
+- BlitzL1 does the same and additionally runs a separate 1-D Newton convergence
+  loop on the intercept on the original loss after each subproblem.
+
+In this paper, we will show that this divergence is not without consequence. The
+choice of strategy can have a significant impact on convergence speed,
+especially under response imbalance---when the response mean sits close to the
+boundary of its range, as with a rare positive class in logistic regression.
 
 [^1]: Among the surveyed solvers, only skglm's intercept update is
     version-dependent: version 0.5 and earlier take the gradient step described
@@ -132,8 +140,8 @@ Exact Strategy
 single feature and an intercept. Each path traces one strategy's iterates across
 the level sets of the objective in @eq-primal-problem on the way to the optimum:
 the gradient strategy creeps toward the solution in many small steps, while the
-Newton and exact strategies reach it in a handful---the per-pass behavior that
-the rest of the paper makes precise.
+Newton and exact strategies reach it in a handful, which is the qualitative
+difference that we will make quantitative in the rest of the paper.
 
 ```{julia}
 #| label: fig-parametric
@@ -145,9 +153,6 @@ the rest of the paper makes precise.
 
 using Intercepts
 
-# Local seed: this figure computes inline (a deterministic illustration that
-# doubles as a render-time smoke test of the solver), so seed it independently
-# of upstream chunks rather than riding the global RNG state.
 Random.seed!(42)
 
 n = 100
@@ -244,11 +249,9 @@ draw(
 
 @fig-first-example heralds the main message of this paper: the Newton strategy
 is both reliable and efficient, the gradient strategy is too slow, and the exact
-strategy pays a per-pass cost without a commensurate rate gain. The per-pass
-cost verdict is established by the within-pass intercept drift
-(@eq-intercept-drift) and quantified in @sec-per-pass-cost. The Newton
-strategy's per-coordinate Armijo guard protects against the narrow cold-start
-regime where an undamped step could overshoot.
+strategy pays a (small) per-pass cost without a commensurate rate gain. We
+analyze this extra cost as a within-pass intercept drift (@eq-intercept-drift)
+and quantify it in @sec-per-pass-cost.
 
 The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
