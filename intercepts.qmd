@@ -104,8 +104,9 @@ existing CD implementations differ widely in their treatment of it:
   parameterization of the inner Gaussian surrogate;
 
 - LIBLINEAR leaves the intercept unregularized inside the prox-Newton inner CD,
-  whose QP-convergent sweep drives it to its conditional minimum on the
-  quadratic each outer iteration;
+  whose coordinate sweep converges to the optimum of the inner quadratic program
+  (QP) and so drives the intercept to its conditional minimum each outer
+  iteration;
 
 - BlitzL1 does the same and additionally runs a separate 1-D Newton convergence
   loop on the intercept on the original loss after each subproblem.
@@ -290,26 +291,27 @@ Structural Classification of Production Solvers
     families---direct CD, local-IRLS, MM-IRLS, and prox-Newton---and identify
     the intercept strategy realized by each. The classification accounts for
     every package in our survey: the six we benchmark (glmnet, biglasso, skglm,
-    adelie, LIBLINEAR, BlitzL1) confirm the predicted ordering, while we place
-    ncvreg and Lasso.jl from source-reading alone. It also turns the
-    configuration options in glmnet (`type.logistic`) and biglasso
-    (`alg.logistic`) into a controlled empirical experiment.
+    adelie, LIBLINEAR, BlitzL1) confirm the predicted ordering, while we
+    establish where ncvreg and Lasso.jl fits into this from analyzing their code
+    bases. It also turns the configuration options in glmnet (`type.logistic`)
+    and biglasso (`alg.logistic`) into a controlled empirical experiment.
 
 Empirical Verification on Production Codebases
 :   Five figures on the same imbalanced logistic problem confirm the framework's
     predictions: glmnet `modified.Newton` needs roughly five times more inner
-    passes than `Newton` at tight tolerance (and the same gap survives on w1a, a
-    real severely imbalanced LIBSVM problem); biglasso `MM` needs roughly ten
-    times more than `Newton`; skglm 0.5 exhibits the predicted slow ramp;
-    LIBLINEAR and BlitzL1 both converge fast, as the framework predicts for
-    prox-Newton solvers whose intercept reaches its conditional optimum each
-    outer iteration; adelie matches the per-iteration cost of glmnet `Newton`,
-    as the framework predicts for its centered-features local-IRLS realization.
+    passes than `Newton` at tight tolerance (and the same gap survives on the
+    w1a data set, which features a severely imbalanced repsonse); biglasso `MM`
+    needs roughly ten times more than `Newton`; skglm 0.5 exhibits the predicted
+    slow ramp; LIBLINEAR and BlitzL1 both converge fast, as the framework
+    predicts for prox-Newton solvers whose intercept reaches its conditional
+    optimum each outer iteration; adelie matches the per-iteration cost of
+    glmnet `Newton`, as the framework predicts for its centered-features
+    local-IRLS realization.
 
 Multinomial Extension
 :   We extend the analysis to vector intercepts (multinomial logistic) and show
     that the rare-class regime turns the slowdown from a corner case into the
-    common regime. Verified empirically on two real datasets in opposite
+    common regime. We verify it empirically on two real datasets in opposite
     $(K, n, p)$ regimes: the Yeoh2002 pediatric ALL gene-expression panel
     (@fig-real-multinomial; $K = 6$, $p \gg n$, rarest class $6\%$) and the
     StatLog Shuttle sensor-data dataset (@fig-real-multinomial-shuttle; $K =
@@ -329,7 +331,7 @@ arguments `type.logistic = "Newton"` and `"modified.Newton"`, which the glmnet
 documentation describes as a speed trade-off rather than as an
 intercept-strategy choice. LIBLINEAR's newGLMNET solver [@fan2008; @yuan2012]
 treats the intercept as the unregularized last coordinate of the prox-Newton
-inner CD: each inner sweep takes a Newton step on the frozen quadratic, and the
+inner CD---each inner sweep takes a Newton step on the frozen quadratic, and the
 inner CD's QP convergence carries the intercept to its conditional minimum on
 the quadratic each outer iteration, without any separate intercept loop on the
 original loss.^[Source:
