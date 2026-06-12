@@ -257,23 +257,21 @@ and quantify it in @sec-per-pass-cost.
 The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
 CD-based GLM solvers in current use have already made the right structural
-choice within their algorithmic family. The strategy distinction sharpens to two
-algorithmic regimes: direct CD on the original GLM loss, and MM-IRLS inner
-solves that majorize $f''$ by a global constant. Within a local-weight IRLS or
-prox-Newton inner solve the three strategies collapse onto the same exact update
-on the inner quadratic (@sec-irls), so the framework's per-package bite is on
-skglm 0.5---the only production direct-CD GLM solver in our survey---and on the
+choice. The strategy distinction sharpens to two algorithmic regimes: direct CD
+on the original GLM loss, and MM-IRLS inner solves that majorize $f''$ by a
+global constant. Within a local-weight IRLS or prox-Newton inner solve the three
+strategies collapse onto the same exact update on the inner quadratic
+(@sec-irls), so the framework's per-package results affects version 0.5 of
+skglm---the only production direct-CD GLM solver in our survey---and on the
 MM-style mode toggles of glmnet (`modified.Newton`) and biglasso (`MM`), exactly
 the cases it flags as suboptimal.
 
 Our main contributions are as follows:
 
 Strategy Taxonomy
-:   We introduce and formalize three intercept-update strategies---gradient,
-    Newton, and exact---that span the design space used by current CD solvers
-    for regularized GLMs. The Newton strategy folds in an Armijo-backtracking
-    safeguard that absorbs the cold-start regime where an undamped step could
-    overshoot.
+:   We introduce and formalize three intercept-update strategies: gradient,
+    Newton, and exact, which span the design space used by current CD solvers
+    for regularized GLMs.
 
 A Unifying Schur-Complement Analysis
 :   We develop a single Schur-complement lens that parameterises each strategy
