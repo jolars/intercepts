@@ -1,0 +1,7 @@
+flavor = "gfm"
+
+[formatters]
+julia = "runic"
+
+[experimental]
+format-math = true
