@@ -791,7 +791,7 @@ What matters next is whether the Newton residual harms the first coefficient
 update. Let $r_0 = \beta_0^{\text{Newton}} - \beta_0^*(\beta)$ be the Newton
 residual, with $|r_0|$ bounded by @eq-newton-error. Taylor-expanding
 $\partial_j F$ in $\beta_0$ around the conditional minimizer $\beta_0^*(\beta)$,
-using $\partial\_j F(\beta\_0^\*, \beta) = \partial\_j \tilde F(\beta)$ and
+using $\partial_j F(\beta_0^\*, \beta) = \partial_j \tilde F(\beta)$ and
 $\partial_{0j} F = H_{j0}$, yields
 $$
   \partial_j F\bigl(\beta_0^{\text{Newton}}, \beta\bigr) = \partial_j \tilde F(\beta)
@@ -2715,7 +2715,7 @@ analog. The status of each solver on this family is structural, not empirical:
   weighted-centered-features parameterisation as the logistic case.
 
 Three Bucket-B solvers therefore remain: glmnet, adelie, and skglm `ProxNewton`.
-We run each in path mode on congress109 with $\lambda = 0.05\lambda\_{\max}$,
+We run each in path mode on congress109 with $\lambda = 0.05\lambda_{\max}$,
 sweeping the solver-specific tolerance.
 
 ```{julia}
@@ -2881,13 +2881,13 @@ structure couples the Newton step with the exact strategy, so the residual
 scalar wedge collapses---a structural property rather than a tuning artefact, as
 the 2-D sweep shows.
 
-Two limitations bound the present analysis. First, the Newton-strategy results
+There are two limitations in our analysis. First, the Newton-strategy results
 are *local*: @eq-newton-error and @eq-newton-coupling are Taylor identities for
-a single Newton step, not a global convergence proof for
-CD-with-Newton-intercept, and the empirical evidence in @sec-results stands in
-for that. A tighter rate analysis under restricted strong convexity would let
-@eq-rate-gap predict the empirical pass-count constant rather than only its
-scaling and monotonicity (@sec-imbalance-reg). Second, the production-solver
+a single Newton step, not a global convergence proof for CD with
+Newton-intercept, and the empirical evidence in @sec-results are supporting but
+not conclusive. A tighter rate analysis under restricted strong convexity would
+let @eq-rate-gap predict the empirical pass-count constant rather than only its
+scaling and monotonicity (@sec-imbalance-reg). Second, our production-solver
 experiments in @sec-production-solvers run on a single shared problem; the
 heatmap of @sec-imbalance-reg replicates the binary direct-CD predictions across
 a 30-cell grid but the cross-package comparison does not yet sweep the
