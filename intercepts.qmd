@@ -34,8 +34,7 @@ Random.seed!(14)
 
 Proximal coordinate descent is the dominant method for fitting regularized
 regression models, and the default optimizer in many popular packages, such as
-glmnet\ [@friedman2010;
-@tay2023], biglasso\ [@zeng2017],
+glmnet\ [@friedman2010; @tay2023], biglasso\ [@zeng2017],
 ncvreg\ [@breheny2011], skglm\ [@bertrand2022], adelie\ [@yang2024],
 LIBLINEAR\ [@fan2008; @yuan2012], and BlitzL1\ [@johnson2015]. The method itself
 has been studied extensively in terms of acceleration, parallelization, and
@@ -87,8 +86,8 @@ intercept has not been studied in the literature. This may serve to explain why
 existing CD implementations differ widely in their treatment of it:
 
 - glmnet (via the argument `type.logistic`) and biglasso (via `alg.logistic`)
-  expose a toggle between a local-Newton and an
-  majorization--minimiazation\ (MM)\ ($1/4$-Lipschitz) IRLS surrogate, and this
+  expose a toggle between a local-Newton and a
+  majorization--minimization\ (MM)\ ($1/4$-Lipschitz) IRLS surrogate, and this
   choice happens to also determine which intercept update is realized---the
   local-Newton surrogate induces an exact 1-D Newton step on the intercept,
   while the MM surrogate reduces to a constant-Lipschitz gradient step;
@@ -256,7 +255,7 @@ choice. The strategy distinction sharpens to two algorithmic regimes: direct CD
 on the original GLM loss, and MM-IRLS inner solves that majorize $f''$ by a
 global constant. Within a local-weight IRLS or prox-Newton inner solve the three
 strategies collapse onto the same exact update on the inner quadratic
-(@sec-irls), so the framework's per-package results affects version 0.5 of
+(@sec-irls), so the framework's per-package consequences land on version 0.5 of
 skglm---the only production direct-CD GLM solver in our survey---and on the
 MM-style mode toggles of glmnet (`modified.Newton`) and biglasso (`MM`), exactly
 the cases it flags as suboptimal.
@@ -286,7 +285,7 @@ Structural Classification of Production Solvers
     the intercept strategy realized by each. The classification accounts for
     every package in our survey: the six we benchmark (glmnet, biglasso, skglm,
     adelie, LIBLINEAR, BlitzL1) confirm the predicted ordering, while we
-    establish where ncvreg and Lasso.jl fits into this from analyzing their code
+    establish where ncvreg and Lasso.jl fit into this by analyzing their code
     bases. It also turns the configuration options in glmnet (`type.logistic`)
     and biglasso (`alg.logistic`) into a controlled empirical experiment.
 
@@ -294,7 +293,7 @@ Empirical Verification on Production Codebases
 :   Five figures on the same imbalanced logistic problem confirm the framework's
     predictions: glmnet `modified.Newton` needs roughly five times more inner
     passes than `Newton` at tight tolerance (and the same gap survives on the
-    w1a data set, which features a severely imbalanced repsonse); biglasso `MM`
+    w1a data set, which features a severely imbalanced response); biglasso `MM`
     needs roughly ten times more than `Newton`; skglm 0.5 exhibits the predicted
     slow ramp; LIBLINEAR and BlitzL1 both converge fast, as the framework
     predicts for prox-Newton solvers whose intercept reaches its conditional
@@ -393,13 +392,13 @@ rule rather than the exception (@sec-irls, @fig-multinomial-sweep).
 
 The three intercept-update strategies from the introduction---gradient, Newton,
 and exact---disagree on logistic and related GLM losses, and on imbalanced data
-the disagreement is large enough to determine convergence speed. This section
-identifies the cause. A gradient step rests on the global per-coordinate
-Lipschitz constant $L_0$, which does not adapt to the iterate-level intercept
-curvature $H_{00}$, and under response imbalance the ratio $L_0/H_{00}$
-diverges. The gradient strategy pays that ratio as a per-iteration cost; the
-Newton and exact strategies, which track $H_{00}$ directly, do not. The rest of
-@sec-theory makes the picture quantitative.
+the disagreement is large enough to determine convergence speed. In this
+section, we identify the cause. A gradient step rests on the global
+per-coordinate Lipschitz constant $L_0$, which does not adapt to the
+iterate-level intercept curvature $H_{00}$, and under response imbalance the
+ratio $L_0/H_{00}$ diverges. The gradient strategy pays that ratio as a
+per-iteration cost; the Newton and exact strategies, which track $H_{00}$
+directly, do not. We make this quantitative in the rest of the section.
 
 Throughout, we work with the per-observation-averaged GLM loss
 $$
@@ -536,9 +535,9 @@ detects an overshoot.
 
 ### What Sets the Intercept Apart
 
-Before analyzing how the three strategies behave, we want to first motivate why
-the intercept warrants a separate treatment from a regular coefficient. Four
-facts distinguish $\beta_0$ from $\beta_j$:
+Before analyzing how the three strategies behave, we first motivate why the
+intercept warrants separate treatment from a regular coefficient. Four facts
+distinguish $\beta_0$ from $\beta_j$:
 
 1. **The intercept's design column is $\mathbf{1}_n$.** Treating $\beta_0$ as a
    coordinate is equivalent to augmenting $X$ with a constant column of ones.
@@ -562,23 +561,23 @@ facts distinguish $\beta_0$ from $\beta_j$:
    each pass. In high-dimensional settings, most $\beta_j$ are touched in only a
    fraction of passes and its average per-pass cost is correspondingly small.
    The intercept is in the active set of every pass by construction, so its
-   per-pass treatment dominates the overall intercept-update cost in a way that
-   no individual slope's treatment does.
+   per-pass treatment dominates the overall intercept-update cost, unlike that
+   of any single slope.
 
 4. **In IRLS-CD, the intercept update is a re-centering step.** Because its
    column is constant, the gradient $\partial_0 F = (1/n)\sum_i w_i r_i$ is the
    $w$-weighted residual mean, so a Newton step on $\beta_0$ zeros the
    weighted-mean residual of the current working response. The slopes never
-   perform this role. This is the structural reason adelie can fold the
-   intercept into a weighted-centered-features parameterization of the inner
-   Gaussian surrogate, while it cannot do the same with an arbitrary slope.
+   perform this role. For this reason, adelie can fold the intercept into a
+   weighted-centered-features parameterization of the inner Gaussian surrogate,
+   but it cannot do the same with an arbitrary slope.
 
 Items 1 and 4 are why the gap $L_0/H_{00}$ that drives our main result is
 unbounded under response imbalance: $L_0$ does not adapt to the curvature of the
 loss at the current iterate, while $H_{00}$ collapses with $(1/n)\sum_i w_i$ as
 the linear predictor saturates. Items 2 and 3 explain why the choice of strategy
-is even available, and why its per-pass cost is not amortized away. The
-remainder of @sec-theory makes these observations quantitative.
+is even available, and why its per-pass cost is not amortized away. We quantify
+these observations in the subsections that follow.
 
 ### Cross-Influence of Intercept and Coefficients
 
@@ -625,9 +624,8 @@ degenerate up to that direction.
 
 #### The Profiled Objective
 
-The cleanest way to see why $\rho_{0j}$ controls the impact of the intercept
-update strategy is to consider the *profiled* objective obtained by optimizing
-the intercept out:
+To see why $\rho_{0j}$ controls the impact of the intercept update strategy, we
+consider the *profiled* objective, obtained by optimizing the intercept out:
 $$
   \tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta).
 $$
@@ -641,21 +639,21 @@ $$
   \tilde H_{jj} = H_{jj} - \frac{H_{0j}^2}{H_{00}} = H_{jj}(1 - \rho_{0j}^2).
 $$ {#eq-schur-diag}
 
-@eq-schur-diag is the key relation. When $|\rho_{0j}|$ is close to $1$, the
-profiled curvature $\tilde H_{jj}$ is much smaller than $H_{jj}$: most of the
-diagonal curvature seen in $H$ is "borrowed" through the intercept and is
-removed once the intercept is profiled out. Coordinate descent that re-optimizes
-the intercept after every pass is effectively running on $\tilde F$, with
-curvature $\tilde H_{jj}$; coordinate descent that leaves the intercept stale is
-running on $F$, with the inflated curvature $H_{jj}$. The gap between these two
-regimes is governed entirely by $\rho_{0j}^2$.
+When $|\rho_{0j}|$ is close to $1$, @eq-schur-diag shows that the profiled
+curvature $\tilde H_{jj}$ is much smaller than $H_{jj}$: most of the diagonal
+curvature seen in $H$ is "borrowed" through the intercept and disappears once we
+profile the intercept out. Coordinate descent that re-optimizes the intercept
+after every pass effectively runs on $\tilde F$, with curvature $\tilde H_{jj}$;
+coordinate descent that leaves the intercept stale runs on $F$, with the
+inflated curvature $H_{jj}$. The factor $\rho_{0j}^2$ governs the gap between
+these two regimes entirely.
 
 #### Strategies as Schur Approximations
 
 This perspective lets us classify the three intercept update strategies by how
-completely they remove the intercept--coefficient coupling. The key object is
-the *gradient response* of the coefficient subproblem to an intercept step: if
-we step $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, the partial derivative
+completely they remove the intercept--coefficient coupling. We track the
+*gradient response* of the coefficient subproblem to an intercept step: if we
+step $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, the partial derivative
 with respect to $\beta_j$ that the next coefficient update sees satisfies, to
 first order in $\alpha$,
 $$
@@ -667,8 +665,8 @@ gradient of the profiled objective $\tilde F$ at the current $\beta$. The three
 strategies differ in how closely the residual gradient in @eq-gradient-response
 approximates that target.
 
-The first claim is the substantive one and justifies the profiled-objective
-viewpoint operationally.
+The following proposition does the substantive work, and it justifies the
+profiled-objective viewpoint in operational terms.
 
 ::: {.proposition #prp-profile-equiv}
 **(First-update profile equivalence.)** Let $F$ be twice continuously
@@ -704,11 +702,11 @@ $1/H_{jj} \leq 1/\tilde H_{jj}$, so the realized step is at most $\tilde F$'s
 exact coordinate-minimization step $1/\tilde H_{jj}$ along $e_j$.
 :::
 
-@prp-profile-equiv is the bridge between the Schur analysis and CD theory: at
-the start of each pass, the exact strategy aligns with CD on $\tilde F$. The
-catch is that the alignment lasts for exactly one coefficient update---by the
-second update, $\beta_0^{(t)}$ is no longer the conditional minimizer, and the
-equivalence breaks.
+@prp-profile-equiv connects the Schur analysis to CD theory: at the start of
+each pass, the exact strategy aligns with CD on $\tilde F$. The alignment lasts
+for exactly one coefficient update, however. By the second update,
+$\beta_0^{(t)}$ is no longer the conditional minimizer, and the equivalence
+breaks.
 
 A one-step Taylor expansion of $\partial_0 F$ in the $\beta_j$ direction at the
 conditional minimizer, using $\partial_{0j} F = H_{0j}$ and $\partial\_0
@@ -722,42 +720,42 @@ After one coordinate update of pass $t + 1$, the intercept gradient is no longer
 zero, and the conditional-minimizer property that @prp-profile-equiv depends on
 is lost.
 
-The practical reading of @eq-intercept-drift is a *cost-versus-progress* verdict
-on the exact strategy. Let $k_0$ denote the number of inner Newton steps
-consumed at the end of a pass to drive $|\partial_0 F| < \varepsilon$. Because
-the intercept subproblem $\beta_0 \mapsto F(\beta_0, \beta)$ is a smooth
-strongly convex 1D problem ($\partial_{00} F = H_{00} > 0$ in a neighbourhood of
-its minimizer), Newton on it converges quadratically and $k_0 =
-O(\log\log(1/\varepsilon))$---a small constant in practice. The empirical
-decomposition in @fig-per-pass-cost confirms $k_0 \in [1, 6]$ across the
-imbalance sweep. Each step costs $O(n)$ work. By @eq-intercept-drift, the
-conditional-optimum status established by these $k_0$ steps survives exactly one
-coefficient update of the next pass---by the second update it has drifted by
-$H_{0j}\delta_j$. Outer progress is therefore upper-bounded by what one Newton
-step on the intercept would have already delivered, since the first coefficient
-update is the only one that benefits from the envelope alignment. The exact
-strategy thus pays $k_0 - 1 = O(\log\log(1/\varepsilon))$ extra inner Newton
-steps per pass with no commensurate per-pass rate improvement over the Newton
-strategy. The overhead is bounded, not unbounded, but the verdict stands: every
-pass pays for inner work that buys no faster outer convergence. The penalty
-grows with the magnitude of intercept-coefficient coupling: when several
-$|H_{0j}|$ are large, fitting the intercept tightly is wasted work because the
-next coordinate sweep re-perturbs $\partial_0 F$ immediately.
+@eq-intercept-drift lets us weigh what the exact strategy costs against what it
+achieves. Let $k_0$ denote the number of inner Newton steps consumed at the end
+of a pass to drive $|\partial_0 F| < \varepsilon$. The intercept subproblem
+$\beta_0 \mapsto F(\beta_0, \beta)$ is a smooth, strongly convex 1D problem,
+since $\partial_{00} F = H_{00} > 0$ in a neighborhood of its minimizer. Newton
+therefore converges quadratically on it, so that $k_0 =
+O(\log\log(1/\varepsilon))$, a small constant in practice. The empirical
+decomposition in @fig-per-pass-cost confirms that $k_0 \in [1, 6]$ across the
+imbalance sweep, and each step costs $O(n)$ work. By @eq-intercept-drift, the
+conditional optimum that these $k_0$ steps establish survives exactly one
+coefficient update of the next pass; by the second update it has drifted by
+$H_{0j}\delta_j$. Outer progress is therefore no better than what a single
+Newton step on the intercept would already deliver, since only the first
+coefficient update benefits from the envelope alignment. The exact strategy thus
+pays $k_0 - 1 = O(\log\log(1/\varepsilon))$ extra inner Newton steps per pass
+and gains no faster outer convergence in return. The overhead is bounded rather
+than unbounded, but it remains pure overhead: every pass pays for inner work
+that does not speed up convergence. The penalty grows with the strength of the
+intercept-coefficient coupling. When several $|H_{0j}|$ are large, fitting the
+intercept tightly is wasted work, because the next coordinate sweep re-perturbs
+$\partial_0 F$ immediately.
 
-The cost-versus-progress verdict above is sharpest in the cold-start, direct-CD
-setting that drives this paper. Three regimes soften it. *Warm-started path
-solves* along a $\lambda$ grid begin each subproblem with $|\partial_0 F|$
-already small, so $k_0$ drops to one or two inner Newton steps and the $k_0 - 1$
-penalty shrinks to zero---bare Newton and the exact strategy converge to each
-other in this regime. *Strongly coupled designs*, where the envelope alignment
-of @prp-profile-equiv buys a meaningful first-update gain, partially offset the
-per-pass overhead, though the cyclic drift of @eq-intercept-drift still applies.
-*At the prox-Newton or IRLS linearization boundary*, the Hessian is recomputed
-for the next subproblem and the within-pass drift critique no longer bites; we
-return to this case in @sec-irls, where it underwrites the intercept handling in
-LIBLINEAR and BlitzL1. The exact strategy is a defensible choice in these
-regimes and the recommendation against it in the rest of this paper should be
-read as scoped to the cold-start, direct-CD setting outside all three.
+This conclusion holds most sharply in the cold-start, direct-CD setting that
+drives this paper, and three regimes soften it. The first is warm-started path
+solves along a $\lambda$ grid: each subproblem begins with $|\partial_0 F|$
+already small, so $k_0$ drops to one or two inner Newton steps, the $k_0 - 1$
+penalty shrinks to zero, and bare Newton and the exact strategy converge to each
+other. The second is strongly coupled designs, where the envelope alignment of
+@prp-profile-equiv delivers a meaningful first-update gain that partially
+offsets the per-pass overhead, though the cyclic drift of @eq-intercept-drift
+still applies. The third is the prox-Newton or IRLS linearization boundary,
+where the solver recomputes the Hessian for the next subproblem, so the
+within-pass drift no longer matters; we return to this case in @sec-irls, where
+it explains the intercept handling in LIBLINEAR and BlitzL1. In all three
+regimes the exact strategy is a defensible choice, and our recommendation
+against it applies only to the cold-start, direct-CD setting outside them.
 
 A single Newton step on the intercept matches the conditional minimizer at
 leading order. Taylor-expanding $\partial_0 F$ around the conditional minimizer
@@ -804,16 +802,16 @@ $$
   |H_{j0}| \cdot |r_0| \ll \bigl|\partial_j \tilde F(\beta)\bigr|.
 $$ {#eq-newton-good-enough}
 
-This criterion has two regimes worth flagging. *Asymptotically*, $\|r_0\| =
-O((\partial\_0 F)^2)$ shrinks quadratically while $|\partial_j \tilde F|$
-shrinks linearly with the iterate's distance from the optimum, so the bias
-becomes negligible. *Far from the optimum*, the inequality can fail when
-$|f'''|/H_{00}^3$ is large and $|\partial_0 F|$ is large simultaneously: this is
-the cold-start regime, particularly for losses where $f'''$ grows with $\eta$
-such as Poisson ($f''' = e^\eta$). In that regime the linear model implicit in a
-single Newton step becomes a poor approximation, and a safeguard, such as
-backtracking the Newton step until the loss decreases, recovers the
-leading-order accuracy that @eq-newton-coupling promises.
+This criterion behaves differently in two regimes. Near the optimum,
+$\|r_0\| = O((\partial_0 F)^2)$ shrinks quadratically while $\|\partial\_j
+\tilde F\|$ shrinks only linearly with the iterate's distance from the optimum,
+so the bias becomes negligible. Far from the optimum, the inequality can fail
+when $|f'''|/H_{00}^3$ is large and $|\partial_0 F|$ is large at the same time:
+this is the cold-start regime, particularly for losses where $f'''$ grows with
+$\eta$, such as Poisson ($f''' = e^\eta$). There the linear model implicit in a
+single Newton step becomes a poor approximation, and a safeguard such as
+backtracking the Newton step until the loss decreases recovers the leading-order
+accuracy that @eq-newton-coupling promises.
 
 Both @eq-newton-error and @eq-newton-coupling are local: a single Newton step at
 the current iterate. They pin down the per-step bias and coupling correction the
@@ -833,20 +831,20 @@ coupling component $(H_{j0}/H_{00})\partial_0 F$ that the Newton and exact
 strategies remove. The residual coupling is $(1 - H_{00}/L_0)$ of its pre-step
 value; when $L_0 = \infty$, no coupling is removed.
 
-The qualitative reading of @eq-grad-residual is that the gradient strategy is
-fully effective only when $H_{00} \approx L_0$, that is, when the Lipschitz
-bound is tight at the current iterate. Whenever $H_{00}$ is appreciably below
-$L_0$---as happens for logistic regression once predictions become confident, or
-whenever the weights $w_i$ are concentrated on a small subset of
-observations---the gradient strategy leaves a residual coupling of order
-$(1 - H_{00}/L_0)$ uncorrected, and coordinate descent continues to run on a
-worse-conditioned objective than necessary.
+Qualitatively, @eq-grad-residual says that the gradient strategy is fully
+effective only when $H_{00} \approx L_0$, that is, when the Lipschitz bound is
+tight at the current iterate. Whenever $H_{00}$ is appreciably below $L_0$---as
+happens for logistic regression once predictions become confident, or whenever
+the weights $w_i$ are concentrated on a small subset of observations---the
+gradient strategy leaves a residual coupling of order $(1 - H_{00}/L_0)$
+uncorrected, and coordinate descent continues to run on a worse-conditioned
+objective than necessary.
 
 The Poisson loss is the limiting case: $H_{00}$ has no global upper bound, so
 $L_0 = \infty$ and $H_{00}/L_0 = 0$. By @eq-grad-residual, the gradient strategy
 applies no coupling correction at all and the coefficient subproblem sees the
-full, uncorrected gradient. In this regime the strategy is not merely slow but
-structurally inadequate.
+full, uncorrected gradient. In this regime the strategy is structurally
+inadequate, not just slow.
 
 #### Quantitative Rate Gap
 
@@ -916,15 +914,15 @@ is the scaling: as the intercept channel degrades ($H_{00}/L_0 \to 0$) the
 upper-bound ratio diverges, and @fig-rate-gap confirms the empirical ratio
 follows the same scaling.
 
-Two regimes inside @eq-rate-gap are worth flagging. **Strongly coupled designs**
+@eq-rate-gap separates into two regimes. In strongly coupled designs
 ($\bar\rho^2 \to 1$, e.g. uncentered designs where the intercept absorbs the
-column means): the denominator's Schur term collapses and the ratio gains an
-additional factor of order $1/(1 - \bar\rho^2)$. **Standardized designs**
-($\rho_{0j} \approx 0$): the Schur correction is inactive, but
-@eq-rate-gap-asymptotic still diverges via the intercept's $R_0^2$ dominance.
-The two channels---per-coordinate Lipschitz mismatch on the intercept, and Schur
-coupling propagated to the coefficients---are independent, and both ride on the
-same $H_{00}/L_0 \to 0$ regime.
+column means), the denominator's Schur term collapses and the ratio gains an
+additional factor of order $1/(1 - \bar\rho^2)$. In standardized designs
+($\rho_{0j} \approx 0$), the Schur correction is inactive, but
+@eq-rate-gap-asymptotic still diverges through the intercept's $R_0^2$
+dominance. The two channels---per-coordinate Lipschitz mismatch on the
+intercept, and Schur coupling propagated to the coefficients---are independent,
+and both ride on the same $H_{00}/L_0 \to 0$ regime.
 
 ```{julia}
 #| label: fig-rate-gap
