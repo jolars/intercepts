@@ -270,15 +270,15 @@ Strategy Taxonomy
     regularized GLMs.
 
 A Unifying Schur-Complement Analysis
-:   We develop a single Schur-complement perspective that parameterises each
+:   We develop a single Schur-complement perspective that parameterizes each
     strategy by the cross-Hessian coupling $\rho_{0j}^2$ and the curvature ratio
-    $H_{00}/L_0$. Short Taylor expansions and an envelope-theorem identity tie
-    the gradient strategy's slow regime to the per-coordinate Lipschitz mismatch
-    $H_{00} \ll L_0$, and a decomposition of the standard randomized-CD bound by
-    coordinate predicts the leading-order scaling
-    $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ of the gradient strategy's
-    slowdown in the imbalance regime, which diverges as $\mu_0 \to 1$ for binary
-    logistic regression---a scaling the experiments confirm up to a constant
+    $H_{00}/L_0$. Through Taylor expansions and an envelope-theorem identity, we
+    tie the gradient strategy's slow regime to the per-coordinate Lipschitz
+    mismatch $H_{00} \ll L_0$. We then decompose the standard randomized-CD
+    bound by coordinate to derive the leading-order scaling
+    $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ of its slowdown in the
+    imbalance regime---a ratio that diverges as $\mu_0 \to 1$ for binary
+    logistic regression, and one the experiments confirm up to a constant
     factor.
 
 Structural Classification of Production Solvers
