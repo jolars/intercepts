@@ -266,8 +266,8 @@ Our main contributions are as follows:
 
 Strategy Taxonomy
 :   We introduce and formalize three intercept-update strategies: gradient,
-    Newton, and exact, which span the design space used by current CD solvers
-    for regularized GLMs.
+    Newton, and exact, which span the choices used by current CD solvers for
+    regularized GLMs.
 
 A Unifying Schur-Complement Analysis
 :   We develop a single Schur-complement perspective that parameterises each
