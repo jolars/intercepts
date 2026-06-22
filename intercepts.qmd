@@ -430,7 +430,7 @@ multinomial.
 
   : Loss functions, link functions, and inverse link functions for generalized
     linear models. The multinomial row uses the reference-class parameterization
-    with class $m$ as the reference ($\eta_m \equiv 0$, $\mu_m = 1 -
+    with class $m$ as the reference ($\eta_m = 0$, $\mu_m = 1 -
     \sum_{j<m}\mu_j$), so $\eta$ and $\mu$ in that row are $(m-1)$-vectors and
     $\log$ / $\exp$ are applied element-wise. {#tbl-glm}
 
@@ -577,8 +577,8 @@ Items 1 and 4 are why the gap $L_0/H_{00}$ that drives our main result is
 unbounded under response imbalance: $L_0$ does not adapt to the curvature of the
 loss at the current iterate, while $H_{00}$ collapses with $(1/n)\sum_i w_i$ as
 the linear predictor saturates. Items 2 and 3 explain why the choice of strategy
-is even available, and why its per-pass cost is not amortized away. We quantify
-these observations in the subsections that follow.
+is even available, and why its per-pass cost does not vanish. We quantify these
+observations in the subsections that follow.
 
 ### Cross-Influence of Intercept and Coefficients
 
@@ -594,20 +594,18 @@ $$
   H_{0j} = \frac{\partial^2}{\partial \beta_0 \partial \beta_j} F(\beta_0, \beta)
          = \frac{1}{n}\sum_{i = 1}^n x_{ij} w_i
 $$
-for the cross-influence between the intercept and the $j$th coefficient. Two
-qualitative observations follow. First, the coefficients couple to each other
-*pairwise*, through the weighted covariance structure of the features:
-correlated features produce large $|H_{jk}|$, which is the classical reason
-coordinate descent struggles on such designs. Second, the intercept couples to
-each coefficient *globally*, through the weighted mean of that feature, with no
-dependence on correlations.
+for the intercept--coefficient block. We read off two qualitative observations.
+First, the coefficients couple to each other *pairwise*, through the weighted
+covariance structure of the features: correlated features produce large
+$|H_{jk}|$, which is the classical reason coordinate descent struggles on such
+designs. Second, the intercept couples to each coefficient *globally*, through
+the weighted mean of that feature, and does not depend on correlations.
 
-For the special case of squared loss, $w_i = 1$ and
-$H_{0j} = (1/n)\sum_i x_{ij}$, so centering the features makes $H_{0j} = 0$ and
-the intercept decouples from the coefficients entirely. For other losses the
-weights depend on the linear predictor and the response, so $H_{0j}$ is a
-$w_i$-weighted mean of $x_{ij}$, which is generally non-zero even after
-centering.
+For squared loss, $w_i = 1$ and $H_{0j} = (1/n)\sum_i x_{ij}$, so centering the
+features makes $H_{0j} = 0$ and the intercept decouples from the coefficients
+entirely. For other losses the weights depend on the linear predictor and the
+response, so $H_{0j}$ is a $w_i$-weighted mean of $x_{ij}$, which is generally
+nonzero even after centering.
 
 #### A Normalized Measure of Intercept--Coefficient Coupling
 
