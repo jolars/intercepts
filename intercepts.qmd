@@ -276,7 +276,7 @@ A Unifying Schur-Complement Analysis
     tie the gradient strategy's slow regime to the per-coordinate Lipschitz
     mismatch $H_{00} \ll L_0$. We then decompose the standard randomized-CD
     bound by coordinate to derive the leading-order scaling
-    $T_{\mathrm{G}}/T_{\mathrm{N}} \sim L_0/H_{00}$ of its slowdown in the
+    $T_{\mathrm{G}}/T_{\mathrm{N}} \approx L_0/H_{00}$ of its slowdown in the
     imbalance regime---a ratio that diverges as $\mu_0 \to 1$ for binary
     logistic regression, and one the experiments confirm up to a constant
     factor.
@@ -292,16 +292,16 @@ Structural Classification of Production Solvers
     and biglasso (`alg.logistic`) into a controlled empirical experiment.
 
 Empirical Verification on Production Codebases
-:   Five figures on the same imbalanced logistic problem confirm the framework's
-    predictions: glmnet `modified.Newton` needs roughly five times more inner
-    passes than `Newton` at tight tolerance (and the same gap survives on the
-    w1a data set, which features a severely imbalanced response); biglasso `MM`
-    needs roughly ten times more than `Newton`; skglm 0.5 exhibits the predicted
-    slow ramp; LIBLINEAR and BlitzL1 both converge fast, as the framework
-    predicts for prox-Newton solvers whose intercept reaches its conditional
-    optimum each outer iteration; adelie matches the per-iteration cost of
-    glmnet `Newton`, as the framework predicts for its centered-features
-    local-IRLS realization.
+:   We confirm the framework's predictions on the same imbalanced logistic
+    problem across five figures: glmnet `modified.Newton` needs roughly five
+    times more inner passes than `Newton` at tight tolerance;^[The same gap
+    survives on the w1a dataset, which has a severely imbalanced response.]
+    biglasso `MM` needs roughly ten times more than `Newton`; skglm 0.5
+    converges slowly, as predicted; LIBLINEAR and BlitzL1 both converge fast, as
+    predicted for prox-Newton solvers whose intercept reaches its conditional
+    optimum each outer iteration; and adelie matches the per-iteration cost of
+    glmnet `Newton`, as predicted for its centered-features local-IRLS
+    realization.
 
 Multinomial Extension
 :   We extend the analysis to vector intercepts (multinomial logistic) and show
@@ -398,29 +398,28 @@ the disagreement is large enough to determine convergence speed. In this
 section, we identify the cause. A gradient step rests on the global
 per-coordinate Lipschitz constant $L_0$, which does not adapt to the
 iterate-level intercept curvature $H_{00}$, and under response imbalance the
-ratio $L_0/H_{00}$ diverges. The gradient strategy pays that ratio as a
-per-iteration cost; the Newton and exact strategies, which track $H_{00}$
-directly, do not. We make this quantitative in the rest of the section.
+ratio $L_0/H_{00}$ diverges. The gradient strategy pays for that ratio in every
+iteration. The Newton and exact strategies, which track $H_{00}$ directly, do
+not. We make this quantitative in the rest of the section.
 
 Throughout, we work with the per-observation-averaged GLM loss
 $$
   F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
-which covers the full family of generalized linear models. We write
+which spans every generalized linear model. We write
 $\eta_i = x_i^\intercal \beta + \beta_0$ for the linear predictor of observation
 $i$ and let $\ilink$ denote the inverse link, so the exponential-family mean
 takes the form $\E(y_i \mid \eta_i) = \ilink(\eta_i)$. The per-observation loss
-$f$ is the negative log-likelihood with its mean parameter expressed through
-this inverse link, and its derivative in $\eta$ collapses to the *generalized
-residual*,
+$f$ is the negative log-likelihood, with the mean parameterized as
+$\ilink(\eta_i)$, and its derivative with respect to $\eta$ collapses to the
+*generalized residual*,
 $$
   f'(\eta_i; y_i) = \ilink(\eta_i) - y_i = r_i.
 $$
-Every gradient and Hessian quantity that appears below resolves through this
-identity.
-
-@tbl-glm lists the per-observation loss, link, and inverse link functions we
-will work with throughout the paper.
+Every gradient below resolves through this identity, and every Hessian through
+its derivative. @tbl-glm instantiates these objects, giving the loss, link, and
+inverse link for the four models we study: Gaussian, binomial, Poisson, and
+multinomial.
 
   | Model       | $f(\eta; y)$                                                                             | $\link(\mu)$                                                    | $\ilink(\eta)$                                           |
   | :---------- | :--------------------------------------------------------------------------------------- | :-------------------------------------------------------------- | :------------------------------------------------------- |
@@ -875,7 +874,7 @@ regression with cold start, $|\beta_0^\star| = |\mathrm{logit}(\mu_0)|$ diverges
 as $\mu_0 \to 1$---the intercept term dominates both numerator and denominator,
 and @eq-rate-gap collapses to
 $$
-  \frac{T_{\mathrm{G}}(\varepsilon)}{T_{\mathrm{N}}(\varepsilon)} \sim \frac{L_0}{H_{00}(\hat\eta)}.
+  \frac{T_{\mathrm{G}}(\varepsilon)}{T_{\mathrm{N}}(\varepsilon)} \approx \frac{L_0}{H_{00}(\hat\eta)}.
 $$ {#eq-rate-gap-asymptotic}
 For logistic regression, $L_0 = 1/4$ stays fixed while $H_{00}(\hat\eta) \to 0$
 as imbalance grows, so the limit diverges. Outside that regime---in particular
@@ -1052,8 +1051,8 @@ at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
 $\mu_0 = 0.99$, matching the empirical ≈5× and ≈10× slowdowns reported in
 @fig-real-glmnet and @fig-real-biglasso. skglm (version 0.5), the direct-CD
 solver, exhibits the same scaling on a continuous trajectory in @fig-real-skglm:
-the slow ramp from suboptimality $\sim 10^{-1}$ to $\sim 10^{-5}$ is the
-intercept climb to $\mathrm{logit}(\mu_0)$ at step size $1/L_0$.
+the slow convergence from suboptimality $\approx 10^{-1}$ to $\approx 10^{-5}$
+is the intercept climb to $\mathrm{logit}(\mu_0)$ at step size $1/L_0$.
 
 An obvious objection to the Schur-coupling residual (@eq-grad-residual) is that
 adaptive step sizing should rescue the gradient strategy: an Armijo line search
@@ -1897,10 +1896,10 @@ does not materialise: on the w1a benchmark of @fig-first-example all three
 strategies converge under both orderings and the pass-count differences are
 within a factor of $1.4$ (@fig-first-example-ordering). Cyclic order is in fact
 slightly faster than permuted on this problem for Newton ($157$ vs $187$ passes)
-and for exact ($149$ vs $197$), with the gradient strategy at $\sim 840$ passes
-under either rule. The qualitative ranking of the three strategies---Newton and
-exact fast, gradient slow---is the same under both, and we use cyclic CD as the
-default elsewhere in the paper.
+and for exact ($149$ vs $197$), with the gradient strategy at $\approx 840$
+passes under either rule. The qualitative ranking of the three
+strategies---Newton and exact fast, gradient slow---is the same under both, and
+we use cyclic CD as the default elsewhere in the paper.
 
 ```{julia}
 #| label: fig-first-example-ordering
@@ -2059,8 +2058,8 @@ $11$--$12$ of $20$ subproblems, with the curves overlaying. This is
 remains microscopic at the warm-start iterate, so even a near-optimal starting
 point cannot compensate for the shrinking correction. The simulated problem
 ($\mu_0 = 0.9$) sits in the milder regime where all three strategies are
-competitive cold, and warm-start contributes only a uniform $\sim 5\%$ reduction
-in pass count across the board.
+competitive cold, and warm-start contributes only a uniform $\approx 5\%$
+reduction in pass count across the board.
 
 The takeaway: warm-starting validates the steelman for Newton-class strategies
 (bare Newton and the exact strategy converge to each other) but does not extend
@@ -2251,7 +2250,7 @@ $\{1.0, 1.1, 1.8, 3.0, 6.8\}$, against an iterate-level
 $L_0/H_{00}(\hat\eta) = \{3.2, 3.3, 4.4, 5.7, 12.3\}$ measured at the
 Newton-converged iterate on the same cells (mean over three seeds). The
 prediction sits a constant factor above empirical that narrows from
-$\sim 3 \times$ at $\mu_0 = 0.5$ to $\sim 2 \times$ at $\mu_0 = 0.99$. The
+$\approx 3 \times$ at $\mu_0 = 0.5$ to $\approx 2 \times$ at $\mu_0 = 0.99$. The
 cold-start proxy
 $L_0/H_{00}(0) = 1/(4\mu_0(1 - \mu_0)) = \{1.00, 1.19, 2.78, 5.26, 25.25\}$ is
 looser still at high imbalance because active features pull $H_{00}$ above its
