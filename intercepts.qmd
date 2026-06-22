@@ -249,17 +249,18 @@ per-pass cost without a commensurate rate gain. We analyze this extra cost as a
 within-pass intercept drift (@eq-intercept-drift) and quantify it in
 @sec-per-pass-cost.
 
-The framework we develop is both diagnostic and explanatory: it predicts when a
-solver's intercept update will slow under imbalance, and it explains why most
-CD-based GLM solvers in current use have already made the right algorithmic
-choice. The strategy distinction sharpens to two algorithmic regimes: direct CD
-on the original GLM loss, and MM-IRLS inner solves that majorize $f''$ by a
-global constant. Within a local-weight IRLS or prox-Newton inner solve the three
-strategies collapse onto the same exact update on the inner quadratic
-(@sec-irls), so the framework's per-package consequences land on version 0.5 of
-skglm---the only production direct-CD GLM solver in our survey---and on the
-MM-style mode toggles of glmnet (`modified.Newton`) and biglasso (`MM`), exactly
-the cases it flags as suboptimal.
+The framework we develop both diagnoses and explains: it predicts when a
+solver's intercept update slows under imbalance, and it shows why most CD-based
+GLM solvers in current use have already made the right choice. The strategy
+distinction matters in only two regimes: direct CD on the original GLM loss, and
+MM-IRLS inner solves that majorize $f''$ by a global constant. Everywhere else
+it has no bearing, since inside a local-weight IRLS or prox-Newton inner solve
+the three strategies collapse onto the same exact update on the inner
+quadratic\ (@sec-irls). Its consequences therefore fall on just a few packages:
+skglm (version 0.5), the only production direct-CD GLM solver in our survey, and
+the MM-style mode toggles of glmnet (`modified.Newton`) and biglasso
+(`MM`)---exactly the cases that the framework predicts will suffer under
+imbalance.
 
 Our main contributions are as follows:
 
