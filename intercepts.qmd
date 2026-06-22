@@ -652,9 +652,9 @@ these two regimes entirely.
 This perspective lets us classify the three intercept update strategies by how
 completely they remove the intercept--coefficient coupling. We track the
 *gradient response* of the coefficient subproblem to an intercept step: if we
-step $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, the partial derivative
-with respect to $\beta_j$ that the next coefficient update sees satisfies, to
-first order in $\alpha$,
+take the step $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, the partial
+derivative with respect to $\beta_j$ that the next coefficient update sees
+satisfies, to first order in $\alpha$,
 $$
   \partial_j F(\beta_0 - \alpha\partial_0 F, \beta) = \partial_j F(\beta_0, \beta)
                                                       - \alpha H_{j0} \partial_0 F(\beta_0, \beta).
