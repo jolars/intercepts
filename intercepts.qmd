@@ -244,9 +244,10 @@ draw(
 
 @fig-first-example heralds the main message of this paper: the Newton strategy
 is both reliable and efficient, the gradient strategy is too slow, and the exact
-strategy pays a (small) per-pass cost without a commensurate rate gain. We
-analyze this extra cost as a within-pass intercept drift (@eq-intercept-drift)
-and quantify it in @sec-per-pass-cost.
+strategy pays additional complexity and---although not noticeable here---a small
+per-pass cost without a commensurate rate gain. We analyze this extra cost as a
+within-pass intercept drift (@eq-intercept-drift) and quantify it in
+@sec-per-pass-cost.
 
 The framework we develop is both diagnostic and explanatory: it predicts when a
 solver's intercept update will slow under imbalance, and it explains why most
@@ -448,7 +449,7 @@ In our algorithm, we take a step in the negative gradient direction, updating a
 coefficient or intercept by
 $$
   \beta_j^+ = \beta_j
-                - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta),
+              - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta),
 $$
 where $\gamma_j$ is the step size. The step size can be chosen in different
 ways, but the typical approach in a coordinate descent algorithms is to take a
@@ -658,7 +659,7 @@ with respect to $\beta_j$ that the next coefficient update sees satisfies, to
 first order in $\alpha$,
 $$
   \partial_j F(\beta_0 - \alpha\partial_0 F, \beta) = \partial_j F(\beta_0, \beta)
-                                                        - \alpha H_{j0} \partial_0 F(\beta_0, \beta).
+                                                      - \alpha H_{j0} \partial_0 F(\beta_0, \beta).
 $$ {#eq-gradient-response}
 The Schur-corrected gradient $\partial_j F - (H_{j0}/H_{00})\partial_0 F$ is the
 gradient of the profiled objective $\tilde F$ at the current $\beta$. The three
@@ -691,7 +692,7 @@ $\beta_0^\star$ and using the stationarity condition
 $\partial_0 F(\beta_0^\star(\beta), \beta) = 0$,
 $$
   \partial_j \tilde F(\beta) = \partial_j F(\beta_0^\star(\beta), \beta)
-                                 + \partial_0 F(\beta_0^\star(\beta), \beta)\partial_j \beta_0^\star(\beta)
+                               + \partial_0 F(\beta_0^\star(\beta), \beta)\partial_j \beta_0^\star(\beta)
                              = \partial_j F(\beta_0^\star(\beta), \beta),
 $$
 the envelope identity: stationarity kills the indirect term that runs through
@@ -714,7 +715,7 @@ F(\beta\_0^{(t)}, \beta^{(t)}) = 0$, quantifies how fast. A single coefficient
 update $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$ produces
 $$
   \partial_0 F \big(\beta_0^{(t)}, \beta^{(t)} + \delta_j e_j \big) = H_{0j}\delta_j
-                                                                        + O(\delta_j^2).
+                                                                      + O(\delta_j^2).
 $$ {#eq-intercept-drift}
 After one coordinate update of pass $t + 1$, the intercept gradient is no longer
 zero, and the conditional-minimizer property that @prp-profile-equiv depends on
@@ -762,14 +763,14 @@ leading order. Taylor-expanding $\partial_0 F$ around the conditional minimizer
 $\beta_0^*(\beta)$, where $\partial_0 F(\beta_0^*, \beta) = 0$, gives
 $$
   \partial_0 F(\beta_0, \beta) = H_{00}(\beta_0 - \beta_0^*)
-                                   + \tfrac{1}{2}\partial_{000} F(\xi)(\beta_0 - \beta_0^*)^2,
+                                 + \tfrac{1}{2}\partial_{000} F(\xi)(\beta_0 - \beta_0^*)^2,
 $$ {#eq-intercept-taylor}
 for some $\xi$ between $\beta_0$ and $\beta_0^*(\beta)$. Dividing by $H_{00}$
 and recognizing $\beta_0^{\text{Newton}} = \beta_0 - \partial_0 F/H_{00}$ on the
 left rewrites @eq-intercept-taylor as the standard iterate-space Newton bound
 $$
   \bigl|\beta_0^{\text{Newton}}
-                                                             - \beta_0^*(\beta)\bigr| = \frac{|\partial_{000} F(\xi)|}{2 H_{00}}(\beta_0 - \beta_0^*)^2.
+                                                           - \beta_0^*(\beta)\bigr| = \frac{|\partial_{000} F(\xi)|}{2 H_{00}}(\beta_0 - \beta_0^*)^2.
 $$ {#eq-newton-iterate}
 The same identity kept to first order returns the linear-model estimate
 $\beta\_0 - \beta\_0^\* = \partial\_0 F/H\_{00} + O\bigl((\beta\_0 -
@@ -778,7 +779,7 @@ to leading order. Substituting this into @eq-newton-iterate and bounding
 $|\partial_{000} F| = |(1/n)\sum_i f'''(\eta_i)| \le \sup|f'''|$ yields
 $$
   \bigl|\beta_0^{\text{Newton}}
-                                                             - \beta_0^*(\beta)\bigr| = O\left(\frac{\sup_\xi |f'''(\xi)|}{H_{00}^3} \bigl(\partial_0 F\bigr)^2\right),
+                                                           - \beta_0^*(\beta)\bigr| = O\left(\frac{\sup_\xi |f'''(\xi)|}{H_{00}^3} \bigl(\partial_0 F\bigr)^2\right),
 $$ {#eq-newton-error}
 where $\beta_0^*(\beta) = \arg\min_{\beta_0} F(\beta_0, \beta)$. For squared
 loss, $f''' \equiv 0$ and the Newton step is exact; for logistic regression
@@ -793,8 +794,8 @@ using $\partial_j F(\beta_0^\*, \beta) = \partial_j \tilde F(\beta)$ and
 $\partial_{0j} F = H_{j0}$, yields
 $$
   \partial_j F\bigl(\beta_0^{\text{Newton}}, \beta\bigr) = \partial_j \tilde F(\beta)
-                                                             + H_{j0} r_0
-                                                             + O(r_0^2),
+                                                           + H_{j0} r_0
+                                                           + O(r_0^2),
 $$ {#eq-newton-coupling}
 i.e. the profiled gradient plus a bias of order $H_{j0} r_0$. The Newton
 strategy is therefore as good as the exact strategy on a coordinate $j$ whenever
@@ -824,7 +825,7 @@ The gradient strategy is the Schur-coupling correction with step size $\alpha =
 @eq-gradient-response gives
 $$
   \partial_j F^{\text{grad}} = \partial_j F
-                                 - \frac{H_{00}}{L_0}\frac{H_{j0}}{H_{00}}\partial_0 F,
+                               - \frac{H_{00}}{L_0}\frac{H_{j0}}{H_{00}}\partial_0 F,
 $$ {#eq-grad-residual}
 so the gradient strategy removes a fraction $H_{00}/L_0 \in (0, 1]$ of the
 coupling component $(H_{j0}/H_{00})\partial_0 F$ that the Newton and exact
@@ -1520,8 +1521,8 @@ constant majorant $1/4$ in the logistic case, the closed-form inner intercept
 update on $\tilde F^{(t)}$ is
 $$
   \beta_0 \gets \beta_0 + \frac{4}{n} \sum_{i = 1}^n (y_i - p_i)
-          = \beta_0 - \frac{1}{L_0} \partial_0 F, \qquad L_0
-          = 1/4,
+                = \beta_0 - \frac{1}{L_0} \partial_0 F, \qquad L_0
+                = 1/4,
 $$
 which is exactly the gradient strategy of this paper, taken with the global
 Lipschitz step. The Schur-coupling residual (@eq-grad-residual) therefore
