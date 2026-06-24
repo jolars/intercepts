@@ -1,7 +1,6 @@
 flavor = "gfm"
 
-[formatters]
-julia = "runic"
+crossref-prefixes = ["algo"]
 
 [experimental]
 format-math = true
