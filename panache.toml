@@ -4,3 +4,10 @@ crossref-prefixes = ["algo"]
 
 [experimental]
 format-math = true
+
+[formatters]
+"jl" = "fatou"
+
+[formatters.fatou]
+cmd = "fatou"
+args = ["format", "{}"]
