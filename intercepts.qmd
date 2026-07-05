@@ -309,8 +309,8 @@ Multinomial Extension
     common regime. We verify it empirically on two real datasets in opposite
     $(K, n, p)$ regimes: the Yeoh2002 pediatric ALL gene-expression panel
     (@fig-real-multinomial; $K = 6$, $p \gg n$, rarest class $6\%$) and the
-    StatLog Shuttle sensor-data dataset (@fig-real-multinomial-shuttle; $K =
-    7$, $n \gg p$, rarest class $0.02\%$). On both, the gradient strategy stalls
+    StatLog Shuttle sensor-data dataset (@fig-real-multinomial-shuttle; $K = 7$,
+    $n \gg p$, rarest class $0.02\%$). On both, the gradient strategy stalls
     along the rare-class intercept components while the Newton and exact
     strategies collapse onto a single trajectory.
 
@@ -708,9 +708,9 @@ $\beta_0^{(t)}$ is no longer the conditional minimizer, and the equivalence
 breaks.
 
 A one-step Taylor expansion of $\partial_0 F$ in the $\beta_j$ direction at the
-conditional minimizer, using $\partial_{0j} F = H_{0j}$ and $\partial\_0
-F(\beta\_0^{(t)}, \beta^{(t)}) = 0$, quantifies how fast. A single coefficient
-update $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$ produces
+conditional minimizer, using $\partial_{0j} F = H_{0j}$ and
+$\partial\_0 F(\beta\_0^{(t)}, \beta^{(t)}) = 0$, quantifies how fast. A single
+coefficient update $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$ produces
 $$
   \partial_0 F \big(\beta_0^{(t)}, \beta^{(t)} + \delta_j e_j \big) = H_{0j}\delta_j
                                                                       + O(\delta_j^2).
@@ -724,8 +724,8 @@ achieves. Let $k_0$ denote the number of inner Newton steps consumed at the end
 of a pass to drive $|\partial_0 F| < \varepsilon$. The intercept subproblem
 $\beta_0 \mapsto F(\beta_0, \beta)$ is a smooth, strongly convex 1D problem,
 since $\partial_{00} F = H_{00} > 0$ in a neighborhood of its minimizer. Newton
-therefore converges quadratically on it, so that $k_0 =
-O(\log\log(1/\varepsilon))$, a small constant in practice. The empirical
+therefore converges quadratically on it, so that
+$k_0 = O(\log\log(1/\varepsilon))$, a small constant in practice. The empirical
 decomposition in @fig-per-pass-cost confirms that $k_0 \in [1, 6]$ across the
 imbalance sweep, and each step costs $O(n)$ work. By @eq-intercept-drift, the
 conditional optimum that these $k_0$ steps establish survives exactly one
@@ -771,9 +771,9 @@ $$
                                                            - \beta_0^*(\beta)\bigr| = \frac{|\partial_{000} F(\xi)|}{2 H_{00}}(\beta_0 - \beta_0^*)^2.
 $$ {#eq-newton-iterate}
 The same identity kept to first order returns the linear-model estimate
-$\beta\_0 - \beta\_0^\* = \partial\_0 F/H\_{00} + O\bigl((\beta\_0 -
-\beta\_0^*)^2 \bigr)$, so $(\beta_0 - \beta_0^*)^2 = (\partial_0 F)^2/H_{00}^2$
-to leading order. Substituting this into @eq-newton-iterate and bounding
+$\beta\_0 - \beta\_0^\* = \partial\_0 F/H\_{00} + O\bigl((\beta\_0 - \beta\_0^*)^2 \bigr)$,
+so $(\beta_0 - \beta_0^*)^2 = (\partial_0 F)^2/H_{00}^2$ to leading order.
+Substituting this into @eq-newton-iterate and bounding
 $|\partial_{000} F| = |(1/n)\sum_i f'''(\eta_i)| \le \sup|f'''|$ yields
 $$
   \bigl|\beta_0^{\text{Newton}}
@@ -802,15 +802,15 @@ $$
 $$ {#eq-newton-good-enough}
 
 This criterion behaves differently in two regimes. Near the optimum,
-$\|r_0\| = O((\partial_0 F)^2)$ shrinks quadratically while $\|\partial\_j
-\tilde F\|$ shrinks only linearly with the iterate's distance from the optimum,
-so the bias becomes negligible. Far from the optimum, the inequality can fail
-when $|f'''|/H_{00}^3$ is large and $|\partial_0 F|$ is large at the same time:
-this is the cold-start regime, particularly for losses where $f'''$ grows with
-$\eta$, such as Poisson ($f''' = e^\eta$). There the linear model implicit in a
-single Newton step becomes a poor approximation, and a safeguard such as
-backtracking the Newton step until the loss decreases recovers the leading-order
-accuracy that @eq-newton-coupling promises.
+$\|r_0\| = O((\partial_0 F)^2)$ shrinks quadratically while
+$\|\partial\_j \tilde F\|$ shrinks only linearly with the iterate's distance
+from the optimum, so the bias becomes negligible. Far from the optimum, the
+inequality can fail when $|f'''|/H_{00}^3$ is large and $|\partial_0 F|$ is
+large at the same time: this is the cold-start regime, particularly for losses
+where $f'''$ grows with $\eta$, such as Poisson ($f''' = e^\eta$). There the
+linear model implicit in a single Newton step becomes a poor approximation, and
+a safeguard such as backtracking the Newton step until the loss decreases
+recovers the leading-order accuracy that @eq-newton-coupling promises.
 
 Both @eq-newton-error and @eq-newton-coupling are local: a single Newton step at
 the current iterate. They pin down the per-step bias and coupling correction the
@@ -818,8 +818,8 @@ Newton strategy delivers; how those per-step gains compound across an outer
 solve is a complementary question, which @sec-results answers empirically across
 the benchmark suite.
 
-The gradient strategy is the Schur-coupling correction with step size $\alpha =
-1/L_0$ rather than $1/H_{00}$. Substituting $\alpha = 1/L_0$ into
+The gradient strategy is the Schur-coupling correction with step size
+$\alpha = 1/L_0$ rather than $1/H_{00}$. Substituting $\alpha = 1/L_0$ into
 @eq-gradient-response gives
 $$
   \partial_j F^{\text{grad}} = \partial_j F
@@ -971,11 +971,12 @@ draw(
 ```
 
 @fig-rate-gap shows both evaluations of @eq-rate-gap against the empirical
-ratio. The cold-start prediction, evaluated at $\eta^{(0)} =
-\mathrm{logit}(\mu\_0)$, is computable before solving and reduces analytically
-to a convex combination of $L_0/H_{00}(\eta^{(0)}) = 1/(4\mu_0(1 - \mu_0))$ (the
-@sec-imbalance-reg proxy) on the intercept share and one on the slope
-share---the Schur correction is inactive on the standardized design because
+ratio. The cold-start prediction, evaluated at
+$\eta^{(0)} = \mathrm{logit}(\mu\_0)$, is computable before solving and reduces
+analytically to a convex combination of
+$L_0/H_{00}(\eta^{(0)}) = 1/(4\mu_0(1 - \mu_0))$ (the @sec-imbalance-reg proxy)
+on the intercept share and one on the slope share---the Schur correction is
+inactive on the standardized design because
 $H_{0j} = \mu_0(1 - \mu_0)\sum_i X_{ij}^{\mathrm{std}} = 0$ exactly. The
 iterate-level diagnostic substitutes $H_{00}(\hat\eta)$, which is below
 $\mu_0(1 - \mu_0)n$ at moderate imbalance (active features pull predictions away
@@ -1212,14 +1213,14 @@ draw(
 
 @fig-cold-start-poisson is the regime the Newton-coupling bias warns about: at
 $\mu_0 = 300$ the bare Newton intercept step at cold start lands near
-$\bar{y} - 1 \approx 299$ while the exact optimum is $\log(\bar{y}) \approx
-5.7$, an $\approx 50\times$ overshoot that evaluates the loss at $e^{299}$. The
-unguarded trajectory is recoverable here because the outer CD loop's own
-per-coordinate Armijo guard absorbs the resulting transient over the next few
-passes, so the final primal matches; the cost is a pass-one relative gap that
-sits several orders of magnitude above the guarded trajectory. The exact
-strategy is competitive in both experiments but pays the within-pass-drift cost
-identified in @eq-intercept-drift.
+$\bar{y} - 1 \approx 299$ while the exact optimum is
+$\log(\bar{y}) \approx 5.7$, an $\approx 50 \times$ overshoot that evaluates the
+loss at $e^{299}$. The unguarded trajectory is recoverable here because the
+outer CD loop's own per-coordinate Armijo guard absorbs the resulting transient
+over the next few passes, so the final primal matches; the cost is a pass-one
+relative gap that sits several orders of magnitude above the guarded trajectory.
+The exact strategy is competitive in both experiments but pays the
+within-pass-drift cost identified in @eq-intercept-drift.
 
 #### Extension to Vector Intercepts
 
@@ -1374,10 +1375,10 @@ cold-start is already built in.
 
 The same pattern holds on real high-dimensional multinomial data. The Yeoh2002
 pediatric ALL gene-expression panel\ [@yeoh2002] is a $K = 6$ subtype problem on
-$n = 248$ samples and $p = 12\,625$ genes with class marginals BCR\ $=
-6\%$, MLL\ $= 8\%$, E2A\ $= 11\%$, T\ $= 17\%$, Hyperdip\ $= 26\%$, and TEL\ $=
-32\%$. The two rare classes BCR and MLL sit in exactly the regime where the
-per-class fraction $H_{00,kk}/L_0$ predicts a stall under the gradient strategy.
+$n = 248$ samples and $p = 12\,625$ genes with class marginals BCR\ $= 6\%$,
+MLL\ $= 8\%$, E2A\ $= 11\%$, T\ $= 17\%$, Hyperdip\ $= 26\%$, and TEL\ $= 32\%$.
+The two rare classes BCR and MLL sit in exactly the regime where the per-class
+fraction $H_{00,kk}/L_0$ predicts a stall under the gradient strategy.
 
 ```{julia}
 #| label: fig-real-multinomial
@@ -1421,8 +1422,8 @@ and the penalty contribution at $n \ll p$ damps the absolute scale of the
 per-pass intercept correction.
 
 The same separation appears in the inverse $(K, n, p)$ regime. The StatLog
-Shuttle dataset\ [@michie1994] is a $K = 7$ sensor-data classification with $n =
-58\,000$ observations and $p = 9$ features---the opposite shape to
+Shuttle dataset\ [@michie1994] is a $K = 7$ sensor-data classification with
+$n = 58\,000$ observations and $p = 9$ features---the opposite shape to
 Yeoh2002---and class frequencies that span four orders of magnitude ($78.6\%$,
 $0.09\%$, $0.30\%$, $15.4\%$, $5.6\%$, $0.02\%$, $0.02\%$). The three rarest
 classes have ten, thirteen, and fifty samples, so the per-class diagonal
@@ -1835,9 +1836,9 @@ standardisation. This is the distributed-multinomial-regression construction of
 independent Poisson lasso per term---and the baseline rate $\bar y \approx 12$
 puts the cold-start intercept overshoot $\bar y - 1 \approx 10.83$ versus the
 exact $\log(\bar y) \approx 2.47$ in the regime where the synthetic cold-start
-sweep in @fig-cold-start-poisson starts ($\mu_0 = 10$). Same $\lambda =
-0.05\lambda\_{\max}$ convention as the logistic panel; cyclic CD with a
-$1\,000$-pass budget.
+sweep in @fig-cold-start-poisson starts ($\mu_0 = 10$). Same
+$\lambda = 0.05\lambda\_{\max}$ convention as the logistic panel; cyclic CD with
+a $1\,000$-pass budget.
 
 ```{julia}
 #| label: fig-real-poisson
@@ -2149,15 +2150,14 @@ steps for $\mu_0 = 0.99,0.9,0.5$ respectively) and decaying to one by the time
 the iterate is near the joint optimum. The relative overhead summed across the
 run---total inner Newton steps for the exact strategy divided by the Newton
 strategy's pass-count baseline---is $1.30 \times$ at $\mu_0 = 0.5$,
-$1.50 \times$ at $\mu_0 = 0.9$, and $1.59 \times$ at $\mu\_0 =
-0.99$, scaling monotonically with the imbalance that drives $|\partial_0 F|$ at
-cold start. @fig-per-pass-progress shows that this extra inner work does not
-translate into faster per-pass progress: both strategies trace essentially the
-same relative-gap curve and finish in comparable pass counts (Newton:
-109/107/121; exact: 109/108/120). The wasted-work claim is therefore
-quantitatively visible: the gap between the two curves in @fig-per-pass-cost
-integrates to strictly positive inner Newton work for which
-@fig-per-pass-progress records no return.
+$1.50 \times$ at $\mu_0 = 0.9$, and $1.59 \times$ at $\mu\_0 = 0.99$, scaling
+monotonically with the imbalance that drives $|\partial_0 F|$ at cold start.
+@fig-per-pass-progress shows that this extra inner work does not translate into
+faster per-pass progress: both strategies trace essentially the same
+relative-gap curve and finish in comparable pass counts (Newton: 109/107/121;
+exact: 109/108/120). The wasted-work claim is therefore quantitatively visible:
+the gap between the two curves in @fig-per-pass-cost integrates to strictly
+positive inner Newton work for which @fig-per-pass-progress records no return.
 
 The penalty here is modest because quadratic Newton convergence on the 1D
 intercept subproblem keeps $k_0 = O(\log\log(1/\varepsilon))$, well below the
@@ -2332,8 +2332,8 @@ intercept update is the gradient strategy with $L_0 = 1/4$ by construction (a
 step $4/n$ against the unaveraged-loss gradient skglm computes internally). The
 within-skglm controlled experiment that follows it (@fig-skglm-controlled)
 sharpens this further into a same-solver same-problem comparison across the two
-skglm commits that bracket the intercept-update fix, on the same $(\mu\_0,
-\lambda)$ grid as @fig-mu-reg-gradient. The fourth panel verifies the
+skglm commits that bracket the intercept-update fix, on the same
+$(\mu\_0, \lambda)$ grid as @fig-mu-reg-gradient. The fourth panel verifies the
 complementary prediction on LIBLINEAR (newGLMNET) and BlitzL1, two prox-Newton
 solvers whose intercept reaches its conditional optimum at each prox-Newton
 boundary (BlitzL1 via an explicit post-step Newton loop on the original loss,
