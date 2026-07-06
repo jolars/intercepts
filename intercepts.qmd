@@ -524,10 +524,10 @@ strategies, is summarized in @algo-cd.
 ```
 
 The Newton branch of @algo-cd wraps the same Newton direction in an Armijo
-backtracking line search (with slope-tolerance constant $c \in (0, 1)$; we use
-$c = 10^{-4}$ in our implementation), accepting the full step on the first
-attempt in the common case and shrinking $\alpha$ only when the line search
-detects an overshoot.
+backtracking line search. In the common case it accepts the full step
+immediately, shrinking $\alpha$ only when the step overshoots. The
+slope-tolerance constant $c \in (0, 1)$ controls the sufficient-decrease
+threshold; we use $c = 10^{-4}$.
 
 ### What Sets the Intercept Apart
 
