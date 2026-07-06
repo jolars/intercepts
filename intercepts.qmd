@@ -730,12 +730,12 @@ $H_{0j}\delta_j$. Outer progress is therefore no better than what a single
 Newton step on the intercept would already deliver, since only the first
 coefficient update benefits from the envelope alignment. The exact strategy thus
 pays $k_0 - 1 = O(\log\log(1/\varepsilon))$ extra inner Newton steps per pass
-and gains no faster outer convergence in return. The overhead is bounded rather
-than unbounded, but it remains pure overhead: every pass pays for inner work
-that does not speed up convergence. The penalty grows with the strength of the
-intercept-coefficient coupling. When several $|H_{0j}|$ are large, fitting the
-intercept tightly is wasted work, because the next coordinate sweep re-perturbs
-$\partial_0 F$ immediately.
+and gains no faster outer convergence in return. The overhead is bounded, but it
+still remains pure overhead: every pass pays for inner work that does not speed
+up convergence. The penalty grows with the strength of the intercept-coefficient
+coupling. When several $|H_{0j}|$ are large, fitting the intercept tightly is
+wasted work, because the next coordinate sweep re-perturbs $\partial_0 F$
+immediately.
 
 This conclusion holds most sharply in the cold-start, direct-CD setting that
 drives this paper, and three regimes soften it. The first is warm-started path
