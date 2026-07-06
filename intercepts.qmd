@@ -589,12 +589,12 @@ $$
   H_{0j} = \frac{\partial^2}{\partial \beta_0 \partial \beta_j} F(\beta_0, \beta)
          = \frac{1}{n}\sum_{i = 1}^n x_{ij} w_i
 $$
-for the intercept--coefficient block. We read off two qualitative observations.
-First, the coefficients couple to each other *pairwise*, through the weighted
-covariance structure of the features: correlated features produce large
-$|H_{jk}|$, which is the classical reason coordinate descent struggles on such
-designs. Second, the intercept couples to each coefficient *globally*, through
-the weighted mean of that feature, and does not depend on correlations.
+for the intercept--coefficient block. We make two observations from this
+structure. First, the coefficients couple to each other *pairwise*, through the
+weighted covariance structure of the features---correlated features produce
+large $|H_{jk}|$, which is the classical reason coordinate descent struggles on
+such designs. Second, the intercept couples to each coefficient *globally*,
+through the weighted mean of that feature, and does not depend on correlations.
 
 For squared loss, $w_i = 1$ and $H_{0j} = (1/n)\sum_i x_{ij}$, so centering the
 features makes $H_{0j} = 0$ and the intercept decouples from the coefficients
@@ -635,12 +635,12 @@ $$ {#eq-schur-diag}
 
 When $|\rho_{0j}|$ is close to $1$, @eq-schur-diag shows that the profiled
 curvature $\tilde H_{jj}$ is much smaller than $H_{jj}$: most of the diagonal
-curvature seen in $H$ is "borrowed" through the intercept and disappears once we
+curvature seen in $H$ is borrowed through the intercept and disappears once we
 profile the intercept out. Coordinate descent that re-optimizes the intercept
-after every pass effectively runs on $\tilde F$, with curvature $\tilde H_{jj}$;
-coordinate descent that leaves the intercept stale runs on $F$, with the
-inflated curvature $H_{jj}$. The factor $\rho_{0j}^2$ governs the gap between
-these two regimes entirely.
+after every pass effectively runs on $\tilde F$, with curvature $\tilde H_{jj}$,
+while coordinate descent that leaves the intercept stale runs on $F$, with the
+inflated curvature $H_{jj}$. The factor $\rho_{0j}^2$ fully governs the gap
+between these two regimes.
 
 #### Strategies as Schur Approximations
 
@@ -659,8 +659,9 @@ gradient of the profiled objective $\tilde F$ at the current $\beta$. The three
 strategies differ in how closely the residual gradient in @eq-gradient-response
 approximates that target.
 
-The following proposition does the substantive work, and it justifies the
-profiled-objective viewpoint in operational terms.
+@prp-profile-equiv makes this precise: at the intercept's conditional minimizer,
+the next coefficient update is exactly a coordinate-descent step on the profiled
+objective.
 
 ::: {.proposition #prp-profile-equiv}
 **(First-update profile equivalence.)** Let $F$ be twice continuously
@@ -697,15 +698,15 @@ exact coordinate-minimization step $1/\tilde H_{jj}$ along $e_j$.
 :::
 
 @prp-profile-equiv connects the Schur analysis to CD theory: at the start of
-each pass, the exact strategy aligns with CD on $\tilde F$. The alignment lasts
-for exactly one coefficient update, however. By the second update,
-$\beta_0^{(t)}$ is no longer the conditional minimizer, and the equivalence
-breaks.
+each pass, the exact strategy aligns with CD on $\tilde F$. But that alignment
+lasts for exactly one coefficient update. By the second update, $\beta_0^{(t)}$
+is no longer the conditional minimizer, and the equivalence breaks.
 
-A one-step Taylor expansion of $\partial_0 F$ in the $\beta_j$ direction at the
-conditional minimizer, using $\partial_{0j} F = H_{0j}$ and
-$\partial\_0 F(\beta\_0^{(t)}, \beta^{(t)}) = 0$, quantifies how fast. A single
-coefficient update $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$ produces
+To see how quickly it breaks, expand $\partial_0 F$ to first order in the
+$\beta_j$ direction at the conditional minimizer. With
+$\partial_{0j} F = H_{0j}$ and $\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$, a
+single coefficient update $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$
+produces
 $$
   \partial_0 F \big(\beta_0^{(t)}, \beta^{(t)} + \delta_j e_j \big) = H_{0j}\delta_j
                                                                       + O(\delta_j^2).
