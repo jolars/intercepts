@@ -93,7 +93,7 @@ existing CD implementations differ widely in their treatment of it:
   local-Newton surrogate induces an exact 1-D Newton step on the intercept,
   while the MM surrogate reduces to a constant-Lipschitz gradient step;
 
-- skglm\ 0.5[^1] picks the gradient scheme implicitly through its
+- skglm (version 0.5[^1]) picks the gradient scheme implicitly through its
   constant-Lipschitz design;
 
 - adelie keeps the intercept implicit through a weighted-centered-features
@@ -245,9 +245,9 @@ per-pass cost without a commensurate rate gain. We analyze this extra cost as a
 within-pass intercept drift (@eq-intercept-drift) and quantify it in
 @sec-per-pass-cost.
 
-The framework we develop both diagnoses and explains: it predicts when a
-solver's intercept update slows under imbalance, and it shows why most CD-based
-GLM solvers in current use have already made the right choice. The strategy
+The framework we develop both diagnoses and explains, predicting when a solver's
+intercept update slows under imbalance, and showing why most CD-based GLM
+solvers in current use have already made the right choice. The strategy
 distinction matters in only two regimes: direct CD on the original GLM loss, and
 MM-IRLS inner solves that majorize $f''$ by a global constant. Everywhere else
 it has no bearing, since inside a local-weight IRLS or prox-Newton inner solve
@@ -255,8 +255,7 @@ the three strategies collapse onto the same exact update on the inner
 quadratic\ (@sec-irls). Its consequences therefore fall on just a few packages:
 skglm (version 0.5), the only production direct-CD GLM solver in our survey, and
 the MM-style mode toggles of glmnet (`modified.Newton`) and biglasso
-(`MM`)---exactly the cases that the framework predicts will suffer under
-imbalance.
+(`MM`)---exactly the solvers the framework flags.
 
 Our main contributions are as follows:
 
@@ -287,17 +286,17 @@ Structural Classification of Production Solvers
     bases. It also turns the configuration options in glmnet (`type.logistic`)
     and biglasso (`alg.logistic`) into a controlled empirical experiment.
 
-Empirical Verification on Production Codebases
+Empirical Verification on Production Solvers
 :   We confirm the framework's predictions on the same imbalanced logistic
     problem across five figures: glmnet `modified.Newton` needs roughly five
     times more inner passes than `Newton` at tight tolerance;^[The same gap
     survives on the w1a dataset, which has a severely imbalanced response.]
-    biglasso `MM` needs roughly ten times more than `Newton`; skglm 0.5
-    converges slowly, as predicted; LIBLINEAR and BlitzL1 both converge fast, as
-    predicted for prox-Newton solvers whose intercept reaches its conditional
-    optimum each outer iteration; and adelie matches the per-iteration cost of
-    glmnet `Newton`, as predicted for its centered-features local-IRLS
-    realization.
+    biglasso `MM` needs roughly ten times more than `Newton`; skglm (version
+    0.5) converges slowly, as predicted; LIBLINEAR and BlitzL1 both converge
+    fast, as predicted for prox-Newton solvers whose intercept reaches its
+    conditional optimum each outer iteration; and adelie matches the
+    per-iteration cost of glmnet `Newton`, as predicted for its
+    centered-features local-IRLS realization.
 
 Multinomial Extension
 :   We extend the analysis to vector intercepts (multinomial logistic) and show
@@ -481,8 +480,8 @@ these:
 1. A Newton step, setting $\gamma_0$ as above.
 2. A gradient descent step, setting $\gamma_0$ to either the global Lipschitz
    constant with respect to $\beta_0$ or via a backtracking line search.
-3. Iterating Newton steps on the intercept subproblem to convergence---the
-   *exact strategy*.
+3. Repeated Newton steps on the intercept subproblem, iterated to
+   convergence---the *exact strategy*.
 
 The coordinate descent algorithm, with the difference intercept update
 strategies, is summarized in @algo-cd.
@@ -764,7 +763,7 @@ and recognizing $\beta_0^{\text{Newton}} = \beta_0 - \partial_0 F/H_{00}$ on the
 left rewrites @eq-intercept-taylor as the standard iterate-space Newton bound
 $$
   \bigl|\beta_0^{\text{Newton}}
-                                                           - \beta_0^*(\beta)\bigr| = \frac{|\partial_{000} F(\xi)|}{2 H_{00}}(\beta_0 - \beta_0^*)^2.
+  - \beta_0^*(\beta)\bigr| = \frac{|\partial_{000} F(\xi)|}{2 H_{00}}(\beta_0 - \beta_0^*)^2.
 $$ {#eq-newton-iterate}
 The same identity kept to first order returns the linear-model estimate
 $\beta\_0 - \beta\_0^\* = \partial\_0 F/H\_{00} + O\bigl((\beta\_0 - \beta\_0^*)^2 \bigr)$,
@@ -773,7 +772,7 @@ Substituting this into @eq-newton-iterate and bounding
 $|\partial_{000} F| = |(1/n)\sum_i f'''(\eta_i)| \le \sup|f'''|$ yields
 $$
   \bigl|\beta_0^{\text{Newton}}
-                                                           - \beta_0^*(\beta)\bigr| = O\left(\frac{\sup_\xi |f'''(\xi)|}{H_{00}^3} \bigl(\partial_0 F\bigr)^2\right),
+  - \beta_0^*(\beta)\bigr| = O\left(\frac{\sup_\xi |f'''(\xi)|}{H_{00}^3} \bigl(\partial_0 F\bigr)^2\right),
 $$ {#eq-newton-error}
 where $\beta_0^*(\beta) = \arg\min_{\beta_0} F(\beta_0, \beta)$. For squared
 loss, $f''' \equiv 0$ and the Newton step is exact; for logistic regression
