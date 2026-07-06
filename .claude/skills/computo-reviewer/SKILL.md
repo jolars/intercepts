@@ -1,12 +1,12 @@
 ---
 name: computo-reviewer
 description: >
-  Use this skill when the user asks you to act as a Computo *referee* and
-  write a peer-review report on a Quarto-notebook submission. Triggers:
-  "review the paper", "review the paper as a Computo reviewer", "referee
-  report", "act as a Computo referee", "peer review pass", "what would a
-  reviewer say", "referee the paper". Not for prose line-editing, not for
-  standalone code review, not for security review.
+  Use this skill when the user asks you to act as a Computo *referee* and write
+  a peer-review report on a Quarto-notebook submission. Triggers: "review the
+  paper", "review the paper as a Computo reviewer", "referee report", "act as a
+  Computo referee", "peer review pass", "what would a reviewer say", "referee
+  the paper". Not for prose line-editing, not for standalone code review, not
+  for security review.
 ---
 
 # Computo referee review

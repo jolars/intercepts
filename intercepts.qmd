@@ -45,14 +45,15 @@ disagree on how to fit it, and the disagreement is nowhere examined. The choice
 might look like a detail, but we show that it can dominate convergence speed
 whenever the response is imbalanced, and that the fix is a single Newton step.
 
-These packages do not all run the same algorithm. glmnet, biglasso, adelie, and
-ncvreg fit GLMs by solving a sequence of weighted-least-squares problems, each
-by inner coordinate descent, which is the method of iteratively reweighted least
-squares (IRLS). LIBLINEAR and BlitzL1 do the same through a proximal-Newton
-linearization\ [@lee2014]. skglm runs coordinate descent directly on the
-original GLM loss. As we analyze in @sec-theory and @sec-irls, which of these
-methods a solver uses is exactly what decides whether its intercept update stays
-well-behaved under imbalance.
+Even though all of the aforementioned packages use coordinate descent in one way
+or another, they differ in what *kind* of coordinate descent algorithm they use.
+glmnet, biglasso, adelie, and ncvreg fit GLMs by solving a sequence of
+weighted-least-squares problems, each by inner coordinate descent, which is the
+method of iteratively reweighted least squares\ (IRLS). LIBLINEAR and BlitzL1 do
+the same through a proximal-Newton linearization\ [@lee2014]. skglm runs
+coordinate descent directly on the original GLM loss. As we analyze in
+@sec-theory and @sec-irls, which of these methods a solver uses is exactly what
+decides whether its intercept update stays well-behaved under imbalance.
 
 In this paper, we are interested in the following optimization problem:
 $$
@@ -158,8 +159,7 @@ p = 1
 k = 10
 μ0 = 0.9
 
-X, y = generatedata(
-    n, p; response = :binomial, μ0 = μ0, x_type = :normal, x_density = 0.9, ρ = 0.99, s = k, amplitude = 1,
+X, y = generatedata(n, p; response = :binomial, μ0 = μ0, x_type = :normal, x_density = 0.9, ρ = 0.99, s = k, amplitude = 1,
 )
 
 strategies = [
@@ -172,13 +172,13 @@ reg = 0.2
 
 results = [
     cdsolver(
-            X,
-            y,
-            reg,
-            lossfun = LogisticLoss(),
-            intercept_strategy = s.strategy,
-            save_history = true,
-        ) for s in strategies
+    X,
+    y,
+    reg,
+    lossfun = LogisticLoss(),
+    intercept_strategy = s.strategy,
+    save_history = true,
+) for s in strategies
 ]
 
 λ = results[1].λ
@@ -195,11 +195,7 @@ for (i, (b0, b)) in enumerate(grid)
 end
 
 fig = Figure()
-ax = Axis(
-    fig[1, 1],
-    xlabel = L"Intercept ($\beta_0$)",
-    ylabel = L"Coefficient ($\beta_1$)"
-)
+ax = Axis(fig[1, 1], xlabel = L"Intercept ($\beta_0$)", ylabel = L"Coefficient ($\beta_1$)")
 
 levels = geomspace(minimum(primal_values), maximum(primal_values), 20)
 
@@ -238,7 +234,7 @@ layers = visual(Lines)
 draw(
     layers * spec,
     axis = (; yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
-    figure = (; size = (500, 300))
+    figure = (; size = (500, 300)),
 )
 ```
 
@@ -941,9 +937,7 @@ and both ride on the same $H_{00}/L_0 \to 0$ regime.
 
 dd = JLD2.load(@projectroot("results", "rate-gap.jld2"))
 df = DataFrame(dd["records"])
-df_long = stack(
-    df,
-    [:empirical_ratio, :full_ratio, :cold_start_ratio];
+df_long = stack(df, [:empirical_ratio, :full_ratio, :cold_start_ratio];
     variable_name = :quantity,
     value_name = :ratio,
 )
@@ -953,8 +947,8 @@ df_long = stack(
 # @L_str does not wrap the whole string in math mode.
 df_long.quantity = map(df_long.quantity) do q
     q == "empirical_ratio" ? L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
-    q == "cold_start_ratio" ? "Cold-start prediction" :
-    L"Iterate-level diagnostic${}$"
+        q == "cold_start_ratio" ? "Cold-start prediction" :
+        L"Iterate-level diagnostic${}$"
 end
 
 spec = data(df_long) * mapping(:μ0, :ratio, color = :quantity)
@@ -1018,15 +1012,13 @@ into the asymptotic limit @eq-rate-gap-asymptotic.
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
 df = DataFrame(dd["records"])
 
-df_long = stack(
-    df,
-    [:empirical_ratio, :predicted_ratio];
+df_long = stack(df, [:empirical_ratio, :predicted_ratio];
     variable_name = :quantity,
     value_name = :ratio,
 )
 df_long.quantity = map(df_long.quantity) do q
     q == "empirical_ratio" ? L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
-    L"Predicted (eq-rate-gap)${}$"
+        L"Predicted (eq-rate-gap)${}$"
 end
 
 spec = data(df_long) * mapping(
@@ -1123,7 +1115,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250))
+    figure = (; size = (800, 250)),
 )
 ```
 
@@ -1157,7 +1149,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250))
+    figure = (; size = (800, 250)),
 )
 ```
 
@@ -1207,7 +1199,7 @@ draw(
     visual(Lines) * spec_p,
     axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250))
+    figure = (; size = (800, 250)),
 )
 ```
 
@@ -1279,7 +1271,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10, ylabel = "Relative primal suboptimality", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250))
+    figure = (; size = (800, 250)),
 )
 ```
 
@@ -1349,7 +1341,7 @@ agg.amp_str = "amp = " .* string.(agg.amplitude)
 corners = filter(
     r ->
         r.p_K_str in (L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$") &&
-            r.amp_str in ("amp = 0.5", "amp = 2.0"),
+        r.amp_str in ("amp = 0.5", "amp = 2.0"),
     agg,
 )
 
@@ -1404,11 +1396,7 @@ spec = data(df) * mapping(
     color = :strategy,
 )
 
-draw(
-    visual(Lines) * spec,
-    axis = (yscale = log10,),
-    figure = (; size = (550, 300))
-)
+draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (550, 300)))
 ```
 
 @fig-real-multinomial reproduces the synthetic pattern on a genuine $p > n$
@@ -1454,7 +1442,7 @@ draw(
         color = :strategy,
     ),
     axis = (yscale = log10,),
-    figure = (; size = (550, 300))
+    figure = (; size = (550, 300)),
 )
 ```
 
@@ -1619,7 +1607,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250))
+    figure = (; size = (800, 250)),
 )
 ```
 
@@ -1799,7 +1787,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10,),
     facet = (; linkxaxes = :none),
-    figure = (; size = (900, 500))
+    figure = (; size = (900, 500)),
 )
 ```
 
@@ -1867,11 +1855,7 @@ spec = data(df) * mapping(
     :relgaps => "Relative duality gap",
     color = :strategy,
 )
-draw(
-    visual(Lines) * spec,
-    axis = (yscale = log10,),
-    figure = (; size = (600, 380))
-)
+draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (600, 380)))
 ```
 
 The gradient-strategy collapse in @fig-real-poisson is the strongest empirical
@@ -1921,11 +1905,7 @@ spec = data(df) * mapping(
     row = :ordering,
 )
 
-draw(
-    visual(Lines) * spec,
-    axis = (; yscale = log10),
-    figure = (; size = (500, 500))
-)
+draw(visual(Lines) * spec, axis = (; yscale = log10), figure = (; size = (500, 500)))
 ```
 
 ### Warm-Started Path {#sec-warmstart-path}
@@ -2111,11 +2091,7 @@ spec_cost =
 
 spec_ref = mapping([1]) * visual(HLines, linestyle = :dash, color = :gray)
 
-draw(
-    spec_cost + spec_ref,
-    facet = (; linkyaxes = :all),
-    figure = (; size = (800, 260)),
-)
+draw(spec_cost + spec_ref, facet = (; linkyaxes = :all), figure = (; size = (800, 260)))
 ```
 
 ```{julia}
@@ -2191,10 +2167,7 @@ per-coordinate Lipschitz-mismatch prediction from BLAS and memory effects.
 dd = JLD2.load(@projectroot("results", "sim-mu-reg-heatmap.jld2"))
 df = DataFrame(dd["results"])
 
-agg = combine(
-    groupby(df, [:μ0, :reg, :strategy]),
-    :passes => mean => :passes,
-)
+agg = combine(groupby(df, [:μ0, :reg, :strategy]), :passes => mean => :passes)
 
 wide = unstack(agg, [:μ0, :reg], :strategy, :passes)
 wide.gradient_ratio = wide.gradient ./ wide.newton
@@ -2209,10 +2182,7 @@ spec_grad =
         :gradient_ratio => log10 => L"$\log_{10}(T_{\mathrm{grad}}/T_{\mathrm{Newton}})$",
     )
 
-draw(
-    spec_grad * visual(Heatmap),
-    figure = (; size = (560, 320)),
-)
+draw(spec_grad * visual(Heatmap), figure = (; size = (560, 320)))
 ```
 
 ```{julia}
@@ -2383,11 +2353,7 @@ spec =
     )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
-    axis = (
-        yscale = log10,
-        xlabel = "Inner CD passes",
-        ylabel = "Primal suboptimality",
-    ),
+    axis = (yscale = log10, xlabel = "Inner CD passes", ylabel = "Primal suboptimality"),
     figure = (; size = (800, 300)),
 )
 ```
@@ -2403,9 +2369,7 @@ draw(
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "biglasso.csv"))),
-    DataFrame(
-        CSV.File(@projectroot("results", "real-solvers", "w1a", "biglasso.csv")),
-    ),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "biglasso.csv"))),
     DataFrame(
         CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "biglasso.csv")),
     ),
@@ -2425,11 +2389,7 @@ spec =
     )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
-    axis = (
-        yscale = log10,
-        xlabel = "Inner CD passes",
-        ylabel = "Primal suboptimality",
-    ),
+    axis = (yscale = log10, xlabel = "Inner CD passes", ylabel = "Primal suboptimality"),
     figure = (; size = (800, 300)),
 )
 ```
@@ -2452,9 +2412,7 @@ draw(
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
-    DataFrame(
-        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "skglm.csv")),
-    ),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"))),
 )
 df = transform(
     groupby(df, :problem),
@@ -2531,15 +2489,10 @@ differences confounding the comparison.
 #|   the prediction of @eq-rate-gap on a production solver whose only change
 #|   between the two trials is the intercept update.
 
-df_sk = DataFrame(
-    CSV.File(@projectroot("results", "skglm-controlled", "results.csv")),
-)
+df_sk = DataFrame(CSV.File(@projectroot("results", "skglm-controlled", "results.csv")))
 df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
 
-agg_sk = combine(
-    groupby(df_sk, [:mu0, :reg, :strategy]),
-    :n_iter => mean => :n_iter,
-)
+agg_sk = combine(groupby(df_sk, [:mu0, :reg, :strategy]), :n_iter => mean => :n_iter)
 wide_sk = unstack(agg_sk, [:mu0, :reg], :strategy, :n_iter)
 wide_sk.skglm_ratio = wide_sk.gradient ./ wide_sk.newton
 wide_sk.reg_str = string.(wide_sk.reg)
@@ -2552,10 +2505,7 @@ spec_sk =
         :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{pre}}/T_{\mathrm{post}})$",
     )
 
-draw(
-    spec_sk * visual(Heatmap),
-    figure = (; size = (560, 320)),
-)
+draw(spec_sk * visual(Heatmap), figure = (; size = (560, 320)))
 ```
 
 The fourth panel verifies the complementary prediction: solvers whose intercept
@@ -2585,13 +2535,9 @@ intercept) and glmnet's `modified.Newton` (the constant-majorant alternative).
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "proxnewton.csv"))),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "proxnewton.csv"))),
     DataFrame(
-        CSV.File(@projectroot("results", "real-solvers", "w1a", "proxnewton.csv")),
-    ),
-    DataFrame(
-        CSV.File(
-            @projectroot("results", "real-solvers", "news20-3pct", "proxnewton.csv"),
-        ),
+        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "proxnewton.csv")),
     ),
 )
 df = transform(
@@ -2610,13 +2556,9 @@ spec =
     )
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
-    axis = (
-        yscale = log10,
-        xlabel = "Time (s)",
-        ylabel = "Primal suboptimality",
-    ),
+    axis = (yscale = log10, xlabel = "Time (s)", ylabel = "Primal suboptimality"),
     figure = (; size = (800, 300)),
-    facet = (; linkxaxes = false)
+    facet = (; linkxaxes = false),
 )
 ```
 
@@ -2662,9 +2604,7 @@ df = vcat(
 df_ref = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
-    DataFrame(
-        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "skglm.csv")),
-    ),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"))),
 )
 F_star = combine(groupby(df_ref, :problem), :primal => minimum => :F_star)
 df = leftjoin(df, F_star, on = :problem)
@@ -2747,19 +2687,11 @@ F_star = minimum(df.primal)
 df.subopt = max.(df.primal .- F_star, 1.0e-15)
 sort!(df, [:solver, :runtime])
 
-spec = data(df) * mapping(
-    :runtime,
-    :subopt,
-    color = :solver,
-)
+spec = data(df) * mapping(:runtime, :subopt, color = :solver)
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
-    legend = (; titlevisible=false),
-    axis = (
-        yscale = log10,
-        xlabel = "Time (s)",
-        ylabel = "Primal suboptimality",
-    ),
+    legend = (; titlevisible = false),
+    axis = (yscale = log10, xlabel = "Time (s)", ylabel = "Primal suboptimality"),
     figure = (; size = (500, 280)),
 )
 ```
@@ -2929,7 +2861,12 @@ spec = data(agg) * mapping(
     :pass => "Pass",
     :relgaps => "Relative primal suboptimality",
     color = :strategy,
-    row = :p_K_str => sorter(L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.02$", L"$\bar{p}_K = 0.01$", L"$\bar{p}_K = 0.005$"),
+    row = :p_K_str => sorter(
+        L"$\bar{p}_K = 0.05$",
+        L"$\bar{p}_K = 0.02$",
+        L"$\bar{p}_K = 0.01$",
+        L"$\bar{p}_K = 0.005$",
+    ),
     col = :amp_str => sorter("amp = 0.5", "amp = 1.0", "amp = 1.5", "amp = 2.0"),
 )
 
