@@ -63,14 +63,14 @@ def main():
             )
             + lam * np.abs(est.coef_).sum()
         )
-        row = dict(
-            problem="congress109",
-            tol=1e-3,
-            n_iter=int(est.n_iter_),
-            primal=primal,
-            runtime=runtime,
-            status="ran",
-        )
+        row = {
+            "problem": "congress109",
+            "tol": 1e-3,
+            "n_iter": int(est.n_iter_),
+            "primal": primal,
+            "runtime": runtime,
+            "status": "ran",
+        }
         print(f"AndersonCD ran (unexpectedly): primal={primal:.6f}")
     except AttributeError as e:
         runtime = time.perf_counter() - t0
@@ -81,14 +81,14 @@ def main():
             "No Bucket A intercept strategy exists for Poisson (f''(eta) "
             "= exp(eta) has no global upper bound)."
         )
-        row = dict(
-            problem="congress109",
-            tol=float("nan"),
-            n_iter=-1,
-            primal=float("nan"),
-            runtime=runtime,
-            status="unsupported_no_lipschitz",
-        )
+        row = {
+            "problem": "congress109",
+            "tol": float("nan"),
+            "n_iter": -1,
+            "primal": float("nan"),
+            "runtime": runtime,
+            "status": "unsupported_no_lipschitz",
+        }
 
     pd.DataFrame([row]).to_csv(PROBDIR / "skglm.csv", index=False)
     print(f"Wrote {PROBDIR / 'skglm.csv'}")

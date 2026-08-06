@@ -14,15 +14,14 @@ uses skglm's ProxNewton as the prox-Newton representative. Output:
 (tol, n_iter, primal, runtime) per tolerance.
 """
 
-from pathlib import Path
 import json
 import sys
 import time
 import warnings
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from skglm import GeneralizedLinearEstimator
 from skglm.datafits import Poisson
 from skglm.penalties import L1
@@ -86,22 +85,20 @@ def run_sweep(probdir, problem):
         )
         beta = np.asarray(est.coef_).ravel()
         primal = poisson_primal(beta0, beta)
-        n_iter = (
-            int(est.n_iter_) if np.ndim(est.n_iter_) == 0 else int(est.n_iter_[0])
-        )
+        n_iter = int(est.n_iter_) if np.ndim(est.n_iter_) == 0 else int(est.n_iter_[0])
         print(
             f"  tol={tol:.0e}  n_iter={n_iter:5d}  a0={beta0:.4f}  "
             f"primal={primal:.10f}  time={runtime:.3f}s"
         )
         rows.append(
-            dict(
-                problem=problem,
-                solver="ProxNewton",
-                tol=tol,
-                n_iter=n_iter,
-                primal=primal,
-                runtime=runtime,
-            )
+            {
+                "problem": problem,
+                "solver": "ProxNewton",
+                "tol": tol,
+                "n_iter": n_iter,
+                "primal": primal,
+                "runtime": runtime,
+            }
         )
     return pd.DataFrame(rows)
 
