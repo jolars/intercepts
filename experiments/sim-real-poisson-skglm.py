@@ -15,14 +15,13 @@ so the figure code can detect it explicitly rather than silently rendering
 an empty panel.
 """
 
-from pathlib import Path
 import json
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from skglm import GeneralizedLinearEstimator
 from skglm.datafits import Poisson
 from skglm.penalties import L1
@@ -58,7 +57,10 @@ def main():
         est.fit(X, y)
         runtime = time.perf_counter() - t0
         primal = float(
-            np.mean(np.exp(est.intercept_ + X @ est.coef_) - y * (est.intercept_ + X @ est.coef_))
+            np.mean(
+                np.exp(est.intercept_ + X @ est.coef_)
+                - y * (est.intercept_ + X @ est.coef_)
+            )
             + lam * np.abs(est.coef_).sum()
         )
         row = dict(
