@@ -159,7 +159,16 @@ p = 1
 k = 10
 μ0 = 0.9
 
-X, y = generatedata(n, p; response = :binomial, μ0 = μ0, x_type = :normal, x_density = 0.9, ρ = 0.99, s = k, amplitude = 1,
+X, y = generatedata(
+    n,
+    p;
+    response = :binomial,
+    μ0 = μ0,
+    x_type = :normal,
+    x_density = 0.9,
+    ρ = 0.99,
+    s = k,
+    amplitude = 1,
 )
 
 strategies = [
@@ -172,13 +181,14 @@ reg = 0.2
 
 results = [
     cdsolver(
-    X,
-    y,
-    reg,
-    lossfun = LogisticLoss(),
-    intercept_strategy = s.strategy,
-    save_history = true,
-) for s in strategies
+        X,
+        y,
+        reg,
+        lossfun = LogisticLoss(),
+        intercept_strategy = s.strategy,
+        save_history = true,
+    )
+    for s in strategies
 ]
 
 λ = results[1].λ
@@ -319,7 +329,7 @@ its all-GLM extension\ [@tay2023] expose two weight schemes for the logistic
 IRLS inner solver---local weights and a global 1/4 upper bound, exposed via the
 arguments `type.logistic = "Newton"` and `"modified.Newton"`, which the glmnet
 documentation describes as a speed trade-off rather than as an
-intercept-strategy choice. LIBLINEAR's newGLMNET solver [@fan2008; @yuan2012]
+intercept-strategy choice. LIBLINEAR's newGLMNET solver\ [@fan2008; @yuan2012]
 treats the intercept as the unregularized last coordinate of the prox-Newton
 inner CD---each inner sweep takes a Newton step on the frozen quadratic, and the
 inner CD's QP convergence carries the intercept to its conditional minimum on
@@ -845,14 +855,15 @@ inadequate, not just slow.
 
 The $H_{00}/L_0$ ratio also enters standard randomized-CD rate bounds, where it
 controls how aggressively the gradient strategy can update the intercept.
-Standard sublinear bounds for randomized proximal CD
-[@wright2015; @nesterov2012; @richtarik2014] grow with a sum over coordinates of
-a quantity of the form $L_j R_j^2$, where $L_j$ is the coordinate-wise Lipschitz
-constant and $R_j$ the cold-start distance to the optimum along coordinate $j$.
-The strategies enter this expression identically on coefficient coordinates but
-differently on the intercept: the gradient strategy plugs in the global
-$L_0 = \sup f''$, while the Newton and exact strategies use the iterate-level
-$H_{00}$, which may be orders of magnitude smaller.
+Standard sublinear bounds for randomized proximal
+CD\ [@wright2015; @nesterov2012; @richtarik2014] grow with a sum over
+coordinates of a quantity of the form $L_j R_j^2$, where $L_j$ is the
+coordinate-wise Lipschitz constant and $R_j$ the cold-start distance to the
+optimum along coordinate $j$. The strategies enter this expression identically
+on coefficient coordinates but differently on the intercept: the gradient
+strategy plugs in the global $L_0 = \sup f''$, while the Newton and exact
+strategies use the iterate-level $H_{00}$, which may be orders of magnitude
+smaller.
 
 ::: {.remark}
 **(Rate gap, with a large-imbalance reduction.)** Let
@@ -879,7 +890,7 @@ is needed.
 
 @eq-rate-gap is derived from the standard sublinear bound for randomized
 proximal CD on a convex composite $F = f + \psi$ with $f$ having coordinate-wise
-Lipschitz constants $L_j$ [@wright2015; @nesterov2012; @richtarik2014], which
+Lipschitz constants $L_j$\ [@wright2015; @nesterov2012; @richtarik2014], which
 grows with $\sum_j L_j R_j^2$. Three substitutions enter the derivation, each of
 which departs from the bound's standing assumptions; we keep the leading-order
 scaling and accept the slack. *(i) Schedule.* The strategies fix the intercept
@@ -937,7 +948,9 @@ and both ride on the same $H_{00}/L_0 \to 0$ regime.
 
 dd = JLD2.load(@projectroot("results", "rate-gap.jld2"))
 df = DataFrame(dd["records"])
-df_long = stack(df, [:empirical_ratio, :full_ratio, :cold_start_ratio];
+df_long = stack(
+    df,
+    [:empirical_ratio, :full_ratio, :cold_start_ratio];
     variable_name = :quantity,
     value_name = :ratio,
 )
@@ -946,9 +959,9 @@ df_long = stack(df, [:empirical_ratio, :full_ratio, :cold_start_ratio];
 # spaced minus signs. The empty ${}$ gives the pure-text labels a math span so
 # @L_str does not wrap the whole string in math mode.
 df_long.quantity = map(df_long.quantity) do q
-    q == "empirical_ratio" ? L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
-        q == "cold_start_ratio" ? "Cold-start prediction" :
-        L"Iterate-level diagnostic${}$"
+    q == "empirical_ratio" ?
+        L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
+        q == "cold_start_ratio" ? "Cold-start prediction" : L"Iterate-level diagnostic${}$"
 end
 
 spec = data(df_long) * mapping(:μ0, :ratio, color = :quantity)
@@ -1012,21 +1025,25 @@ into the asymptotic limit @eq-rate-gap-asymptotic.
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
 df = DataFrame(dd["records"])
 
-df_long = stack(df, [:empirical_ratio, :predicted_ratio];
+df_long = stack(
+    df,
+    [:empirical_ratio, :predicted_ratio];
     variable_name = :quantity,
     value_name = :ratio,
 )
 df_long.quantity = map(df_long.quantity) do q
-    q == "empirical_ratio" ? L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
+    q == "empirical_ratio" ?
+        L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
         L"Predicted (eq-rate-gap)${}$"
 end
 
-spec = data(df_long) * mapping(
-    :barρ2 => L"Weighted $\bar{\rho}^2$",
-    :ratio => L"$T_{\mathrm{G}}/T_{\mathrm{N}}$",
-    color = :quantity,
-    marker = :μ0 => nonnumeric => L"$\mu_0$",
-)
+spec = data(df_long) *
+    mapping(
+        :barρ2 => L"Weighted $\bar{\rho}^2$",
+        :ratio => L"$T_{\mathrm{G}}/T_{\mathrm{N}}$",
+        color = :quantity,
+        marker = :μ0 => nonnumeric => L"$\mu_0$",
+    )
 
 draw(
     visual(Scatter; markersize = 14) * spec,
@@ -1061,7 +1078,7 @@ the Lipschitz step satisfies the sufficient-decrease condition on the first
 attempt and the line search never fires.
 
 The picture matches what production direct-CD solvers did at the time these
-experiments were run. skglm (version 0.5) [@bertrand2022] used constant
+experiments were run. skglm (version 0.5)\ [@bertrand2022] used constant
 per-coordinate Lipschitz steps and, on the unaveraged loss it works with
 internally, a step $4/n$ on the intercept---exactly the gradient strategy as
 defined above (with $L_0 = 1/4$ on the averaged loss), with no line search of
@@ -1339,19 +1356,19 @@ agg.amp_str = "amp = " .* string.(agg.amplitude)
 # In-text slice: the four corners of the (p̄_K, amplitude) grid. The full 4×4
 # sweep is @fig-multinomial-sweep-full in the appendix.
 corners = filter(
-    r ->
-        r.p_K_str in (L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$") &&
+    r -> r.p_K_str in (L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$") &&
         r.amp_str in ("amp = 0.5", "amp = 2.0"),
     agg,
 )
 
-spec = data(corners) * mapping(
-    :pass => "Pass",
-    :relgaps => "Relative primal suboptimality",
-    color = :strategy,
-    row = :p_K_str => sorter(L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$"),
-    col = :amp_str => sorter("amp = 0.5", "amp = 2.0"),
-)
+spec = data(corners) *
+    mapping(
+        :pass => "Pass",
+        :relgaps => "Relative primal suboptimality",
+        color = :strategy,
+        row = :p_K_str => sorter(L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$"),
+        col = :amp_str => sorter("amp = 0.5", "amp = 2.0"),
+    )
 
 draw(
     visual(Lines) * spec,
@@ -1390,11 +1407,12 @@ df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
 
-spec = data(df) * mapping(
-    :time => "Time (s)",
-    :relgaps => "Relative primal suboptimality",
-    color = :strategy,
-)
+spec = data(df) *
+    mapping(
+        :time => "Time (s)",
+        :relgaps => "Relative primal suboptimality",
+        color = :strategy,
+    )
 
 draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (550, 300)))
 ```
@@ -1436,11 +1454,13 @@ df_sh = flatten(df_sh, [:time, :relgaps, :primals])
 df_sh.relgaps .= max.(df_sh.relgaps, 1.0e-10)
 
 draw(
-    visual(Lines) * data(df_sh) * mapping(
-        :time => "Time (s)",
-        :relgaps => "Relative primal suboptimality",
-        color = :strategy,
-    ),
+    visual(Lines) *
+        data(df_sh) *
+        mapping(
+            :time => "Time (s)",
+            :relgaps => "Relative primal suboptimality",
+            color = :strategy,
+        ),
     axis = (yscale = log10,),
     figure = (; size = (550, 300)),
 )
@@ -1475,24 +1495,19 @@ The Newton-strategy recommendation transfers to both schemes.
 ### Connection to IRLS {#sec-irls}
 
 The analysis so far targets *direct* coordinate descent on $F$, in which the
-weights $w_i = f''(\eta_i; y_i)$ are recomputed after every coefficient
-update. A widely used alternative---and the one taken by glmnet
-[@friedman2010]---is iteratively reweighted least squares (IRLS)
-[@mccullagh1989]: at the current iterate $(\beta_0^{(t)}, \beta^{(t)})$,
-form a weighted least squares majorizer
+weights $w_i = f''(\eta_i; y_i)$ are recomputed after every coefficient update.
+A widely used alternative---and the one taken by glmnet\ [@friedman2010]---is
+iteratively reweighted least squares (IRLS)\ [@mccullagh1989]: at the current
+iterate $(\beta_0^{(t)}, \beta^{(t)})$, form a weighted least squares majorizer
 $$
-\tilde F^{(t)}(\beta_0, \beta)
-  =
-  \frac{1}{2n} \sum_{i=1}^n w_i^{(t)}
-    \bigl( z_i^{(t)} - \beta_0 - x_i^\intercal \beta \bigr)^2,
+  \tilde F^{(t)}(\beta_0, \beta) = \frac{1}{2n} \sum_{i = 1}^n w_i^{(t)} \bigl( z_i^{(t)} - \beta_0 - x_i^\intercal \beta \bigr)^2,
 $$
-with working response $z_i^{(t)} = \eta_i^{(t)} - r_i^{(t)} / w_i^{(t)}$,
-run inner CD on $\tilde F^{(t)}$, then re-linearize. Two weight choices are
-used in practice: *local* weights $w_i^{(t)} = f''(\eta_i^{(t)}; y_i)$
-(glmnet's `type.logistic = "Newton"`), and *MM-majorized* weights replacing
-$w_i^{(t)}$ by a global upper bound on $f''$ (e.g. $w_i \equiv 1/4$ for
-logistic; glmnet's `type.logistic = "modified.Newton"`, following the MM
-tradition of @hunter2004).
+with working response $z_i^{(t)} = \eta_i^{(t)} - r_i^{(t)} / w_i^{(t)}$, run
+inner CD on $\tilde F^{(t)}$, then re-linearize. Two weight choices are used in
+practice: *local* weights $w_i^{(t)} = f''(\eta_i^{(t)}; y_i)$ (glmnet's
+`type.logistic = "Newton"`), and *MM-majorized* weights replacing $w_i^{(t)}$ by
+a global upper bound on $f''$ (e.g. $w_i \equiv 1/4$ for logistic; glmnet's
+`type.logistic = "modified.Newton"`, following the MM tradition of @hunter2004).
 
 Inside one inner solve with local weights, $\tilde F^{(t)}$ is quadratic in
 $\beta_0$ with curvature $(1/n)\sum_i w_i^{(t)} = H_{00}$, so the inner
@@ -1631,7 +1646,7 @@ has the edge when $f'''$ is large (e.g.\
 Poisson with extreme rates, where each linearization is loose far from the
 current iterate), when working-response instability under saturation matters, or
 when screening and working-set methods (standard in modern $\ell_1$ solvers)
-compose poorly with re-linearization [@bertrand2022]. Our strategy analysis is
+compose poorly with re-linearization\ [@bertrand2022]. Our strategy analysis is
 orthogonal to this family choice: within either family, the recommendation
 against the gradient strategy and in favour of Newton carries through.
 
@@ -1773,15 +1788,15 @@ df.dataset = replace.(
     "news20-imb" => "news20-3pct",
 )
 
-dataset_order =
-    ["w1a", "news20-3pct", "a4a", "leukemia", "breast-cancer", "gisette"]
+dataset_order = ["w1a", "news20-3pct", "a4a", "leukemia", "breast-cancer", "gisette"]
 
-spec = data(df) * mapping(
-    :time => "Time (s)",
-    :relgaps => "Relative duality gap",
-    color = :strategy,
-    layout = :dataset => sorter(dataset_order...),
-)
+spec = data(df) *
+    mapping(
+        :time => "Time (s)",
+        :relgaps => "Relative duality gap",
+        color = :strategy,
+        layout = :dataset => sorter(dataset_order...),
+    )
 
 draw(
     visual(Lines) * spec,
@@ -1850,11 +1865,8 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 df.relgaps .= max.(df.relgaps, 1.0e-10)
 
-spec = data(df) * mapping(
-    :time => "Time (s)",
-    :relgaps => "Relative duality gap",
-    color = :strategy,
-)
+spec = data(df) *
+    mapping(:time => "Time (s)", :relgaps => "Relative duality gap", color = :strategy)
 draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (600, 380)))
 ```
 
@@ -1898,12 +1910,13 @@ df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
 
-spec = data(df) * mapping(
-    :time => "Time (s)",
-    :relgaps => "Relative duality gap",
-    color = :strategy,
-    row = :ordering,
-)
+spec = data(df) *
+    mapping(
+        :time => "Time (s)",
+        :relgaps => "Relative duality gap",
+        color = :strategy,
+        row = :ordering,
+    )
 
 draw(visual(Lines) * spec, axis = (; yscale = log10), figure = (; size = (500, 500)))
 ```
@@ -1968,8 +1981,8 @@ df.ordering = ifelse.(df.randomize, "permuted", "cyclic")
 # ordering × dataset grid is @fig-warm-start-full in the appendix.
 df_cyclic = filter(:ordering => ==("cyclic"), df)
 
-spec_passes =
-    data(df_cyclic) * mapping(
+spec_passes = data(df_cyclic) *
+    mapping(
         :reg_grid => L"$\lambda / \lambda_{\max}$",
         :passes => "Outer passes",
         color = :strategy,
@@ -1996,8 +2009,8 @@ draw(
 #|   differences to compress. The permuted-ordering row is in
 #|   @fig-warm-start-mechanism-full.
 
-spec_partial =
-    data(df_cyclic) * mapping(
+spec_partial = data(df_cyclic) *
+    mapping(
         :reg_grid => L"$\lambda / \lambda_{\max}$",
         :init_partial0F => L"$|\partial_0 F|$ at initialization",
         color = :strategy,
@@ -2082,12 +2095,13 @@ df = flatten(df, [:pass, :inner_steps, :cum_inner_steps, :relgap_after, :time])
 df.μ0_label = [L"$\mu_0 = %$(v)$" for v in df.μ0]
 df_exact = filter(:strategy => ==("exact"), df)
 
-spec_cost =
-    data(df_exact) * mapping(
+spec_cost = data(df_exact) *
+    mapping(
         :pass => "Outer pass",
         :inner_steps => L"Inner Newton steps per pass ($k_0$)",
         col = :μ0_label,
-    ) * visual(Lines)
+    ) *
+    visual(Lines)
 
 spec_ref = mapping([1]) * visual(HLines, linestyle = :dash, color = :gray)
 
@@ -2104,8 +2118,8 @@ draw(spec_cost + spec_ref, facet = (; linkyaxes = :all), figure = (; size = (800
 #|   content of the "cost-without-rate-improvement" reading of
 #|   @eq-intercept-drift.
 
-spec_prog =
-    data(df) * mapping(
+spec_prog = data(df) *
+    mapping(
         :pass => "Outer pass",
         :relgap_after => "Relative duality gap",
         color = :strategy,
@@ -2175,9 +2189,11 @@ wide.exact_ratio = wide.exact ./ wide.newton
 wide.reg_str = string.(wide.reg)
 wide.μ0_str = string.(wide.μ0)
 
-spec_grad =
-    data(wide) * mapping(
-        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => L"$\lambda / \lambda_{\max}$",
+spec_grad = data(wide) *
+    mapping(
+        :reg_str =>
+            sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") =>
+            L"$\lambda / \lambda_{\max}$",
         :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
         :gradient_ratio => log10 => L"$\log_{10}(T_{\mathrm{grad}}/T_{\mathrm{Newton}})$",
     )
@@ -2193,11 +2209,15 @@ draw(spec_grad * visual(Heatmap), figure = (; size = (560, 320)))
 #|   zero (white) across the plane---outer-pass-equivalent exact vs Newton, the
 #|   prediction of @eq-intercept-drift.
 
-spec_exact =
-    data(wide) * mapping(
-        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => L"$\lambda / \lambda_{\max}$",
+spec_exact = data(wide) *
+    mapping(
+        :reg_str =>
+            sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") =>
+            L"$\lambda / \lambda_{\max}$",
         :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
-        :exact_ratio => log10 => L"$\log_{10}(T_{\mathrm{exact}}/T_{\mathrm{Newton}})$, range $\pm 0.1$",
+        :exact_ratio =>
+            log10 =>
+            L"$\log_{10}(T_{\mathrm{exact}}/T_{\mathrm{Newton}})$, range $\pm 0.1$",
     )
 
 draw(
@@ -2308,12 +2328,12 @@ complementary prediction on LIBLINEAR (newGLMNET) and BlitzL1, two prox-Newton
 solvers whose intercept reaches its conditional optimum at each prox-Newton
 boundary (BlitzL1 via an explicit post-step Newton loop on the original loss,
 LIBLINEAR via the inner CD's handling of the unregularized intercept) and that
-the framework predicts should converge fast. A fifth panel runs adelie
-[@yang2024], a recent local-IRLS solver that places the intercept implicitly at
-the optimum of each Gaussian surrogate through a weighted-centered-features
-parameterization. The framework places adelie in the same bucket as glmnet
-`Newton` and biglasso `Newton`, and predicts fast convergence in the working
-tolerance regime.
+the framework predicts should converge fast. A fifth panel runs
+adelie\ [@yang2024], a recent local-IRLS solver that places the intercept
+implicitly at the optimum of each Gaussian surrogate through a
+weighted-centered-features parameterization. The framework places adelie in the
+same bucket as glmnet `Newton` and biglasso `Newton`, and predicts fast
+convergence in the working tolerance regime.
 
 ```{julia}
 #| label: fig-real-glmnet
@@ -2334,9 +2354,9 @@ tolerance regime.
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "glmnet.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "glmnet.csv"))),
-    DataFrame(
-        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "glmnet.csv")),
-    ),
+    DataFrame(CSV.File(
+        @projectroot("results", "real-solvers", "news20-3pct", "glmnet.csv"),
+    )),
 )
 df = transform(
     groupby(df, :problem),
@@ -2344,8 +2364,8 @@ df = transform(
 )
 df.mode = df.type
 
-spec =
-    data(df) * mapping(
+spec = data(df) *
+    mapping(
         :npasses,
         :subopt,
         color = :mode,
@@ -2370,9 +2390,9 @@ draw(
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "biglasso.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "biglasso.csv"))),
-    DataFrame(
-        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "biglasso.csv")),
-    ),
+    DataFrame(CSV.File(
+        @projectroot("results", "real-solvers", "news20-3pct", "biglasso.csv"),
+    )),
 )
 df = transform(
     groupby(df, :problem),
@@ -2380,8 +2400,8 @@ df = transform(
 )
 df.mode = df.alg
 
-spec =
-    data(df) * mapping(
+spec = data(df) *
+    mapping(
         :npasses,
         :subopt,
         color = :mode,
@@ -2412,7 +2432,9 @@ draw(
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"))),
+    DataFrame(CSV.File(
+        @projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"),
+    )),
 )
 df = transform(
     groupby(df, :problem),
@@ -2421,12 +2443,8 @@ df = transform(
 df = df[df.n_iter .> 0, :]
 sort!(df, [:problem, :n_iter])
 
-spec =
-    data(df) * mapping(
-        :n_iter,
-        :subopt,
-        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
-    )
+spec = data(df) *
+    mapping(:n_iter, :subopt, col = :problem => sorter("synthetic", "w1a", "news20-3pct"))
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
@@ -2498,9 +2516,11 @@ wide_sk.skglm_ratio = wide_sk.gradient ./ wide_sk.newton
 wide_sk.reg_str = string.(wide_sk.reg)
 wide_sk.μ0_str = string.(wide_sk.mu0)
 
-spec_sk =
-    data(wide_sk) * mapping(
-        :reg_str => sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") => L"$\lambda / \lambda_{\max}$",
+spec_sk = data(wide_sk) *
+    mapping(
+        :reg_str =>
+            sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") =>
+            L"$\lambda / \lambda_{\max}$",
         :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
         :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{pre}}/T_{\mathrm{post}})$",
     )
@@ -2536,9 +2556,9 @@ intercept) and glmnet's `modified.Newton` (the constant-majorant alternative).
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "proxnewton.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "proxnewton.csv"))),
-    DataFrame(
-        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "proxnewton.csv")),
-    ),
+    DataFrame(CSV.File(
+        @projectroot("results", "real-solvers", "news20-3pct", "proxnewton.csv"),
+    )),
 )
 df = transform(
     groupby(df, :problem),
@@ -2547,8 +2567,8 @@ df = transform(
 df = df[.!(df.solver .== "LIBLINEAR" .&& df.n_iter .>= 5000), :]
 sort!(df, [:problem, :solver, :runtime])
 
-spec =
-    data(df) * mapping(
+spec = data(df) *
+    mapping(
         :runtime,
         :subopt,
         color = :solver,
@@ -2597,26 +2617,24 @@ the same order as the other local-IRLS solvers.
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "adelie.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "adelie.csv"))),
-    DataFrame(
-        CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "adelie.csv")),
-    ),
+    DataFrame(CSV.File(
+        @projectroot("results", "real-solvers", "news20-3pct", "adelie.csv"),
+    )),
 )
 df_ref = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"))),
+    DataFrame(CSV.File(
+        @projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"),
+    )),
 )
 F_star = combine(groupby(df_ref, :problem), :primal => minimum => :F_star)
 df = leftjoin(df, F_star, on = :problem)
 df.subopt = max.(df.primal .- df.F_star, 1.0e-15)
 sort!(df, [:problem, :tol])
 
-spec =
-    data(df) * mapping(
-        :tol,
-        :subopt,
-        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
-    )
+spec = data(df) *
+    mapping(:tol, :subopt, col = :problem => sorter("synthetic", "w1a", "news20-3pct"))
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
@@ -2857,18 +2875,19 @@ agg = combine(
 agg.p_K_str = [L"$\bar{p}_K = %$(v)$" for v in agg.p_K]
 agg.amp_str = "amp = " .* string.(agg.amplitude)
 
-spec = data(agg) * mapping(
-    :pass => "Pass",
-    :relgaps => "Relative primal suboptimality",
-    color = :strategy,
-    row = :p_K_str => sorter(
-        L"$\bar{p}_K = 0.05$",
-        L"$\bar{p}_K = 0.02$",
-        L"$\bar{p}_K = 0.01$",
-        L"$\bar{p}_K = 0.005$",
-    ),
-    col = :amp_str => sorter("amp = 0.5", "amp = 1.0", "amp = 1.5", "amp = 2.0"),
-)
+spec = data(agg) *
+    mapping(
+        :pass => "Pass",
+        :relgaps => "Relative primal suboptimality",
+        color = :strategy,
+        row = :p_K_str => sorter(
+            L"$\bar{p}_K = 0.05$",
+            L"$\bar{p}_K = 0.02$",
+            L"$\bar{p}_K = 0.01$",
+            L"$\bar{p}_K = 0.005$",
+        ),
+        col = :amp_str => sorter("amp = 0.5", "amp = 1.0", "amp = 1.5", "amp = 2.0"),
+    )
 
 draw(
     visual(Lines) * spec,
@@ -2905,8 +2924,8 @@ df = flatten(
 df.start_kind = ifelse.(df.warm_start, "warm", "cold")
 df.ordering = ifelse.(df.randomize, "permuted", "cyclic")
 
-spec_passes =
-    data(df) * mapping(
+spec_passes = data(df) *
+    mapping(
         :reg_grid => L"$\lambda / \lambda_{\max}$",
         :passes => "Outer passes",
         color = :strategy,
@@ -2931,8 +2950,8 @@ draw(
 #|   $\lambda$-independent and identical across strategies; warm start (solid)
 #|   shrinks $|\partial_0 F|$ by several orders of magnitude.
 
-spec_partial =
-    data(df) * mapping(
+spec_partial = data(df) *
+    mapping(
         :reg_grid => L"$\lambda / \lambda_{\max}$",
         :init_partial0F => L"$|\partial_0 F|$ at initialization",
         color = :strategy,
