@@ -41,12 +41,8 @@ abstract: >
   that reduce each step to a weighted-least-squares problem already get the
   adaptive update for free. Across six production solvers (glmnet, biglasso,
   skglm, adelie, LIBLINEAR, BlitzL1), the predicted ordering holds in our
-  experiments, establishing the direction of the effect rather than its scaling.
-  The scaling claim, that the slowdown grows with imbalance, rests on controlled
-  evidence: the within-package mode toggles in glmnet and biglasso, the same
-  skglm solver measured before and after a merged intercept-update patch, and
-  in-house parameter sweeps. A multinomial extension shows that rare classes
-  turn the gradient-strategy slowdown into the common regime. The practical
+  experiments. A multinomial extension shows that rare classes turn the
+  gradient-strategy slowdown into the common regime. The practical
   recommendation is to update the intercept with a single Newton step.
 
 keywords: [intercepts, coordinate descent, optimization, regularization]
