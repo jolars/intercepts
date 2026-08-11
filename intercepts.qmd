@@ -67,15 +67,15 @@ separable and that $F$ is the per-observation-averaged loss
 $$
   F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
-where $f$ is a smooth, twice differentiable, and convex function. The averaging
-keeps the global Lipschitz constant on the intercept, $L_0 = \sup f''$, free of
-$n$, and aligns with the $(1/n) \cdot \text{loss} + \lambda \|\beta\|_1$
-$\lambda$-scale used by the packaged solvers we compare against in
-@sec-production-solvers. For brevity, we use the convention of denoting the
-$i$th row and $j$th column of the design matrix $X$ as $x_i$ and $x_j$
-respectively. Finally, we let $(\hat{\beta}_0, \hat{\beta})$ denote a solution
-to the problem in @eq-primal-problem. Although we will not generally assume that
-$P$ is convex, we will focus on this case in our empirical work.
+where $f$ is smooth, twice differentiable, and convex. Averaging by $n$ keeps
+the global Lipschitz constant on the intercept, $L_0 = \sup f''$, independent
+of $n$. It also matches the objective scaling used by the packaged solvers we
+compare against in @sec-production-solvers: $(1/n) \cdot \text{loss} + \lambda
+\|\beta\|_1$. For brevity, we write $x_i$ for the $i$th row of the design
+matrix $X$ and $x_j$ for its $j$th column. Finally, let
+$(\hat{\beta}_0, \hat{\beta})$ denote a solution to the problem in
+@eq-primal-problem. Although we do not generally assume that $P$ is convex, our
+empirical work focuses on the convex case.
 
 Intercepts are necessary when fitting regularized regression models, since the
 results will otherwise depend on the locations (means) of both the response
