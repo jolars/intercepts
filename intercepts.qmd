@@ -68,12 +68,12 @@ $$
   F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
 where $f$ is smooth, twice differentiable, and convex. Averaging by $n$ keeps
-the global Lipschitz constant on the intercept, $L_0 = \sup f''$, independent
-of $n$. It also matches the objective scaling used by the packaged solvers we
-compare against in @sec-production-solvers: $(1/n) \cdot \text{loss} + \lambda
-\|\beta\|_1$. For brevity, we write $x_i$ for the $i$th row of the design
-matrix $X$ and $x_j$ for its $j$th column. Finally, let
-$(\hat{\beta}_0, \hat{\beta})$ denote a solution to the problem in
+the global Lipschitz constant on the intercept, $L_0 = \sup f''$, independent of
+$n$. It also matches the objective scaling used by the packaged solvers we
+compare against in @sec-production-solvers:
+$(1/n) \cdot \text{loss} + \lambda \|\beta\|_1$. For brevity, we write $x_i$ for
+the $i$th row of the design matrix $X$ and $x_j$ for its $j$th column. Finally,
+let $(\hat{\beta}_0, \hat{\beta})$ denote a solution to the problem in
 @eq-primal-problem. Although we do not generally assume that $P$ is convex, our
 empirical work focuses on the convex case.
 
@@ -118,7 +118,7 @@ boundary of its range, as with a rare positive class in logistic regression.
     (@sec-production-solvers). We pin the version throughout wherever this
     behavior is at issue.
 
-The three main strategies that we will consider in this paper are:
+The three main strategies that we will consider in this paper are the following.
 
 Gradient Strategy
 :   The intercept is updated using a single gradient step before each pass over
@@ -255,19 +255,19 @@ per-pass cost without a commensurate rate gain. We analyze this extra cost as a
 within-pass intercept drift (@eq-intercept-drift) and quantify it in
 @sec-per-pass-cost.
 
-The framework we develop both diagnoses and explains, predicting when a solver's
-intercept update slows under imbalance, and showing why most CD-based GLM
-solvers in current use have already made the right choice. The strategy
-distinction matters in only two regimes: direct CD on the original GLM loss, and
-MM-IRLS inner solves that majorize $f''$ by a global constant. Everywhere else
-it has no bearing, since inside a local-weight IRLS or prox-Newton inner solve
-the three strategies collapse onto the same exact update on the inner
-quadratic\ (@sec-irls). Its consequences therefore fall on just a few packages:
-skglm (version 0.5), the only production direct-CD GLM solver in our survey, and
-the MM-style mode toggles of glmnet (`modified.Newton`) and biglasso
-(`MM`)---exactly the solvers the framework flags.
+In this paper, we will try to both diagnose and explain this behavior,
+predicting when a solver's intercept update slows under imbalance, and showing
+why most CD-based GLM solvers in current use have already made the right choice.
+The strategy distinction matters in two regimes: direct CD on the original GLM
+loss, and MM-IRLS inner solves that majorize $f''$ by a global constant.
+Everywhere else it has no bearing, since inside a local-weight IRLS or
+prox-Newton inner solve the three strategies collapse onto the same exact update
+on the inner quadratic\ (@sec-irls). Its consequences therefore fall on just a
+few packages: skglm (version 0.5), the only production direct-CD GLM solver in
+our survey, and the MM-style mode toggles of glmnet (`modified.Newton`) and
+biglasso (`MM`)---exactly the solvers the framework flags.
 
-Our main contributions are as follows:
+Our main contributions are the following.
 
 Strategy Taxonomy
 :   We introduce and formalize three intercept-update strategies: gradient,
@@ -275,22 +275,21 @@ Strategy Taxonomy
     regularized GLMs.
 
 A Unifying Schur-Complement Analysis
-:   We develop a single Schur-complement perspective that parameterizes each
-    strategy by the cross-Hessian coupling $\rho_{0j}^2$ and the curvature ratio
-    $H_{00}/L_0$. Through Taylor expansions and an envelope-theorem identity, we
-    tie the gradient strategy's slow regime to the per-coordinate Lipschitz
-    mismatch $H_{00} \ll L_0$. We then decompose the standard randomized-CD
-    bound by coordinate to derive the leading-order scaling
-    $T_{\mathrm{G}}/T_{\mathrm{N}} \approx L_0/H_{00}$ of its slowdown in the
-    imbalance regime---a ratio that diverges as $\mu_0 \to 1$ for binary
-    logistic regression, and one the experiments confirm up to a constant
-    factor.
+:   We develop a Schur-complement view that unifies the three strategies and
+    isolates the quantity that governs slowdown: the curvature ratio
+    $H_{00}/L_0$. This shows why the gradient strategy slows when
+    $H_{00} \ll L_0$, that is, when its intercept step is scaled by a
+    conservative Lipschitz bound. A coordinate-wise decomposition of the
+    randomized-CD bound then yields
+    $T_{\mathrm{G}}/T_{\mathrm{N}} \approx L_0/H_{00}$ in the imbalance regime.
+    For binary logistic regression, this ratio diverges as $\mu_0 \to 1$, which
+    matches our experiments up to a constant factor.
 
 Structural Classification of Production Solvers
 :   We derive a classification of CD-based GLM solvers into four algorithmic
     families---direct CD, local-IRLS, MM-IRLS, and prox-Newton---and identify
-    the intercept strategy realized by each. The classification accounts for
-    every package in our survey: the six we benchmark (glmnet, biglasso, skglm,
+    the intercept strategy that each uses. The classification accounts for every
+    package in our survey: the six we benchmark (glmnet, biglasso, skglm,
     adelie, LIBLINEAR, BlitzL1) confirm the predicted ordering, while we
     establish where ncvreg and Lasso.jl fit into this by analyzing their code
     bases. It also turns the configuration options in glmnet (`type.logistic`)
@@ -326,7 +325,7 @@ which none has analyzed it as a separate problem. Intercept handling in CD-based
 GLM solvers has been treated as a routine implementation choice across the
 ecosystem of CD implementations. The original glmnet paper\ [@friedman2010] and
 its all-GLM extension\ [@tay2023] expose two weight schemes for the logistic
-IRLS inner solver---local weights and a global 1/4 upper bound, exposed via the
+IRLS inner solver: local weights and a global 1/4 upper bound, exposed via the
 arguments `type.logistic = "Newton"` and `"modified.Newton"`, which the glmnet
 documentation describes as a speed trade-off rather than as an
 intercept-strategy choice. LIBLINEAR's newGLMNET solver\ [@fan2008; @yuan2012]
@@ -352,32 +351,34 @@ support intercepts for $\ell_1$-logistic regression. So, the
 *analysis*-side question---under what response distributions the choice
 matters---has neither been asked nor answered.
 
-A second thread is the partialling-out/Frisch--Waugh--Lovell tradition. For
-linear regression the intercept can be sidestepped: centering the features zeros
-the cross-Hessian $H_{0j}$ and yields $\hat\beta_0 = \bar y$ at the
-unregularized optimum, leaving the slope subproblem decoupled from the
-intercept\ [@lovell1963]. Glmnet leaves the intercept unpenalized on
+A second thread is the partialling-out/Frisch--Waugh--Lovell tradition. In
+linear regression, the intercept can be sidestepped: centering the features sets
+the cross-Hessian terms $H_{0j}$ to zero and yields $\hat\beta_0 = \bar y$ at
+the unregularized optimum, so the slope subproblem decouples from the
+intercept\ [@lovell1963]. glmnet leaves the intercept unpenalized on
 translation-invariance grounds---penalizing $\beta_0$ would make the path depend
-on the arbitrary location of $y$---and the FWL decoupling above is what makes
-that choice essentially free along the Gaussian path: the intercept is recovered
-as $\hat\beta_0 = \bar y - \bar x^\top \hat\beta$ after the slope solve. The
-decoupling fails for non-Gaussian GLMs because the inverse link sits between
-$\beta_0$ and $y$: the cross-Hessian acquires weights $w_i = f''(\eta_i; y_i)$
-that no longer cancel under feature centering alone, and the closed form for
-$\hat\beta_0$ vanishes. adelie\ [@yang2024] supplies the natural GLM analogue:
-its proximal quasi-Newton method builds a weighted Gaussian surrogate at each
-linearization and absorbs the intercept implicitly through that surrogate,
-rather than as a separate CD coordinate.^[Source:
+on the arbitrary location of $y$---and this decoupling is what makes that choice
+essentially free on the Gaussian path. After solving for the slopes, the
+intercept is recovered as $\hat\beta_0 = \bar y - \bar x^\top \hat\beta$.
+
+For non-Gaussian GLMs, the decoupling fails. The inverse link sits between
+$\beta_0$ and $y$, so the cross-Hessian acquires weights
+$w_i = f''(\eta_i; y_i)$ that do not cancel under feature centering alone, and
+the closed form for $\hat\beta_0$ disappears. adelie\ [@yang2024] provides the
+natural GLM analogue: at each linearization, its proximal quasi-Newton method
+builds a weighted Gaussian surrogate and absorbs the intercept implicitly
+through that surrogate rather than as a separate CD coordinate.^[Source:
 <https://github.com/JamesYang007/adelie/blob/d6a1229/adelie/src/include/adelie_core/solver/solver_gaussian_pin_naive.hpp>.
 The inner Gaussian solver uses IRLS-weighted column means in its gradient update
 (`solver_gaussian_pin_naive.hpp:87, 120`) and recovers the intercept at the end
 of the inner solve as the weighted mean of the working response plus the
 residual mean (`solver_gaussian_pin_naive.hpp:392`); the column means themselves
 are built with the IRLS weights in the outer GLM solver
-(`solver_glm_naive.hpp:366`).] The same argument explains why the framework of
-@sec-theory has no bearing on Gaussian data: there the decoupling is already
-complete, $L_0 = H_{00}$, and the gradient and Newton strategies coincide on the
-intercept.
+(`solver_glm_naive.hpp:366`).]
+
+This also explains why the framework of @sec-theory has no bearing on Gaussian
+data: there the decoupling is complete, $L_0 = H_{00}$, and the gradient and
+Newton strategies coincide on the intercept.
 
 The third thread is majorization--minimization\ (MM). The constant $L_0 = 1/4$
 that governs the gradient strategy in @eq-grad-residual, and which skglm uses as
