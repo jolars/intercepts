@@ -14,7 +14,7 @@ Random.seed!(42);
 # (3 % positive, 2 000 samples) standing in for the severely-imbalanced
 # high-dimensional regime missing from the LIBSVM binary catalogue outside the
 # Webb-pages w-series.
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "dataset" => ["w1a", "news20-imb", "a4a", "leukemia", "breast-cancer", "gisette_scale"],
     "reg" => [0.05],
     "strategy" => [:gradient, :newton, :exact],
@@ -55,7 +55,7 @@ for (i, d) in enumerate(params)
         )
     end
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps
@@ -67,4 +67,3 @@ end
 outfile = @projectroot("results", "real-logreg.jld2");
 
 @save outfile results
-

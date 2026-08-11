@@ -16,7 +16,7 @@ using JLD2
 
 Random.seed!(1234)
 
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "n" => [500],
     "p" => [1000],
     "s" => [10],
@@ -30,7 +30,7 @@ params = dict_list(param_dict)
 const MAXIT = 200
 const TOL = 1.0e-8
 
-results = Vector{Dict{String,Any}}()
+results = Vector{Dict{String, Any}}()
 
 for (i, d) in enumerate(params)
     @unpack n, p, s, reg, μ0, strategy = d
@@ -81,7 +81,7 @@ for (i, d) in enumerate(params)
     end
     pass = collect(1:T)
 
-    d_exp = Dict{String,Any}(
+    d_exp = Dict{String, Any}(
         "n" => n,
         "p" => p,
         "s" => s,
@@ -98,7 +98,7 @@ for (i, d) in enumerate(params)
 
     println(
         "[$i/$(length(params))] μ0=$μ0 strategy=$strategy passes=$(res.passes) " *
-        "total_inner_steps=$(sum(inner_steps)) final_relgap=$(relgap_after[end])",
+            "total_inner_steps=$(sum(inner_steps)) final_relgap=$(relgap_after[end])",
     )
 
     push!(results, d_exp)

@@ -59,12 +59,12 @@ using GLM
         maxit = maxit,
     )
 
-    @test isapprox(res_grad.coef, res_newt.coef; atol = 1e-4)
-    @test isapprox(res_grad.coef, res_conv.coef; atol = 1e-4)
-    @test isapprox(res_grad.coef, res_btgrad.coef; atol = 1e-4)
-    @test isapprox(res_grad.intercept, res_conv.intercept; atol = 1e-4)
-    @test isapprox(res_grad.intercept, res_newt.intercept; atol = 1e-4)
-    @test isapprox(res_grad.intercept, res_btgrad.intercept; atol = 1e-4)
+    @test isapprox(res_grad.coef, res_newt.coef; atol = 1.0e-4)
+    @test isapprox(res_grad.coef, res_conv.coef; atol = 1.0e-4)
+    @test isapprox(res_grad.coef, res_btgrad.coef; atol = 1.0e-4)
+    @test isapprox(res_grad.intercept, res_conv.intercept; atol = 1.0e-4)
+    @test isapprox(res_grad.intercept, res_newt.intercept; atol = 1.0e-4)
+    @test isapprox(res_grad.intercept, res_btgrad.intercept; atol = 1.0e-4)
 end
 
 @testset "Warm-starting from the optimum converges immediately" begin
@@ -90,7 +90,7 @@ end
         lossfun = LogisticLoss(),
         intercept_strategy = NewtonStrategy(),
         maxit = 2000,
-        tol = 1e-12,
+        tol = 1.0e-12,
     )
 
     res_warm = cdsolver(
@@ -100,15 +100,15 @@ end
         lossfun = LogisticLoss(),
         intercept_strategy = NewtonStrategy(),
         maxit = 2000,
-        tol = 1e-10,
+        tol = 1.0e-10,
         coef_init = res_cold.coef,
         intercept_init = res_cold.intercept,
     )
 
     @test res_warm.passes == 1
-    @test res_warm.relgaps[1] < 1e-10
-    @test isapprox(res_warm.coef, res_cold.coef; atol = 1e-8)
-    @test isapprox(res_warm.intercept, res_cold.intercept; atol = 1e-8)
+    @test res_warm.relgaps[1] < 1.0e-10
+    @test isapprox(res_warm.coef, res_cold.coef; atol = 1.0e-8)
+    @test isapprox(res_warm.intercept, res_cold.intercept; atol = 1.0e-8)
 end
 
 @testset "coef_init=nothing matches default zero-init" begin
@@ -144,8 +144,8 @@ end
         intercept_init = 0.0,
     )
 
-    @test isapprox(res_default.coef, res_explicit.coef; atol = 1e-8)
-    @test isapprox(res_default.intercept, res_explicit.intercept; atol = 1e-8)
+    @test isapprox(res_default.coef, res_explicit.coef; atol = 1.0e-8)
+    @test isapprox(res_default.intercept, res_explicit.intercept; atol = 1.0e-8)
 end
 
 @testset "Per-coord Armijo gives monotone primal" begin
@@ -179,7 +179,7 @@ end
             intercept_strategy = s,
             maxit = 500,
             randomize = false,
-            tol = 1e-12,
+            tol = 1.0e-12,
         )
         @test all(diff(res.primals) .<= 1.0e-10)
         @test isfinite(res.primals[end])
@@ -251,8 +251,8 @@ end
     # Quadratic loss: the Armijo accept condition holds at α = 1 trivially
     # (the linear model is the true loss), so the unguarded and guarded
     # variants must produce identical iterates.
-    @test isapprox(res_newt.coef, res_ung.coef; atol = 1e-6)
-    @test isapprox(res_newt.intercept, res_ung.intercept; atol = 1e-6)
+    @test isapprox(res_newt.coef, res_ung.coef; atol = 1.0e-6)
+    @test isapprox(res_newt.intercept, res_ung.intercept; atol = 1.0e-6)
 end
 
 @testset "UnguardedNewtonStrategy vs Newton at extreme imbalance cold start" begin

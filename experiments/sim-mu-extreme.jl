@@ -9,7 +9,7 @@ Random.seed!(1234);
 # Extreme-imbalance logistic regression: gradient strategy applies fraction
 # H_00/L_0 of correction (Lemma 3.3). For mu0 -> 1, H_00 -> 0 while L_0 = n/4
 # stays fixed, so the gradient strategy stalls.
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "it" => collect(1:1),
     "n" => [500],
     "p" => [1000],
@@ -39,7 +39,7 @@ for (i, d) in enumerate(params)
         randomize = true,
     )
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps

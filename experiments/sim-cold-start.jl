@@ -11,7 +11,7 @@ Random.seed!(1234);
 # could oscillate with cyclic ordering (Lemma 3.2 + Corollary: the Newton
 # residual perturbs subsequent coefficient gradients); the per-coord Armijo
 # inside NewtonStrategy absorbs the initial transient.
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "it" => collect(1:5),
     "n" => [500],
     "p" => [1000],
@@ -42,7 +42,7 @@ for (i, d) in enumerate(params)
         maxit = 1000,
     )
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps

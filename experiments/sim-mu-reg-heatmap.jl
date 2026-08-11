@@ -11,7 +11,7 @@ using JLD2
 # that tests the L₀/H₀₀ scaling prediction of @cor-rate-gap and
 # @lem-gradient-partial across the (μ₀, λ) plane.
 
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "n" => [500],
     "p" => [1000],
     "s" => [10],
@@ -27,7 +27,7 @@ params = dict_list(param_dict)
 const MAXIT = 5000
 const TOL = 1.0e-8
 
-results = Vector{Dict{String,Any}}()
+results = Vector{Dict{String, Any}}()
 
 for (i, d) in enumerate(params)
     @unpack n, p, s, ρ, μ0, reg, strategy, seed = d
@@ -54,7 +54,7 @@ for (i, d) in enumerate(params)
     pass_count = reached ? passes_to_tol : length(relgaps)
     final_relgap = max(relgaps[end], 1.0e-20)
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["strategy"] = String(strategy)
     d_exp["passes"] = pass_count
     d_exp["reached_tol"] = reached
@@ -63,7 +63,7 @@ for (i, d) in enumerate(params)
 
     println(
         "[$i/$(length(params))] μ0=$μ0 reg=$reg strategy=$strategy seed=$seed " *
-        "passes=$pass_count reached=$reached final_relgap=$final_relgap",
+            "passes=$pass_count reached=$reached final_relgap=$final_relgap",
     )
 
     push!(results, d_exp)

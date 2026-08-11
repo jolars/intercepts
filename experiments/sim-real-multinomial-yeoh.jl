@@ -36,14 +36,17 @@ n, p = size(X)
 K = length(unique(y))
 
 println("Loaded Yeoh: n=$n, p=$p, K=$K")
-for k = 1:K
-    println("  class $k: ", count(==(k), y), " (", round(100 * mean(y .== k), digits = 2), "%)")
+for k in 1:K
+    println(
+        "  class $k: ",
+        count(==(k), y),
+        " (",
+        round(100 * mean(y .== k), digits = 2),
+        "%)",
+    )
 end
 
-param_dict = Dict{String,Any}(
-    "reg" => [0.05],
-    "strategy" => [:gradient, :newton, :exact],
-)
+param_dict = Dict{String, Any}("reg" => [0.05], "strategy" => [:gradient, :newton, :exact])
 
 params = dict_list(param_dict)
 
@@ -75,10 +78,10 @@ for (i, d) in enumerate(params)
         randomize = false,
     )
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["primals"] = res.primals
-    d_exp["relgaps"] = max.(res.relgaps, 1e-20)
+    d_exp["relgaps"] = max.(res.relgaps, 1.0e-20)
     d_exp["gaps"] = res.gaps
 
     push!(results, d_exp)

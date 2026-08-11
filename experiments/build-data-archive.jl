@@ -60,7 +60,7 @@ mkpath(libsvm_out)
 home = LIBSVMdata.get_dataset_home()
 catalogue = LIBSVMdata.get_datasets()
 
-manifest = Dict{String,Any}()
+manifest = Dict{String, Any}()
 
 for (name, shipped) in LIBSVM_DATASETS
     haskey(catalogue, name) || error("Unknown LIBSVMdata dataset: $name")
@@ -99,10 +99,11 @@ println("Wrote data/libsvm/manifest.json")
 # data/yeoh/ (the repo ships it via the archive). fetch-yeoh.R converts it to
 # CSV at retrieval time.
 yeoh_rds = joinpath(datadir, "yeoh", "Yeoh2002.rds")
-isfile(yeoh_rds) || error(
-    "data/yeoh/Yeoh2002.rds is missing. Stage it once from the IowaBiostat " *
-    "collection (Yeoh2002.rds) before building the archive.",
-)
+isfile(yeoh_rds) ||
+    error(
+        "data/yeoh/Yeoh2002.rds is missing. Stage it once from the IowaBiostat " *
+            "collection (Yeoh2002.rds) before building the archive.",
+    )
 println("Using data/yeoh/Yeoh2002.rds")
 
 # congress109: snapshot the textir phrase-count matrix into data/congress109/.
@@ -135,7 +136,11 @@ tarball = "intercepts-data-$(ARCHIVE_VERSION).tar.gz"
 members = vcat(archived, ["data/MANIFEST.sha256", "data/README.md"])
 existing = filter(m -> isfile(joinpath(repo, m)), members)
 run(Cmd(`tar -czf $tarball $existing`; dir = repo))
-println("Wrote $tarball (", join(["$(round(filesize(joinpath(repo, tarball)) / 1e6; digits = 1)) MB"]), ")")
+println(
+    "Wrote $tarball (",
+    join(["$(round(filesize(joinpath(repo, tarball)) / 1.0e6; digits = 1)) MB"]),
+    ")",
+)
 println()
 println("Next: upload $tarball to Zenodo, then put the DOI in")
 println("  experiments/fetch-data.sh and README.md.")

@@ -21,7 +21,7 @@ function lambdamax_multinomial(
     p_marg = counts ./ sum(counts)
 
     R = Matrix{Float64}(undef, n, K - 1)
-    @inbounds for i = 1:n, k = 1:(K-1)
+    @inbounds for i in 1:n, k in 1:(K - 1)
         R[i, k] = p_marg[k] - (y[i] == k ? 1.0 : 0.0)
     end
     return norm(x' * R, Inf)
@@ -38,9 +38,9 @@ function rescalecoefs_multinomial(
     coefs_rescaled = copy(coefs)
     intercept_rescaled = copy(intercept)
 
-    for k = 1:Km1
+    for k in 1:Km1
         shift = 0.0
-        for j = 1:p
+        for j in 1:p
             coefs_rescaled[j, k] /= scales[j]
             shift += centers[j] * coefs_rescaled[j, k]
         end
@@ -58,7 +58,7 @@ function multinomial_cdsolver(
     lossfun::MultinomialLogisticLoss,
     intercept_strategy::InterceptStrategy = NewtonStrategy(),
     update_freq::Int = 1,
-    tol::Real = 1e-10,
+    tol::Real = 1.0e-10,
     maxit::Int = 1000,
     maxtime::Real = Inf,
     randomize::Bool = true,
@@ -115,13 +115,13 @@ function multinomial_cdsolver(
         # gap---a lower-bound certificate, unlike a run-local primal minimum.
         Θ = residual(lossfun, η, y)
         if fit_intercept
-            @inbounds for k = 1:Km1
+            @inbounds for k in 1:Km1
                 colsum = 0.0
-                for i = 1:n
+                for i in 1:n
                     colsum += Θ[i, k]
                 end
                 colmean = colsum / n
-                for i = 1:n
+                for i in 1:n
                     Θ[i, k] -= colmean
                 end
             end
@@ -149,7 +149,7 @@ function multinomial_cdsolver(
         end
 
         if length(primals) >= 2
-            change = abs(primals[end-1] - primal) / max(abs(primal), 1e-15)
+            change = abs(primals[end - 1] - primal) / max(abs(primal), 1.0e-15)
             if change < tol
                 break
             end
@@ -160,12 +160,12 @@ function multinomial_cdsolver(
         loss_eta = loss(lossfun, η, y)
 
         for (inner_it, j) in enumerate(ind)
-            ps = softmax_probs(η)  # Jacobi-within-j: probs frozen for all k of this feature
+            ps = softmax_probs(η) # Jacobi-within-j: probs frozen for all k of this feature
 
-            for k = 1:Km1
+            for k in 1:Km1
                 grad_jk = 0.0
                 hess_jk = 0.0
-                @inbounds for i = 1:n
+                @inbounds for i in 1:n
                     diff_i = ps[i, k] - (y[i] == k ? 1.0 : 0.0)
                     xij = x[i, j]
                     grad_jk += xij * diff_i
@@ -190,14 +190,14 @@ function multinomial_cdsolver(
                 α = 1.0
                 accepted_α = 0.0
                 accepted_loss = loss_eta
-                for _ = 0:armijo_max_backtracks
+                for _ in 0:armijo_max_backtracks
                     factor = α * d_jk
                     copyto!(η_trial, η)
                     @views η_trial[:, k] .+= factor .* x[:, j]
 
                     loss_trial = loss(lossfun, η_trial, y)
                     ΔF = (loss_trial - loss_eta) +
-                         λ * (abs(coef_jk + factor) - abs(coef_jk))
+                        λ * (abs(coef_jk + factor) - abs(coef_jk))
 
                     fp_tol = 4 * eps(Float64) * (1.0 + abs(loss_eta))
                     if ΔF <= armijo_c * α * Δmodel + fp_tol
@@ -224,7 +224,7 @@ function multinomial_cdsolver(
                     η,
                     y,
                 )
-                for k = 1:Km1
+                for k in 1:Km1
                     @views η[:, k] .+= intercept[k] - intercept_prev[k]
                 end
                 loss_eta = loss(lossfun, η, y)

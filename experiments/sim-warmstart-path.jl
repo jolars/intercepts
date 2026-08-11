@@ -50,7 +50,7 @@ function run_path(X, y, strategy_sym, randomize, warm_start)
     end
 
     λmax = lambdamax(lossfun, X, y)
-    reg_grid = geomspace(1.0, EPSILON, K_GRID)  # ε·λmax to λmax in λ; here as reg = λ/λmax
+    reg_grid = geomspace(1.0, EPSILON, K_GRID) # ε·λmax to λmax in λ; here as reg = λ/λmax
 
     passes = zeros(Int, K_GRID)
     times = zeros(Float64, K_GRID)
@@ -125,7 +125,7 @@ function run_path(X, y, strategy_sym, randomize, warm_start)
     )
 end
 
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "dataset" => [:simulated, :w1a],
     "strategy" => [:gradient, :newton, :exact],
     "randomize" => [false, true],
@@ -133,9 +133,9 @@ param_dict = Dict{String,Any}(
 )
 
 params = dict_list(param_dict)
-results = Vector{Dict{String,Any}}()
+results = Vector{Dict{String, Any}}()
 
-data_cache = Dict{Symbol,Tuple}()
+data_cache = Dict{Symbol, Tuple}()
 
 for (i, d) in enumerate(params)
     @unpack dataset, strategy, randomize, warm_start = d
@@ -151,7 +151,7 @@ for (i, d) in enumerate(params)
 
     path = run_path(X, y, strategy, randomize, warm_start)
 
-    d_exp = Dict{String,Any}(
+    d_exp = Dict{String, Any}(
         "dataset" => String(dataset),
         "strategy" => String(strategy),
         "randomize" => randomize,

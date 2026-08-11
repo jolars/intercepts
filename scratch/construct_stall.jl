@@ -17,21 +17,31 @@
 using Intercepts
 using Random, LinearAlgebra, Statistics, SparseArrays, Printf
 using LIBSVMdata
-import Intercepts: LogisticLoss, residual, gradient, hessian, loss, lambdamax,
-                   normalizefeatures, st, update_intercept_with_count,
-                   ExactStrategy
+import Intercepts:
+    LogisticLoss,
+    residual,
+    gradient,
+    hessian,
+    loss,
+    lambdamax,
+    normalizefeatures,
+    st,
+    update_intercept_with_count,
+    ExactStrategy
 
-function run_short(X, y, reg; randomize::Bool, maxit::Int = 60,
-                   maxtime::Float64 = 60.0)
+function run_short(X, y, reg; randomize::Bool, maxit::Int = 60, maxtime::Float64 = 60.0)
     lossfun = LogisticLoss()
     intercept_strategy = ExactStrategy()
     n, p = size(X)
     x, x_centers, x_scales = normalizefeatures(X, :standardize)
     x_sparse_offset = vec(x_centers ./ x_scales)
     sparse_norm = issparse(x)
-    λmax = lambdamax(lossfun, x, y); λ = reg * λmax
+    λmax = lambdamax(lossfun, x, y)
+    λ = reg * λmax
 
-    intercept = 0.0; coef = zeros(p); η = zeros(n)
+    intercept = 0.0
+    coef = zeros(p)
+    η = zeros(n)
 
     relgap_history = Float64[]
     alpha_history = Float64[]
@@ -39,23 +49,28 @@ function run_short(X, y, reg; randomize::Bool, maxit::Int = 60,
     primal_pre_history = Float64[]
     primal_post_history = Float64[]
 
-    t0 = time(); it = 0
+    t0 = time()
+    it = 0
     while it < maxit && (time() - t0) < maxtime
         it += 1
         primal = loss(lossfun, η, y) + λ * norm(coef, 1)
-        r = residual(lossfun, η, y); θ = r .- mean(r)
+        r = residual(lossfun, η, y)
+        θ = r .- mean(r)
         grad_all = vec(x' * θ)
         if sparse_norm
             grad_all .-= x_sparse_offset .* sum(θ)
         end
-        dual_scale = max(1, norm(grad_all, Inf) / λ); θ ./= dual_scale
-        dua = Intercepts.dual(lossfun, θ, y); gap = primal - dua
-        relgap = gap / max(abs(primal), 1e-10)
-        push!(relgap_history, relgap); push!(primal_pre_history, primal)
+        dual_scale = max(1, norm(grad_all, Inf) / λ)
+        θ ./= dual_scale
+        dua = Intercepts.dual(lossfun, θ, y)
+        gap = primal - dua
+        relgap = gap / max(abs(primal), 1.0e-10)
+        push!(relgap_history, relgap)
+        push!(primal_pre_history, primal)
 
         w_start = hessian(lossfun, η, y)
         H0j_start = Vector{Float64}(undef, p)
-        for j = 1:p
+        for j in 1:p
             xc = view(x, :, j)
             H0j_start[j] = dot(xc, w_start)
             if sparse_norm
@@ -63,36 +78,43 @@ function run_short(X, y, reg; randomize::Bool, maxit::Int = 60,
             end
         end
 
-        relgap <= 1e-10 && break
+        relgap <= 1.0e-10 && break
 
         ind = randomize ? randperm(p) : (1:p)
-        coef_old = copy(coef); intercept_old = intercept
+        coef_old = copy(coef)
+        intercept_old = intercept
         deltas = zeros(p)
 
         for (inner_it, j) in enumerate(ind)
             coef_j = coef[j]
-            η_grad = gradient(lossfun, η, y); η_hess = hessian(lossfun, η, y)
-            grad = dot(view(x,:,j), η_grad)
-            hess = dot(view(x,:,j), view(x,:,j) .* η_hess)
+            η_grad = gradient(lossfun, η, y)
+            η_hess = hessian(lossfun, η, y)
+            grad = dot(view(x, :, j), η_grad)
+            hess = dot(view(x, :, j), view(x, :, j) .* η_hess)
             if sparse_norm
                 grad -= x_sparse_offset[j] * sum(η_grad)
-                hess -= 2 * x_sparse_offset[j] * dot(η_hess, view(x,:,j)) -
-                        x_sparse_offset[j]^2 * sum(η_hess)
+                hess -= 2 * x_sparse_offset[j] * dot(η_hess, view(x, :, j)) -
+                    x_sparse_offset[j]^2 * sum(η_hess)
             end
-            hess == 0 && (hess = 1e-10)
-            coef[j] = st(coef_j - grad/hess, λ/hess)
+            hess == 0 && (hess = 1.0e-10)
+            coef[j] = st(coef_j - grad / hess, λ / hess)
             diff = coef_j - coef[j]
             deltas[j] = -diff
             if diff != 0
-                η .-= diff .* view(x,:,j)
+                η .-= diff .* view(x, :, j)
                 if sparse_norm
                     η .+= diff * x_sparse_offset[j]
                 end
             end
             if inner_it == p
                 intercept_prev = intercept
-                intercept, _ = update_intercept_with_count(intercept_strategy,
-                                                          lossfun, intercept_prev, η, y)
+                intercept, _ = update_intercept_with_count(
+                    intercept_strategy,
+                    lossfun,
+                    intercept_prev,
+                    η,
+                    y,
+                )
                 η .+= intercept - intercept_prev
             end
         end
@@ -101,9 +123,10 @@ function run_short(X, y, reg; randomize::Bool, maxit::Int = 60,
         push!(drift_history, drift)
 
         primal_after = loss(lossfun, η, y) + λ * norm(coef, 1)
-        coef_diff = coef - coef_old; intercept_diff = intercept - intercept_old
+        coef_diff = coef - coef_old
+        intercept_diff = intercept - intercept_old
         alpha = 1.0
-        while primal_after > primal && alpha > 1e-4
+        while primal_after > primal && alpha > 1.0e-4
             alpha *= 0.1
             coef = coef_old + alpha * coef_diff
             intercept = intercept_old + alpha * intercept_diff
@@ -121,13 +144,24 @@ end
 
 function summarize(label, res)
     n_runs = length(res.relgap_history)
-    n_low_alpha = count(<(1e-3), res.alpha_history)
-    @printf("\n[%s] passes=%d final_relgap=%.3e n_passes_alpha<1e-3=%d\n",
-            label, n_runs, res.relgap_history[end], n_low_alpha)
-    @printf("[%s] final drift sample: %s\n", label,
-            join((@sprintf("%+.2e", d) for d in res.drift_history[max(1, end-4):end]), ", "))
-    @printf("[%s] final alpha sample: %s\n", label,
-            join((@sprintf("%.0e", a) for a in res.alpha_history[max(1, end-4):end]), ", "))
+    n_low_alpha = count(<(1.0e-3), res.alpha_history)
+    @printf(
+        "\n[%s] passes=%d final_relgap=%.3e n_passes_alpha<1e-3=%d\n",
+        label,
+        n_runs,
+        res.relgap_history[end],
+        n_low_alpha,
+    )
+    @printf(
+        "[%s] final drift sample: %s\n",
+        label,
+        join((@sprintf("%+.2e", d) for d in res.drift_history[max(1, end - 4):end]), ", "),
+    )
+    @printf(
+        "[%s] final alpha sample: %s\n",
+        label,
+        join((@sprintf("%.0e", a) for a in res.alpha_history[max(1, end - 4):end]), ", "),
+    )
 end
 
 # ---------- 1. Constructed sparse-binary, severe imbalance ----------
@@ -136,11 +170,22 @@ end
 # correlate with y). Default `means = nothing` for :binary, so x is iid binary
 # bits. The Bernoulli sampling at sigmoid(η + β0) generates y.
 Random.seed!(2025)
-X_c, y_c = Intercepts.generatedata(2477, 300; response = :binomial,
-                                    x_type = :binary, x_density = 0.04,
-                                    μ0 = 0.029, s = 10, amplitude = 1.0)
-@printf("Constructed: n=%d, p=%d, %%pos=%.3f, density=%.4f\n",
-        size(X_c)..., mean(y_c), nnz(X_c) / prod(size(X_c)))
+X_c, y_c = Intercepts.generatedata(
+    2477,
+    300;
+    response = :binomial,
+    x_type = :binary,
+    x_density = 0.04,
+    μ0 = 0.029,
+    s = 10,
+    amplitude = 1.0,
+)
+@printf(
+    "Constructed: n=%d, p=%d, %%pos=%.3f, density=%.4f\n",
+    size(X_c)...,
+    mean(y_c),
+    nnz(X_c) / prod(size(X_c)),
+)
 
 println("=== Constructed binary + cyclic + exact ===")
 res_c = run_short(X_c, y_c, 0.05; randomize = false, maxit = 100, maxtime = 120.0)
@@ -148,9 +193,16 @@ summarize("constructed cyclic", res_c)
 
 # ---------- 2. Constructed sparse-binary at moderate imbalance ----------
 Random.seed!(2025)
-X_m, y_m = Intercepts.generatedata(2477, 300; response = :binomial,
-                                    x_type = :binary, x_density = 0.04,
-                                    μ0 = 0.30, s = 10, amplitude = 1.0)
+X_m, y_m = Intercepts.generatedata(
+    2477,
+    300;
+    response = :binomial,
+    x_type = :binary,
+    x_density = 0.04,
+    μ0 = 0.3,
+    s = 10,
+    amplitude = 1.0,
+)
 @printf("\nModerate-imb: %%pos=%.3f\n", mean(y_m))
 println("=== Constructed binary moderate + cyclic + exact ===")
 res_m = run_short(X_m, y_m, 0.05; randomize = false, maxit = 100, maxtime = 60.0)
@@ -173,73 +225,86 @@ function design_coherence(X, y; n_warm::Int = 3, reg::Float64 = 0.05)
     x, x_centers, x_scales = normalizefeatures(X, :standardize)
     x_sparse_offset = vec(x_centers ./ x_scales)
     sparse_norm = issparse(x)
-    λmax = lambdamax(lossfun, x, y); λ = reg * λmax
-    intercept = 0.0; coef = zeros(p); η = zeros(n)
-    for _ = 1:n_warm
-        coef_old = copy(coef); intercept_old = intercept
-        for j = 1:p
+    λmax = lambdamax(lossfun, x, y)
+    λ = reg * λmax
+    intercept = 0.0
+    coef = zeros(p)
+    η = zeros(n)
+    for _ in 1:n_warm
+        coef_old = copy(coef)
+        intercept_old = intercept
+        for j in 1:p
             coef_j = coef[j]
-            η_grad = gradient(lossfun, η, y); η_hess = hessian(lossfun, η, y)
-            g = dot(view(x,:,j), η_grad)
-            h = dot(view(x,:,j), view(x,:,j) .* η_hess)
+            η_grad = gradient(lossfun, η, y)
+            η_hess = hessian(lossfun, η, y)
+            g = dot(view(x, :, j), η_grad)
+            h = dot(view(x, :, j), view(x, :, j) .* η_hess)
             if sparse_norm
                 g -= x_sparse_offset[j] * sum(η_grad)
-                h -= 2 * x_sparse_offset[j] * dot(η_hess, view(x,:,j)) -
-                     x_sparse_offset[j]^2 * sum(η_hess)
+                h -= 2 * x_sparse_offset[j] * dot(η_hess, view(x, :, j)) -
+                    x_sparse_offset[j]^2 * sum(η_hess)
             end
-            h == 0 && (h = 1e-10)
-            coef[j] = st(coef_j - g/h, λ/h)
+            h == 0 && (h = 1.0e-10)
+            coef[j] = st(coef_j - g / h, λ / h)
             diff = coef_j - coef[j]
             if diff != 0
-                η .-= diff .* view(x,:,j)
+                η .-= diff .* view(x, :, j)
                 if sparse_norm
                     η .+= diff * x_sparse_offset[j]
                 end
             end
         end
         intercept_prev = intercept
-        intercept, _ = update_intercept_with_count(ExactStrategy(),
-                                                  lossfun, intercept_prev, η, y)
+        intercept, _ = update_intercept_with_count(
+            ExactStrategy(),
+            lossfun,
+            intercept_prev,
+            η,
+            y,
+        )
         η .+= intercept - intercept_prev
     end
 
     # Now collect H_{0j} and a one-pass Δβ_j (under the same η)
     w = hessian(lossfun, η, y)
     H0j = Vector{Float64}(undef, p)
-    for j = 1:p
-        xc = view(x,:,j)
+    for j in 1:p
+        xc = view(x, :, j)
         H0j[j] = dot(xc, w)
         if sparse_norm
             H0j[j] -= x_sparse_offset[j] * sum(w)
         end
     end
     deltas = zeros(p)
-    eta_copy = copy(η); coef_copy = copy(coef)
-    for j = 1:p
+    eta_copy = copy(η)
+    coef_copy = copy(coef)
+    for j in 1:p
         coef_j = coef_copy[j]
-        η_grad = gradient(lossfun, eta_copy, y); η_hess = hessian(lossfun, eta_copy, y)
-        g = dot(view(x,:,j), η_grad)
-        h = dot(view(x,:,j), view(x,:,j) .* η_hess)
+        η_grad = gradient(lossfun, eta_copy, y)
+        η_hess = hessian(lossfun, eta_copy, y)
+        g = dot(view(x, :, j), η_grad)
+        h = dot(view(x, :, j), view(x, :, j) .* η_hess)
         if sparse_norm
             g -= x_sparse_offset[j] * sum(η_grad)
-            h -= 2 * x_sparse_offset[j] * dot(η_hess, view(x,:,j)) -
-                 x_sparse_offset[j]^2 * sum(η_hess)
+            h -= 2 * x_sparse_offset[j] * dot(η_hess, view(x, :, j)) -
+                x_sparse_offset[j]^2 * sum(η_hess)
         end
-        h == 0 && (h = 1e-10)
-        coef_copy[j] = st(coef_j - g/h, λ/h)
+        h == 0 && (h = 1.0e-10)
+        coef_copy[j] = st(coef_j - g / h, λ / h)
         diff = coef_j - coef_copy[j]
         deltas[j] = -diff
         if diff != 0
-            eta_copy .-= diff .* view(x,:,j)
+            eta_copy .-= diff .* view(x, :, j)
             if sparse_norm
                 eta_copy .+= diff * x_sparse_offset[j]
             end
         end
     end
     contribs = H0j .* deltas
-    num = abs(sum(contribs)); den = sum(abs, contribs)
+    num = abs(sum(contribs))
+    den = sum(abs, contribs)
     sign_pos = count(>(0), H0j) / p
-    return (; coherence = num / max(den, 1e-12),
+    return (; coherence = num / max(den, 1.0e-12),
               drift_sum = sum(contribs),
               drift_abs = sum(abs, contribs),
               frac_H0_pos = sign_pos,
@@ -252,7 +317,8 @@ println("(coherence = |Σ H_{0j} Δβ_j| / Σ |H_{0j} Δβ_j|; 1.0 = perfectly a
 
 X_w, y_w = let
     Xw, yw = LIBSVMdata.load_dataset("w1a", verbose = false)
-    pos = maximum(yw); yw = Int.(yw .== pos)
+    pos = maximum(yw)
+    yw = Int.(yw .== pos)
     Xw, yw
 end
 @printf("w1a            : %s\n", design_coherence(X_w, y_w))
@@ -260,7 +326,15 @@ end
 @printf("constructed mod: %s\n", design_coherence(X_m, y_m))
 
 # also dense gaussian (heatmap-style) for contrast
-X_g, y_g = Intercepts.generatedata(500, 1000; response = :binomial,
-                                    x_type = :normal, μ0 = 0.99, s = 10, ρ = 0.6,
-                                    means = :random, amplitude = 1.0)
+X_g, y_g = Intercepts.generatedata(
+    500,
+    1000;
+    response = :binomial,
+    x_type = :normal,
+    μ0 = 0.99,
+    s = 10,
+    ρ = 0.6,
+    means = :random,
+    amplitude = 1.0,
+)
 @printf("gaussian dense (heatmap μ0=0.99): %s\n", design_coherence(X_g, y_g))

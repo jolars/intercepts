@@ -1,7 +1,7 @@
 using Random
 using SparseArrays
 
-function get_lossfun(response; K::Int = 3, lipschitz::Union{Real,Nothing} = nothing)
+function get_lossfun(response; K::Int = 3, lipschitz::Union{Real, Nothing} = nothing)
     if response == :binomial
         return LogisticLoss()
     elseif response == :gaussian
@@ -65,7 +65,7 @@ function run_solver(
         return (
             time = res.time,
             gaps = res.gaps,
-            relgaps = max.(res.relgaps, 1e-20),
+            relgaps = max.(res.relgaps, 1.0e-20),
             primals = res.primals,
             duals = res.duals,
         )
@@ -110,7 +110,7 @@ function suboptimality_against_certified_optimum!(
     instance_of::Function,
     cert_tol::Real = 1.0e-4,
 )
-    groups = Dict{Any,Vector{Any}}()
+    groups = Dict{Any, Vector{Any}}()
     for r in results
         push!(get!(groups, instance_of(r), Any[]), r)
     end
@@ -124,8 +124,10 @@ function suboptimality_against_certified_optimum!(
             r["dual_cert"] = cert
             r["Fstar"] = fstar
             r["gaps"] = r["primals"] .- fstar
-            r["relgaps"] =
-                max.((r["primals"] .- fstar) ./ max(abs(fstar), 1.0e-15), 1.0e-20)
+            r["relgaps"] = max.(
+                (r["primals"] .- fstar) ./ max(abs(fstar), 1.0e-15),
+                1.0e-20,
+            )
         end
     end
     return results
@@ -149,7 +151,7 @@ function simulated_experiment(
     x_type = :normal,
     means = :random,
     K::Int = 3,
-    class_probs::Union{AbstractVector,Nothing} = nothing,
+    class_probs::Union{AbstractVector, Nothing} = nothing,
 )
     X, y = generatedata(
         n,
@@ -180,7 +182,6 @@ function simulated_experiment(
     )
 end;
 
-
 function real_experiment(
     dataset = "w1a";
     response = :binomial,
@@ -190,8 +191,8 @@ function real_experiment(
     update_freq = 1,
     maxit = 1000,
     maxtime = Inf,
-    n_positive::Union{Nothing,Int} = nothing,
-    n_negative::Union{Nothing,Int} = nothing,
+    n_positive::Union{Nothing, Int} = nothing,
+    n_negative::Union{Nothing, Int} = nothing,
     seed::Int = 42,
     min_nnz_per_column::Int = 1,
 )
@@ -215,8 +216,12 @@ function real_experiment(
         rng = MersenneTwister(seed)
         pos_idx = findall(==(1), y)
         neg_idx = findall(==(0), y)
-        n_pos_keep = n_positive === nothing ? length(pos_idx) : min(n_positive, length(pos_idx))
-        n_neg_keep = n_negative === nothing ? length(neg_idx) : min(n_negative, length(neg_idx))
+        n_pos_keep = n_positive === nothing ?
+            length(pos_idx) :
+            min(n_positive, length(pos_idx))
+        n_neg_keep = n_negative === nothing ?
+            length(neg_idx) :
+            min(n_negative, length(neg_idx))
         pos_sample = shuffle(rng, pos_idx)[1:n_pos_keep]
         neg_sample = shuffle(rng, neg_idx)[1:n_neg_keep]
         row_idx = sort(vcat(pos_sample, neg_sample))
@@ -230,9 +235,15 @@ function real_experiment(
         # near-zero standard deviations and NaN gradients downstream.
         if issparse(X)
             Xc = X::SparseMatrixCSC
-            keep = [Xc.colptr[j+1] - Xc.colptr[j] >= min_nnz_per_column for j in 1:size(Xc, 2)]
+            keep = [
+                Xc.colptr[j + 1] - Xc.colptr[j] >= min_nnz_per_column
+                for j in 1:size(Xc, 2)
+            ]
         else
-            keep = [!iszero(maximum(@view X[:, j]) - minimum(@view X[:, j])) for j in 1:size(X, 2)]
+            keep = [
+                !iszero(maximum(@view X[:, j]) - minimum(@view X[:, j]))
+                for j in 1:size(X, 2)
+            ]
         end
         X = X[:, keep]
     end

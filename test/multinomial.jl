@@ -20,31 +20,31 @@ using Random
     @test all(p .>= 0)
 
     # Reference-class K invariance: η_iK = 0 implicit
-    p2 = softmax_probs(η .+ 0)  # no shift, same input
+    p2 = softmax_probs(η .+ 0) # no shift, same input
     @test p ≈ p2
 
     # Compare loss to direct cross-entropy via softmax_probs
     L = loss(f, η, y)
-    L_ref = -sum(log(p[i, y[i]]) for i = 1:n)
+    L_ref = -sum(log(p[i, y[i]]) for i in 1:n)
     @test L ≈ L_ref
 
     # Finite-difference check on gradient
-    ε = 1e-6
+    ε = 1.0e-6
     G = gradient(f, η, y)
     @test size(G) == (n, K - 1)
-    for i = 1:n, k = 1:(K-1)
+    for i in 1:n, k in 1:(K - 1)
         ηp = copy(η)
         ηm = copy(η)
         ηp[i, k] += ε
         ηm[i, k] -= ε
         g_fd = (loss(f, ηp, y) - loss(f, ηm, y)) / (2ε)
-        @test isapprox(G[i, k], g_fd; atol = 1e-6)
+        @test isapprox(G[i, k], g_fd; atol = 1.0e-6)
     end
 
     # Finite-difference check on Hessian (per-observation block)
     H = hessian(f, η, y)
     @test size(H) == (n, K - 1, K - 1)
-    for i = 1:n, k = 1:(K-1), l = 1:(K-1)
+    for i in 1:n, k in 1:(K - 1), l in 1:(K - 1)
         ηp = copy(η)
         ηm = copy(η)
         ηp[i, l] += ε
@@ -52,7 +52,7 @@ using Random
         Gp = gradient(f, ηp, y)
         Gm = gradient(f, ηm, y)
         h_fd = (Gp[i, k] - Gm[i, k]) / (2ε)
-        @test isapprox(H[i, k, l], h_fd; atol = 1e-6)
+        @test isapprox(H[i, k, l], h_fd; atol = 1.0e-6)
     end
 end
 
@@ -66,20 +66,20 @@ end
 
     # Binomial y in {0, 1}; multinomial y in {1, 2}.
     y_bin = rand([0.0, 1.0], n)
-    y_mult = Int.(2 .- y_bin)  # y_bin=1 (success) → class 1; y_bin=0 → class 2
+    y_mult = Int.(2 .- y_bin) # y_bin=1 (success) → class 1; y_bin=0 → class 2
 
     fbin = LogisticLoss()
     fmult = MultinomialLogisticLoss(K = 2, lipschitz = 0.25)
 
-    @test isapprox(loss(fbin, η_scalar, y_bin), loss(fmult, η_mat, y_mult); atol = 1e-10)
+    @test isapprox(loss(fbin, η_scalar, y_bin), loss(fmult, η_mat, y_mult); atol = 1.0e-10)
 
     G_bin = gradient(fbin, η_scalar, y_bin)
     G_mult = gradient(fmult, η_mat, y_mult)
-    @test isapprox(G_bin, vec(G_mult); atol = 1e-10)
+    @test isapprox(G_bin, vec(G_mult); atol = 1.0e-10)
 
     H_bin = hessian(fbin, η_scalar, y_bin)
     H_mult = hessian(fmult, η_mat, y_mult)
-    @test isapprox(H_bin, [H_mult[i, 1, 1] for i = 1:n]; atol = 1e-10)
+    @test isapprox(H_bin, [H_mult[i, 1, 1] for i in 1:n]; atol = 1.0e-10)
 end
 
 @testset "Vector-intercept strategies reduce to scalar on K=2" begin
@@ -104,17 +104,17 @@ end
     # GradientStrategy
     s_scalar = update_intercept(GradientStrategy(), fbin, β0_scalar, η_scalar, y_bin)
     s_vec = update_intercept(GradientStrategy(), fmult, β0_vec, η_mat, y_mult)
-    @test isapprox(s_scalar, s_vec[1]; atol = 1e-12)
+    @test isapprox(s_scalar, s_vec[1]; atol = 1.0e-12)
 
     # NewtonStrategy
     s_scalar = update_intercept(NewtonStrategy(), fbin, β0_scalar, η_scalar, y_bin)
     s_vec = update_intercept(NewtonStrategy(), fmult, β0_vec, η_mat, y_mult)
-    @test isapprox(s_scalar, s_vec[1]; atol = 1e-12)
+    @test isapprox(s_scalar, s_vec[1]; atol = 1.0e-12)
 
     # ExactStrategy
     s_scalar = update_intercept(ExactStrategy(), fbin, β0_scalar, η_scalar, y_bin)
     s_vec = update_intercept(ExactStrategy(), fmult, β0_vec, η_mat, y_mult)
-    @test isapprox(s_scalar, s_vec[1]; atol = 1e-10)
+    @test isapprox(s_scalar, s_vec[1]; atol = 1.0e-10)
 end
 
 @testset "Multinomial per-coord Armijo gives monotone primal" begin
@@ -128,7 +128,7 @@ end
         p;
         response = :multinomial,
         K = K,
-        class_probs = [0.85, 0.10, 0.05],
+        class_probs = [0.85, 0.1, 0.05],
         x_type = :normal,
         ρ = 0.3,
         s = 4,
@@ -144,7 +144,7 @@ end
             intercept_strategy = s,
             maxit = 200,
             randomize = false,
-            tol = 1e-12,
+            tol = 1.0e-12,
         )
         @test all(diff(res.primals) .<= 1.0e-10)
         @test isfinite(res.primals[end])
@@ -166,7 +166,7 @@ end
         s = 5,
         amplitude = 1.0,
     )
-    y_mult = Int.(2 .- y_bin)  # y_bin=1 → class 1, y_bin=0 → class 2
+    y_mult = Int.(2 .- y_bin) # y_bin=1 → class 1, y_bin=0 → class 2
 
     reg = 0.05
     maxit = 500
@@ -180,7 +180,7 @@ end
         intercept_strategy = NewtonStrategy(),
         maxit = maxit,
         randomize = false,
-        tol = 1e-12,
+        tol = 1.0e-12,
     )
     res_mult = multinomial_cdsolver(
         X,
@@ -190,11 +190,11 @@ end
         intercept_strategy = NewtonStrategy(),
         maxit = maxit,
         randomize = false,
-        tol = 1e-12,
+        tol = 1.0e-12,
     )
 
-    @test isapprox(res_bin.coef, vec(res_mult.coef); atol = 1e-4)
-    @test isapprox(res_bin.intercept, res_mult.intercept[1]; atol = 1e-4)
+    @test isapprox(res_bin.coef, vec(res_mult.coef); atol = 1.0e-4)
+    @test isapprox(res_bin.intercept, res_mult.intercept[1]; atol = 1.0e-4)
 end
 
 @testset "Multinomial dual is a valid optimum certificate" begin
@@ -219,19 +219,19 @@ end
         intercept_strategy = ExactStrategy(),
         maxit = 500,
         randomize = false,
-        tol = 1e-12,
+        tol = 1.0e-12,
     )
 
     scale = max.(abs.(res.primals), 1.0)
     # Weak duality: the dual point lower-bounds the primal, so the gap is
     # nonnegative up to floating-point noise.
-    @test all(res.gaps .>= -1e-9 .* scale)
-    @test all(res.duals .<= res.primals .+ 1e-9 .* scale)
+    @test all(res.gaps .>= -1.0e-9 .* scale)
+    @test all(res.duals .<= res.primals .+ 1.0e-9 .* scale)
     # The gap shrinks enough to certify the iterate as a near-optimum, which is
     # how the experiments establish a trustworthy F* for primal-suboptimality
     # plots. It need not reach machine zero: the dual point is a feasible
     # lower-bound construction, not the exact dual optimum.
-    @test minimum(res.relgaps) < 1e-4
+    @test minimum(res.relgaps) < 1.0e-4
 end
 
 @testset "Multinomial K=2 dual matches binary logistic dual" begin
@@ -251,7 +251,6 @@ end
     @test isapprox(
         dual(fbin, θ, y_bin),
         dual(fmult, reshape(θ, n, 1), y_mult);
-        atol = 1e-10,
+        atol = 1.0e-10,
     )
 end
-

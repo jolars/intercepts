@@ -57,11 +57,7 @@ outdir = @projectroot("results", "real-solvers")
 mkpath(outdir)
 
 CSV.write(joinpath(outdir, "X.csv"), DataFrame(X, :auto); writeheader = false)
-CSV.write(
-    joinpath(outdir, "y.csv"),
-    DataFrame(y_pm = y_pm, y01 = y01);
-    writeheader = true,
-)
+CSV.write(joinpath(outdir, "y.csv"), DataFrame(y_pm = y_pm, y01 = y01); writeheader = true)
 
 meta = Dict(
     "dataset" => "synthetic",
@@ -112,11 +108,7 @@ lambda_w1a = reg * lambda_max_w1a
 outdir_w1a = @projectroot("results", "real-solvers", "w1a")
 mkpath(outdir_w1a)
 
-CSV.write(
-    joinpath(outdir_w1a, "X.csv"),
-    DataFrame(X_w1a, :auto);
-    writeheader = false,
-)
+CSV.write(joinpath(outdir_w1a, "X.csv"), DataFrame(X_w1a, :auto); writeheader = false)
 CSV.write(
     joinpath(outdir_w1a, "y.csv"),
     DataFrame(y_pm = y_pm_w1a, y01 = y01_w1a);
@@ -175,8 +167,10 @@ y01_news = y01_news_full[row_idx_news]
 
 if issparse(X_news_sub)
     Xc = X_news_sub::SparseMatrixCSC
-    keep_cols_news =
-        [Xc.colptr[j+1] - Xc.colptr[j] >= news20_min_nnz for j in 1:size(Xc, 2)]
+    keep_cols_news = [
+        Xc.colptr[j + 1] - Xc.colptr[j] >= news20_min_nnz
+        for j in 1:size(Xc, 2)
+    ]
 else
     keep_cols_news = [
         !iszero(maximum(@view X_news_sub[:, j]) - minimum(@view X_news_sub[:, j]))
@@ -201,11 +195,7 @@ lambda_news = reg * lambda_max_news
 outdir_news = @projectroot("results", "real-solvers", "news20-3pct")
 mkpath(outdir_news)
 
-CSV.write(
-    joinpath(outdir_news, "X.csv"),
-    DataFrame(X_news, :auto);
-    writeheader = false,
-)
+CSV.write(joinpath(outdir_news, "X.csv"), DataFrame(X_news, :auto); writeheader = false)
 CSV.write(
     joinpath(outdir_news, "y.csv"),
     DataFrame(y_pm = y_pm_news, y01 = y01_news);

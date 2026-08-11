@@ -95,7 +95,7 @@ function irlssolver(
         grad_outer = x' * θ
         if sparse_norm
             θsum = sum(θ)
-            for j = 1:p
+            for j in 1:p
                 grad_outer[j] -= x_sparse_offset[j] * θsum
             end
         end
@@ -147,18 +147,17 @@ function irlssolver(
 
         prev_inner_obj = Inf
 
-        for _ = 1:max_inner
+        for _ in 1:max_inner
             ind = randomize ? randperm(p) : (1:p)
 
             for j in ind
                 xj = x[:, j]
                 resid_in = η_in .- z
                 grad_j = sum(w .* xj .* resid_in)
-                hess_j = sum(w .* xj .^ 2)
+                hess_j = sum(w .* xj.^2)
                 if sparse_norm
                     grad_j -= x_sparse_offset[j] * sum(w .* resid_in)
-                    hess_j -=
-                        2 * x_sparse_offset[j] * sum(w .* xj) -
+                    hess_j -= 2 * x_sparse_offset[j] * sum(w .* xj) -
                         x_sparse_offset[j]^2 * sum(w)
                 end
                 if hess_j <= 0
@@ -184,7 +183,7 @@ function irlssolver(
                 end
             end
 
-            inner_obj = 0.5 * sum(w .* (η_in .- z) .^ 2) + λ * norm(coef_in, 1)
+            inner_obj = 0.5 * sum(w .* (η_in .- z).^2) + λ * norm(coef_in, 1)
             if abs(prev_inner_obj - inner_obj) <= inner_tol * max(1.0, abs(inner_obj))
                 break
             end

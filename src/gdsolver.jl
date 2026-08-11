@@ -9,7 +9,7 @@ function gdsolver(
     reg::Real = 0.1;
     lossfun::LossFunction = QuadraticLoss(),
     intercept_strategy::InterceptStrategy = GradientStrategy(),
-    tol::Real = 1e-10,
+    tol::Real = 1.0e-10,
     normalization::Symbol = :standardize,
     maxit::Int = 1000,
 )
@@ -66,7 +66,7 @@ function gdsolver(
         push!(duals, dua)
         push!(times, time() - t0)
 
-        rel_gap = gap / max(abs(primal), 1e-15)
+        rel_gap = gap / max(abs(primal), 1.0e-15)
 
         push!(gaps, gap)
 
@@ -87,8 +87,13 @@ function gdsolver(
         η .+= intercept - old_intercept
     end
 
-    intercept_rescaled, coef_rescaled =
-        rescalecoefs(coef, intercept, x_centers, x_scales; fit_intercept = fit_intercept)
+    intercept_rescaled, coef_rescaled = rescalecoefs(
+        coef,
+        intercept,
+        x_centers,
+        x_scales;
+        fit_intercept = fit_intercept,
+    )
 
     return (
         intercept = intercept_rescaled,

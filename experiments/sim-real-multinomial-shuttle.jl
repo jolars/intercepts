@@ -29,7 +29,7 @@ K = length(unique(y))
 @assert sort(unique(y)) == collect(1:K)
 
 println("Loaded shuttle: n=$n, p=$p, K=$K")
-for k = 1:K
+for k in 1:K
     println(
         "  class $k: ",
         count(==(k), y),
@@ -39,10 +39,7 @@ for k = 1:K
     )
 end
 
-param_dict = Dict{String,Any}(
-    "reg" => [0.05],
-    "strategy" => [:gradient, :newton, :exact],
-)
+param_dict = Dict{String, Any}("reg" => [0.05], "strategy" => [:gradient, :newton, :exact])
 
 params = dict_list(param_dict)
 
@@ -74,10 +71,10 @@ for (i, d) in enumerate(params)
         randomize = false,
     )
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["primals"] = res.primals
-    d_exp["relgaps"] = max.(res.relgaps, 1e-20)
+    d_exp["relgaps"] = max.(res.relgaps, 1.0e-20)
     d_exp["gaps"] = res.gaps
 
     push!(results, d_exp)

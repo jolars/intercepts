@@ -15,7 +15,7 @@ using JLD2
 
 Random.seed!(42)
 
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "dataset" => ["w1a"],
     "reg" => [0.05],
     "strategy" => [:gradient, :newton, :exact],
@@ -37,7 +37,7 @@ for (i, d) in enumerate(params)
         randomize = randomize,
     )
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["strategy"] = String(strategy)
     d_exp["ordering"] = randomize ? "permuted" : "cyclic"
     d_exp["time"] = res.time
@@ -47,7 +47,7 @@ for (i, d) in enumerate(params)
 
     println(
         "[$i/$(length(params))] dataset=$dataset strategy=$strategy randomize=$randomize " *
-        "passes=$(length(res.time)) final_relgap=$(res.relgaps[end])",
+            "passes=$(length(res.time)) final_relgap=$(res.relgaps[end])",
     )
 
     push!(results, d_exp)

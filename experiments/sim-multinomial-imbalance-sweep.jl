@@ -23,7 +23,7 @@ function build_class_probs(p_K::Real)
     return [dominant, 0.1, 0.1, 0.05, p_K]
 end
 
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "it" => collect(1:3),
     "n" => [500],
     "p" => [200],
@@ -40,7 +40,7 @@ params = dict_list(param_dict)
 const MAXIT = 1000
 const TOL = 1.0e-6
 
-results = Vector{Dict{String,Any}}()
+results = Vector{Dict{String, Any}}()
 
 for (i, d) in enumerate(params)
     @unpack it, n, p, s, reg, K, p_K, amplitude, strategy = d
@@ -64,7 +64,7 @@ for (i, d) in enumerate(params)
         maxit = MAXIT,
     )
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["strategy"] = String(strategy)
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps
@@ -92,8 +92,8 @@ for d_exp in results
     d_exp["final_relgap"] = max(relgaps[end], 1.0e-20)
     println(
         "p_K=$(d_exp["p_K"]) amp=$(d_exp["amplitude"]) strategy=$(d_exp["strategy"]) " *
-        "seed=$(d_exp["it"]) passes=$(d_exp["passes"]) reached=$(d_exp["reached_tol"]) " *
-        "final_relgap=$(d_exp["final_relgap"])",
+            "seed=$(d_exp["it"]) passes=$(d_exp["passes"]) reached=$(d_exp["reached_tol"]) " *
+            "final_relgap=$(d_exp["final_relgap"])",
     )
 end
 

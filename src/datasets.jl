@@ -61,8 +61,11 @@ Directory holding the shipped real-data inputs --- `data/` at the repository
 root (the `Intercepts` package lives in `src/`), overridable with the
 `INTERCEPTS_DATA_DIR` environment variable.
 """
-intercepts_datadir() =
-    get(ENV, "INTERCEPTS_DATA_DIR", normpath(joinpath(@__DIR__, "..", "data")))
+intercepts_datadir() = get(
+    ENV,
+    "INTERCEPTS_DATA_DIR",
+    normpath(joinpath(@__DIR__, "..", "data")),
+)
 
 """
     load_local_dataset(name; dense = false)
@@ -76,25 +79,28 @@ replacement for `LIBSVMdata.load_dataset` returning `(X, y)`.
 function load_local_dataset(name::AbstractString; dense::Bool = false)
     dir = joinpath(intercepts_datadir(), "libsvm")
     manifest_path = joinpath(dir, "manifest.json")
-    isfile(manifest_path) || error(
-        "LIBSVM dataset manifest not found at $manifest_path. Retrieve the " *
-        "real-data inputs first with `bash experiments/fetch-data.sh` (see the " *
-        "README's \"Retrieve the real-data inputs\" section).",
-    )
+    isfile(manifest_path) ||
+        error(
+            "LIBSVM dataset manifest not found at $manifest_path. Retrieve the " *
+                "real-data inputs first with `bash experiments/fetch-data.sh` (see the " *
+                "README's \"Retrieve the real-data inputs\" section).",
+        )
 
     manifest = JSON3.read(read(manifest_path, String))
     key = Symbol(name)
-    haskey(manifest, key) || error(
-        "Dataset \"$name\" is not listed in $manifest_path. Available: " *
-        join(string.(keys(manifest)), ", "),
-    )
+    haskey(manifest, key) ||
+        error(
+            "Dataset \"$name\" is not listed in $manifest_path. Available: " *
+                join(string.(keys(manifest)), ", "),
+        )
 
     entry = manifest[key]
     path = joinpath(dir, String(entry.file))
-    isfile(path) || error(
-        "LIBSVM input \"$(entry.file)\" for dataset \"$name\" not found at $path. " *
-        "Retrieve the real-data inputs first with `bash experiments/fetch-data.sh`.",
-    )
+    isfile(path) ||
+        error(
+            "LIBSVM input \"$(entry.file)\" for dataset \"$name\" not found at $path. " *
+                "Retrieve the real-data inputs first with `bash experiments/fetch-data.sh`.",
+        )
 
     return load_libsvm(
         path;

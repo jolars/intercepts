@@ -13,7 +13,7 @@ Random.seed!(1234);
 # log(μ̄_y) ≈ log(μ₀). For μ₀ = 100 that is an ~22x overshoot, evaluating the
 # loss at η ~ 99 where e^η ≈ 10^43. The Armijo guard inside NewtonStrategy
 # should backtrack many times; the unguarded variant should diverge.
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "it" => collect(1:5),
     "n" => [500],
     "p" => [1000],
@@ -58,7 +58,7 @@ for (i, d) in enumerate(params)
         )
     end
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps

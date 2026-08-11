@@ -14,10 +14,10 @@ function normalizefeatures(x::AbstractMatrix, normalization::Symbol = :standardi
 
     x_out = copy(x)
 
-    scales[scales.==0] .= 1.0  # Avoid division by zero
+    scales[scales .== 0] .= 1.0 # Avoid division by zero
 
     if issparse(x)
-        for j = 1:p
+        for j in 1:p
             x_out[:, j] ./= scales[j]
         end
     else
@@ -41,7 +41,7 @@ function rescalecoefs(
 
     x_bar_beta_sum = 0
 
-    for j = 1:p
+    for j in 1:p
         coefs_rescaled[j] /= scales[j]
         x_bar_beta_sum += centers[j] * coefs_rescaled[j]
     end

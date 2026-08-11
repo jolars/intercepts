@@ -69,11 +69,7 @@ for seed in seed_grid, μ0 in μ0_grid, reg in reg_grid
     cell_path = joinpath(cells_dir, cell_name)
     mkpath(cell_path)
 
-    CSV.write(
-        joinpath(cell_path, "X.csv"),
-        DataFrame(X, :auto);
-        writeheader = false,
-    )
+    CSV.write(joinpath(cell_path, "X.csv"), DataFrame(X, :auto); writeheader = false)
     CSV.write(
         joinpath(cell_path, "y.csv"),
         DataFrame(y_pm = y_pm, y01 = y01);
@@ -119,8 +115,8 @@ for seed in seed_grid, μ0 in μ0_grid, reg in reg_grid
 
     println(
         "[$cell_id/$(length(μ0_grid) * length(reg_grid) * length(seed_grid))] " *
-        "$cell_name μ0=$μ0 reg=$reg seed=$seed " *
-        "ybar=$(round(ybar; digits = 3)) λ=$(round(lambda; sigdigits = 4))",
+            "$cell_name μ0=$μ0 reg=$reg seed=$seed " *
+            "ybar=$(round(ybar; digits = 3)) λ=$(round(lambda; sigdigits = 4))",
     )
 end
 

@@ -31,7 +31,9 @@ meta = JSON3.read(read(joinpath(probdir, "meta.json"), String))
 reg = meta["reg"]
 
 n, p = size(X)
-@info "Loaded congress109 problem" n p target_phrase = meta["target_phrase"] ybar = meta["y_mean"] reg
+@info "Loaded congress109 problem" n p target_phrase = meta["target_phrase"] ybar = meta[
+    "y_mean",
+] reg
 
 strategy_map = Dict(
     :gradient => GradientStrategy(),
@@ -40,9 +42,12 @@ strategy_map = Dict(
     :unguarded_newton => UnguardedNewtonStrategy(),
 )
 
-param_dict = Dict{String,Any}(
-    "strategy" => [:gradient, :newton, :exact, :unguarded_newton],
-);
+param_dict = Dict{String, Any}("strategy" => [
+    :gradient,
+    :newton,
+    :exact,
+    :unguarded_newton,
+]);
 
 params = dict_list(param_dict);
 
@@ -53,10 +58,7 @@ for (i, d) in enumerate(params)
     @info "Running" strategy
 
     res = try
-        cdsolver(
-            X,
-            y,
-            reg;
+        cdsolver(X, y, reg;
             lossfun = PoissonLoss(),
             intercept_strategy = strategy_map[strategy],
             randomize = false,
@@ -75,7 +77,7 @@ for (i, d) in enumerate(params)
         )
     end
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps

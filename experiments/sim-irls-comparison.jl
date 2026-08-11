@@ -10,7 +10,7 @@ Random.seed!(2025)
 # fraction H_00/L_0 -> 0), and the IRLS subsection predicts that MM-IRLS realizes
 # the same gradient-style update on the original loss while local-weight IRLS
 # does not.
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "it" => collect(1:3),
     "n" => [500],
     "p" => [1000],
@@ -97,7 +97,7 @@ for d in params
 
     res = run_method(method, X, y, reg)
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["strategy"] = method_label[method]
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps

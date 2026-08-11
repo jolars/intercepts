@@ -24,16 +24,16 @@ const MAXIT = 30_000
 function standardize_features(X)
     centers = mean(X; dims = 1)
     scales = stdm(X, centers; corrected = false, dims = 1)
-    scales[scales.==0] .= 1.0
+    scales[scales .== 0] .= 1.0
     return (X .- centers) ./ scales
 end
 
 function rate_quantities(X_used, η, lossfun)
     w = weight(lossfun, η)
     H00 = sum(w)
-    Hjj = vec(sum((X_used .^ 2) .* w; dims = 1))
+    Hjj = vec(sum((X_used.^2) .* w; dims = 1))
     H0j = vec(sum(X_used .* w; dims = 1))
-    ρ2 = (H0j .^ 2) ./ (H00 .* Hjj)
+    ρ2 = (H0j.^2) ./ (H00 .* Hjj)
     barρ2 = sum(Hjj .* ρ2) / sum(Hjj)
     return (; H00, Hjj, H0j, ρ2, barρ2, w)
 end
@@ -42,26 +42,35 @@ passes_to(relgaps, tol) = let i = findfirst(g -> g ≤ tol, relgaps)
     i === nothing ? length(relgaps) : i
 end
 
-records = Dict{String,Any}[]
+records = Dict{String, Any}[]
 
 for μ0 in Μ0_GRID, normalization in NORM_GRID
     Random.seed!(1)
     X_raw, y = generatedata(
-        N, P;
-        response = :binomial, μ0 = μ0, x_type = :normal,
-        x_density = 0.9, ρ = 0.6, s = S, amplitude = 1.0, means = :random,
+        N,
+        P;
+        response = :binomial,
+        μ0 = μ0,
+        x_type = :normal,
+        x_density = 0.9,
+        ρ = 0.6,
+        s = S,
+        amplitude = 1.0,
+        means = :random,
     )
 
     X_used = normalization == :standardize ? standardize_features(X_raw) : X_raw
 
     lossfun = LogisticLoss()
-    L0 = lossfun.lipschitz * N  # global Lipschitz on intercept: n * sup f''
+    L0 = lossfun.lipschitz * N # global Lipschitz on intercept: n * sup f''
 
     # Reference Newton run for η at convergence (used to evaluate H_jj, ρ²
     # at the iterate-level Hessian, matching how sim-rate-gap.jl reports them).
     Random.seed!(1)
     newton_ref = cdsolver(
-        X_raw, y, REG;
+        X_raw,
+        y,
+        REG;
         lossfun = lossfun,
         intercept_strategy = NewtonStrategy(),
         maxit = MAXIT,
@@ -80,7 +89,9 @@ for μ0 in Μ0_GRID, normalization in NORM_GRID
 
     Random.seed!(1)
     grad_res = cdsolver(
-        X_raw, y, REG;
+        X_raw,
+        y,
+        REG;
         lossfun = lossfun,
         intercept_strategy = GradientStrategy(),
         maxit = MAXIT,
@@ -91,7 +102,9 @@ for μ0 in Μ0_GRID, normalization in NORM_GRID
 
     Random.seed!(1)
     newton_short = cdsolver(
-        X_raw, y, REG;
+        X_raw,
+        y,
+        REG;
         lossfun = lossfun,
         intercept_strategy = NewtonStrategy(),
         maxit = MAXIT,
@@ -107,27 +120,30 @@ for μ0 in Μ0_GRID, normalization in NORM_GRID
 
     empirical_ratio = T_grad / T_newt
 
-    push!(records, Dict{String,Any}(
-        "μ0" => μ0,
-        "normalization" => String(normalization),
-        "n" => N,
-        "p" => P,
-        "s" => S,
-        "reg" => REG,
-        "tol" => TOL_TARGET,
-        "L0" => L0,
-        "H00" => q.H00,
-        "H00_over_L0" => q.H00 / L0,
-        "barρ2" => q.barρ2,
-        "predicted_ratio" => predicted_ratio,
-        "T_newton" => T_newt,
-        "T_gradient" => T_grad,
-        "empirical_ratio" => empirical_ratio,
-        "newton_reached_tol" => newt_reached,
-        "gradient_reached_tol" => grad_reached,
-    ))
+    push!(
+        records,
+        Dict{String, Any}(
+            "μ0" => μ0,
+            "normalization" => String(normalization),
+            "n" => N,
+            "p" => P,
+            "s" => S,
+            "reg" => REG,
+            "tol" => TOL_TARGET,
+            "L0" => L0,
+            "H00" => q.H00,
+            "H00_over_L0" => q.H00 / L0,
+            "barρ2" => q.barρ2,
+            "predicted_ratio" => predicted_ratio,
+            "T_newton" => T_newt,
+            "T_gradient" => T_grad,
+            "empirical_ratio" => empirical_ratio,
+            "newton_reached_tol" => newt_reached,
+            "gradient_reached_tol" => grad_reached,
+        ),
+    )
 
-    @info "μ0=$(μ0) norm=$(normalization)  H00/L0=$(round(q.H00/L0; sigdigits=3))  ρ̄²=$(round(q.barρ2; sigdigits=3))  predicted=$(round(predicted_ratio; sigdigits=3))  empirical=$(round(empirical_ratio; sigdigits=3))  (T_N=$(T_newt), T_G=$(T_grad))"
+    @info "μ0=$(μ0) norm=$(normalization)  H00/L0=$(round(q.H00 / L0; sigdigits = 3))  ρ̄²=$(round(q.barρ2; sigdigits = 3))  predicted=$(round(predicted_ratio; sigdigits = 3))  empirical=$(round(empirical_ratio; sigdigits = 3))  (T_N=$(T_newt), T_G=$(T_grad))"
 end
 
 outfile = @projectroot("results", "rho-centering.jld2")

@@ -10,7 +10,7 @@ using LinearAlgebra
 
 Random.seed!(42);
 
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "dataset" => ["w1a"],
     "reg" => [0.05],
     "strategy" => [:gradient, :newton, :exact],
@@ -31,7 +31,7 @@ for (i, d) in enumerate(params)
         randomize = false,
     )
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps
@@ -43,5 +43,3 @@ end
 outfile = @projectroot("results", "first-example.jld2");
 
 @save outfile results
-
-

@@ -24,7 +24,7 @@ function dual(::QuadraticLoss, θ::AbstractVector, y::AbstractVector)
     return 0.5 * (norm(y)^2 - norm(θ .+ y)^2)
 end
 
-function link(::QuadraticLoss, μ::Union{Real,AbstractVector})
+function link(::QuadraticLoss, μ::Union{Real, AbstractVector})
     return μ
 end
 
@@ -100,14 +100,11 @@ end
 function validateresponse(::LogisticLoss, y::AbstractVector)
     ok = unique(y) ⊆ (0.0, 1.0)
     if !ok
-        throw(
-            ArgumentError(
-                "Response variable for LogisticLoss regression must be binary (0 or 1)",
-            ),
-        )
+        throw(ArgumentError(
+            "Response variable for LogisticLoss regression must be binary (0 or 1)",
+        ))
     end
 end
-
 
 # PoissonLoss regression
 function loss(::PoissonLoss, η::AbstractVector, y::AbstractVector)
@@ -116,21 +113,21 @@ end
 
 function dual(::PoissonLoss, θ::AbstractVector, y::AbstractVector)
     # check if eta is finite
-    if any(!isfinite, θ) 
+    if any(!isfinite, θ)
         throw(ArgumentError("θ must be finite"))
     end
 
     e = θ .+ y
-    e = max.(e, 1e-15)  # clamp to avoid log(0)
+    e = max.(e, 1.0e-15) # clamp to avoid log(0)
     return sum(e .* (1 .- log.(e)))
 end
 
 function link(::PoissonLoss, μ::Real)
-    return log(max(μ, 1e-15))
+    return log(max(μ, 1.0e-15))
 end
 
 function link(::PoissonLoss, μ::AbstractVector)
-    return log.(max.(μ, 1e-15))
+    return log.(max.(μ, 1.0e-15))
 end
 
 function invlink(::PoissonLoss, η::AbstractVector)
@@ -154,13 +151,16 @@ function validateresponse(::PoissonLoss, y::AbstractVector)
         throw(ArgumentError("Response must be non-negative"))
     end
     if !all(isinteger.(y))
-        throw(ArgumentError("Response variable for Poisson regression must be integer-valued counts"))
+        throw(ArgumentError(
+            "Response variable for Poisson regression must be integer-valued counts",
+        ))
     end
     if length(unique(y)) < 2
-        throw(ArgumentError("Response variable for Poisson regression must contain at least two distinct values"))
+        throw(ArgumentError(
+            "Response variable for Poisson regression must contain at least two distinct values",
+        ))
     end
 end
-
 
 # MultinomialLogisticLoss: K-class softmax with reference class K (η_iK = 0).
 # η is stored as Matrix(n, K-1) for the K-1 free classes.
@@ -175,21 +175,21 @@ function softmax_probs(η::AbstractMatrix{<:Real})
     n, Km1 = size(η)
     K = Km1 + 1
     p = Matrix{Float64}(undef, n, K)
-    @inbounds for i = 1:n
+    @inbounds for i in 1:n
         m = 0.0
-        for k = 1:Km1
+        for k in 1:Km1
             ηik = η[i, k]
             if ηik > m
                 m = ηik
             end
         end
         s = exp(-m)
-        for k = 1:Km1
+        for k in 1:Km1
             p[i, k] = exp(η[i, k] - m)
             s += p[i, k]
         end
         p[i, K] = exp(-m)
-        for k = 1:K
+        for k in 1:K
             p[i, k] /= s
         end
     end
@@ -204,16 +204,16 @@ function loss(
     n, Km1 = size(η)
     K = f.K
     L = 0.0
-    @inbounds for i = 1:n
+    @inbounds for i in 1:n
         m = 0.0
-        for k = 1:Km1
+        for k in 1:Km1
             ηik = η[i, k]
             if ηik > m
                 m = ηik
             end
         end
         s = exp(-m)
-        for k = 1:Km1
+        for k in 1:Km1
             s += exp(η[i, k] - m)
         end
         lse = m + log(s)
@@ -231,8 +231,8 @@ function gradient(
     p = softmax_probs(η)
     n, Km1 = size(η)
     G = Matrix{Float64}(undef, n, Km1)
-    @inbounds for i = 1:n
-        for k = 1:Km1
+    @inbounds for i in 1:n
+        for k in 1:Km1
             G[i, k] = p[i, k] - (y[i] == k ? 1.0 : 0.0)
         end
     end
@@ -248,11 +248,11 @@ function hessian(
 )
     p = softmax_probs(η)
     n, Km1 = size(η)
-    H = Array{Float64,3}(undef, n, Km1, Km1)
-    @inbounds for i = 1:n
-        for k = 1:Km1
+    H = Array{Float64, 3}(undef, n, Km1, Km1)
+    @inbounds for i in 1:n
+        for k in 1:Km1
             pik = p[i, k]
-            for l = 1:Km1
+            for l in 1:Km1
                 H[i, k, l] = (k == l) ? pik * (1 - pik) : -pik * p[i, l]
             end
         end
@@ -283,9 +283,9 @@ end
 function link(f::MultinomialLogisticLoss, P::AbstractMatrix{<:Real})
     n, K = size(P)
     η = Matrix{Float64}(undef, n, K - 1)
-    @inbounds for i = 1:n
+    @inbounds for i in 1:n
         logref = log(P[i, K])
-        for k = 1:(K-1)
+        for k in 1:(K - 1)
             η[i, k] = log(P[i, k]) - logref
         end
     end
@@ -309,9 +309,9 @@ function dual(
     n, Km1 = size(Θ)
     K = f.K
     U = Matrix{Float64}(undef, n, K)
-    @inbounds for i = 1:n
+    @inbounds for i in 1:n
         ref = 1.0
-        for k = 1:Km1
+        for k in 1:Km1
             u = Θ[i, k] + (y[i] == k ? 1.0 : 0.0)
             U[i, k] = u
             ref -= u
@@ -326,7 +326,9 @@ end
 function validateresponse(f::MultinomialLogisticLoss, y::AbstractVector{<:Integer})
     K = f.K
     if any(y .< 1) || any(y .> K)
-        throw(ArgumentError("Response for MultinomialLogisticLoss must be class indices in 1..$(K)"))
+        throw(ArgumentError(
+            "Response for MultinomialLogisticLoss must be class indices in 1..$(K)",
+        ))
     end
     if length(unique(y)) < 2
         throw(ArgumentError("Response variable must contain at least two distinct classes"))

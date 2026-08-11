@@ -11,7 +11,7 @@ Random.seed!(1234)
 # microscopic correction (vector-form generalization of Lemma 3.3).
 class_probs = [0.7, 0.1, 0.1, 0.05, 0.05]
 
-param_dict = Dict{String,Any}(
+param_dict = Dict{String, Any}(
     "it" => collect(1:3),
     "n" => [500],
     "p" => [200],
@@ -45,7 +45,7 @@ for (i, d) in enumerate(params)
         maxit = 1000,
     )
 
-    d_exp = Dict{String,Any}(copy(d))
+    d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps

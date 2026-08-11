@@ -21,16 +21,16 @@ const MAXIT = 5000
 function standardize_features(X)
     centers = mean(X; dims = 1)
     scales = stdm(X, centers; corrected = false, dims = 1)
-    scales[scales.==0] .= 1.0
+    scales[scales .== 0] .= 1.0
     return (X .- centers) ./ scales, centers, scales
 end
 
 function rate_quantities(X_std, η, lossfun)
     w = weight(lossfun, η)
     H00 = sum(w)
-    Hjj = vec(sum((X_std .^ 2) .* w; dims = 1))
+    Hjj = vec(sum((X_std.^2) .* w; dims = 1))
     H0j = vec(sum(X_std .* w; dims = 1))
-    ρ2 = (H0j .^ 2) ./ (H00 .* Hjj)
+    ρ2 = (H0j.^2) ./ (H00 .* Hjj)
     barρ2 = sum(Hjj .* ρ2) / sum(Hjj)
     return (; H00, Hjj, H0j, ρ2, barρ2, w)
 end
@@ -39,14 +39,21 @@ passes_to(relgaps, tol) = let i = findfirst(g -> g ≤ tol, relgaps)
     i === nothing ? length(relgaps) : i
 end
 
-records = Dict{String,Any}[]
+records = Dict{String, Any}[]
 
 for μ0 in Μ0_GRID
     Random.seed!(1)
     X, y = generatedata(
-        N, P;
-        response = :binomial, μ0 = μ0, x_type = :normal,
-        x_density = 0.9, ρ = 0.6, s = S, amplitude = 1.0, means = :random,
+        N,
+        P;
+        response = :binomial,
+        μ0 = μ0,
+        x_type = :normal,
+        x_density = 0.9,
+        ρ = 0.6,
+        s = S,
+        amplitude = 1.0,
+        means = :random,
     )
 
     # Reference Newton run: same parameters as cdsolver uses internally, but we
@@ -54,11 +61,13 @@ for μ0 in Μ0_GRID
     # design.
     X_std, x_centers, x_scales = standardize_features(X)
     lossfun = LogisticLoss()
-    L0 = lossfun.lipschitz * N  # global Lipschitz on intercept: n * sup f''
+    L0 = lossfun.lipschitz * N # global Lipschitz on intercept: n * sup f''
 
     Random.seed!(1)
     newton_res = cdsolver(
-        X, y, REG;
+        X,
+        y,
+        REG;
         lossfun = lossfun,
         intercept_strategy = NewtonStrategy(),
         maxit = MAXIT,
@@ -79,7 +88,7 @@ for μ0 in Μ0_GRID
     β0_std = newton_res.intercept + dot(vec(x_centers), newton_res.coef)
     @assert isapprox(X_std * β_std .+ β0_std, η_hat; atol = 1.0e-8)
     R0_sq = β0_std^2
-    Rj_sq = β_std .^ 2
+    Rj_sq = β_std.^2
 
     # Full @eq-rate-gap ratio evaluated at the Newton-converged iterate.
     num_intercept = L0 * R0_sq
@@ -102,17 +111,17 @@ for μ0 in Μ0_GRID
     q_cold = rate_quantities(X_std, η_cold, lossfun)
     num_intercept_cold = L0 * R0_sq
     den_intercept_cold = q_cold.H00 * R0_sq
-    num_slope_cold =
-        sum(q_cold.Hjj .* (1 .- (q_cold.H00 / L0) .* q_cold.ρ2) .* Rj_sq)
+    num_slope_cold = sum(q_cold.Hjj .* (1 .- (q_cold.H00 / L0) .* q_cold.ρ2) .* Rj_sq)
     den_slope_cold = sum(q_cold.Hjj .* (1 .- q_cold.ρ2) .* Rj_sq)
-    cold_start_ratio =
-        (num_intercept_cold + num_slope_cold) /
+    cold_start_ratio = (num_intercept_cold + num_slope_cold) /
         (den_intercept_cold + den_slope_cold)
 
     # Empirical pass counts at TOL_TARGET.
     Random.seed!(1)
     grad_res = cdsolver(
-        X, y, REG;
+        X,
+        y,
+        REG;
         lossfun = lossfun,
         intercept_strategy = GradientStrategy(),
         maxit = MAXIT,
@@ -122,7 +131,9 @@ for μ0 in Μ0_GRID
 
     Random.seed!(1)
     newton_short = cdsolver(
-        X, y, REG;
+        X,
+        y,
+        REG;
         lossfun = lossfun,
         intercept_strategy = NewtonStrategy(),
         maxit = MAXIT,
@@ -137,34 +148,37 @@ for μ0 in Μ0_GRID
 
     empirical_ratio = T_grad / T_newt
 
-    push!(records, Dict{String,Any}(
-        "μ0" => μ0,
-        "n" => N,
-        "p" => P,
-        "s" => S,
-        "reg" => REG,
-        "tol" => TOL_TARGET,
-        "L0" => L0,
-        "H00" => q.H00,
-        "H00_over_L0" => q.H00 / L0,
-        "barρ2" => q.barρ2,
-        "R0_sq" => R0_sq,
-        "sum_Rj_sq" => sum(Rj_sq),
-        "num_intercept" => num_intercept,
-        "den_intercept" => den_intercept,
-        "num_slope" => num_slope,
-        "den_slope" => den_slope,
-        "full_ratio" => full_ratio,
-        "cold_start_ratio" => cold_start_ratio,
-        "predicted_ratio" => predicted_ratio,
-        "T_newton" => T_newt,
-        "T_gradient" => T_grad,
-        "empirical_ratio" => empirical_ratio,
-        "newton_reached_tol" => newt_reached,
-        "gradient_reached_tol" => grad_reached,
-    ))
+    push!(
+        records,
+        Dict{String, Any}(
+            "μ0" => μ0,
+            "n" => N,
+            "p" => P,
+            "s" => S,
+            "reg" => REG,
+            "tol" => TOL_TARGET,
+            "L0" => L0,
+            "H00" => q.H00,
+            "H00_over_L0" => q.H00 / L0,
+            "barρ2" => q.barρ2,
+            "R0_sq" => R0_sq,
+            "sum_Rj_sq" => sum(Rj_sq),
+            "num_intercept" => num_intercept,
+            "den_intercept" => den_intercept,
+            "num_slope" => num_slope,
+            "den_slope" => den_slope,
+            "full_ratio" => full_ratio,
+            "cold_start_ratio" => cold_start_ratio,
+            "predicted_ratio" => predicted_ratio,
+            "T_newton" => T_newt,
+            "T_gradient" => T_grad,
+            "empirical_ratio" => empirical_ratio,
+            "newton_reached_tol" => newt_reached,
+            "gradient_reached_tol" => grad_reached,
+        ),
+    )
 
-    @info "μ0=$(μ0)  H00/L0=$(round(q.H00/L0; sigdigits=3))  ρ̄²=$(round(q.barρ2; sigdigits=3))  full=$(round(full_ratio; sigdigits=3))  cold=$(round(cold_start_ratio; sigdigits=3))  L0/H00=$(round(L0/q.H00; sigdigits=3))  empirical=$(round(empirical_ratio; sigdigits=3))  (T_N=$(T_newt), T_G=$(T_grad))"
+    @info "μ0=$(μ0)  H00/L0=$(round(q.H00 / L0; sigdigits = 3))  ρ̄²=$(round(q.barρ2; sigdigits = 3))  full=$(round(full_ratio; sigdigits = 3))  cold=$(round(cold_start_ratio; sigdigits = 3))  L0/H00=$(round(L0 / q.H00; sigdigits = 3))  empirical=$(round(empirical_ratio; sigdigits = 3))  (T_N=$(T_newt), T_G=$(T_grad))"
 end
 
 outfile = @projectroot("results", "rate-gap.jld2")

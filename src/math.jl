@@ -3,7 +3,7 @@ using SparseArrays
 using Statistics
 
 function logit(x::Real)
-    pr = clamp(x, 1e-15, 1 - 1e-15)
+    pr = clamp(x, 1.0e-15, 1 - 1.0e-15)
     log(pr) - log1p(-pr)
 end
 
@@ -38,4 +38,3 @@ function geomspace(start::Real, stop::Real, num::Int)
     end
     return exp.(range(log(start), log(stop), length = num))
 end
-

@@ -69,7 +69,7 @@ function update_intercept(
 
     α = 1.0
     η_trial = similar(η)
-    for _ = 0:armijo_max_backtracks
+    for _ in 0:armijo_max_backtracks
         @. η_trial = η + α * direction
         f_trial = loss(f, η_trial, y)
         if f_trial <= f0 + α * armijo_slope + fp_tol
@@ -119,7 +119,7 @@ function update_intercept(
 
     α = 1.0
     η_trial = similar(η)
-    for _ = 0:s.max_backtracks
+    for _ in 0:s.max_backtracks
         @. η_trial = η + α * direction
         f_trial = loss(f, η_trial, y)
         if f_trial <= f0 + α * armijo_slope
@@ -139,13 +139,7 @@ function update_intercept(
     η::AbstractVector{<:Real},
     y::AbstractVector{<:Real},
 )
-    new_intercept, _ = update_intercept_with_count(
-        ExactStrategy(),
-        f,
-        intercept,
-        η,
-        y,
-    )
+    new_intercept, _ = update_intercept_with_count(ExactStrategy(), f, intercept, η, y)
     return new_intercept
 end
 
@@ -162,16 +156,16 @@ function update_intercept_with_count(
     max_it = 20
     k0 = 0
 
-    for _ = 1:max_it
+    for _ in 1:max_it
         grad = sum(gradient(f, η_copy, y))
 
-        if abs(grad) < 1e-10
+        if abs(grad) < 1.0e-10
             break
         end
 
         hess = sum(hessian(f, η_copy, y))
 
-        if abs(hess) < 1e-10
+        if abs(hess) < 1.0e-10
             # If Hessian is small, use standard gradient descent step
             new_intercept = intercept - grad / (f.lipschitz * n)
         else
@@ -188,26 +182,13 @@ function update_intercept_with_count(
 end
 
 # Generic fallback: any one-step strategy counts as a single inner step.
-function update_intercept_with_count(
-    s::InterceptStrategy,
-    f::LossFunction,
-    intercept,
-    η,
-    y,
-)
+function update_intercept_with_count(s::InterceptStrategy, f::LossFunction, intercept, η, y)
     return update_intercept(s, f, intercept, η, y), 1
 end
 
-function update_intercept_with_count(
-    ::NoIntercept,
-    f::LossFunction,
-    intercept,
-    η,
-    y,
-)
+function update_intercept_with_count(::NoIntercept, f::LossFunction, intercept, η, y)
     return update_intercept(NoIntercept(), f, intercept, η, y), 0
 end
-
 
 # =============================================================================
 # Vector-intercept dispatch (multinomial logistic, reference-class form).
@@ -285,7 +266,7 @@ function update_intercept(
 
     α = 1.0
     η_trial = similar(η)
-    for _ = 0:armijo_max_backtracks
+    for _ in 0:armijo_max_backtracks
         @. η_trial = η + α * δ'
         f_trial = loss(f, η_trial, y)
         if f_trial <= f0 + α * armijo_slope + fp_tol
@@ -347,7 +328,7 @@ function update_intercept(
 
     α = 1.0
     η_trial = similar(η)
-    for _ = 0:s.max_backtracks
+    for _ in 0:s.max_backtracks
         @. η_trial = η + α * δ'
         f_trial = loss(f, η_trial, y)
         if f_trial <= f0 + α * armijo_slope
@@ -366,13 +347,7 @@ function update_intercept(
     η::AbstractMatrix{<:Real},
     y::AbstractVector{<:Integer},
 )
-    new_intercept, _ = update_intercept_with_count(
-        ExactStrategy(),
-        f,
-        intercept,
-        η,
-        y,
-    )
+    new_intercept, _ = update_intercept_with_count(ExactStrategy(), f, intercept, η, y)
     return new_intercept
 end
 
@@ -389,10 +364,10 @@ function update_intercept_with_count(
 
     max_it = 20
     k0 = 0
-    for _ = 1:max_it
+    for _ in 1:max_it
         g = _intercept_grad(f, η_copy, y)
 
-        if maximum(abs, g) < 1e-10
+        if maximum(abs, g) < 1.0e-10
             break
         end
 
@@ -408,7 +383,7 @@ function update_intercept_with_count(
             δ = -g ./ (f.lipschitz * n)
         end
 
-        η_copy .+= δ'  # broadcast across rows
+        η_copy .+= δ' # broadcast across rows
         intercept .+= δ
         k0 += 1
     end

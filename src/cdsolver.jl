@@ -9,13 +9,13 @@ function cdsolver(
     lossfun::LossFunction = QuadraticLoss(),
     intercept_strategy::InterceptStrategy = GradientStrategy(),
     update_freq::Int = 1,
-    tol::Real = 1e-10,
+    tol::Real = 1.0e-10,
     maxit::Int = 1000,
     maxtime::Real = Inf,
     randomize::Bool = true,
     normalization::Symbol = :standardize,
     save_history::Bool = false,
-    coef_init::Union{Nothing,AbstractVector} = nothing,
+    coef_init::Union{Nothing, AbstractVector} = nothing,
     intercept_init::Real = 0.0,
 )
     n, p = size(x)
@@ -42,12 +42,12 @@ function cdsolver(
         coef = zeros(p)
         η = zeros(n)
     else
-        length(coef_init) == p ||
-            throw(ArgumentError("coef_init must have length p = $p"))
+        length(coef_init) == p || throw(ArgumentError("coef_init must have length p = $p"))
         coef_user = Float64.(coef_init)
         coef = coef_user .* vec(x_scales)
-        intercept =
-            fit_intercept ? Float64(intercept_init) + dot(vec(x_centers), coef_user) : 0.0
+        intercept = fit_intercept ?
+            Float64(intercept_init) + dot(vec(x_centers), coef_user) :
+            0.0
         η = x * coef .+ intercept
         if sparse_norm
             η .-= dot(x_sparse_offset, coef)
@@ -93,7 +93,7 @@ function cdsolver(
 
         if sparse_norm
             θsum = sum(θ)
-            for j = 1:p
+            for j in 1:p
                 grad[j] -= x_sparse_offset[j] * θsum
             end
         end
@@ -121,9 +121,9 @@ function cdsolver(
             push!(coefs, coef_rescaled)
         end
 
-        rel_gap = gap / max(abs(primal), 1e-15)
+        rel_gap = gap / max(abs(primal), 1.0e-15)
 
-        push!(relgaps, gap / max(abs(primal), 1e-10))
+        push!(relgaps, gap / max(abs(primal), 1.0e-10))
         push!(gaps, gap)
 
         if rel_gap <= tol
@@ -155,8 +155,7 @@ function cdsolver(
 
             if sparse_norm
                 grad_j -= x_sparse_offset[j] * sum(η_grad)
-                hess_j -=
-                    2 * x_sparse_offset[j] * dot(η_hess, xj) -
+                hess_j -= 2 * x_sparse_offset[j] * dot(η_hess, xj) -
                     x_sparse_offset[j]^2 * sum(η_hess)
             end
 
@@ -175,7 +174,7 @@ function cdsolver(
                 α = 1.0
                 accepted_α = 0.0
                 accepted_loss = loss_eta
-                for _ = 0:armijo_max_backtracks
+                for _ in 0:armijo_max_backtracks
                     factor = α * d_j
                     copyto!(η_trial, η)
                     if sparse_norm
@@ -184,8 +183,7 @@ function cdsolver(
                     η_trial .+= factor .* xj
 
                     loss_trial = loss(lossfun, η_trial, y)
-                    ΔF = (loss_trial - loss_eta) +
-                         λ * (abs(coef_j + factor) - abs(coef_j))
+                    ΔF = (loss_trial - loss_eta) + λ * (abs(coef_j + factor) - abs(coef_j))
 
                     # Tseng--Yun sufficient decrease + FP-precision tolerance
                     # for near-optimal iterates where loss_trial - loss_eta is
@@ -224,8 +222,13 @@ function cdsolver(
         push!(inner_steps, pass_inner_steps)
     end
 
-    intercept_rescaled, coef_rescaled =
-        rescalecoefs(coef, intercept, x_centers, x_scales; fit_intercept = fit_intercept)
+    intercept_rescaled, coef_rescaled = rescalecoefs(
+        coef,
+        intercept,
+        x_centers,
+        x_scales;
+        fit_intercept = fit_intercept,
+    )
 
     return (
         intercept = intercept_rescaled,
