@@ -239,8 +239,8 @@ version in `@sec-methodology` --- was fixed directly rather than left open.
 - [x] Fixed: `@sec-methodology` (`intercepts.qmd:1655`) said the internal-solver
   experiments ran on "Julia 1.12 (CI pins 1.12.6, matching the version under
   which `Manifest.toml` was generated)", but every other artifact says
-  1.11.9 --- `README.qmd:56`, `Manifest.toml` (`julia_version = "1.11.9"`),
-  `Project.toml` (`julia = "1.11"`), and `test.yml` (`version: "1.11"`). The
+  1.12.6 --- `README.qmd:56`, `Manifest.toml` (`julia_version = "1.12.6"`),
+  `Project.toml` (`julia = "1.12"`), and `test.yml` (`version: "1.12"`). The
   "Fix version discrepancy in docs" commit fixed the README but missed the
   methodology prose. Reworded to Julia 1.11 / 1.11.9. (verified)
 
