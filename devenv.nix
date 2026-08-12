@@ -4,8 +4,6 @@
 }:
 
 {
-  env.GREET = "devenv";
-
   packages = with pkgs; [
     git
     bashInteractive
@@ -62,8 +60,6 @@
           ];
         }
       );
-
-      lsp.enable = true;
     };
 
     python =
