@@ -167,7 +167,7 @@ there was a conscious call recorded above.
   to Computo's reusable workflows (`global-env.yml` builds the env,
   `publish-render.yml` renders + deploys Pages) and never runs the test
   suite; `test.yml` runs `Pkg.test()` on push / PR and guarantees `src/`.
-  Both pin Julia 1.11 to match the manifest. `build.yml` stays the
+  Both pin Julia 1.12 to match the manifest. `build.yml` stays the
   journal-managed builder (not modified).
 
 ### Claims and framing (major)
