@@ -19,7 +19,7 @@
     julia = {
       enable = true;
       package = (
-        pkgs.julia_111-bin.withPackages [
+        pkgs.julia_112-bin.withPackages [
           "Arpack"
           "CSV"
           "CairoMakie"
