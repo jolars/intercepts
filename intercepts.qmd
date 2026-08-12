@@ -1653,10 +1653,15 @@ against the gradient strategy and in favour of Newton carries through.
 
 ## Results {#sec-results}
 
+In this section we present the empirical results that support the theoretical
+analysis of @sec-theory and the practical recommendations of @sec-irls. We first
+describe the methodology and reproducibility of the experiments, then present
+the simulated-data results that isolate the gradient-strategy failure mode, and
+finally show that the same pattern appears on real high-dimensional data.
+
 ### Methodology and Reproducibility {#sec-methodology}
 
 All internal-solver experiments use the `Intercepts` Julia package on Julia 1.12
-(CI pins 1.12.6, matching the version under which `Manifest.toml` was generated)
 with the default OpenBLAS. We report outer-pass counts as the primary work
 metric: one pass is one sweep through all $p$ coordinates plus an intercept
 update, and "passes to tolerance" use a target relative duality gap of $10^{-8}$
