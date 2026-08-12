@@ -1000,31 +1000,70 @@ bound-to-empirical gap implies for the rate-gap argument's reach.
 
 @fig-rate-gap sweeps $\mu_0$ and so probes the $H_{00}/L_0$ axis of the framing
 while keeping the second axis $\bar\rho^2$ close to zero (the design is
-standardized). The complementary slice---holding $\mu_0$ fixed and toggling
-feature centering---isolates $\bar\rho^2$ directly. On the same problem family
-with `means = :random` (so each column has an $O(1)$ mean), running on the raw
-matrix gives weighted $\bar\rho^2 \approx 0.5$ where standardizing drives it
-below $5 \times 10^{-3}$. @fig-rho-centering shows the resulting jump in
-$T_{\mathrm{G}}/T_{\mathrm{N}}$ at $\mu_0 \in \{0.5, 0.9\}$: centering matters
-in both regimes, the leading-order ratio
-$(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ captures the direction, and the
-empirical jump sits a constant factor above this leading-order prediction. The
-Schur framing's second axis is therefore visible empirically, not just absorbed
-into the asymptotic limit @eq-rate-gap-asymptotic.
+standardized). The complementary slice holds $\mu_0$ fixed and sweeps
+$\bar\rho^2$ directly. On the same problem family with `means = :random` (so
+each column carries an $O(1)$ mean), a centering fraction $\alpha$ interpolates
+between the standardized and uncentered designs,
+$$
+  X(\alpha) = \bigl(X - (1 - \alpha)\,\bar{x}^\top\bigr) / s,
+  \qquad \alpha \in [0, 1],
+$$ {#eq-centering-sweep}
+with the column scales $s$ held fixed. Shifting a column by a constant is
+absorbed exactly by the unpenalized intercept, so $\beta^\star$, $\hat\eta$,
+$H_{00}$, and $\lambda_{\max}$ are all invariant along the sweep: $H_{00}/L_0$
+holds at $0.304$ ($\mu_0 = 0.5$) and $0.170$ ($\mu_0 = 0.9$) to four digits
+while $\bar\rho^2$ travels from $2 \times 10^{-3}$ to $0.51$. The second axis is
+genuinely isolated here, not merely emphasized.
+
+@fig-rho-centering shows the result, and it is not the one the leading-order
+ratio predicts. The empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ climbs steeply
+across the first few percent of $\bar\rho^2$ and then stops: from
+$\bar\rho^2 \approx 0.04$ onward it stays in $3.23$--$3.30$ ($\mu_0 = 0.5$) and
+$5.64$--$5.84$ ($\mu_0 = 0.9$), within $5\%$ of the asymptotic limit
+$L_0/H_{00}$ of @eq-rate-gap-asymptotic ($3.29$ and $5.88$) at every remaining
+grid point and within $2\%$ once $\bar\rho^2 \gtrsim 0.09$. The
+leading-order ratio $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ does rise
+monotonically over the same range, but it reaches only $1.72$ and $1.86$, and it
+is nearly flat precisely where the empirical curve is steep. It gets the sign of
+the effect and little else.
+
+Feature centering therefore acts on the pass-count ratio as a switch rather than
+as a dial: once the intercept couples to the features at all, the solver sits in
+the intercept-dominated regime, where the first axis alone fixes the ratio. The
+natural explanation---that uncentering inflates $|\beta_0^\star|$ until the
+$R_0^2$ terms dominate @eq-rate-gap, which is the route by which
+@eq-rate-gap-asymptotic is derived---does not survive the sweep. The intercept
+share $|\beta_0^\star| / \|\beta^\star\|$ varies non-monotonically from $0.045$
+to $1.06$ across the saturated cells, and the ratio does not respond to it. At
+$\alpha = 0.3$, $\mu_0 = 0.5$ the share is $0.045$---the intercept contributes
+almost nothing to the cold-start distance---and $T_{\mathrm{G}}/T_{\mathrm{N}}$
+already sits at its plateau value of $3.23$, as flatly as it does in the cells
+where the share is more than twenty times larger. The asymptotic limit is
+reached, but not through the $R_0^2$-dominance mechanism its derivation
+assumes---a gap between @eq-rate-gap and the behavior it predicts that we do not
+close here.
 
 ```{julia}
 #| label: fig-rho-centering
-#| fig-cap: Isolating the $\bar\rho^2$ axis. Holding $\mu_0$ fixed and toggling
-#|   feature centering moves $\bar\rho^2$ from $\approx 0$ (standardized) to
-#|   $\approx 0.5$ (uncentered, with $O(1)$ per-column means) while leaving
-#|   $H_{00}/L_0$ approximately fixed. Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$
-#|   at relative-gap tolerance $10^{-6}$ tracks the @eq-rate-gap leading-order
-#|   prediction $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ along this
-#|   second axis, a constant factor above it, on a problem with $n = 500$, $p =
-#|   1000$, $s = 10$, and $\lambda = 0.05\lambda_{\max}$.
+#| fig-cap: Isolating the $\bar\rho^2$ axis. A centering fraction $\alpha$
+#|   interpolates the design between standardized ($\alpha = 0$) and uncentered
+#|   ($\alpha = 1$), moving the weighted $\bar\rho^2$ from $2 \times 10^{-3}$ to
+#|   $0.51$ while holding $H_{00}/L_0$ *exactly* fixed---the unpenalized
+#|   intercept absorbs a column shift, so $\beta^\star$ and $\hat\eta$ are
+#|   invariant along the sweep. Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ at
+#|   relative-gap tolerance $10^{-6}$ climbs over the first few percent of
+#|   $\bar\rho^2$ and then saturates at the dashed $L_0/H_{00}$ reference, the
+#|   @eq-rate-gap-asymptotic limit, holding within $5\%$ of it from $\bar\rho^2
+#|   \approx 0.04$ onward. The @eq-rate-gap leading-order factor $(1 -
+#|   (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ gets the direction right but is
+#|   nearly flat where the empirical curve is steep and reaches less than half
+#|   its plateau. Shown on a problem with $n = 500$, $p = 1000$, $s = 10$, and
+#|   $\lambda = 0.05\lambda_{\max}$.
 
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
 df = DataFrame(dd["records"])
+sort!(df, [:μ0, :barρ2])
+df.μ0_label = [L"$\mu_0 = %$(v)$" for v in df.μ0]
 
 df_long = stack(
     df,
@@ -1035,21 +1074,27 @@ df_long = stack(
 df_long.quantity = map(df_long.quantity) do q
     q == "empirical_ratio" ?
         L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
-        L"Predicted (eq-rate-gap)${}$"
+        L"Leading-order prediction${}$"
 end
 
 spec = data(df_long) *
-    mapping(
-        :barρ2 => L"Weighted $\bar{\rho}^2$",
-        :ratio => L"$T_{\mathrm{G}}/T_{\mathrm{N}}$",
-        color = :quantity,
-        marker = :μ0 => nonnumeric => L"$\mu_0$",
-    )
+    mapping(:barρ2, :ratio, color = :quantity, col = :μ0_label)
+
+# Dashed per-panel reference at the eq-rate-gap-asymptotic limit L_0/H_00. It is
+# constant along the sweep because H_00 is. Axis labels are set on the axis
+# rather than in the mappings: this layer carries none, and an unlabeled layer
+# would otherwise blank them out.
+spec_ref = data(df) *
+    mapping(:barρ2, :asymptotic_ratio, col = :μ0_label) *
+    visual(Lines, linestyle = :dash, color = :gray)
 
 draw(
-    visual(Scatter; markersize = 14) * spec,
-    axis = (yscale = log10,),
-    figure = (; size = (550, 300)),
+    (visual(Lines) + visual(Scatter)) * spec + spec_ref,
+    axis = (
+        xlabel = L"Weighted $\bar{\rho}^2$",
+        ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}",
+    ),
+    figure = (; size = (700, 280)),
 )
 ```
 
@@ -1079,7 +1124,7 @@ the Lipschitz step satisfies the sufficient-decrease condition on the first
 attempt and the line search never fires.
 
 The picture matches what production direct-CD solvers did at the time these
-experiments were run. skglm (version 0.5)\ [@bertrand2022] used constant
+experiments were run. skglm\ (version 0.5)\ [@bertrand2022] used constant
 per-coordinate Lipschitz steps and, on the unaveraged loss it works with
 internally, a step $4/n$ on the intercept---exactly the gradient strategy as
 defined above (with $L_0 = 1/4$ on the averaged loss), with no line search of
@@ -1106,8 +1151,8 @@ where the guard is actually load-bearing.
 
 #### Constructed Failure Examples
 
-We illustrate the predictions of the strategy comparison on synthetic
-logistic-regression problems with $n = 500$, $p = 1000$, $s = 10$, and
+In this section, we illustrate the predictions of the strategy comparison on
+synthetic logistic-regression problems with $n = 500$, $p = 1000$, $s = 10$, and
 $\lambda = 0.05\lambda_{\max}$.
 
 ```{julia}
@@ -1661,20 +1706,20 @@ finally show that the same pattern appears on real high-dimensional data.
 
 ### Methodology and Reproducibility {#sec-methodology}
 
-All internal-solver experiments use the `Intercepts` Julia package on Julia 1.12
-with the default OpenBLAS. We report outer-pass counts as the primary work
-metric: one pass is one sweep through all $p$ coordinates plus an intercept
-update, and "passes to tolerance" use a target relative duality gap of $10^{-8}$
-unless noted. Pass budgets (`maxit`) are set generously (1000 for the
-single-$\lambda$ figures, 5000 for the heatmap of @sec-imbalance-reg) and are
-clipped only at the figure level when the gradient strategy fails to reach the
-tolerance; those points appear at the budget cap. All synthetic designs are
-standardized (zero mean, unit variance per column) and use cyclic coordinate
-ordering unless we explicitly compare orderings; the AR(1) feature correlation
-parameter is $\rho = 0.6$ by default. Random seeds are fixed per experiment
-script. The heatmap of @sec-imbalance-reg replicates each cell across three
-seeds; the other figures use a single seed because cell-to-cell variability is
-dwarfed by the strategy effect we are isolating.
+All internal-solver experiments use the `Intercepts` Julia package, that we have
+developed for this work, on Julia 1.12 with the default OpenBLAS. We report
+outer-pass counts as the primary work metric: one pass is one sweep through all
+$p$ coordinates plus an intercept update, and "passes to tolerance" use a target
+relative duality gap of $10^{-8}$ unless noted. Pass budgets (`maxit`) are set
+at 1000 for the single-$\lambda$ figures and 5000 for the heatmap of
+@sec-imbalance-reg and are clipped only at the figure level when the gradient
+strategy fails to reach the tolerance; those points appear at the budget cap.
+All synthetic designs are standardized (zero mean, unit variance per column) and
+use cyclic coordinate ordering unless we explicitly compare orderings; the AR(1)
+feature correlation parameter is $\rho = 0.6$ by default. Random seeds are fixed
+per experiment script. The heatmap of @sec-imbalance-reg replicates each cell
+across three seeds; the other figures use a single seed because cell-to-cell
+variability is dwarfed by the strategy effect we are isolating.
 
 Real-data experiments load the LIBSVM problems from a pinned data archive on
 Zenodo---the exact inputs behind every real-data figure, retrieved with
@@ -2268,20 +2313,25 @@ pass-count signature scales with $\mu_0$ and $1/\lambda$, and the convergence
 strategy does not.
 
 This grid, with @fig-rate-gap and @fig-rho-centering, fixes the level at which
-@eq-rate-gap holds: scaling and monotonicity, not magnitude. The empirical ratio
-reproduces every trend the rate-gap argument predicts---it diverges as the
-intercept channel degrades ($H_{00}/L_0 \to 0$) and grows monotonically with
-$\mu_0$, with $1/\lambda$, and with the design coupling $\bar\rho^2$. The
-magnitude is another matter: across this grid the empirical ratio runs a roughly
-constant factor of two to four below the iterate-level @eq-rate-gap prediction
-(@fig-mu-reg-gradient), the expected signature of @eq-rate-gap being a ratio of
-upper bounds built from heuristic substitutions rather than the
-iteration-complexity ratio itself. The same constant-factor offset appears in
-the single-$\lambda$ sweeps: the iterate-level curve sits above the empirical
-ratio in @fig-rate-gap, and the leading-order centering ratio of
-@fig-rho-centering, a first-order approximation rather than the full bound, sits
-a comparable factor below it. The divergence curves are therefore predictions of
-shape, not tight point predictions of $T_{\mathrm{G}}/T_{\mathrm{N}}$.
+@eq-rate-gap holds: scaling and monotonicity, not magnitude. Along the
+$H_{00}/L_0$ axis the empirical ratio reproduces the trends the rate-gap
+argument predicts---it diverges as the intercept channel degrades
+($H_{00}/L_0 \to 0$) and grows monotonically with $\mu_0$ and with $1/\lambda$.
+The magnitude is another matter: across this grid the empirical ratio runs a
+roughly constant factor of two to four below the iterate-level @eq-rate-gap
+prediction (@fig-mu-reg-gradient), the expected signature of @eq-rate-gap being
+a ratio of upper bounds built from heuristic substitutions rather than the
+iteration-complexity ratio itself. The iterate-level curve sits above the
+empirical ratio in @fig-rate-gap for the same reason.
+
+The second axis is where the agreement is weakest. Along the centering sweep of
+@fig-rho-centering the empirical ratio does grow with $\bar\rho^2$, as
+@eq-rate-gap requires, but it saturates at $L_0/H_{00}$ by
+$\bar\rho^2 \approx 0.04$ and stays there while the leading-order factor climbs
+on to $\bar\rho^2 = 0.51$. On that axis @eq-rate-gap predicts neither magnitude
+nor shape, only sign. The divergence curves are therefore predictions of shape
+along the $H_{00}/L_0$ axis and of direction alone along the $\bar\rho^2$ axis,
+not tight point predictions of $T_{\mathrm{G}}/T_{\mathrm{N}}$.
 
 ### Production Solvers {#sec-production-solvers}
 
