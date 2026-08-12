@@ -70,6 +70,11 @@ devenv.local.yaml
 # from results/skglm-controlled/index.csv via sim-skglm-controlled-problem.jl.
 /results/skglm-controlled/cells/
 
+# Per-cell checkpoints for the centering sweep; the large-alpha cells run tens
+# of thousands of passes, so sim-rho-centering.jl resumes from these instead of
+# recomputing. The assembled results/rho-centering.jld2 is the tracked artifact.
+/results/rho-centering/cells/
+
 # Heavy design matrices for the production-solver problems; reproducible
 # from experiments/sim-real-problem.jl. y.csv and meta.json are small
 # enough to keep tracked for documentation of the (n, p, lambda, mu0) cells.
