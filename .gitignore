@@ -96,3 +96,8 @@ devenv.local.yaml
 
 # Upload-ready data archive produced by experiments/build-data-archive.jl.
 /intercepts-data-*.tar.gz
+
+# Dev-facing figure previews from `task fig`. The CSV summaries next to them are
+# tracked on purpose --- their diffs show which figures moved after a re-run ---
+# but the PNGs are binary churn.
+/results/figure-tables/png/

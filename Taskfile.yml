@@ -36,6 +36,16 @@ tasks:
     cmds:
       - quarto render README.qmd
 
+  fig:
+    desc: "Render one paper figure to PNG + summary table (usage: task fig -- fig-rho-centering)"
+    cmds:
+      - "{{.JULIA}} --project=. dev/figure.jl {{.CLI_ARGS}}"
+
+  fig-all:
+    desc: Render every paper figure to PNG + summary tables
+    cmds:
+      - "{{.JULIA}} --project=. dev/figure.jl --all"
+
   paper-render:
     desc: Render the paper
     cmds:
