@@ -16,6 +16,15 @@ author:
       - name: University of Copenhagen
         department: Department of Mathematical Sciences
         url: https://math.ku.dk
+  - name:
+      given: Frederik
+      family: Fabricius Bjerre
+    email: frederik@fabriciusbjerre.dk
+    affiliations:
+      - name: University of Copenhagen
+        department: Department of Mathematical Sciences
+        url: https://math.ku.dk
+
 date: last-modified
 date-modified: last-modified
 description: >
