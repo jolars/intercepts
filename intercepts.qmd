@@ -759,7 +759,7 @@ $$
   - \beta_0^*(\beta)\bigr| = \frac{|\partial_{000} F(\xi)|}{2 H_{00}}(\beta_0 - \beta_0^*)^2.
 $$ {#eq-newton-iterate}
 The same identity kept to first order returns the linear-model estimate
-$\beta\_0 - \beta\_0^\* = \partial\_0 F/H\_{00} + O\bigl((\beta\_0 - \beta\_0^*)^2 \bigr)$,
+$\beta_0 - \beta_0^* = \partial_0 F/H_{00} + O\bigl((\beta_0 - \beta_0^*)^2 \bigr)$,
 so $(\beta_0 - \beta_0^*)^2 = (\partial_0 F)^2/H_{00}^2$ to leading order.
 Substituting this into @eq-newton-iterate and bounding
 $|\partial_{000} F| = |(1/n)\sum_i f'''(\eta_i)| \le \sup|f'''|$ yields
@@ -776,7 +776,7 @@ What matters next is whether the Newton residual harms the first coefficient
 update. Let $r_0 = \beta_0^{\text{Newton}} - \beta_0^*(\beta)$ be the Newton
 residual, with $|r_0|$ bounded by @eq-newton-error. Taylor-expanding
 $\partial_j F$ in $\beta_0$ around the conditional minimizer $\beta_0^*(\beta)$,
-using $\partial_j F(\beta_0^\*, \beta) = \partial_j \tilde F(\beta)$ and
+using $\partial_j F(\beta_0^*, \beta) = \partial_j \tilde F(\beta)$ and
 $\partial_{0j} F = H_{j0}$, yields
 $$
   \partial_j F\bigl(\beta_0^{\text{Newton}}, \beta\bigr) = \partial_j \tilde F(\beta)
@@ -791,8 +791,8 @@ $$ {#eq-newton-good-enough}
 
 This criterion behaves differently in two regimes. Near the optimum,
 $\|r_0\| = O((\partial_0 F)^2)$ shrinks quadratically while
-$\|\partial\_j \tilde F\|$ shrinks only linearly with the iterate's distance
-from the optimum, so the bias becomes negligible. Far from the optimum, the
+$\|\partial_j \tilde F\|$ shrinks only linearly with the iterate's distance from
+the optimum, so the bias becomes negligible. Far from the optimum, the
 inequality can fail when $|f'''|/H_{00}^3$ is large and $|\partial_0 F|$ is
 large at the same time: this is the cold-start regime, particularly for losses
 where $f'''$ grows with $\eta$, such as Poisson ($f''' = e^\eta$). There the
@@ -954,7 +954,7 @@ draw(
 
 @fig-rate-gap shows both evaluations of @eq-rate-gap against the empirical
 ratio. The cold-start prediction, evaluated at
-$\eta^{(0)} = \mathrm{logit}(\mu\_0)$, is computable before solving and reduces
+$\eta^{(0)} = \mathrm{logit}(\mu_0)$, is computable before solving and reduces
 analytically to a convex combination of
 $L_0/H_{00}(\eta^{(0)}) = 1/(4\mu_0(1 - \mu_0))$ (the @sec-imbalance-reg proxy)
 on the intercept share and one on the slope share---the Schur correction is
@@ -1792,7 +1792,7 @@ independent Poisson lasso per term---and the baseline rate $\bar y \approx 12$
 puts the cold-start intercept overshoot $\bar y - 1 \approx 10.83$ versus the
 exact $\log(\bar y) \approx 2.47$ in the regime where the synthetic cold-start
 sweep in @fig-cold-start-poisson starts ($\mu_0 = 10$). Same
-$\lambda = 0.05\lambda\_{\max}$ convention as the logistic panel; cyclic CD with
+$\lambda = 0.05\lambda_{\max}$ convention as the logistic panel; cyclic CD with
 a $1\,000$-pass budget.
 
 ```{julia}
