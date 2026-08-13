@@ -99,6 +99,30 @@ the <experiments/> directory. For example, to reproduce the results for the
 julia --project=. experiments/sim-mu-extreme.jl
 ```
 
+The production-solver comparison uses a two-stage workflow. First, Julia
+generates the shared standardized logistic problem consumed by every solver:
+
+```bash
+julia --project=. experiments/sim-real-problem.jl
+```
+
+Then the solver-specific drivers consume those cached inputs and write the CSV
+outputs used by the paper:
+
+- `Rscript experiments/sim-real-glmnet.R`
+- `Rscript experiments/sim-real-biglasso.R`
+- `Rscript experiments/sim-real-adelie.R`
+- `python experiments/sim-real-skglm.py`
+- `python experiments/sim-real-proxnewton.py`
+
+The exact tolerance grids and iterate caps for these sweeps are encoded in the
+driver scripts. The single-$\lambda$ cold-start diagnostic discussed in the
+paper can be reproduced with:
+
+```bash
+Rscript experiments/sim-cold-start-real.R
+```
+
 ### Render the Quarto document
 
 To render the Quarto document, you can run the following command in the root
