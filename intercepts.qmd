@@ -1635,7 +1635,7 @@ then on real data.
 
 ### Methodology and Reproducibility {#sec-methodology}
 
-All internal-solver experiments use the `Intercepts` Julia package on Julia 1.12
+All internal-solver experiments use the `Intercepts` Julia package on Julia 1.11
 with the default OpenBLAS. We report outer-pass counts as the primary work
 metric: one pass is one sweep through all $p$ coordinates plus an intercept
 update, and "passes to tolerance" means a relative duality gap of $10^{-8}$

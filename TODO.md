@@ -145,7 +145,7 @@ tree; the rest are analysis or presentation judgments to weigh.
 
 Not actionable from this pass: the review's "README structure boilerplate" point
 does not apply --- `README.qmd:31` already uses `<experiments/>` and the
-capitalized `Intercepts` module, and `README.qmd:56` already pins Julia 1.12.6.
+capitalized `Intercepts` module, and `README.qmd:56` already pins Julia 1.11.9.
 
 ## Referee-pass follow-ups (2026-05-21)
 
@@ -167,7 +167,7 @@ there was a conscious call recorded above.
   to Computo's reusable workflows (`global-env.yml` builds the env,
   `publish-render.yml` renders + deploys Pages) and never runs the test
   suite; `test.yml` runs `Pkg.test()` on push / PR and guarantees `src/`.
-  Both pin Julia 1.12 to match the manifest. `build.yml` stays the
+  Both pin Julia 1.11 to match the manifest. `build.yml` stays the
   journal-managed builder (not modified).
 
 ### Claims and framing (major)
