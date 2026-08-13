@@ -1895,6 +1895,7 @@ The main-text panels show cyclic CD; @fig-warm-start-full and
 #|   under cyclic CD; dashed lines use warm starts, solid lines cold starts, and
 #|   curves capped at 300 hit the pass budget. The left panel shows the
 #|   simulated imbalanced problem ($\mu_0 = 0.9$) and the right panel w1a.
+
 dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(
@@ -2178,10 +2179,10 @@ and gradient hit the 5000-pass budget there, making the ratio uninformative.
 
 By contrast, @fig-mu-reg-exact stays nearly flat at zero: the exact/Newton ratio
 is approximately one across the plane, and no cell departs from unity by more
-than $7\%$. This is the outer-pass content of @eq-intercept-drift. When
-both methods converge, the exact strategy needs essentially the same number of
-outer passes as bare Newton. Its price is therefore an inner-step overhead, not
-an outer-pass overhead, which is exactly what @sec-per-pass-cost measures.
+than $7\%$. This is the outer-pass content of @eq-intercept-drift. When both
+methods converge, the exact strategy needs essentially the same number of outer
+passes as bare Newton. Its price is therefore an inner-step overhead, not an
+outer-pass overhead, which is exactly what @sec-per-pass-cost measures.
 
 Taken together, the two heatmaps show what @eq-rate-gap does and does not
 predict. Along the $H_{00}/L_0$ axis, it captures scaling and monotonicity well:
