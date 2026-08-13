@@ -67,7 +67,7 @@ function cdsolver(
     inner_steps = Int[]
     t0 = time()
 
-    # Tseng--Yun proximal-Newton CD: each coord step is wrapped in an Armijo
+    # Tseng-Yun proximal-Newton CD: each coord step is wrapped in an Armijo
     # backtrack so the iterate is descent by construction.
     armijo_c = 1.0e-4
     armijo_shrink = 0.5
@@ -185,7 +185,7 @@ function cdsolver(
                     loss_trial = loss(lossfun, η_trial, y)
                     ΔF = (loss_trial - loss_eta) + λ * (abs(coef_j + factor) - abs(coef_j))
 
-                    # Tseng--Yun sufficient decrease + FP-precision tolerance
+                    # Tseng-Yun sufficient decrease + FP-precision tolerance
                     # for near-optimal iterates where loss_trial - loss_eta is
                     # cancellation-noise.
                     fp_tol = 4 * eps(Float64) * (1.0 + abs(loss_eta))

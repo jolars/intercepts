@@ -242,7 +242,7 @@ function real_experiment(
         else
             keep = [
                 !iszero(maximum(@view X[:, j]) - minimum(@view X[:, j]))
-                for j in 1:size(X, 2)
+                for j in axes(X, 2)
             ]
         end
         X = X[:, keep]
