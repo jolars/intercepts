@@ -1176,11 +1176,15 @@ cold start, a large $|\partial_0 F|$ can make an unguarded Newton step on the
 intercept unstable. @fig-cold-start tests that directly by running bare Newton
 (no Armijo) alongside the guarded variant and the exact strategy. On logistic
 regression, including the adversarial $\mu_0 = 0.99$ row, the three trajectories
-are indistinguishable. The Armijo guard accepts $\alpha = 1$ at every intercept
-update the solver visits, so in this setting it reduces to the bare Newton step
-at trivial overhead. The bounded Hessian $f'' = \mu(1 - \mu) \le 1/4$ is what
-makes this possible: the linear model is globally accurate enough that the full
-Newton step on the intercept always descends.
+are indistinguishable. The Armijo guard rarely fires: twelve of the twenty runs
+(five seeds at each of the four $\mu_0$ levels) are bit-identical to the bare
+Newton step, and the eight that diverge do so late in the solve---at pass $78$
+or beyond, never at cold start---costing a pass or two in either direction. The
+lone exception is one $\mu_0 = 0.99$ seed, where the guarded run takes $759$
+passes against the bare step's $643$. The bounded Hessian
+$f'' = \mu(1 - \mu) \le 1/4$ is what makes this possible: the linear model is
+globally accurate enough that the full Newton step on the intercept always
+descends.
 
 The picture changes for unbounded-Hessian losses. For Poisson regression with
 the canonical log link, $f''(\eta) = e^\eta$ and $f'''(\eta) = e^\eta$ both grow
@@ -1221,12 +1225,17 @@ draw(
 $\mu_0 = 300$ the bare Newton intercept step at cold start lands near
 $\bar{y} - 1 \approx 299$ while the exact optimum is
 $\log(\bar{y}) \approx 5.7$, an $\approx 50 \times$ overshoot that evaluates the
-loss at $e^{299}$. The unguarded trajectory is recoverable here because the
-outer CD loop's own per-coordinate Armijo guard absorbs the resulting transient
-over the next few passes, so the final primal matches; the cost is a pass-one
-relative gap that sits several orders of magnitude above the guarded trajectory.
-The exact strategy is competitive in both experiments but pays the
-within-pass-drift cost identified in @eq-intercept-drift.
+loss at $e^{299}$. The primal records the transient: after the first pass the
+unguarded runs sit between $+2 \times 10^6$ and $+5 \times 10^6$ across the five
+seeds, where the guarded ones are already near $-2 \times 10^5$. It is
+nonetheless recoverable, because the outer CD loop's own per-coordinate Armijo
+guard absorbs the overshoot over the next few passes, and the final primals
+agree to every digit we report. The relative duality gap the figure plots hides
+that excursion, since it divides by $|F|$ and so shrinks exactly when the primal
+blows up; on that axis the three strategies stay within the seed-to-seed spread
+at every $\mu_0$. The guard therefore buys iterate sanity rather than a visible
+rate gain here. The exact strategy is competitive in both experiments but pays
+the within-pass-drift cost identified in @eq-intercept-drift.
 
 #### Extension to Vector Intercepts
 
@@ -1297,12 +1306,13 @@ that gap below $10^{-4}$, certifying $F^\star$ as the optimum. A stalling run is
 therefore scored against the shared optimum, not against its own lowest primal.
 
 The gradient strategy stalls, as expected. With the marginal class probabilities
-above, the rare-class diagonal entries $H_{00,4,4}, H_{00,5,5}$ are roughly
-twentieth-of-$L_0$ small, and the gradient strategy's per-class correction along
-those coordinates is correspondingly microscopic. The strategy reaches the same
+above, the rare-class diagonal entries $H_{00,4,4}, H_{00,5,5}$ sit near
+$0.05 \times 0.95 \approx 0.05$, about a tenth of the Böhning majorant
+$L_0 = 1/2$ that the gradient strategy divides by, so its per-class correction
+along those coordinates is correspondingly small. The strategy reaches the same
 optimum but takes roughly an order of magnitude longer: the Newton and exact
-strategies converge in under a hundred passes, while the gradient strategy needs
-most of the thousand-pass budget.
+strategies converge in $47$ to $107$ passes across the three seeds, while the
+gradient strategy needs $451$ to the full thousand-pass budget.
 
 The Newton and exact strategies collapse to a single visible curve. The
 $(K - 1)$-block Newton solve distributes each per-class correction through the
@@ -1754,7 +1764,7 @@ different sparse designs: w1a ($\mu_0 = 0.029$, a $300$-feature web indicator
 panel) needs ${ \approx }5 \times$ more gradient passes than Newton to relative
 gap $10^{-6}$, and news20-3pct ($\mu_0 = 0.030$, a $4\,675$-feature bag-of-words
 text panel after dropping low-support vocabulary) reproduces a
-${ \approx }4 \times$ ratio at $10^{-4}$ before hitting the $120\mathrm{s}$
+${ \approx }6 \times$ ratio at $10^{-4}$ before hitting the $120\mathrm{s}$
 wall-time cap. Both sit within the constant-factor offset of the leading-order
 $L_0/H_{00}$ prediction that @fig-rate-gap exhibits, and the cross-design
 agreement shows the gap is a property of the response imbalance, not of the w1a
@@ -1807,9 +1817,9 @@ form of the $L_0 = \infty$ structural-inadequacy claim from
 loss family. The Newton-class strategies agree on a single trajectory because
 the cdsolver's per-coordinate Armijo loop (Tseng--Yun sufficient decrease,
 @algo-cd) absorbs the cold-start overshoot before the first intercept update
-fires; the synthetic sweep of @fig-cold-start-poisson at $\mu_0 = 10$ shows the
-same coincidence and requires $\mu_0 \ge 30$ to separate the guarded and
-unguarded curves visibly.
+fires; the synthetic sweep of @fig-cold-start-poisson shows the same
+coincidence, with the guarded and unguarded relative-gap curves staying inside
+the seed-to-seed spread at every baseline rate we ran.
 
 ### Cyclic vs Permuted Ordering {#sec-ordering}
 
@@ -1880,11 +1890,11 @@ The main-text panels show cyclic CD; @fig-warm-start-full and
 
 ```{julia}
 #| label: fig-warm-start
-#| fig-cap: Warm-started and cold-started regularization paths.
-#|   The panels show outer passes per subproblem along a logistic-regression
-#|   $\lambda$ path under cyclic CD; solid lines use warm starts, dashed lines
-#|   cold starts, and curves capped at 300 hit the pass budget. Left: the
-#|   simulated imbalanced problem ($\mu_0 = 0.9$). Right: w1a.
+#| fig-cap: Warm-started and cold-started regularization paths. The panels show
+#|   outer passes per subproblem along a logistic-regression $\lambda$ path
+#|   under cyclic CD; dashed lines use warm starts, solid lines cold starts, and
+#|   curves capped at 300 hit the pass budget. The left panel shows the
+#|   simulated imbalanced problem ($\mu_0 = 0.9$) and the right panel w1a.
 dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(
@@ -1928,8 +1938,8 @@ draw(
 #| label: fig-warm-start-mechanism
 #| fig-cap: Initial intercept gradients along the regularization path. The
 #|   panels show $|\partial_0 F|$ at the initial iterate of each subproblem for
-#|   the same path and cyclic-CD setup as @fig-warm-start; solid lines use warm
-#|   starts and dashed lines cold starts.
+#|   the same path and cyclic-CD setup as @fig-warm-start; dashed lines use warm
+#|   starts and solid lines cold starts.
 
 spec_partial = data(df_cyclic) *
     mapping(
@@ -2142,9 +2152,12 @@ draw(
 The main pattern in @fig-mu-reg-gradient is simple: at any fixed $\lambda$,
 greater imbalance makes the gradient strategy slower relative to Newton. The
 gradient/Newton pass-count ratio rises from roughly one at $\mu_0 = 0.5$ to
-about ten at $\mu_0 = 0.99$, $\lambda = 0.01\lambda_{\max}$, where the gradient
-strategy saturates the 5000-pass budget and the displayed ratio is therefore
-only a lower bound.
+about seven at $\mu_0 = 0.99$ for $\lambda \in \{0.05, 0.02\}\lambda_{\max}$,
+the largest ratios on the grid. The $\mu_0 = 0.99$,
+$\lambda = 0.01\lambda_{\max}$ corner is the only cell in which any run
+saturates the 5000-pass budget, and it saturates for both strategies, so its
+displayed ratio of $2.0$ reads as uninformative rather than extreme; we return
+to it below.
 
 At $\lambda = 0.05\lambda_{\max}$, the regime most relevant to the production
 path experiments, the empirical ratios across the five $\mu_0$ values are
@@ -2165,7 +2178,7 @@ and gradient hit the 5000-pass budget there, making the ratio uninformative.
 
 By contrast, @fig-mu-reg-exact stays nearly flat at zero: the exact/Newton ratio
 is approximately one across the plane, and no cell departs from unity by more
-than about 12 %. This is the outer-pass content of @eq-intercept-drift. When
+than $7\%$. This is the outer-pass content of @eq-intercept-drift. When
 both methods converge, the exact strategy needs essentially the same number of
 outer passes as bare Newton. Its price is therefore an inner-step overhead, not
 an outer-pass overhead, which is exactly what @sec-per-pass-cost measures.
@@ -2339,9 +2352,16 @@ Newton-class solvers are fast. To separate that claim from any other codebase
 differences, @fig-skglm-controlled compares two skglm commits that differ only
 in the intercept update: `b03644fe`, the last pre-fix commit and behaviorally
 identical to the released 0.5, and `8f9cbd77`, the merged Newton fix. Running
-the same `AndersonCD` driver on both yields a clean 30-cell comparison whose
-pass-count ratios mirror @fig-mu-reg-gradient: near unity at low imbalance, then
-increasing monotonically with $\mu_0$ and $1/\lambda$.
+the same `AndersonCD` driver on both yields a clean 30-cell comparison that
+reproduces the trend of @fig-mu-reg-gradient---the ratio grows with $\mu_0$ and
+with $1/\lambda$---at a far larger scale, and without the monotonicity holding
+cell by cell. The pre-fix commit needs $30 \times$ the iterations of the
+post-fix one already at $\mu_0 = 0.5$, $\lambda = 0.5\lambda_{\max}$, and up to
+$417 \times$ at $\mu_0 = 0.99$, $\lambda = 0.01\lambda_{\max}$. The floor is
+this high because `AndersonCD` reaches its tolerance in $1$ to $18$ outer
+iterations once the intercept takes a Newton step, so any residual intercept
+climb dominates the count; the $20$ of $90$ pre-fix runs that hit the
+5000-iteration cap put a lower bound on their cell's ratio rather than a value.
 
 ```{julia}
 #| label: fig-skglm-controlled
@@ -2547,8 +2567,8 @@ from scratch, the unguarded Newton intercept update predicted to be unstable by
 @eq-newton-coupling does fail in production code on the two most imbalanced real
 problems. The diagnostic in @tbl-cold-start-diag runs each solver at
 $\lambda = 0.05\lambda_{\max}$ with $\text{eps} = 10^{-1}$, sweeping the iterate
-cap from $10^1$ to $10^5$; the path-mode reference primal is $0.0497$ on both
-datasets.
+cap from $10^1$ to $10^5$; the path-mode reference primal is $0.0634$ on w1a and
+$0.0497$ on news20-3pct.
 
   | dataset     | solver                             | $\beta_0$                     | primal  | iterations             |
   | :---------- | :--------------------------------- | :---------------------------- | ------: | :--------------------- |
@@ -2563,7 +2583,7 @@ datasets.
     reports the intercept estimate, primal objective, and iteration count at
     $\lambda = 0.05\lambda_{\max}$ with $\text{eps} = 10^{-1}$; the iterate cap
     is swept from $10^1$ to $10^5$, and the path-mode reference primal is
-    $0.0497$ on both datasets. {#tbl-cold-start-diag}
+    $0.0634$ on w1a and $0.0497$ on news20-3pct. {#tbl-cold-start-diag}
 
 The main lesson of @tbl-cold-start-diag is that the global majorant $L_0 = 1/4$
 acts as an $X$-free safeguard on the intercept: two scalars ($n$ and $\bar y$)
@@ -2686,8 +2706,8 @@ draw(
 #| label: fig-warm-start-full
 #| fig-cap: Full warm-started and cold-started regularization paths. The panels
 #|   show outer passes per subproblem along the logistic-regression $\lambda$
-#|   path for cyclic CD (top) and permuted CD (bottom); solid lines use warm
-#|   starts, dashed lines cold starts, and curves capped at 300 hit the pass
+#|   path for cyclic CD (top) and permuted CD (bottom); dashed lines use warm
+#|   starts, solid lines cold starts, and curves capped at 300 hit the pass
 #|   budget.
 
 dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
@@ -2729,8 +2749,8 @@ draw(
 #| label: fig-warm-start-mechanism-full
 #| fig-cap: Full initial-gradient regularization paths. The panels show
 #|   $|\partial_0 F|$ at the initial iterate of each subproblem along the
-#|   $\lambda$ path for cyclic CD (top) and permuted CD (bottom); solid lines
-#|   use warm starts and dashed lines cold starts.
+#|   $\lambda$ path for cyclic CD (top) and permuted CD (bottom); dashed lines
+#|   use warm starts and solid lines cold starts.
 
 spec_partial = data(df) *
     mapping(
