@@ -1141,12 +1141,12 @@ draw(
 )
 ```
 
-The first prediction is the Schur-coupling residual (@eq-grad-residual): the
-gradient strategy's correction is multiplied by $H_{00}/L_0$, which collapses as
-the response imbalance $\mu_0$ approaches one. @fig-mu-extreme shows exactly
-this collapse: the gradient strategy plateaus and fails to reach the tolerance
-within the outer-pass budget at $\mu_0 = 0.99$, while the other strategies are
-essentially unaffected.
+The Schur-coupling residual (@eq-grad-residual) gives the first prediction. The
+gradient strategy scales its intercept correction by $H_{00}/L_0$, and that
+factor collapses as the response imbalance $\mu_0$ approaches one.
+@fig-mu-extreme shows exactly this behavior: the gradient strategy plateaus and
+fails to reach the tolerance within the outer-pass budget at $\mu_0 = 0.99$,
+while the other strategies are essentially unaffected.
 
 ```{julia}
 #| label: fig-cold-start
@@ -1172,16 +1172,16 @@ draw(
 )
 ```
 
-The second prediction is the Newton-coupling bias (@eq-newton-coupling): an
-unguarded Newton step on the intercept can be perturbed by a large
-$|\partial_0 F|$ at cold start. @fig-cold-start tests this prediction directly
-by running the bare-Newton variant (no Armijo) alongside the guarded variant and
-the exact strategy: on logistic regression, including the adversarial
-$\mu_0 = 0.99$ row, the three trajectories are indistinguishable. The Armijo
-guard accepts $\alpha = 1$ at every intercept update the solver visits, so it
-reduces to the bare Newton step at trivial overhead. The bounded Hessian
-$f'' = \mu(1 - \mu) \le 1/4$ is what makes this work: the linear model is
-globally adequate enough that the full Newton step on the intercept always
+The Newton-coupling bias (@eq-newton-coupling) gives the second prediction: at
+cold start, a large $|\partial_0 F|$ can make an unguarded Newton step on the
+intercept unstable. @fig-cold-start tests that directly by running bare Newton
+(no Armijo) alongside the guarded variant and the exact strategy. On logistic
+regression, including the adversarial $\mu_0 = 0.99$ row, the three
+trajectories are indistinguishable. The Armijo guard accepts $\alpha = 1$ at
+every intercept update the solver visits, so in this setting it reduces to the
+bare Newton step at trivial overhead. The bounded Hessian
+$f'' = \mu(1 - \mu) \le 1/4$ is what makes this possible: the linear model is
+globally accurate enough that the full Newton step on the intercept always
 descends.
 
 The picture changes for unbounded-Hessian losses. For Poisson regression with
@@ -1234,7 +1234,7 @@ within-pass-drift cost identified in @eq-intercept-drift.
 
 The scalar story extends almost verbatim to multinomial logistic regression with
 $K$ classes, where the intercept is a vector $\beta_0 \in \mathbb{R}^{K - 1}$
-under the reference-class parameterisation $\eta_{iK} = 0$. Writing
+under the reference-class parameterization $\eta_{iK} = 0$. Writing
 $\eta_{ik} = x_i^\intercal \beta_k + \beta_{0k}$ for $k = 1, \dots, K - 1$ and
 $p_{ik} = e^{\eta_{ik}}/\bigl(1 + \sum_{l < K} e^{\eta_{il}}\bigr)$, the
 per-observation Hessian block has diagonal $p_{ik}(1 - p_{ik})$ and off-diagonal
@@ -1528,7 +1528,7 @@ recomputed. This outer-level drift is analogous to but distinct from the
 within-pass drift of @eq-intercept-drift, which is direct-CD-specific.
 
 The practical map is therefore richer than the direct-CD analysis alone
-suggests. @tbl-classification summarises where each production solver falls.
+suggests. @tbl-classification summarizes where each production solver falls.
 Among the CD-based packages we surveyed, only skglm 0.5 and earlier are genuine
 direct-CD-gradient-strategy realizations on the original loss. The remaining
 solvers---glmnet, biglasso, adelie, LIBLINEAR, BlitzL1, Lasso.jl, ncvreg---all
@@ -1567,7 +1567,7 @@ explicit 1-D Newton convergence loop on the original loss after each subproblem;
 LIBLINEAR arrives there as a byproduct of leaving the intercept unregularized
 inside the inner CD, whose QP convergence carries the intercept to its
 conditional minimum on the quadratic. The within-pass drift of
-@eq-intercept-drift penalises exact-strategy within direct CD because the inner
+@eq-intercept-drift penalizes exact-strategy within direct CD because the inner
 Hessian drifts between iterations; that critique does not apply at the
 prox-Newton boundary, where the next subproblem's Hessian is recomputed anyway.
 The structural distinction between the families thus carries over to a sensible
@@ -1615,14 +1615,14 @@ A reader may notice that Local-IRLS also outpaces Direct-CD with the Newton
 strategy on this problem. This reflects the broader trade-off between
 algorithmic families rather than a comparison of intercept strategies: IRLS-CD
 enjoys a constant inner Hessian and locally quadratic outer convergence, which
-favours it on canonical-link GLMs where the linearization is tight. Direct-CD
+favors it on canonical-link GLMs where the linearization is tight. Direct-CD
 has the edge when $f'''$ is large (e.g.\
 Poisson with extreme rates, where each linearization is loose far from the
 current iterate), when working-response instability under saturation matters, or
 when screening and working-set methods (standard in modern $\ell_1$ solvers)
 compose poorly with re-linearization\ [@bertrand2022]. Our strategy analysis is
 orthogonal to this family choice: within either family, the recommendation
-against the gradient strategy and in favour of Newton carries through.
+against the gradient strategy and in favor of Newton carries through.
 
 ## Results {#sec-results}
 
@@ -1666,40 +1666,44 @@ with the paper repository.
 
 ### Simulated Data
 
-The first prediction we test in @sec-theory is the Schur-coupling residual
-(@eq-grad-residual): the gradient strategy's effective per-pass step on the
-intercept is the bare gradient step shrunk by $H_{00}/L_0$, so the strategy
-slows as the imbalance $\mu_0$ pushes $H_{00}$ toward zero with $L_0 = 1/4$
-unchanged. @fig-mu-extreme already exhibits this collapse on the standardized
+We begin with the simplest prediction from @sec-theory. The
+Schur-coupling residual (@eq-grad-residual) says that the gradient strategy's
+effective intercept step is the bare gradient step scaled by $H_{00}/L_0$. As
+imbalance pushes $\mu_0$ toward one, $H_{00}$ shrinks while $L_0 = 1/4$ stays
+fixed, so the intercept update should slow.
+
+@fig-mu-extreme shows exactly that collapse on the standardized
 binary-logistic design ($n = 500$, $p = 1000$, $s = 10$, $\rho = 0.6$,
-$\lambda = 0.05\lambda_{\max}$) used throughout the simulated experiments below:
-the gradient strategy is competitive at $\mu_0 = 0.5$, slows visibly past
-$\mu_0 = 0.9$, and fails to reach the tolerance within budget at $\mu_0 = 0.99$,
-while the Newton and exact strategies overlay each other across every level. The
-bare-Newton and exact trajectories agreeing is the outer-pass content of the
-within-pass drift (@eq-intercept-drift); the per-pass inner cost the two
-strategies differ on is made visible in @sec-per-pass-cost. The quantitative
-scaling of the gradient/Newton ratio with $\mu_0$ and $\lambda$ on the same
-design is taken up in @sec-imbalance-reg and @fig-mu-reg-gradient.
+$\lambda = 0.05\lambda_{\max}$) used throughout the simulated experiments
+below. The gradient strategy is competitive at $\mu_0 = 0.5$, slows visibly
+past $\mu_0 = 0.9$, and fails to reach the tolerance within budget at
+$\mu_0 = 0.99$. By contrast, the Newton and exact strategies lie almost
+directly on top of each other across the full sweep. That overlap is the
+outer-pass content of @eq-intercept-drift; @sec-per-pass-cost returns to the
+per-pass inner work on which those two strategies still differ. The
+gradient-versus-Newton scaling with $\mu_0$ and $\lambda$ on the same design is
+taken up in @sec-imbalance-reg and @fig-mu-reg-gradient.
 
 ### Real Data
 
-The complementary prediction is that the same scaling holds across real problems
-with different $(\mu_0,\text{density},n,p)$. We run the three strategies on six
-LIBSVM benchmark problems at $\lambda = 0.05\lambda_{\max}$, listed in
-@tbl-real-logreg-problems and ordered by predicted slowdown
+The same scaling should appear on real problems, not just on the simulated
+design. We therefore run the three strategies on six LIBSVM benchmark problems
+at $\lambda = 0.05\lambda_{\max}$, listed in @tbl-real-logreg-problems and
+ordered by the predicted slowdown
 $L_0/H_{00} = 1 / (4 \mu_0 (1 - \mu_0))$ (the table lists its reciprocal
 $H_{00}/L_0$). The set spans a $9 \times$ range in $L_0/H_{00}$ and five
 distinct design families: the Webb web-pages binary w1a, a subsampled
 news20.binary bag-of-words text design (news20-3pct, 60 positives and 1\,940
 negatives drawn deterministically from `news20.binary`), the UCI Adult census
 (a4a) at moderate imbalance, the high-dimensional genomic leukemia microarray
-($n \ll p$, penalty-dominated), the small-$p$ Wisconsin breast cancer panel, and
-dense balanced gisette. The two severely-imbalanced points (w1a, news20-3pct)
-sit at near-identical $\mu_0$ on very different designs---a $300$-feature sparse
-web indicator panel versus a $1.3\mathrm{M}$ vocabulary text bag-of-words---so
-any framework prediction that survives both is not a property of the w1a design
-specifically.
+($n \ll p$, penalty-dominated), the small-$p$ Wisconsin breast cancer panel,
+and dense balanced gisette.
+
+The two most imbalanced problems, w1a and news20-3pct, are especially useful.
+They sit at nearly the same $\mu_0$ on very different designs---a
+$300$-feature sparse web indicator panel versus a
+$1.3\mathrm{M}$-vocabulary text bag-of-words. Any prediction that survives both
+is therefore not a quirk of w1a in particular.
 
   | dataset       | $n$   | $p$   | density | $\mu_0$ | $H_{00}/L_0$ |
   | :------------ | ----: | ----: | :------ | ------: | -----------: |
@@ -1823,7 +1827,7 @@ ordering, but a residual concern is that strict cyclic order deterministically
 pairs the intercept solve with the same first coordinate on every pass, which
 could compound the drift. Under the per-coordinate Armijo backtrack that the
 cdsolver applies after every coordinate update (@sec-methodology), this concern
-does not materialise: on the w1a benchmark of @fig-first-example all three
+does not materialize: on the w1a benchmark of @fig-first-example all three
 strategies converge under both orderings and the pass-count differences are
 within a factor of $1.4$ (@fig-first-example-ordering). Cyclic order is in fact
 slightly faster than permuted on this problem for Newton ($157$ vs $187$ passes)
@@ -1864,7 +1868,7 @@ setting in which the theoretical critique of @eq-intercept-drift and the
 imbalance collapse of @eq-grad-residual bite hardest. Production users rarely
 solve a single $\lambda$ in isolation; they sweep a grid
 $\lambda_1 > \lambda_2 > \dots > \lambda_K$ and warm-start each subproblem from
-the previous solution. As anticipated in the steelman paragraph above,
+the previous solution. As the warm-start argument above suggests,
 warm-starting begins each subproblem with $|\partial_0 F|$ already small. The
 Newton-coupling bias (@eq-newton-coupling) then predicts that the bare Newton
 step is essentially exact at the start, so $k_0 \in \{1, 2\}$ in the exact
@@ -1961,16 +1965,16 @@ contrast, sets the initial iterate to zero at every $\lambda$, so
 $|\partial_0 F|$ is the marginal class imbalance---roughly $10^2$ on the
 simulated problem and $1.2 \times 10^3$ on w1a, identical across strategies.
 
-The pass-count panel (@fig-warm-start) shows the predicted compression with one
+The pass-count panel (@fig-warm-start) shows the expected compression, with one
 caveat. On both problems and both orderings, warm-starting trims the few
 pass-budget-capped subproblems for the Newton and exact strategies (on w1a from
 $2$--$4$ out of $20$ cold to $2$ out of $20$ warm, depending on ordering and
-strategy) and brings their curves on top of each other---this is the steelman
-prediction of @eq-intercept-drift: with $|\partial_0 F|$ already small, the
-$k_0 - 1$ per-pass penalty of the exact strategy evaporates. Warm-starting also
-tightens the bare Newton solve at very small $\lambda$ on w1a, where the
-cold-start trajectory hits the pass budget at relative gaps two to three orders
-of magnitude looser than its warm-start counterpart.
+strategy) and brings their curves nearly on top of each other. This is exactly
+what @eq-intercept-drift suggests: once $|\partial_0 F|$ is already small, the
+$k_0 - 1$ per-pass penalty of the exact strategy largely disappears.
+Warm-starting also tightens the bare Newton solve at very small $\lambda$ on
+w1a, where the cold-start trajectory hits the pass budget at relative gaps two
+to three orders of magnitude looser than its warm-start counterpart.
 
 The compression is uneven, however. The gradient strategy is essentially
 unaffected by warm-starting on w1a---both cold and warm hit the pass budget on
@@ -1982,13 +1986,12 @@ point cannot compensate for the shrinking correction. The simulated problem
 competitive cold, and warm-start contributes only a uniform $\approx 5\%$
 reduction in pass count across the board.
 
-The takeaway: warm-starting validates the steelman for Newton-class strategies
-(bare Newton and the exact strategy converge to each other) but does not extend
-the gradient strategy's scope. The recommendation that follows from
-@eq-intercept-drift---bare Newton in direct CD, exact strategy at the
-prox-Newton/IRLS boundary---stands, with the addendum that the exact strategy
-becomes a defensible alternative to bare Newton whenever a path solve is in fact
-used.
+Warm-starting therefore narrows the gap between the Newton-class strategies:
+bare Newton and the exact strategy become hard to distinguish in practice. It
+does not, however, rescue the gradient strategy. The recommendation from
+@eq-intercept-drift still stands---bare Newton in direct CD, exact strategy at
+the prox-Newton/IRLS boundary---with the added nuance that the exact strategy
+becomes a defensible alternative when a path solve is already being used.
 
 ### Per-Pass Cost Decomposition {#sec-per-pass-cost}
 
@@ -2055,27 +2058,27 @@ draw(
 )
 ```
 
-The two figures together make the $k_0 - 1$ overhead claim concrete.
-@fig-per-pass-cost shows $k_0$ peaking at the cold-start pass (6, 4, and 3 inner
-steps for $\mu_0 = 0.99,0.9,0.5$ respectively) and decaying to one by the time
-the iterate is near the joint optimum. The relative overhead summed across the
-run---total inner Newton steps for the exact strategy divided by the Newton
-strategy's pass-count baseline---is $1.30 \times$ at $\mu_0 = 0.5$,
-$1.50 \times$ at $\mu_0 = 0.9$, and $1.59 \times$ at $\mu\_0 = 0.99$, scaling
-monotonically with the imbalance that drives $|\partial_0 F|$ at cold start.
-@fig-per-pass-progress shows that this extra inner work does not translate into
-faster per-pass progress: both strategies trace essentially the same
-relative-gap curve and finish in comparable pass counts (Newton: 109/107/121;
-exact: 109/108/120). The wasted-work claim is therefore quantitatively visible:
-the gap between the two curves in @fig-per-pass-cost integrates to strictly
-positive inner Newton work for which @fig-per-pass-progress records no return.
+The two figures make the $k_0 - 1$ overhead claim concrete. In
+@fig-per-pass-cost, $k_0$ peaks on the cold-start pass (6, 4, and 3 inner steps
+for $\mu_0 = 0.99, 0.9, 0.5$ respectively) and then decays to one as the
+iterate approaches the joint optimum. Summed across the run, the relative
+overhead---total inner Newton steps for the exact strategy divided by the
+Newton strategy's pass-count baseline---is $1.30 \times$ at $\mu_0 = 0.5$,
+$1.50 \times$ at $\mu_0 = 0.9$, and $1.59 \times$ at $\mu_0 = 0.99$. The trend
+is monotone in the same imbalance that drives $|\partial_0 F|$ at cold start.
 
-The penalty here is modest because quadratic Newton convergence on the 1D
-intercept subproblem keeps $k_0 = O(\log\log(1/\varepsilon))$, well below the
-inner-loop cap of 20, and most passes need only a single inner step. The regime
-where @eq-intercept-drift bites hardest is the cold-start,
-large-$|\partial_0 F|$ window of the first few outer passes; the steelman
-regimes in @sec-warmstart-path are precisely those where this window is avoided.
+@fig-per-pass-progress shows why that extra work is hard to justify. The Newton
+and exact strategies trace almost the same relative-gap curve and finish in
+comparable pass counts (Newton: 109/107/121; exact: 109/108/120). In other
+words, the exact strategy spends strictly more inner Newton work for essentially
+the same outer-pass progress.
+
+The penalty is modest because quadratic Newton convergence on the 1D intercept
+subproblem keeps $k_0 = O(\log\log(1/\varepsilon))$, well below the inner-loop
+cap of 20, and most passes need only a single inner step. Still, the pattern is
+clear: the exact strategy pays its price in the first few cold-start passes,
+when $|\partial_0 F|$ is largest. The warm-start regime of @sec-warmstart-path
+largely avoids that window.
 
 ### Imbalance and Regularization {#sec-imbalance-reg}
 
@@ -2147,60 +2150,54 @@ draw(
 )
 ```
 
-@fig-mu-reg-gradient is monotone in $\mu_0$ across every column: at fixed
-$\lambda$, increasing imbalance grows the gradient/Newton pass-count ratio from
-roughly one at $\mu_0 = 0.5$ to about ten at $\mu_0 = 0.99$,
-$\lambda = 0.01\lambda_{\max}$, where the gradient strategy saturates the
-5000-pass budget (the ratio there is a lower bound). At
-$\lambda = 0.05\lambda_{\max}$ (the working regime along glmnet's path) the
-empirical ratios across the five $\mu_0$ values are
-$\{1.0, 1.1, 1.8, 3.0, 6.8\}$, against an iterate-level
-$L_0/H_{00}(\hat\eta) = \{3.2, 3.3, 4.4, 5.7, 12.3\}$ measured at the
-Newton-converged iterate on the same cells (mean over three seeds). The
-prediction sits a constant factor above empirical that narrows from
-$\approx 3 \times$ at $\mu_0 = 0.5$ to $\approx 2 \times$ at $\mu_0 = 0.99$. The
-cold-start proxy
+The main pattern in @fig-mu-reg-gradient is simple: at any fixed $\lambda$,
+greater imbalance makes the gradient strategy slower relative to Newton. The
+gradient/Newton pass-count ratio rises from roughly one at $\mu_0 = 0.5$ to
+about ten at $\mu_0 = 0.99$, $\lambda = 0.01\lambda_{\max}$, where the
+gradient strategy saturates the 5000-pass budget and the displayed ratio is
+therefore only a lower bound.
+
+At $\lambda = 0.05\lambda_{\max}$, the regime most relevant to the production
+path experiments, the empirical ratios across the five $\mu_0$ values are
+$\{1.0, 1.1, 1.8, 3.0, 6.8\}$. The corresponding iterate-level
+$L_0/H_{00}(\hat\eta)$ values at the Newton-converged solution are
+$\{3.2, 3.3, 4.4, 5.7, 12.3\}$ (mean over three seeds). The theory therefore
+gets the ordering and the growth right, but it overstates the magnitude by a
+fairly stable factor: about $3 \times$ at $\mu_0 = 0.5$ and about $2 \times$
+at $\mu_0 = 0.99$. The cold-start proxy
 $L_0/H_{00}(0) = 1/(4\mu_0(1 - \mu_0)) = \{1.00, 1.19, 2.78, 5.26, 25.25\}$ is
 looser still at high imbalance because active features pull $H_{00}$ above its
-intercept-only value $\mu_0(1 - \mu_0)$ at this $\lambda$. As $\lambda$ shrinks
-the active set widens, $H_{00}$ falls toward and beyond $\mu_0(1 - \mu_0)$, and
-the empirical ratio grows: at $\lambda = 0.01\lambda_{\max}$ the empirical row
-for $\mu_0 \in \{0.5, 0.7, 0.9, 0.95\}$ is $\{1.7, 1.8, 4.0, 5.4\}$; the
-$\mu_0 = 0.99$ corner is omitted because both Newton and gradient saturate the
-5000-pass budget there and the ratio collapses to a meaningless
-$\approx 2 \times$.
+intercept-only value $\mu_0(1 - \mu_0)$ at this $\lambda$. As $\lambda$
+shrinks, the active set widens, $H_{00}$ falls toward and beyond
+$\mu_0(1 - \mu_0)$, and the empirical ratio grows with it. At
+$\lambda = 0.01\lambda_{\max}$, for example, the empirical row for
+$\mu_0 \in \{0.5, 0.7, 0.9, 0.95\}$ is $\{1.7, 1.8, 4.0, 5.4\}$; we omit the
+$\mu_0 = 0.99$ corner because both Newton and gradient hit the 5000-pass budget
+there, making the ratio uninformative.
 
-@fig-mu-reg-exact is flat at zero (ratio $\approx 1$) across the plane, with no
-cell departing from the unit ratio by more than about 12 %. This is the
-outer-pass content of @eq-intercept-drift: the exact strategy consumes the same
-number of outer passes as bare Newton when both converge. The cost of the exact
-strategy is therefore an inner-step overhead, not an outer-pass overhead---the
-quantitative form of which is the $k_0 - 1$ wasted-inner-work claim of
-@sec-per-pass-cost. Together the two heatmaps verify @eq-rate-gap on a 30-cell
-grid: the gradient strategy carries a Lipschitz-mismatch penalty whose
-pass-count signature scales with $\mu_0$ and $1/\lambda$, and the convergence
-strategy does not.
+By contrast, @fig-mu-reg-exact stays nearly flat at zero: the exact/Newton
+ratio is approximately one across the plane, and no cell departs from unity by
+more than about 12 %. This is the outer-pass content of @eq-intercept-drift.
+When both methods converge, the exact strategy needs essentially the same number
+of outer passes as bare Newton. Its price is therefore an inner-step overhead,
+not an outer-pass overhead, which is exactly what @sec-per-pass-cost measures.
 
-This grid, with @fig-rate-gap and @fig-rho-centering, fixes the level at which
-@eq-rate-gap holds: scaling and monotonicity, not magnitude. Along the
-$H_{00}/L_0$ axis the empirical ratio reproduces the trends the rate-gap
-argument predicts---it diverges as the intercept channel degrades
-($H_{00}/L_0 \to 0$) and grows monotonically with $\mu_0$ and with $1/\lambda$.
-The magnitude is another matter: across this grid the empirical ratio runs a
-roughly constant factor of two to four below the iterate-level @eq-rate-gap
-prediction (@fig-mu-reg-gradient), the expected signature of @eq-rate-gap being
-a ratio of upper bounds built from heuristic substitutions rather than the
-iteration-complexity ratio itself. The iterate-level curve sits above the
-empirical ratio in @fig-rate-gap for the same reason.
+Taken together, the two heatmaps show what @eq-rate-gap does and does not
+predict. Along the $H_{00}/L_0$ axis, it captures scaling and monotonicity well:
+the empirical ratio grows as the intercept channel degrades
+($H_{00}/L_0 \to 0$), and it rises monotonically with $\mu_0$ and with
+$1/\lambda$. It does not predict the magnitude tightly. Across this grid the
+empirical ratio sits about two to four times below the iterate-level
+@eq-rate-gap prediction, which is what one would expect from a comparison built
+from upper bounds and heuristic substitutions rather than from a sharp
+iteration-complexity formula.
 
-The second axis is where the agreement is weakest. Along the centering sweep of
-@fig-rho-centering the empirical ratio does grow with $\bar\rho^2$, as
-@eq-rate-gap requires, but it saturates at $L_0/H_{00}$ by
-$\bar\rho^2 \approx 0.04$ and stays there while the leading-order factor climbs
-on to $\bar\rho^2 = 0.51$. On that axis @eq-rate-gap predicts neither magnitude
-nor shape, only sign. The divergence curves are therefore predictions of shape
-along the $H_{00}/L_0$ axis and of direction alone along the $\bar\rho^2$ axis,
-not tight point predictions of $T_{\mathrm{G}}/T_{\mathrm{N}}$.
+The centering sweep of @fig-rho-centering is where the agreement is weakest.
+There, the empirical ratio does increase with $\bar\rho^2$, as @eq-rate-gap
+requires, but it saturates at $L_0/H_{00}$ by
+$\bar\rho^2 \approx 0.04$ and then stays there while the leading-order factor
+continues up to $\bar\rho^2 = 0.51$. On that axis the theory gets the direction
+right, but not the shape or the scale.
 
 ### Production Solvers {#sec-production-solvers}
 
@@ -2334,28 +2331,29 @@ draw(
 )
 ```
 
-Across the three solvers the prediction holds: within-package weight toggles in
-glmnet and biglasso produce the predicted slowdown of the constant-majorant
-mode, and skglm 0.5---the only production solver in our survey whose intercept
-update is unambiguously the gradient strategy---exhibits the slow-ramp signature
-that the Newton-coupling bias (@eq-newton-coupling) and the Schur-coupling
-residual (@eq-grad-residual) together predict. The same diagnosis motivated a
-pull request to skglm replacing the gradient update with a Newton step; the
-change was merged upstream as commit `8f9cbd77`.[^skglm-pr]
+These three panels establish the production-solver split cleanly. In glmnet and
+biglasso, the within-package weight toggle produces exactly the slowdown one
+would expect from the constant-majorant update. In skglm 0.5---the only
+production solver in our survey whose intercept update is unambiguously the
+gradient strategy---the trajectory has the same slow ramp predicted by the
+Newton-coupling bias (@eq-newton-coupling) and the Schur-coupling residual
+(@eq-grad-residual). That diagnosis motivated a pull request to skglm replacing
+the gradient update with a Newton step; the change was merged upstream as
+commit `8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
     2026-05-13. skglm 0.6 is unreleased at the time of writing; the controlled
     comparison below pins the two relevant commits directly.
 
-@fig-real-glmnet through @fig-real-skglm establish the direction of the split on
-fixed problems: Bucket A is slow and Bucket B is fast. To study scaling across
-$(\mu_0,\lambda)$ rather than across codebases, @fig-skglm-controlled compares
-two skglm commits that differ only in the intercept update: `b03644fe`, the last
-pre-fix commit and behaviorally identical to the released 0.5, and `8f9cbd77`,
-the merged Newton fix. Running the same `AndersonCD` driver on both yields a
-clean 30-cell comparison whose pass-count ratios mirror @fig-mu-reg-gradient:
-near unity at low imbalance, then increasing monotonically with $\mu_0$ and
-$1/\lambda$.
+@fig-real-glmnet through @fig-real-skglm also make the high-level pattern easy
+to read on fixed problems: the gradient-class solvers are slow, and the
+Newton-class solvers are fast. To separate that claim from any other codebase
+differences, @fig-skglm-controlled compares two skglm commits that differ only
+in the intercept update: `b03644fe`, the last pre-fix commit and behaviorally
+identical to the released 0.5, and `8f9cbd77`, the merged Newton fix. Running
+the same `AndersonCD` driver on both yields a clean 30-cell comparison whose
+pass-count ratios mirror @fig-mu-reg-gradient: near unity at low imbalance,
+then increasing monotonically with $\mu_0$ and $1/\lambda$.
 
 ```{julia}
 #| label: fig-skglm-controlled
@@ -2386,12 +2384,12 @@ spec_sk = data(wide_sk) *
 draw(spec_sk * visual(Heatmap), figure = (; size = (560, 320)))
 ```
 
-The fourth panel verifies the complementary prediction: solvers whose intercept
-update is the exact strategy at a prox-Newton boundary should converge fast.
-LIBLINEAR\ (newGLMNET) and BlitzL1 are the two production solvers in our survey
-that fit this description. @fig-real-proxnewton reports their wall-clock cost to
-reach $F^\star$ across the same three problems used above, complementary to the
-inner-pass curves for skglm 0.5 (which uses the gradient strategy on the
+The prox-Newton solvers tell the complementary story. If a solver realizes the
+exact strategy at a prox-Newton boundary, it should converge quickly on these
+problems. LIBLINEAR\ (newGLMNET) and BlitzL1 are the two production solvers in
+our survey that fit this description. @fig-real-proxnewton reports their
+wall-clock cost to reach $F^\star$ across the same three problems used above,
+complementing the inner-pass curves for skglm 0.5 (gradient strategy on the
 intercept) and glmnet's `modified.Newton` (the constant-majorant alternative).
 
 ```{julia}
@@ -2430,21 +2428,22 @@ draw(
 )
 ```
 
-The fifth panel adds an independent codebase confirmation for the
-convergence-on-the-local-quadratic bucket. adelie\ [@yang2024] is a recent
-direct-Newton solver that builds the same weighted Gaussian surrogate as glmnet
-`Newton` but realizes the intercept implicitly: rather than updating $\beta_0$
-as a coordinate inside the inner CD pass, it weighted-centers the features at
-the start of each surrogate and tracks the residual mean, reconstructing
+adelie provides an independent confirmation from a different codebase. It builds
+the same weighted Gaussian surrogate as glmnet `Newton`, but it realizes the
+intercept implicitly: rather than updating $\beta_0$ as a coordinate inside the
+inner CD pass, it weighted-centers the features at the start of each surrogate
+and tracks the residual mean, reconstructing
 $\beta_0 = \bar{y} + \overline{\mathrm{resid}}$ at the end of the inner solve.
-The intercept therefore sits at the surrogate's optimum on every outer pass by
-construction, with no separate update step. The classification places adelie in
-the same bucket as glmnet `Newton` and biglasso `Newton`, and @fig-real-adelie
-reports its per-tolerance wall-clock cost across the same three problems used
-above. adelie's outer-IRLS criterion is coarser than glmnet's coefficient-based
-`thresh`, which is reflected in a higher achievable suboptimality from a single
-tolerance sweep; the per-iteration cost---the prediction at stake here---is on
-the same order as the other local-IRLS solvers.
+By construction, the intercept therefore sits at the surrogate optimum on every
+outer pass, with no separate update step.
+
+That places adelie in the same class as glmnet `Newton` and biglasso `Newton`,
+and @fig-real-adelie reports its per-tolerance wall-clock cost across the same
+three problems used above. adelie's outer-IRLS criterion is coarser than
+glmnet's coefficient-based `thresh`, which is reflected in a higher achievable
+suboptimality from a single tolerance sweep. The quantity that matters for the
+present argument, however, is per-iteration cost, and on that margin adelie
+sits in the same range as the other local-IRLS solvers.
 
 ```{julia}
 #| label: fig-real-adelie
@@ -2502,13 +2501,14 @@ analog. The status of each solver on this family is structural, not empirical:
 - **skglm** `AndersonCD` requires `datafit.get_lipschitz()`, which the `Poisson`
   datafit declines to implement
   (`AttributeError: Poisson is not   compatible with solver AndersonCD`). The
-  Bucket-A entry vanishes at the attribute-resolution layer.
+  gradient-class entry vanishes at the attribute-resolution layer.
 - **skglm** `ProxNewton` pairs with the `Poisson` datafit through local
   prox-Newton subproblems and is the prox-Newton representative in the panel.
 - **adelie** supports `glm.poisson(y)` through the same direct-Newton /
-  weighted-centered-features parameterisation as the logistic case.
+  weighted-centered-features parameterization as the logistic case.
 
-Three Bucket-B solvers therefore remain: glmnet, adelie, and skglm `ProxNewton`.
+Three Newton-class solvers therefore remain: glmnet, adelie, and skglm
+`ProxNewton`.
 We run each in path mode on congress109 with $\lambda = 0.05\lambda_{\max}$,
 sweeping the solver-specific tolerance.
 
@@ -2543,25 +2543,25 @@ draw(
 )
 ```
 
-The Poisson panel therefore makes a structural rather than an empirical point:
-the within-package weight-scheme toggle that drives @fig-real-glmnet and
-@fig-real-biglasso has no analog here, not because the production authors chose
-to omit it but because the underlying loss family does not admit the
-$w \equiv 1/4$ surrogate that powers the Bucket-A entries. Every working Poisson
-solver in production CD lives in Bucket B---a closed-form read of the
-framework's recommendation, expressed at the source-code level rather than the
-trajectory level.
+The Poisson panel therefore makes a structural point rather than an empirical
+one. The within-package weight-scheme toggle that drives @fig-real-glmnet and
+@fig-real-biglasso has no analog here, not because the package authors omitted
+it, but because the loss family itself does not admit the $w \equiv 1/4$
+surrogate that powers the gradient-class entries. Every working production
+Poisson solver in our survey therefore lands on the Newton-class side of the
+split, directly reflecting the framework's recommendation at the source-code
+level.
 
 #### Single-Lambda Cold Start {#sec-cold-start-diag}
 
 The path-mode protocol used above warm-starts the inner CD past the cold-start
-transient at $\beta = 0$. At single $\lambda$ without that ramp, the
-unguarded-Newton intercept update predicted to be unstable by
-@eq-newton-coupling fails in production code on the two extreme-imbalance real
+transient at $\beta = 0$. If we remove that ramp and solve a single $\lambda$
+from scratch, the unguarded Newton intercept update predicted to be unstable by
+@eq-newton-coupling does fail in production code on the two most imbalanced real
 problems. The diagnostic in @tbl-cold-start-diag runs each solver at
-$\lambda = 0.05\lambda_{\max}$ with $\text{eps} = 10^{-1}$, sweeping the iterate
-cap from $10^1$ to $10^5$; reference primal $0.0497$ from path mode on both
-datasets.
+$\lambda = 0.05\lambda_{\max}$ with $\text{eps} = 10^{-1}$, sweeping the
+iterate cap from $10^1$ to $10^5$; the path-mode reference primal is $0.0497$
+on both datasets.
 
   | dataset     | solver                             | $\beta_0$                     | primal  | iterations             |
   | :---------- | :--------------------------------- | :---------------------------- | ------: | :--------------------- |
@@ -2579,65 +2579,70 @@ datasets.
     $0.0497$ on both datasets.
     {#tbl-cold-start-diag}
 
-The intercept-specific reading of @tbl-cold-start-diag is that the global
-majorant $L_0 = 1/4$ is an $X$-free safeguard---two scalars ($n$ and $\bar y$)
-determine the step---and absorbs the cold-start transient at trivial cost on the
-unpenalized coordinate, where the corresponding fix for a coefficient coordinate
-would require column-norm information. The unguarded-Newton mode is the default
-in biglasso and the only mode in adelie, so on a benchmark like w1a a user who
-omits path mode receives no solution. The dataset-dependence at matched $\bar y$
-(catastrophic on w1a, mild on news20-3pct) reflects that the failure is
-triggered by the IRLS weight collapse after the first inner solve rather than by
-the cold-start gradient magnitude alone; the working-quadratic on news20-3pct's
-wider sparse design pulls many entries to zero under the $\ell_1$ penalty before
-the linear predictor reaches extreme values, dampening the cycle.
+The main lesson of @tbl-cold-start-diag is that the global majorant
+$L_0 = 1/4$ acts as an $X$-free safeguard on the intercept: two scalars
+($n$ and $\bar y$) determine the step, and that is enough to absorb the
+cold-start transient at trivial cost on the unpenalized coordinate. The
+analogous safeguard for a coefficient would require column-norm information.
+
+This matters in practice because unguarded Newton is the default in biglasso and
+the only mode in adelie. On a benchmark like w1a, a user who omits path mode
+can therefore receive no solution at all. The difference between w1a and
+news20-3pct, despite their matched $\bar y$, shows that the failure is not
+driven by the cold-start gradient magnitude alone. What matters is the IRLS
+weight collapse after the first inner solve. On news20-3pct's wider sparse
+design, the $\ell_1$ penalty pulls many entries to zero before the linear
+predictor reaches extreme values, which dampens the cycle.
 
 ## Discussion
 
-Across theory and experiments, the intercept update emerges as a load-bearing
-choice rather than a minor implementation detail. For direct coordinate descent
-on a smooth GLM loss, the right default is a Newton block step with Armijo
-backtracking: it is insensitive to imbalance, needs no tuning, and matches the
-exact strategy on outer-pass count without paying the $k_0 - 1$ inner Newton
-steps that the exact strategy spends each pass. The one important exception is
-the warm-started path setting of @sec-warmstart-path, where $|\partial_0 F|$ is
-already small and the exact strategy's extra inner cost largely disappears.
+Across both theory and experiments, the intercept update turns out to be a
+load-bearing choice rather than a minor implementation detail. For direct
+coordinate descent on a smooth GLM loss, the best default is a Newton block step
+with Armijo backtracking. It is insensitive to imbalance, needs no tuning, and
+matches the exact strategy on outer-pass count without paying the $k_0 - 1$
+extra inner Newton steps that the exact strategy spends each pass. The main
+exception is the warm-started path setting of @sec-warmstart-path, where
+$|\partial_0 F|$ is already small and the exact strategy's extra inner work
+mostly disappears.
 
-The guard should be part of the default, not a loss-family-specific option. On
-bounded-Hessian losses it is effectively free; on unbounded-Hessian losses such
-as Poisson it prevents the cold-start overshoot seen in @fig-cold-start-poisson.
-The gradient strategy fails for the same reason it fails under imbalance more
-generally: once $H_{00}/L_0$ becomes small---or $L_0 = \infty$ in Poisson---it
-stops applying a meaningful intercept correction.
+The guard should be part of that default, not treated as a loss-family-specific
+option. On bounded-Hessian losses it is effectively free. On unbounded-Hessian
+losses such as Poisson, it prevents the cold-start overshoot seen in
+@fig-cold-start-poisson. The gradient strategy fails for the same reason it
+fails under imbalance more generally: once $H_{00}/L_0$ becomes small---or once
+$L_0 = \infty$ in Poisson---it stops making a meaningful intercept correction.
 
-The production-solver classification turns this into a practical diagnostic.
-Solvers that realize Newton-class or exact-at-the-boundary behavior (glmnet
-`Newton`, biglasso `Newton`, adelie, LIBLINEAR, BlitzL1) remain in the safe
-bucket, whereas glmnet `modified.Newton`, biglasso `MM`, and skglm 0.5 inherit
-the imbalance-sensitive gradient behavior. The within-package toggles in glmnet
-and biglasso, the skglm before/after comparison, and the structural absence of
-Bucket-A Poisson solvers all line up with that picture.
+The production-solver survey turns this into a practical diagnostic. Solvers
+that realize Newton-class behavior on the intercept---glmnet `Newton`,
+biglasso `Newton`, adelie, LIBLINEAR, and BlitzL1---remain fast on the
+imbalanced problems we study. Solvers that realize the gradient-class
+update---glmnet `modified.Newton`, biglasso `MM`, and skglm 0.5---inherit the
+same imbalance sensitivity as the direct-CD gradient strategy. The within-package
+toggles in glmnet and biglasso, the before-and-after skglm comparison, and the
+structural absence of gradient-class Poisson solvers all support that reading.
 
-Multinomial problems make the issue more common, not less: every rare class
-creates its own slow intercept direction, so long-tailed label distributions
-naturally fall into the regime where gradient updates stall
+Multinomial problems make the issue more common rather than less. Every rare
+class creates its own slow intercept direction, so long-tailed label
+distributions naturally fall into the regime where gradient updates stall
 (@fig-multinomial-imbalance, @fig-multinomial-sweep). The same block structure
 also makes Newton and exact nearly indistinguishable there.
 
-There are two limitations in our analysis. First, the Newton-strategy results
-are *local*: @eq-newton-error and @eq-newton-coupling are Taylor identities for
-a single Newton step, not a global convergence proof for CD with
-Newton-intercept, and the empirical evidence in @sec-results are supporting but
-not conclusive. A tighter rate analysis under restricted strong convexity would
-let @eq-rate-gap predict the empirical pass-count constant rather than only its
-scaling and monotonicity (@sec-imbalance-reg). Second, our production-solver
-experiments in @sec-production-solvers run on a single shared problem; the
-heatmap of @sec-imbalance-reg replicates the binary direct-CD predictions across
-a 30-cell grid but the cross-package comparison does not yet sweep the
-$(\mu_0, \lambda)$ plane. Extending the production-solver sweep along those
-axes, and verifying the multinomial predictions against glmnet's
-symmetric-multinomial path and adelie's multi-response solver, are natural
-follow-ups.
+Our analysis has two main limitations. First, the Newton-strategy results are
+*local*. @eq-newton-error and @eq-newton-coupling are Taylor identities for a
+single Newton step, not a global convergence proof for CD with a Newton-updated
+intercept, and the empirical evidence in @sec-results is supportive rather than
+conclusive. A sharper rate analysis under restricted strong convexity would let
+@eq-rate-gap predict the empirical pass-count constant, not just its scaling and
+monotonicity (@sec-imbalance-reg).
+
+Second, the production-solver experiments in @sec-production-solvers run on a
+single shared problem. The heatmap of @sec-imbalance-reg replicates the binary
+direct-CD predictions across a 30-cell grid, but the cross-package comparison
+does not yet sweep the full $(\mu_0, \lambda)$ plane. Extending the
+production-solver sweep along those axes, and checking the multinomial
+predictions against glmnet's symmetric-multinomial path and adelie's
+multi-response solver, are natural next steps.
 
 # Supplementary Figures {.unnumbered}
 
