@@ -138,9 +138,9 @@ quantitative.
 
 ```{julia}
 #| label: fig-parametric
-#| fig-cap: Intercept-update trajectories on a toy logistic problem.
-#|   The paths show the iterates of the gradient, Newton, and exact strategies
-#|   over the objective level sets for a one-feature model with an intercept.
+#| fig-cap: Intercept-update trajectories on a toy logistic problem. The paths
+#|   show the iterates of the gradient, Newton, and exact strategies over the
+#|   objective level sets for a one-feature model with an intercept.
 #| fig-show: true
 #| message: false
 
@@ -222,9 +222,9 @@ slower.
 
 ```{julia}
 #| label: fig-first-example
-#| fig-cap: Overall convergence on w1a.
-#|   The plot shows relative duality gap versus time for the three intercept
-#|   strategies in $\ell_1$-regularized logistic regression.
+#| fig-cap: Overall convergence on w1a. The plot shows relative duality gap
+#|   versus time for the three intercept strategies in $\ell_1$-regularized
+#|   logistic regression.
 
 dd = JLD2.load(@projectroot("results", "first-example.jld2"))
 df = DataFrame(dd["results"])
@@ -914,8 +914,8 @@ and both ride on the same $H_{00}/L_0 \to 0$ regime.
 
 ```{julia}
 #| label: fig-rate-gap
-#| fig-cap: Rate-gap diagnostics on the standardized logistic design.
-#|   The plot shows empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ together with the
+#| fig-cap: Rate-gap diagnostics on the standardized logistic design. The plot
+#|   shows empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ together with the
 #|   cold-start and iterate-level evaluations of @eq-rate-gap, where
 #|   $T_{\mathrm{G}}/T_{\mathrm{N}}$ is the pass-count ratio to relative gap
 #|   $10^{-6}$, swept over $\mu_0$ for $n = 500$, $p = 1000$, $s = 10$, and
@@ -1019,12 +1019,11 @@ close here.
 
 ```{julia}
 #| label: fig-rho-centering
-#| fig-cap: Centering sweep at fixed $H_{00}/L_0$.
-#|   The panels show empirical and leading-order $T_{\mathrm{G}}/T_{\mathrm{N}}$
-#|   together with the dashed $L_0/H_{00}$ reference as a centering fraction
-#|   $\alpha$ moves the weighted $\bar\rho^2$ from standardized to uncentered
-#|   designs for $n = 500$, $p = 1000$, $s = 10$, and
-#|   $\lambda = 0.05\lambda_{\max}$.
+#| fig-cap: Centering sweep at fixed $H_{00}/L_0$. The panels show empirical and
+#|   leading-order $T_{\mathrm{G}}/T_{\mathrm{N}}$ together with the dashed
+#|   $L_0/H_{00}$ reference as a centering fraction $\alpha$ moves the weighted
+#|   $\bar\rho^2$ from standardized to uncentered designs for $n = 500$, $p =
+#|   1000$, $s = 10$, and $\lambda = 0.05\lambda_{\max}$.
 
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
 df = DataFrame(dd["records"])
@@ -1119,10 +1118,10 @@ $\lambda = 0.05\lambda_{\max}$.
 
 ```{julia}
 #| label: fig-mu-extreme
-#| fig-cap: Imbalance sweep on the standardized logistic design.
-#|   The panels show relative duality gap versus time for the intercept-update
-#|   variants in the legend as $\mu_0$ varies, with $n = 500$, $p = 1000$,
-#|   $s = 10$, $\lambda = 0.05\lambda_{\max}$, and cyclic CD.
+#| fig-cap: Imbalance sweep on the standardized logistic design. The panels show
+#|   relative duality gap versus time for the intercept-update variants in the
+#|   legend as $\mu_0$ varies, with $n = 500$, $p = 1000$, $s = 10$, $\lambda =
+#|   0.05\lambda_{\max}$, and cyclic CD.
 
 dd = JLD2.load(@projectroot("results", "sim-mu-extreme.jld2"))
 df = DataFrame(dd["results"])
@@ -1150,10 +1149,10 @@ while the other strategies are essentially unaffected.
 
 ```{julia}
 #| label: fig-cold-start
-#| fig-cap: Logistic cold-start comparison.
-#|   The panels show relative duality gap versus time for bare Newton
-#|   (`unguarded_newton`), Armijo-guarded Newton (`newton`), and the exact
-#|   strategy across the $\mu_0$ levels of @fig-mu-extreme.
+#| fig-cap: Logistic cold-start comparison. The panels show relative duality gap
+#|   versus time for bare Newton (`unguarded_newton`), Armijo-guarded Newton
+#|   (`newton`), and the exact strategy across the $\mu_0$ levels of
+#|   @fig-mu-extreme.
 
 dd = JLD2.load(@projectroot("results", "sim-cold-start.jld2"))
 df = DataFrame(dd["results"])
@@ -1176,13 +1175,12 @@ The Newton-coupling bias (@eq-newton-coupling) gives the second prediction: at
 cold start, a large $|\partial_0 F|$ can make an unguarded Newton step on the
 intercept unstable. @fig-cold-start tests that directly by running bare Newton
 (no Armijo) alongside the guarded variant and the exact strategy. On logistic
-regression, including the adversarial $\mu_0 = 0.99$ row, the three
-trajectories are indistinguishable. The Armijo guard accepts $\alpha = 1$ at
-every intercept update the solver visits, so in this setting it reduces to the
-bare Newton step at trivial overhead. The bounded Hessian
-$f'' = \mu(1 - \mu) \le 1/4$ is what makes this possible: the linear model is
-globally accurate enough that the full Newton step on the intercept always
-descends.
+regression, including the adversarial $\mu_0 = 0.99$ row, the three trajectories
+are indistinguishable. The Armijo guard accepts $\alpha = 1$ at every intercept
+update the solver visits, so in this setting it reduces to the bare Newton step
+at trivial overhead. The bounded Hessian $f'' = \mu(1 - \mu) \le 1/4$ is what
+makes this possible: the linear model is globally accurate enough that the full
+Newton step on the intercept always descends.
 
 The picture changes for unbounded-Hessian losses. For Poisson regression with
 the canonical log link, $f''(\eta) = e^\eta$ and $f'''(\eta) = e^\eta$ both grow
@@ -1194,11 +1192,11 @@ $\mu_0 \in \{10, 30, 100, 300\}$.
 
 ```{julia}
 #| label: fig-cold-start-poisson
-#| fig-cap: Poisson cold-start comparison.
-#|   The panels show relative duality gap versus time for bare Newton
-#|   (`unguarded_newton`), Armijo-guarded Newton (`newton`), and the exact
-#|   strategy at baseline rates $\mu_0 \in \{10, 30, 100, 300\}$, with
-#|   $n = 500$, $p = 1000$, $s = 10$, and $\lambda = 0.1\lambda_{\max}$.
+#| fig-cap: Poisson cold-start comparison. The panels show relative duality gap
+#|   versus time for bare Newton (`unguarded_newton`), Armijo-guarded Newton
+#|   (`newton`), and the exact strategy at baseline rates $\mu_0 \in \{10, 30,
+#|   100, 300\}$, with $n = 500$, $p = 1000$, $s = 10$, and $\lambda =
+#|   0.1\lambda_{\max}$.
 
 dd_p = JLD2.load(@projectroot("results", "sim-cold-start-poisson.jld2"))
 df_p = DataFrame(dd_p["results"])
@@ -1267,10 +1265,10 @@ block-CD findings.
 
 ```{julia}
 #| label: fig-multinomial-imbalance
-#| fig-cap: Imbalanced multinomial logistic regression.
-#|   The panels show relative primal suboptimality versus time for $K = 5$,
-#|   class marginals $(0.7, 0.1, 0.1, 0.05, 0.05)$, $n = 500$, $p = 200$,
-#|   $\lambda = 0.05\lambda_{\max}$, cyclic CD, and three random seeds.
+#| fig-cap: Imbalanced multinomial logistic regression. The panels show relative
+#|   primal suboptimality versus time for $K = 5$, class marginals $(0.7, 0.1,
+#|   0.1, 0.05, 0.05)$, $n = 500$, $p = 200$, $\lambda = 0.05\lambda_{\max}$,
+#|   cyclic CD, and three random seeds.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance.jld2"))
 df = DataFrame(dd["results"])
@@ -1324,10 +1322,9 @@ of the single anchor configuration.
 
 ```{julia}
 #| label: fig-multinomial-sweep
-#| fig-cap: Multinomial imbalance-amplitude sweep.
-#|   The panels show relative primal suboptimality versus outer-pass index for
-#|   the four corners of the rarest-class marginal
-#|   $\bar p_K \in \{0.05, 0.005\}$ and feature-amplitude
+#| fig-cap: Multinomial imbalance-amplitude sweep. The panels show relative
+#|   primal suboptimality versus outer-pass index for the four corners of the
+#|   rarest-class marginal $\bar p_K \in \{0.05, 0.005\}$ and feature-amplitude
 #|   $\in \{0.5, 2.0\}$ grid on the same $K = 5$, $n = 500$, $p = 200$, $s = 5$,
 #|   $\lambda = 0.05\lambda_{\max}$, $\rho = 0.3$ design as
 #|   @fig-multinomial-imbalance; curves are medians over three seeds.
@@ -1384,11 +1381,10 @@ fraction $H_{00,kk}/L_0$ predicts a stall under the gradient strategy.
 
 ```{julia}
 #| label: fig-real-multinomial
-#| fig-cap: Multinomial logistic regression on Yeoh2002.
-#|   The plot shows relative primal suboptimality versus time at
-#|   $\lambda = 0.05\lambda_{\max}$ under cyclic CD for $n = 248$,
-#|   $p = 12\,625$, and $K = 6$. Suboptimality is measured relative to $F^\star$,
-#|   the best primal across strategies.
+#| fig-cap: Multinomial logistic regression on Yeoh2002. The plot shows relative
+#|   primal suboptimality versus time at $\lambda = 0.05\lambda_{\max}$ under
+#|   cyclic CD for $n = 248$, $p = 12\,625$, and $K = 6$. Suboptimality is
+#|   measured relative to $F^\star$, the best primal across strategies.
 
 dd = JLD2.load(@projectroot("results", "real-multinomial-yeoh.jld2"))
 df = DataFrame(dd["results"])
@@ -1426,11 +1422,10 @@ $H_{00,kk}$ collapses much further below $L_0$ than in Yeoh2002.
 
 ```{julia}
 #| label: fig-real-multinomial-shuttle
-#| fig-cap: Multinomial logistic regression on StatLog Shuttle.
-#|   The plot shows relative primal suboptimality versus time at
-#|   $\lambda = 0.05\lambda_{\max}$ under cyclic CD for $n = 58\,000$, $p = 9$,
-#|   and $K = 7$. Suboptimality is measured relative to $F^\star$, the best
-#|   primal across strategies.
+#| fig-cap: Multinomial logistic regression on StatLog Shuttle. The plot shows
+#|   relative primal suboptimality versus time at $\lambda = 0.05\lambda_{\max}$
+#|   under cyclic CD for $n = 58\,000$, $p = 9$, and $K = 7$. Suboptimality is
+#|   measured relative to $F^\star$, the best primal across strategies.
 
 dd_sh = JLD2.load(@projectroot("results", "real-multinomial-shuttle.jld2"))
 df_sh = DataFrame(dd_sh["results"])
@@ -1557,8 +1552,7 @@ table.)
   : Classification of CD-based production solvers by algorithmic family and
     intercept update on the original loss. Local-IRLS and prox-Newton rows
     freeze the Hessian within each subproblem; BlitzL1 additionally applies a
-    post-step 1-D Newton loop on the original loss.
-    {#tbl-classification}
+    post-step 1-D Newton loop on the original loss. {#tbl-classification}
 
 A consequence of the table is that two production solvers---LIBLINEAR
 (newGLMNET) and BlitzL1---end up with the exact strategy on the intercept at the
@@ -1578,11 +1572,11 @@ to have arrived at exactly this prescription.
 
 ```{julia}
 #| label: fig-irls-comparison
-#| fig-cap: Direct CD and IRLS on an imbalanced logistic design.
-#|   The panels show relative duality gap versus time for $\mu_0 = 0.99$,
-#|   $n = 500$, $p = 1000$, $s = 10$, $\lambda = 0.05\lambda_{\max}$, and three
-#|   random seeds. The Local-IRLS curve is shown once because the three
-#|   intercept strategies coincide on the inner quadratic.
+#| fig-cap: Direct CD and IRLS on an imbalanced logistic design. The panels show
+#|   relative duality gap versus time for $\mu_0 = 0.99$, $n = 500$, $p = 1000$,
+#|   $s = 10$, $\lambda = 0.05\lambda_{\max}$, and three random seeds. The
+#|   Local-IRLS curve is shown once because the three intercept strategies
+#|   coincide on the inner quadratic.
 
 dd = JLD2.load(@projectroot("results", "sim-irls-comparison.jld2"))
 df = DataFrame(dd["results"])
@@ -1607,16 +1601,16 @@ while Local-IRLS converges on the same problem. The strategy collapse within
 Local-IRLS is exact, not approximate: once $L_0^{\text{inner}} = H_{00}$, all
 three strategies share the single inner update
 $-\partial_0 \tilde F^{(t)} / H_{00}$ and so produce bit-identical iterates; the
-figure therefore plots only one of them. The unit tests assert this
-directly: the intercept and coefficient paths under the gradient, Newton, and
-exact strategies agree exactly (`==`, not within a tolerance).
+figure therefore plots only one of them. The unit tests assert this directly:
+the intercept and coefficient paths under the gradient, Newton, and exact
+strategies agree exactly (`==`, not within a tolerance).
 
 A reader may notice that Local-IRLS also outpaces Direct-CD with the Newton
 strategy on this problem. This reflects the broader trade-off between
 algorithmic families rather than a comparison of intercept strategies: IRLS-CD
 enjoys a constant inner Hessian and locally quadratic outer convergence, which
-favors it on canonical-link GLMs where the linearization is tight. Direct-CD
-has the edge when $f'''$ is large (e.g.\
+favors it on canonical-link GLMs where the linearization is tight. Direct-CD has
+the edge when $f'''$ is large (e.g.\
 Poisson with extreme rates, where each linearization is loose far from the
 current iterate), when working-response instability under saturation matters, or
 when screening and working-set methods (standard in modern $\ell_1$ solvers)
@@ -1645,14 +1639,14 @@ dominates seed-to-seed variation.
 
 Real-data experiments use pinned datasets from Zenodo and standardize them
 before fitting. The repository includes the code needed to retrieve these data
-and to generate the shared standardized problem used in the
-production-solver comparison. That comparison runs glmnet 4.1-10 (R), biglasso
-1.6-1 (R), adelie 1.0-8 (R), skglm 0.5 (Python), LIBLINEAR through
-scikit-learn's `solver="liblinear"` wrapper, and BlitzL1 at commit `aef8d02`.
-Given the cached inputs, the drivers are otherwise deterministic, so each
-solver is run once per tolerance setting while sweeping its native convergence
-parameter over a broad range. The exact commands, tolerance grids, and iterate
-caps are documented with the repository materials.
+and to generate the shared standardized problem used in the production-solver
+comparison. That comparison runs glmnet 4.1-10 (R), biglasso 1.6-1 (R), adelie
+1.0-8 (R), skglm 0.5 (Python), LIBLINEAR through scikit-learn's
+`solver="liblinear"` wrapper, and BlitzL1 at commit `aef8d02`. Given the cached
+inputs, the drivers are otherwise deterministic, so each solver is run once per
+tolerance setting while sweeping its native convergence parameter over a broad
+range. The exact commands, tolerance grids, and iterate caps are documented with
+the repository materials.
 
 All experiment outputs are cached and ship with the repository. Most figures
 therefore re-render from cache, so refreshing a panel means rerunning the code
@@ -1661,49 +1655,48 @@ time as a small reproducible example. The Julia, R, and Python toolchains are
 pinned in the repository and use their default OpenBLAS builds with no thread
 pinning. Hardware: a single x86_64 Linux workstation with an AMD Ryzen 9 7900
 (12 cores, 24 threads) and 64 GB of RAM; wall-clock numbers in this paper are
-indicative rather than benchmark-grade. Source code and cached results ship
-with the paper repository.
+indicative rather than benchmark-grade. Source code and cached results ship with
+the paper repository.
 
 ### Simulated Data
 
-We begin with the simplest prediction from @sec-theory. The
-Schur-coupling residual (@eq-grad-residual) says that the gradient strategy's
-effective intercept step is the bare gradient step scaled by $H_{00}/L_0$. As
-imbalance pushes $\mu_0$ toward one, $H_{00}$ shrinks while $L_0 = 1/4$ stays
-fixed, so the intercept update should slow.
+We begin with the simplest prediction from @sec-theory. The Schur-coupling
+residual (@eq-grad-residual) says that the gradient strategy's effective
+intercept step is the bare gradient step scaled by $H_{00}/L_0$. As imbalance
+pushes $\mu_0$ toward one, $H_{00}$ shrinks while $L_0 = 1/4$ stays fixed, so
+the intercept update should slow.
 
-@fig-mu-extreme shows exactly that collapse on the standardized
-binary-logistic design ($n = 500$, $p = 1000$, $s = 10$, $\rho = 0.6$,
-$\lambda = 0.05\lambda_{\max}$) used throughout the simulated experiments
-below. The gradient strategy is competitive at $\mu_0 = 0.5$, slows visibly
-past $\mu_0 = 0.9$, and fails to reach the tolerance within budget at
-$\mu_0 = 0.99$. By contrast, the Newton and exact strategies lie almost
-directly on top of each other across the full sweep. That overlap is the
-outer-pass content of @eq-intercept-drift; @sec-per-pass-cost returns to the
-per-pass inner work on which those two strategies still differ. The
-gradient-versus-Newton scaling with $\mu_0$ and $\lambda$ on the same design is
-taken up in @sec-imbalance-reg and @fig-mu-reg-gradient.
+@fig-mu-extreme shows exactly that collapse on the standardized binary-logistic
+design ($n = 500$, $p = 1000$, $s = 10$, $\rho = 0.6$,
+$\lambda = 0.05\lambda_{\max}$) used throughout the simulated experiments below.
+The gradient strategy is competitive at $\mu_0 = 0.5$, slows visibly past
+$\mu_0 = 0.9$, and fails to reach the tolerance within budget at $\mu_0 = 0.99$.
+By contrast, the Newton and exact strategies lie almost directly on top of each
+other across the full sweep. That overlap is the outer-pass content of
+@eq-intercept-drift; @sec-per-pass-cost returns to the per-pass inner work on
+which those two strategies still differ. The gradient-versus-Newton scaling with
+$\mu_0$ and $\lambda$ on the same design is taken up in @sec-imbalance-reg and
+@fig-mu-reg-gradient.
 
 ### Real Data
 
 The same scaling should appear on real problems, not just on the simulated
 design. We therefore run the three strategies on six LIBSVM benchmark problems
 at $\lambda = 0.05\lambda_{\max}$, listed in @tbl-real-logreg-problems and
-ordered by the predicted slowdown
-$L_0/H_{00} = 1 / (4 \mu_0 (1 - \mu_0))$ (the table lists its reciprocal
-$H_{00}/L_0$). The set spans a $9 \times$ range in $L_0/H_{00}$ and five
-distinct design families: the Webb web-pages binary w1a, a subsampled
-news20.binary bag-of-words text design (news20-3pct, 60 positives and 1\,940
-negatives drawn deterministically from `news20.binary`), the UCI Adult census
-(a4a) at moderate imbalance, the high-dimensional genomic leukemia microarray
-($n \ll p$, penalty-dominated), the small-$p$ Wisconsin breast cancer panel,
-and dense balanced gisette.
+ordered by the predicted slowdown $L_0/H_{00} = 1 / (4 \mu_0 (1 - \mu_0))$ (the
+table lists its reciprocal $H_{00}/L_0$). The set spans a $9 \times$ range in
+$L_0/H_{00}$ and five distinct design families: the Webb web-pages binary w1a, a
+subsampled news20.binary bag-of-words text design (news20-3pct, 60 positives and
+1\,940 negatives drawn deterministically from `news20.binary`), the UCI Adult
+census (a4a) at moderate imbalance, the high-dimensional genomic leukemia
+microarray ($n \ll p$, penalty-dominated), the small-$p$ Wisconsin breast cancer
+panel, and dense balanced gisette.
 
 The two most imbalanced problems, w1a and news20-3pct, are especially useful.
-They sit at nearly the same $\mu_0$ on very different designs---a
-$300$-feature sparse web indicator panel versus a
-$1.3\mathrm{M}$-vocabulary text bag-of-words. Any prediction that survives both
-is therefore not a quirk of w1a in particular.
+They sit at nearly the same $\mu_0$ on very different designs---a $300$-feature
+sparse web indicator panel versus a $1.3\mathrm{M}$-vocabulary text
+bag-of-words. Any prediction that survives both is therefore not a quirk of w1a
+in particular.
 
   | dataset       | $n$   | $p$   | density | $\mu_0$ | $H_{00}/L_0$ |
   | :------------ | ----: | ----: | :------ | ------: | -----------: |
@@ -1715,16 +1708,15 @@ is therefore not a quirk of w1a in particular.
   | gisette       | 6,000 | 5,000 | dense   |   0.500 |        1.000 |
 
   : LIBSVM problems used in @fig-real-logreg. $\mu_0$ is the positive-class
-    marginal, and $H_{00}/L_0 = 4\mu_0(1-\mu_0)$. news20-3pct is a
-    deterministic 60/1\,940 subsample of `news20.binary`; after subsampling,
-    features with fewer than 20 nonzeros are dropped.
-    {#tbl-real-logreg-problems}
+    marginal, and $H_{00}/L_0 = 4\mu_0(1-\mu_0)$. news20-3pct is a deterministic
+    60/1\,940 subsample of `news20.binary`; after subsampling, features with
+    fewer than 20 nonzeros are dropped. {#tbl-real-logreg-problems}
 
 ```{julia}
 #| label: fig-real-logreg
-#| fig-cap: Real-data logistic convergence on six LIBSVM problems.
-#|   The panels show relative duality gap versus time for the three intercept
-#|   strategies at $\lambda = 0.05\lambda_{\max}$, in the problem order of
+#| fig-cap: Real-data logistic convergence on six LIBSVM problems. The panels
+#|   show relative duality gap versus time for the three intercept strategies at
+#|   $\lambda = 0.05\lambda_{\max}$, in the problem order of
 #|   @tbl-real-logreg-problems.
 
 dd = JLD2.load(@projectroot("results", "real-logreg.jld2"))
@@ -1795,10 +1787,9 @@ a $1\,000$-pass budget.
 
 ```{julia}
 #| label: fig-real-poisson
-#| fig-cap: Poisson regression on congress109.
-#|   The plot shows relative duality gap versus time for the four intercept
-#|   strategies at $n = 529$, $p = 999$, $\bar y = 11.83$, and
-#|   $\lambda = 0.05\lambda_{\max}$.
+#| fig-cap: Poisson regression on congress109. The plot shows relative duality
+#|   gap versus time for the four intercept strategies at $n = 529$, $p = 999$,
+#|   $\bar y = 11.83$, and $\lambda = 0.05\lambda_{\max}$.
 
 dd = JLD2.load(@projectroot("results", "real-poisson.jld2"))
 df = DataFrame(dd["results"])
@@ -1838,10 +1829,9 @@ we use cyclic CD as the default elsewhere in the paper.
 
 ```{julia}
 #| label: fig-first-example-ordering
-#| fig-cap: Ordering comparison on w1a.
-#|   The panels show relative duality gap versus time under cyclic (top) and
-#|   permuted (bottom) coordinate ordering for the same configuration as
-#|   @fig-first-example.
+#| fig-cap: Ordering comparison on w1a. The panels show relative duality gap
+#|   versus time under cyclic (top) and permuted (bottom) coordinate ordering
+#|   for the same configuration as @fig-first-example.
 
 dd = JLD2.load(@projectroot("results", "first-example-ordering.jld2"))
 df = DataFrame(dd["results"])
@@ -1868,13 +1858,13 @@ setting in which the theoretical critique of @eq-intercept-drift and the
 imbalance collapse of @eq-grad-residual bite hardest. Production users rarely
 solve a single $\lambda$ in isolation; they sweep a grid
 $\lambda_1 > \lambda_2 > \dots > \lambda_K$ and warm-start each subproblem from
-the previous solution. As the warm-start argument above suggests,
-warm-starting begins each subproblem with $|\partial_0 F|$ already small. The
-Newton-coupling bias (@eq-newton-coupling) then predicts that the bare Newton
-step is essentially exact at the start, so $k_0 \in \{1, 2\}$ in the exact
-strategy and the $k_0 - 1$ per-pass overhead evaporates. The gradient-strategy
-collapse should also soften because the iterate is close to optimum and the
-$H_{00}/L_0$ shrinkage acts on an already-small residual.
+the previous solution. As the warm-start argument above suggests, warm-starting
+begins each subproblem with $|\partial_0 F|$ already small. The Newton-coupling
+bias (@eq-newton-coupling) then predicts that the bare Newton step is
+essentially exact at the start, so $k_0 \in \{1, 2\}$ in the exact strategy and
+the $k_0 - 1$ per-pass overhead evaporates. The gradient-strategy collapse
+should also soften because the iterate is close to optimum and the $H_{00}/L_0$
+shrinkage acts on an already-small residual.
 
 We test this by solving an $\ell_1$-logistic path on two problems---a simulated
 standardized design ($n = 500$, $p = 1000$, $s = 10$, $\mu_0 = 0.9$,
@@ -1895,7 +1885,6 @@ The main-text panels show cyclic CD; @fig-warm-start-full and
 #|   $\lambda$ path under cyclic CD; solid lines use warm starts, dashed lines
 #|   cold starts, and curves capped at 300 hit the pass budget. Left: the
 #|   simulated imbalanced problem ($\mu_0 = 0.9$). Right: w1a.
-
 dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
 df = DataFrame(dd["results"])
 df = flatten(
@@ -1937,10 +1926,10 @@ draw(
 
 ```{julia}
 #| label: fig-warm-start-mechanism
-#| fig-cap: Initial intercept gradients along the regularization path.
-#|   The panels show $|\partial_0 F|$ at the initial iterate of each subproblem
-#|   for the same path and cyclic-CD setup as @fig-warm-start; solid lines use
-#|   warm starts and dashed lines cold starts.
+#| fig-cap: Initial intercept gradients along the regularization path. The
+#|   panels show $|\partial_0 F|$ at the initial iterate of each subproblem for
+#|   the same path and cyclic-CD setup as @fig-warm-start; solid lines use warm
+#|   starts and dashed lines cold starts.
 
 spec_partial = data(df_cyclic) *
     mapping(
@@ -2012,10 +2001,10 @@ $|\partial_0 F|$.
 
 ```{julia}
 #| label: fig-per-pass-cost
-#| fig-cap: Per-pass inner Newton work under the exact strategy.
-#|   The panels show the number of intercept Newton steps $k_0$ versus
-#|   outer-pass index for $\mu_0 \in \{0.5, 0.9, 0.99\}$ on the simulated design
-#|   of @fig-mu-extreme. The dashed line at $k_0 = 1$ marks the Newton strategy.
+#| fig-cap: Per-pass inner Newton work under the exact strategy. The panels show
+#|   the number of intercept Newton steps $k_0$ versus outer-pass index for
+#|   $\mu_0 \in \{0.5, 0.9, 0.99\}$ on the simulated design of @fig-mu-extreme.
+#|   The dashed line at $k_0 = 1$ marks the Newton strategy.
 
 dd = JLD2.load(@projectroot("results", "sim-per-pass-cost.jld2"))
 df = DataFrame(dd["results"])
@@ -2038,9 +2027,9 @@ draw(spec_cost + spec_ref, facet = (; linkyaxes = :all), figure = (; size = (800
 
 ```{julia}
 #| label: fig-per-pass-progress
-#| fig-cap: Per-pass progress on the same runs.
-#|   The panels show relative duality gap after each outer pass for the Newton
-#|   and exact strategies on the experiments of @fig-per-pass-cost.
+#| fig-cap: Per-pass progress on the same runs. The panels show relative duality
+#|   gap after each outer pass for the Newton and exact strategies on the
+#|   experiments of @fig-per-pass-cost.
 
 spec_prog = data(df) *
     mapping(
@@ -2060,10 +2049,10 @@ draw(
 
 The two figures make the $k_0 - 1$ overhead claim concrete. In
 @fig-per-pass-cost, $k_0$ peaks on the cold-start pass (6, 4, and 3 inner steps
-for $\mu_0 = 0.99, 0.9, 0.5$ respectively) and then decays to one as the
-iterate approaches the joint optimum. Summed across the run, the relative
-overhead---total inner Newton steps for the exact strategy divided by the
-Newton strategy's pass-count baseline---is $1.30 \times$ at $\mu_0 = 0.5$,
+for $\mu_0 = 0.99, 0.9, 0.5$ respectively) and then decays to one as the iterate
+approaches the joint optimum. Summed across the run, the relative
+overhead---total inner Newton steps for the exact strategy divided by the Newton
+strategy's pass-count baseline---is $1.30 \times$ at $\mu_0 = 0.5$,
 $1.50 \times$ at $\mu_0 = 0.9$, and $1.59 \times$ at $\mu_0 = 0.99$. The trend
 is monotone in the same imbalance that drives $|\partial_0 F|$ at cold start.
 
@@ -2095,11 +2084,11 @@ per-coordinate Lipschitz-mismatch prediction from BLAS and memory effects.
 
 ```{julia}
 #| label: fig-mu-reg-gradient
-#| fig-cap: Gradient-to-Newton pass-count ratios over the
-#|   $(\mu_0, \lambda/\lambda_{\max})$ grid.
-#|   The heatmap shows $\log_{10}(T_{\mathrm{gradient}} /
-#|   T_{\mathrm{Newton}})$ averaged over three seeds on the standardized
-#|   logistic design; clipped cells mark runs that hit the 5000-pass budget.
+#| fig-cap: Gradient-to-Newton pass-count ratios over the $(\mu_0,
+#|   \lambda/\lambda_{\max})$ grid. The heatmap shows
+#|   $\log_{10}(T_{\mathrm{gradient}} / T_{\mathrm{Newton}})$ averaged over
+#|   three seeds on the standardized logistic design; clipped cells mark runs
+#|   that hit the 5000-pass budget.
 
 dd = JLD2.load(@projectroot("results", "sim-mu-reg-heatmap.jld2"))
 df = DataFrame(dd["results"])
@@ -2126,11 +2115,11 @@ draw(spec_grad * visual(Heatmap), figure = (; size = (560, 320)))
 
 ```{julia}
 #| label: fig-mu-reg-exact
-#| fig-cap: Exact-to-Newton pass-count ratios over the
-#|   $(\mu_0, \lambda/\lambda_{\max})$ grid.
-#|   The heatmap shows $\log_{10}(T_{\mathrm{exact}} / T_{\mathrm{Newton}})$ on
-#|   the same grid and seed average as @fig-mu-reg-gradient, using a centered
-#|   diverging colormap with range $\pm 0.1$.
+#| fig-cap: Exact-to-Newton pass-count ratios over the $(\mu_0,
+#|   \lambda/\lambda_{\max})$ grid. The heatmap shows
+#|   $\log_{10}(T_{\mathrm{exact}} / T_{\mathrm{Newton}})$ on the same grid and
+#|   seed average as @fig-mu-reg-gradient, using a centered diverging colormap
+#|   with range $\pm 0.1$.
 
 spec_exact = data(wide) *
     mapping(
@@ -2153,9 +2142,9 @@ draw(
 The main pattern in @fig-mu-reg-gradient is simple: at any fixed $\lambda$,
 greater imbalance makes the gradient strategy slower relative to Newton. The
 gradient/Newton pass-count ratio rises from roughly one at $\mu_0 = 0.5$ to
-about ten at $\mu_0 = 0.99$, $\lambda = 0.01\lambda_{\max}$, where the
-gradient strategy saturates the 5000-pass budget and the displayed ratio is
-therefore only a lower bound.
+about ten at $\mu_0 = 0.99$, $\lambda = 0.01\lambda_{\max}$, where the gradient
+strategy saturates the 5000-pass budget and the displayed ratio is therefore
+only a lower bound.
 
 At $\lambda = 0.05\lambda_{\max}$, the regime most relevant to the production
 path experiments, the empirical ratios across the five $\mu_0$ values are
@@ -2163,24 +2152,23 @@ $\{1.0, 1.1, 1.8, 3.0, 6.8\}$. The corresponding iterate-level
 $L_0/H_{00}(\hat\eta)$ values at the Newton-converged solution are
 $\{3.2, 3.3, 4.4, 5.7, 12.3\}$ (mean over three seeds). The theory therefore
 gets the ordering and the growth right, but it overstates the magnitude by a
-fairly stable factor: about $3 \times$ at $\mu_0 = 0.5$ and about $2 \times$
-at $\mu_0 = 0.99$. The cold-start proxy
+fairly stable factor: about $3 \times$ at $\mu_0 = 0.5$ and about $2 \times$ at
+$\mu_0 = 0.99$. The cold-start proxy
 $L_0/H_{00}(0) = 1/(4\mu_0(1 - \mu_0)) = \{1.00, 1.19, 2.78, 5.26, 25.25\}$ is
 looser still at high imbalance because active features pull $H_{00}$ above its
-intercept-only value $\mu_0(1 - \mu_0)$ at this $\lambda$. As $\lambda$
-shrinks, the active set widens, $H_{00}$ falls toward and beyond
-$\mu_0(1 - \mu_0)$, and the empirical ratio grows with it. At
-$\lambda = 0.01\lambda_{\max}$, for example, the empirical row for
-$\mu_0 \in \{0.5, 0.7, 0.9, 0.95\}$ is $\{1.7, 1.8, 4.0, 5.4\}$; we omit the
-$\mu_0 = 0.99$ corner because both Newton and gradient hit the 5000-pass budget
-there, making the ratio uninformative.
+intercept-only value $\mu_0(1 - \mu_0)$ at this $\lambda$. As $\lambda$ shrinks,
+the active set widens, $H_{00}$ falls toward and beyond $\mu_0(1 - \mu_0)$, and
+the empirical ratio grows with it. At $\lambda = 0.01\lambda_{\max}$, for
+example, the empirical row for $\mu_0 \in \{0.5, 0.7, 0.9, 0.95\}$ is
+$\{1.7, 1.8, 4.0, 5.4\}$; we omit the $\mu_0 = 0.99$ corner because both Newton
+and gradient hit the 5000-pass budget there, making the ratio uninformative.
 
-By contrast, @fig-mu-reg-exact stays nearly flat at zero: the exact/Newton
-ratio is approximately one across the plane, and no cell departs from unity by
-more than about 12 %. This is the outer-pass content of @eq-intercept-drift.
-When both methods converge, the exact strategy needs essentially the same number
-of outer passes as bare Newton. Its price is therefore an inner-step overhead,
-not an outer-pass overhead, which is exactly what @sec-per-pass-cost measures.
+By contrast, @fig-mu-reg-exact stays nearly flat at zero: the exact/Newton ratio
+is approximately one across the plane, and no cell departs from unity by more
+than about 12 %. This is the outer-pass content of @eq-intercept-drift. When
+both methods converge, the exact strategy needs essentially the same number of
+outer passes as bare Newton. Its price is therefore an inner-step overhead, not
+an outer-pass overhead, which is exactly what @sec-per-pass-cost measures.
 
 Taken together, the two heatmaps show what @eq-rate-gap does and does not
 predict. Along the $H_{00}/L_0$ axis, it captures scaling and monotonicity well:
@@ -2194,10 +2182,10 @@ iteration-complexity formula.
 
 The centering sweep of @fig-rho-centering is where the agreement is weakest.
 There, the empirical ratio does increase with $\bar\rho^2$, as @eq-rate-gap
-requires, but it saturates at $L_0/H_{00}$ by
-$\bar\rho^2 \approx 0.04$ and then stays there while the leading-order factor
-continues up to $\bar\rho^2 = 0.51$. On that axis the theory gets the direction
-right, but not the shape or the scale.
+requires, but it saturates at $L_0/H_{00}$ by $\bar\rho^2 \approx 0.04$ and then
+stays there while the leading-order factor continues up to $\bar\rho^2 = 0.51$.
+On that axis the theory gets the direction right, but not the shape or the
+scale.
 
 ### Production Solvers {#sec-production-solvers}
 
@@ -2231,10 +2219,10 @@ prediction.
 
 ```{julia}
 #| label: fig-real-glmnet
-#| fig-cap: glmnet mode comparison on three imbalanced logistic problems.
-#|   The panels show primal suboptimality versus inner CD passes for
-#|   `type.logistic = "Newton"` and `"modified.Newton"` in path mode on the
-#|   shared synthetic problem, w1a, and news20-3pct.
+#| fig-cap: glmnet mode comparison on three imbalanced logistic problems. The
+#|   panels show primal suboptimality versus inner CD passes for `type.logistic
+#|   = "Newton"` and `"modified.Newton"` in path mode on the shared synthetic
+#|   problem, w1a, and news20-3pct.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "glmnet.csv"))),
@@ -2265,10 +2253,10 @@ draw(
 
 ```{julia}
 #| label: fig-real-biglasso
-#| fig-cap: biglasso mode comparison on three imbalanced logistic problems.
-#|   The panels show primal suboptimality versus inner CD passes for
-#|   `alg.logistic = "Newton"` and `"MM"` in path mode on the same three
-#|   problems as @fig-real-glmnet.
+#| fig-cap: biglasso mode comparison on three imbalanced logistic problems. The
+#|   panels show primal suboptimality versus inner CD passes for `alg.logistic =
+#|   "Newton"` and `"MM"` in path mode on the same three problems as
+#|   @fig-real-glmnet.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "biglasso.csv"))),
@@ -2299,9 +2287,9 @@ draw(
 
 ```{julia}
 #| label: fig-real-skglm
-#| fig-cap: skglm 0.5 on three imbalanced logistic problems.
-#|   The panels show primal suboptimality versus `AndersonCD` outer iterations
-#|   on the same three problems as @fig-real-glmnet.
+#| fig-cap: skglm 0.5 on three imbalanced logistic problems. The panels show
+#|   primal suboptimality versus `AndersonCD` outer iterations on the same three
+#|   problems as @fig-real-glmnet.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
@@ -2338,8 +2326,8 @@ production solver in our survey whose intercept update is unambiguously the
 gradient strategy---the trajectory has the same slow ramp predicted by the
 Newton-coupling bias (@eq-newton-coupling) and the Schur-coupling residual
 (@eq-grad-residual). That diagnosis motivated a pull request to skglm replacing
-the gradient update with a Newton step; the change was merged upstream as
-commit `8f9cbd77`.[^skglm-pr]
+the gradient update with a Newton step; the change was merged upstream as commit
+`8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
     2026-05-13. skglm 0.6 is unreleased at the time of writing; the controlled
@@ -2352,16 +2340,16 @@ differences, @fig-skglm-controlled compares two skglm commits that differ only
 in the intercept update: `b03644fe`, the last pre-fix commit and behaviorally
 identical to the released 0.5, and `8f9cbd77`, the merged Newton fix. Running
 the same `AndersonCD` driver on both yields a clean 30-cell comparison whose
-pass-count ratios mirror @fig-mu-reg-gradient: near unity at low imbalance,
-then increasing monotonically with $\mu_0$ and $1/\lambda$.
+pass-count ratios mirror @fig-mu-reg-gradient: near unity at low imbalance, then
+increasing monotonically with $\mu_0$ and $1/\lambda$.
 
 ```{julia}
 #| label: fig-skglm-controlled
-#| fig-cap: Within-skglm commit comparison.
-#|   The heatmap shows $\log_{10}(T_{\mathtt{b03644fe}} /
-#|   T_{\mathtt{8f9cbd77}})$ for `AndersonCD` across the same
-#|   $(\mu_0,\lambda/\lambda_{\max})$ grid as @fig-mu-reg-gradient, averaged
-#|   over three seeds; clipped cells mark runs that hit the 5000-iteration cap.
+#| fig-cap: Within-skglm commit comparison. The heatmap shows
+#|   $\log_{10}(T_{\mathtt{b03644fe}} / T_{\mathtt{8f9cbd77}})$ for `AndersonCD`
+#|   across the same $(\mu_0,\lambda/\lambda_{\max})$ grid as
+#|   @fig-mu-reg-gradient, averaged over three seeds; clipped cells mark runs
+#|   that hit the 5000-iteration cap.
 
 df_sk = DataFrame(CSV.File(@projectroot("results", "skglm-controlled", "results.csv")))
 df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
@@ -2394,10 +2382,10 @@ intercept) and glmnet's `modified.Newton` (the constant-majorant alternative).
 
 ```{julia}
 #| label: fig-real-proxnewton
-#| fig-cap: Prox-Newton solvers on three imbalanced logistic problems.
-#|   The panels show primal suboptimality versus wall-clock time for LIBLINEAR
-#|   and BlitzL1 on the same three problems as @fig-real-glmnet. LIBLINEAR runs
-#|   that hit its internal `max_iter` cap without further progress are omitted.
+#| fig-cap: Prox-Newton solvers on three imbalanced logistic problems. The
+#|   panels show primal suboptimality versus wall-clock time for LIBLINEAR and
+#|   BlitzL1 on the same three problems as @fig-real-glmnet. LIBLINEAR runs that
+#|   hit its internal `max_iter` cap without further progress are omitted.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "proxnewton.csv"))),
@@ -2442,15 +2430,15 @@ and @fig-real-adelie reports its per-tolerance wall-clock cost across the same
 three problems used above. adelie's outer-IRLS criterion is coarser than
 glmnet's coefficient-based `thresh`, which is reflected in a higher achievable
 suboptimality from a single tolerance sweep. The quantity that matters for the
-present argument, however, is per-iteration cost, and on that margin adelie
-sits in the same range as the other local-IRLS solvers.
+present argument, however, is per-iteration cost, and on that margin adelie sits
+in the same range as the other local-IRLS solvers.
 
 ```{julia}
 #| label: fig-real-adelie
-#| fig-cap: adelie on three imbalanced logistic problems.
-#|   The panels show primal suboptimality versus convergence tolerance on the
-#|   same three problems as @fig-real-glmnet. The horizontal axis is the
-#|   coupled outer/inner tolerance (`tol = irls_tol`).
+#| fig-cap: adelie on three imbalanced logistic problems. The panels show primal
+#|   suboptimality versus convergence tolerance on the same three problems as
+#|   @fig-real-glmnet. The horizontal axis is the coupled outer/inner tolerance
+#|   (`tol = irls_tol`).
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "adelie.csv"))),
@@ -2508,17 +2496,16 @@ analog. The status of each solver on this family is structural, not empirical:
   weighted-centered-features parameterization as the logistic case.
 
 Three Newton-class solvers therefore remain: glmnet, adelie, and skglm
-`ProxNewton`.
-We run each in path mode on congress109 with $\lambda = 0.05\lambda_{\max}$,
-sweeping the solver-specific tolerance.
+`ProxNewton`. We run each in path mode on congress109 with
+$\lambda = 0.05\lambda_{\max}$, sweeping the solver-specific tolerance.
 
 ```{julia}
 #| label: fig-real-poisson-production
-#| fig-cap: Production Poisson solvers on congress109.
-#|   The plot shows primal suboptimality versus wall-clock time for glmnet,
-#|   adelie, and skglm `ProxNewton` in path mode at $n = 529$, $p = 999$,
-#|   $\bar y = 11.83$, and $\lambda = 0.05\lambda_{\max}$. $F^\star$ is the
-#|   minimum primal observed across solvers and tolerances.
+#| fig-cap: Production Poisson solvers on congress109. The plot shows primal
+#|   suboptimality versus wall-clock time for glmnet, adelie, and skglm
+#|   `ProxNewton` in path mode at $n = 529$, $p = 999$, $\bar y = 11.83$, and
+#|   $\lambda = 0.05\lambda_{\max}$. $F^\star$ is the minimum primal observed
+#|   across solvers and tolerances.
 
 probdir = @projectroot("results", "real-solvers-poisson", "congress109")
 df_gl = DataFrame(CSV.File(joinpath(probdir, "glmnet.csv")))
@@ -2559,9 +2546,9 @@ transient at $\beta = 0$. If we remove that ramp and solve a single $\lambda$
 from scratch, the unguarded Newton intercept update predicted to be unstable by
 @eq-newton-coupling does fail in production code on the two most imbalanced real
 problems. The diagnostic in @tbl-cold-start-diag runs each solver at
-$\lambda = 0.05\lambda_{\max}$ with $\text{eps} = 10^{-1}$, sweeping the
-iterate cap from $10^1$ to $10^5$; the path-mode reference primal is $0.0497$
-on both datasets.
+$\lambda = 0.05\lambda_{\max}$ with $\text{eps} = 10^{-1}$, sweeping the iterate
+cap from $10^1$ to $10^5$; the path-mode reference primal is $0.0497$ on both
+datasets.
 
   | dataset     | solver                             | $\beta_0$                     | primal  | iterations             |
   | :---------- | :--------------------------------- | :---------------------------- | ------: | :--------------------- |
@@ -2576,18 +2563,17 @@ on both datasets.
     reports the intercept estimate, primal objective, and iteration count at
     $\lambda = 0.05\lambda_{\max}$ with $\text{eps} = 10^{-1}$; the iterate cap
     is swept from $10^1$ to $10^5$, and the path-mode reference primal is
-    $0.0497$ on both datasets.
-    {#tbl-cold-start-diag}
+    $0.0497$ on both datasets. {#tbl-cold-start-diag}
 
-The main lesson of @tbl-cold-start-diag is that the global majorant
-$L_0 = 1/4$ acts as an $X$-free safeguard on the intercept: two scalars
-($n$ and $\bar y$) determine the step, and that is enough to absorb the
-cold-start transient at trivial cost on the unpenalized coordinate. The
-analogous safeguard for a coefficient would require column-norm information.
+The main lesson of @tbl-cold-start-diag is that the global majorant $L_0 = 1/4$
+acts as an $X$-free safeguard on the intercept: two scalars ($n$ and $\bar y$)
+determine the step, and that is enough to absorb the cold-start transient at
+trivial cost on the unpenalized coordinate. The analogous safeguard for a
+coefficient would require column-norm information.
 
 This matters in practice because unguarded Newton is the default in biglasso and
-the only mode in adelie. On a benchmark like w1a, a user who omits path mode
-can therefore receive no solution at all. The difference between w1a and
+the only mode in adelie. On a benchmark like w1a, a user who omits path mode can
+therefore receive no solution at all. The difference between w1a and
 news20-3pct, despite their matched $\bar y$, shows that the failure is not
 driven by the cold-start gradient magnitude alone. What matters is the IRLS
 weight collapse after the first inner solve. On news20-3pct's wider sparse
@@ -2614,13 +2600,13 @@ fails under imbalance more generally: once $H_{00}/L_0$ becomes small---or once
 $L_0 = \infty$ in Poisson---it stops making a meaningful intercept correction.
 
 The production-solver survey turns this into a practical diagnostic. Solvers
-that realize Newton-class behavior on the intercept---glmnet `Newton`,
-biglasso `Newton`, adelie, LIBLINEAR, and BlitzL1---remain fast on the
-imbalanced problems we study. Solvers that realize the gradient-class
-update---glmnet `modified.Newton`, biglasso `MM`, and skglm 0.5---inherit the
-same imbalance sensitivity as the direct-CD gradient strategy. The within-package
-toggles in glmnet and biglasso, the before-and-after skglm comparison, and the
-structural absence of gradient-class Poisson solvers all support that reading.
+that realize Newton-class behavior on the intercept---glmnet `Newton`, biglasso
+`Newton`, adelie, LIBLINEAR, and BlitzL1---remain fast on the imbalanced
+problems we study. Solvers that realize the gradient-class update---glmnet
+`modified.Newton`, biglasso `MM`, and skglm 0.5---inherit the same imbalance
+sensitivity as the direct-CD gradient strategy. The within-package toggles in
+glmnet and biglasso, the before-and-after skglm comparison, and the structural
+absence of gradient-class Poisson solvers all support that reading.
 
 Multinomial problems make the issue more common rather than less. Every rare
 class creates its own slow intercept direction, so long-tailed label
@@ -2655,10 +2641,10 @@ cyclic CD only in @fig-warm-start and @fig-warm-start-mechanism).
 
 ```{julia}
 #| label: fig-multinomial-sweep-full
-#| fig-cap: Full multinomial imbalance-amplitude sweep.
-#|   The panels show relative primal suboptimality versus outer-pass index over
-#|   the full $4 \times 4$ grid of rarest-class marginal $\bar p_K$ and feature
-#|   amplitude from @fig-multinomial-sweep.
+#| fig-cap: Full multinomial imbalance-amplitude sweep. The panels show relative
+#|   primal suboptimality versus outer-pass index over the full $4 \times 4$
+#|   grid of rarest-class marginal $\bar p_K$ and feature amplitude from
+#|   @fig-multinomial-sweep.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
 df = DataFrame(dd["results"])
@@ -2698,11 +2684,11 @@ draw(
 
 ```{julia}
 #| label: fig-warm-start-full
-#| fig-cap: Full warm-started and cold-started regularization paths.
-#|   The panels show outer passes per subproblem along the logistic-regression
-#|   $\lambda$ path for cyclic CD (top) and permuted CD (bottom); solid lines
-#|   use warm starts, dashed lines cold starts, and curves capped at 300 hit
-#|   the pass budget.
+#| fig-cap: Full warm-started and cold-started regularization paths. The panels
+#|   show outer passes per subproblem along the logistic-regression $\lambda$
+#|   path for cyclic CD (top) and permuted CD (bottom); solid lines use warm
+#|   starts, dashed lines cold starts, and curves capped at 300 hit the pass
+#|   budget.
 
 dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
 df = DataFrame(dd["results"])
@@ -2741,10 +2727,10 @@ draw(
 
 ```{julia}
 #| label: fig-warm-start-mechanism-full
-#| fig-cap: Full initial-gradient regularization paths.
-#|   The panels show $|\partial_0 F|$ at the initial iterate of each subproblem
-#|   along the $\lambda$ path for cyclic CD (top) and permuted CD (bottom);
-#|   solid lines use warm starts and dashed lines cold starts.
+#| fig-cap: Full initial-gradient regularization paths. The panels show
+#|   $|\partial_0 F|$ at the initial iterate of each subproblem along the
+#|   $\lambda$ path for cyclic CD (top) and permuted CD (bottom); solid lines
+#|   use warm starts and dashed lines cold starts.
 
 spec_partial = data(df) *
     mapping(
