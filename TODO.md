@@ -295,30 +295,32 @@ now reports without explaining.
 ### Claims and framing (major)
 
 - [ ] Explain, or explicitly disown, why the centering plateau lands on
-  $L_0/H_{00}$. Along the sweep the empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$
-  saturates by $\bar\rho^2 \approx 0.04$ and then sits on the
-  @eq-rate-gap-asymptotic limit $L_0/H_{00}$ --- within $5\%$ at every
-  subsequent grid point and within $2\%$ once $\bar\rho^2 \gtrsim 0.09$, in
-  both $\mu_0$ series ($3.29$ and $5.88$). That is far too tight to be
-  coincidence, and a referee will ask where it comes from. The obvious answer
-  is wrong: @eq-rate-gap-asymptotic is derived by letting the $R_0^2$ terms
-  dominate @eq-rate-gap as $|\beta_0^\star|/\|\beta^\star\| \to \infty$, but
-  the sweep reaches the same limit without that condition holding. The
-  recorded intercept share moves non-monotonically from $0.045$ to $1.06$
-  across the saturated cells while the ratio does not respond, and the plateau
-  is as tight at $\alpha = 0.3$, $\mu_0 = 0.5$ (share $0.045$) as where the
-  share is twenty times larger. So the limit is reached through some other
-  route. Options, in rough order of value: (a) derive the plateau directly ---
-  the natural candidate is that the gradient strategy advances the intercept
-  by a fixed fraction $H_{00}/L_0$ of the Newton step every pass, so once the
-  intercept error is re-injected each pass by coupled coefficient updates the
+  $L_0/H_{00}$. Along the sweep the empirical
+  $T_{\mathrm{G}}/T_{\mathrm{N}}$ saturates by $\bar\rho^2 \approx 0.04$ and
+  then sits on the @eq-rate-gap-asymptotic limit $L_0/H_{00}$ --- within
+  $5\%$ at every subsequent grid point and within $2\%$ once
+  $\bar\rho^2 \gtrsim 0.09$, in both $\mu_0$ series ($3.29$ and $5.88$).
+  That is far too tight to be coincidence, and a referee will ask where it
+  comes from. The obvious answer is wrong: @eq-rate-gap-asymptotic is
+  derived by letting the $R_0^2$ terms dominate @eq-rate-gap as
+  $|\beta_0^\star|/\|\beta^\star\| \to \infty$, but the sweep reaches the
+  same limit without that condition holding. The recorded intercept share
+  moves non-monotonically from $0.045$ to $1.06$ across the saturated cells
+  while the ratio does not respond, and the plateau is as tight at
+  $\alpha = 0.3$, $\mu_0 = 0.5$ (share $0.045$) as where the share is twenty
+  times larger. So the limit is reached through some other route. Options,
+  in rough order of value: (a) derive the plateau directly --- the natural
+  candidate is that the gradient strategy advances the intercept by a fixed
+  fraction $H_{00}/L_0$ of the Newton step every pass, so once the intercept
+  error is re-injected each pass by coupled coefficient updates the
   pass-count ratio is pinned at $L_0/H_{00}$ regardless of where
   $\beta_0^\star$ sits; (b) test that reading by sweeping a second design
   knob (e.g. $\rho$, or $s$) and checking whether the plateau tracks
-  $L_0/H_{00}$ there too; (c) leave it as a reported empirical regularity, the
-  current state of the prose, which says plainly that we do not close the gap.
-  Doing (a) or (b) would turn the figure's headline from "the leading-order
-  factor gets only the sign right" into a positive result. (verified against
-  `results/rho-centering.jld2`, which records `intercept_share`,
-  `asymptotic_ratio`, and per-cell `H00_over_L0`; the latter is exactly
-  single-valued per $\mu_0$, so the sweep does isolate $\bar\rho^2$)
+  $L_0/H_{00}$ there too; (c) leave it as a reported empirical regularity,
+  the current state of the prose, which says plainly that we do not close
+  the gap. Doing (a) or (b) would turn the figure's headline from "the
+  leading-order factor gets only the sign right" into a positive result.
+  (verified against `results/rho-centering.jld2`, which records
+  `intercept_share`, `asymptotic_ratio`, and per-cell `H00_over_L0`; the
+  latter is exactly single-valued per $\mu_0$, so the sweep does isolate
+  $\bar\rho^2$)
