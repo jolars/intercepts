@@ -1,24 +1,15 @@
 # yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
 inputs:
+  git-hooks:
+    url: github:cachix/git-hooks.nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
-  skglm-pre-fix:
-    url: github:scikit-learn-contrib/skglm/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc
-    flake: false
   skglm-post-fix:
     url: github:scikit-learn-contrib/skglm/8f9cbd77e0827b2a91f9a46c68cef46c21d156a8
     flake: false
-
-# If you're using non-OSS software, you can set allowUnfree to true.
-# allowUnfree: true
-
-# If you're not willing to allow unsupported packages:
-# allowUnsupportedSystem: false
-
-# If you're willing to use a package that's vulnerable
-# permittedInsecurePackages:
-#  - "openssl-1.1.1w"
-
-# If you have more than one devenv you can merge them
-#imports:
-# - ./backend
+  skglm-pre-fix:
+    url: github:scikit-learn-contrib/skglm/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc
+    flake: false
