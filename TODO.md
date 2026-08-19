@@ -323,18 +323,19 @@ now reports without explaining.
   (verified against `results/rho-centering.jld2`, which records
   `intercept_share`, `asymptotic_ratio`, and per-cell `H00_over_L0`; the
   latter is exactly single-valued per $\mu_0$, so the sweep does isolate
-  $\bar\rho^2$; resolved by @prp-frozen-block-rate and @fig-rho-frozen, which
-  derive the strongly coupled exact-block limit and verify that the plateau
-  tracks $L_0/H_{00}$ under additional $\rho$, sparsity, and $\mu_0$ settings)
+  $\bar\rho^2$; resolved by @prp-frozen-block-rate and @fig-rho-frozen,
+  which derive the strongly coupled exact-block limit and verify that the
+  plateau tracks $L_0/H_{00}$ under additional $\rho$, sparsity, and $\mu_0$
+  settings)
 
 - [ ] Determine whether the frozen-Hessian result extends to a general theorem
   for randomly permuted coordinate sweeps. @prp-frozen-block-rate proves the
   exact coefficient-block result, while @fig-rho-frozen verifies the full
   permuted-sweep operator through estimated random-product rates. A theorem
   would need to characterize the relevant Lyapunov exponents and recover the
-  $L_0/H_{00}$ limit under explicit coupling conditions. This extension would
-  strengthen the analysis, but it is not needed to explain the observed
-  centering plateau.
+  $L_0/H_{00}$ limit under explicit coupling conditions. This extension
+  would strengthen the analysis, but it is not needed to explain the
+  observed centering plateau.
 
 ## Referee-pass follow-ups (2026-08-19)
 
@@ -344,7 +345,7 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
 
 ### Correctness and classification (major)
 
-- [ ] Rework the descent conclusion in @prp-profile-equiv. The current proof
+- [x] Rework the descent conclusion in @prp-profile-equiv. The current proof
   establishes the envelope-gradient identity and compares the two *local
   quadratic models*, but $1/H_{jj} \leq 1/\widetilde H_{jj}$ at the current
   point does not by itself make $1/H_{jj}$ a descent step for an arbitrary
@@ -354,7 +355,12 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   prove finite-step descent under it. Then audit the downstream wording
   around @eq-schur-diag, @eq-intercept-drift, and every appeal to
   @prp-profile-equiv so none promotes a local quadratic statement into a
-  global descent guarantee.
+  global descent guarantee. (resolved: restricted the proposition to the
+  envelope-gradient identity and the ordering of the two local
+  quadratic-model steps; explicitly stated that this ordering gives no
+  finite-step descent guarantee without a coordinate-curvature bound; and
+  narrowed every downstream appeal to a gradient identity or a heuristic
+  local-model comparison.)
 - [ ] Tighten the production-solver taxonomy in @tbl-classification and
   @sec-irls. For each IRLS / prox-Newton implementation, name whether the
   intercept is conditionally minimized for the original GLM loss or only for

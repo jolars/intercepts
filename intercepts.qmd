@@ -583,11 +583,12 @@ $$ {#eq-schur-diag}
 When $|\rho_{0j}|$ is close to $1$, @eq-schur-diag shows that the profiled
 curvature $\tilde H_{jj}$ is much smaller than $H_{jj}$: most of the diagonal
 curvature seen in $H$ is borrowed through the intercept and disappears once we
-profile the intercept out. Coordinate descent that re-optimizes the intercept
-after every pass effectively runs on $\tilde F$, with curvature $\tilde H_{jj}$,
-while coordinate descent that leaves the intercept stale runs on $F$, with the
-inflated curvature $H_{jj}$. In this local quadratic comparison, the factor
-$\rho_{0j}^2$ measures the gap between the two curvatures.
+profile the intercept out. At the first coefficient update after re-optimizing
+the intercept, coordinate descent sees the gradient of $\tilde F$, although its
+diagonal step still uses $H_{jj}$. If the intercept remains stale, the update
+instead sees the partial gradient of $F$. In the local quadratic models, the
+factor $\rho_{0j}^2$ measures the gap between the profiled curvature
+$\tilde H_{jj}$ and the unprofiled curvature $H_{jj}$.
 
 #### Strategies as Schur Approximations
 
@@ -607,22 +608,26 @@ strategies differ in how closely the residual gradient in @eq-gradient-response
 approximates that target.
 
 @prp-profile-equiv makes this precise: at the intercept's conditional minimizer,
-the next coefficient update is exactly a coordinate-descent step on the profiled
-objective.
+the next coefficient update uses the profiled gradient, and its diagonal
+curvature gives a conservative step relative to the profiled local quadratic
+model.
 
 ::: {.proposition #prp-profile-equiv}
 **(First-update profile equivalence.)** Let $F$ be twice continuously
 differentiable and strictly convex in $\beta_0$ for every $\beta$, and let
 $\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$. Suppose the exact strategy
 has driven $\beta_0$ to the conditional minimizer
-$\beta_0^{(t)} = \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$. Then the *first*
-coefficient update of the next pass uses the gradient
+$\beta_0^{(t)} = \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$, and suppose
+$H_{00} > 0$ and $\tilde H_{jj} > 0$ there. Then the *first* coefficient update
+of the next pass uses the gradient
 $\partial_j F(\beta_0^{(t)}, \beta^{(t)}) = \partial_j \tilde F(\beta^{(t)})$,
-and is therefore identical to a coordinate-descent step on $\tilde F$ at
-$\beta^{(t)}$ with step size $1/H_{jj}$. Because $\tilde H_{jj} \leq H_{jj}$ by
-@eq-schur-diag, that step is *conservative* for $\tilde F$: it never exceeds the
-exact coordinate-minimization step $1/\tilde H_{jj}$ of $\tilde F$'s local
-quadratic model along $e_j$, so it descends rather than overshoots.
+so its update direction agrees with the corresponding coordinate direction for
+$\tilde F$ at $\beta^{(t)}$. Its diagonal step size remains $1/H_{jj}$. Because
+$\tilde H_{jj} \leq H_{jj}$ by @eq-schur-diag, this step is no larger than the
+step $1/\tilde H_{jj}$ that minimizes $\tilde F$'s local quadratic model along
+$e_j$. This comparison concerns the two quadratic models at the current point;
+without a coordinate-curvature bound along the finite step, it does not imply
+descent of $\tilde F$ itself.
 :::
 
 ::: {.proof}
@@ -641,14 +646,17 @@ $\beta_0^\star$ to zero. Evaluating at
 $\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives the gradient equality. For
 the step size, $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$ from
 @eq-schur-diag gives $1/H_{jj} \leq 1/\tilde H_{jj}$, so the realized step is at
-most $\tilde F$'s exact coordinate-minimization step $1/\tilde H_{jj}$ along
-$e_j$.
+most the minimizing step $1/\tilde H_{jj}$ in $\tilde F$'s local quadratic model
+along $e_j$. The inequality alone supplies no finite-step descent guarantee for
+$\tilde F$.
 :::
 
-@prp-profile-equiv connects the Schur analysis to CD theory: at the start of
-each pass, the exact strategy aligns with CD on $\tilde F$. But that alignment
-lasts for exactly one coefficient update. By the second update, $\beta_0^{(t)}$
-is no longer the conditional minimizer, and the equivalence breaks.
+@prp-profile-equiv connects the Schur analysis to the update: at the start of
+each pass, the exact strategy gives the first coefficient update the gradient of
+$\tilde F$ and a step conservative relative to its local quadratic model. But
+that gradient identity lasts for exactly one coefficient update. By the second
+update, $\beta_0^{(t)}$ is no longer the conditional minimizer, and the identity
+breaks.
 
 To see how quickly it breaks, expand $\partial_0 F$ to first order in the
 $\beta_j$ direction at the conditional minimizer. With
@@ -687,11 +695,12 @@ drives this paper, and three regimes soften it. The first is warm-started path
 solves along a $\lambda$ grid: each subproblem begins with $|\partial_0 F|$
 already small, so $k_0$ drops to one or two inner Newton steps, the $k_0 - 1$
 penalty shrinks to zero, and bare Newton and the exact strategy converge to each
-other. The second is strongly coupled designs, where the envelope alignment of
-@prp-profile-equiv delivers a meaningful first-update gain that partially
-offsets the per-pass overhead, though the cyclic drift of @eq-intercept-drift
-still applies. The third is the prox-Newton or IRLS linearization boundary,
-where the solver recomputes the Hessian for the next subproblem, so the
+other. The second is strongly coupled designs, where the local envelope
+alignment of @prp-profile-equiv suggests a potential first-update gain that can
+partially offset the per-pass overhead, though the cyclic drift of
+@eq-intercept-drift still applies. The third is the prox-Newton or IRLS
+linearization boundary, where the solver recomputes the Hessian for the next
+subproblem, so the
 within-pass drift no longer matters. This case explains the intercept handling
 in LIBLINEAR and BlitzL1 (@sec-irls). In all three regimes the exact strategy is
 a defensible choice, and our recommendation against it applies only to the
@@ -839,11 +848,13 @@ entry $H_{00}$, not the fixed coordinate Lipschitz constant used by the CD
 bound; this is the substitution that delivers the $H_{00}(\hat\eta) \to 0$
 scaling the figures track. The gradient strategy keeps the global
 $L_0 = \sup f''$, as the bound prescribes. *(iii) Schur reduction on the
-coefficients.* By @prp-profile-equiv the Newton strategy aligns with CD on the
-profiled objective $\tilde F$ at the *first* coefficient update of each pass,
-whose curvatures are $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ by
-@eq-schur-diag; we extend this to the full pass, treating the single-step Schur
-curvature as the effective coefficient curvature. The gradient strategy removes
+coefficients.* The exact-strategy identity in @prp-profile-equiv, together with
+the Newton strategy's leading-order approximation in @eq-newton-coupling,
+motivates using the profiled gradient at the *first* coefficient update of each
+pass. The corresponding local quadratic model has curvatures
+$\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ by @eq-schur-diag; as a heuristic, we
+extend this one-update model to the full pass and treat the Schur curvature as
+the effective coefficient curvature. The gradient strategy removes
 only fraction $H_{00}/L_0$ of the coupling (@eq-grad-residual), giving effective
 curvature $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$. Substituting
 (ii)--(iii) into the $L_j R_j^2$ sum gives @eq-rate-gap; retaining only the
@@ -1321,9 +1332,10 @@ $-p_{ik} p_{il}$. The intercept Hessian
 $H_{00} = (1/n)\sum_i \bigl(\operatorname{diag}(p_{i,1:K - 1}) - p_{i,1:K - 1} p_{i,1:K - 1}^\intercal\bigr)$
 is a $(K - 1) \times (K - 1)$ matrix; the Newton strategy becomes a small block
 solve $\delta = -H_{00}^{-1}\nabla_0 F$ followed by Armijo backtracking on the
-loss along that direction. @prp-profile-equiv, the within-pass drift
-(@eq-intercept-drift), and the Newton-coupling bias (@eq-newton-coupling) all
-carry through with matrix-valued $H_{00}$ in place of the scalar.
+loss along that direction. The gradient identity in @prp-profile-equiv, the
+within-pass drift (@eq-intercept-drift), and the Newton-coupling bias
+(@eq-newton-coupling) all carry through with matrix-valued $H_{00}$ in place of
+the scalar.
 
 The Schur-coupling residual (@eq-grad-residual) sharpens. The gradient strategy
 applies a uniform Lipschitz bound $L_0$ across all classes, so the per-class
