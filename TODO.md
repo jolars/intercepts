@@ -294,7 +294,7 @@ now reports without explaining.
 
 ### Claims and framing (major)
 
-- [ ] Explain, or explicitly disown, why the centering plateau lands on
+- [x] Explain, or explicitly disown, why the centering plateau lands on
   $L_0/H_{00}$. Along the sweep the empirical
   $T_{\mathrm{G}}/T_{\mathrm{N}}$ saturates by $\bar\rho^2 \approx 0.04$ and
   then sits on the @eq-rate-gap-asymptotic limit $L_0/H_{00}$ --- within
@@ -323,7 +323,18 @@ now reports without explaining.
   (verified against `results/rho-centering.jld2`, which records
   `intercept_share`, `asymptotic_ratio`, and per-cell `H00_over_L0`; the
   latter is exactly single-valued per $\mu_0$, so the sweep does isolate
-  $\bar\rho^2$)
+  $\bar\rho^2$; resolved by @prp-frozen-block-rate and @fig-rho-frozen, which
+  derive the strongly coupled exact-block limit and verify that the plateau
+  tracks $L_0/H_{00}$ under additional $\rho$, sparsity, and $\mu_0$ settings)
+
+- [ ] Determine whether the frozen-Hessian result extends to a general theorem
+  for randomly permuted coordinate sweeps. @prp-frozen-block-rate proves the
+  exact coefficient-block result, while @fig-rho-frozen verifies the full
+  permuted-sweep operator through estimated random-product rates. A theorem
+  would need to characterize the relevant Lyapunov exponents and recover the
+  $L_0/H_{00}$ limit under explicit coupling conditions. This extension would
+  strengthen the analysis, but it is not needed to explain the observed
+  centering plateau.
 
 ## Referee-pass follow-ups (2026-08-19)
 
@@ -338,57 +349,57 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   quadratic models*, but $1/H_{jj} \leq 1/\widetilde H_{jj}$ at the current
   point does not by itself make $1/H_{jj}$ a descent step for an arbitrary
   twice-differentiable convex profiled objective. Either (a) restrict the
-  proposition to the gradient identity and local-curvature comparison, or
-  (b) add an explicit coordinate-smoothness / curvature-bound assumption and
-  prove finite-step descent under it. Then audit the downstream wording around
-  @eq-schur-diag, @eq-intercept-drift, and every appeal to
+  proposition to the gradient identity and local-curvature comparison, or (b)
+  add an explicit coordinate-smoothness / curvature-bound assumption and
+  prove finite-step descent under it. Then audit the downstream wording
+  around @eq-schur-diag, @eq-intercept-drift, and every appeal to
   @prp-profile-equiv so none promotes a local quadratic statement into a
   global descent guarantee.
 - [ ] Tighten the production-solver taxonomy in @tbl-classification and
   @sec-irls. For each IRLS / prox-Newton implementation, name whether the
   intercept is conditionally minimized for the original GLM loss or only for
   the frozen quadratic surrogate. In particular, verify LIBLINEAR's
-  `newGLMNET` update against its algorithm or source, and withdraw or qualify
-  the claim that it realizes the paper's exact original-loss strategy if it
-  only converges on the quadratic subproblem.
+  `newGLMNET` update against its algorithm or source, and withdraw or
+  qualify the claim that it realizes the paper's exact original-loss
+  strategy if it only converges on the quadratic subproblem.
 
 ### Evaluation and reproducibility (major)
 
-- [ ] Define one explicit $F^\star$ protocol for all production-solver panels
-  in @sec-production-solvers. Inventory the current references used by
+- [ ] Define one explicit $F^\star$ protocol for all production-solver panels in
+  @sec-production-solvers. Inventory the current references used by
   @fig-real-glmnet, @fig-real-biglasso, @fig-real-adelie, @fig-real-skglm,
-  @fig-real-proxnewton, and @fig-real-poisson-production; decide whether each
-  figure is a within-solver comparison or a cross-solver comparison; and use a
-  common, independently justified reference whenever curves are compared
-  across implementations. State the convention in the methods text and
-  captions. This supersedes the narrower open note above that asks only for an
-  adelie-caption disclosure.
-- [ ] Make the pinned R and Python environments obvious to a cold referee.
-  Check that `devenv.nix` and `devenv.lock` pin every package and external
-  solver needed by the production drivers, including both skglm revisions used
-  by @fig-skglm-controlled. Add a compact language-to-environment mapping to
+  @fig-real-proxnewton, and @fig-real-poisson-production; decide whether
+  each figure is a within-solver comparison or a cross-solver comparison;
+  and use a common, independently justified reference whenever curves are
+  compared across implementations. State the convention in the methods text
+  and captions. This supersedes the narrower open note above that asks only
+  for an adelie-caption disclosure.
+- [ ] Make the pinned R and Python environments obvious to a cold referee. Check
+  that `devenv.nix` and `devenv.lock` pin every package and external solver
+  needed by the production drivers, including both skglm revisions used by
+  @fig-skglm-controlled. Add a compact language-to-environment mapping to
   the README and explain how the lock file reconstructs each toolchain. If
-  devenv does not fully pin one of them, add the missing pin. Run each documented
-  environment entry point before submission. This is separate from the open
-  Zenodo task: the reviewer found the cached outputs and drivers but could not
-  infer the non-Julia dependency provenance from the conventional environment
-  files.
+  devenv does not fully pin one of them, add the missing pin. Run each
+  documented environment entry point before submission. This is separate
+  from the open Zenodo task: the reviewer found the cached outputs and
+  drivers but could not infer the non-Julia dependency provenance from the
+  conventional environment files.
 
 ### Claims and presentation (minor)
 
 - [ ] Replace “Newton curvature stays well-scaled however imbalanced the data
   are” in the abstract / metadata and any parallel Discussion wording. Under
-  extreme imbalance, $H_{00}$ itself can approach zero; the supported claim is
-  that dividing by the local curvature gives an adaptive update ratio. Search
-  for equivalent claims rather than fixing only the known sentence.
+  extreme imbalance, $H_{00}$ itself can approach zero; the supported claim
+  is that dividing by the local curvature gives an adaptive update ratio.
+  Search for equivalent claims rather than fixing only the known sentence.
 - [ ] Reduce main-text repetition among @fig-mu-extreme, @fig-rate-gap,
-  @fig-mu-reg-gradient, and @fig-warm-start. Write down the distinct claim each
-  figure establishes, retain the minimum panels needed for those claims, and
-  move diagnostic or robustness panels to the supplement. Coordinate this
-  with the existing open `-full` signposting task instead of creating another
-  compact/full pair.
+  @fig-mu-reg-gradient, and @fig-warm-start. Write down the distinct claim
+  each figure establishes, retain the minimum panels needed for those
+  claims, and move diagnostic or robustness panels to the supplement.
+  Coordinate this with the existing open `-full` signposting task instead of
+  creating another compact/full pair.
 - [ ] Fix the repository-facing copy, then regenerate `README.md` with
-  `task readme`: change “mattes” in `_quarto.yml` (which flows into the README),
-  change “Compute journal” to “Computo journal” in `README.qmd`, and compare the
-  rendered README author list with `_quarto.yml` so every manuscript author is
-  represented in the intended order.
+  `task readme`: change “mattes” in `_quarto.yml` (which flows into the
+  README), change “Compute journal” to “Computo journal” in `README.qmd`,
+  and compare the rendered README author list with `_quarto.yml` so every
+  manuscript author is represented in the intended order.
