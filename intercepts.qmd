@@ -239,10 +239,10 @@ A Curvature and Coupling Analysis
     isolates the quantity that governs slowdown: the curvature ratio
     $H_{00}/L_0$. This shows why the gradient strategy slows when
     $H_{00} \ll L_0$, that is, when its intercept step is scaled by a
-    conservative Lipschitz bound. A heuristic based on a randomized-CD bound
-    predicts scaling proportional to $L_0/H_{00}$ in the imbalance regime. For
-    binary logistic regression, this quantity diverges as $\mu_0 \to 1$, which
-    matches our experiments up to a constant factor.
+    conservative Lipschitz bound. A frozen-Hessian analysis shows that, once a
+    coupled intercept--coefficient mode controls local convergence, the
+    gradient/Newton rate ratio approaches $L_0/H_{00}$. For binary logistic
+    regression, this quantity diverges as $\mu_0 \to 1$.
 
 Classification and Empirical Verification
 :   We classify CD-based GLM solvers as direct CD, local-IRLS, MM-IRLS, or
@@ -940,32 +940,28 @@ holds at $0.304$ ($\mu_0 = 0.5$) and $0.170$ ($\mu_0 = 0.9$) to four digits
 while $\bar\rho^2$ travels from $2 \times 10^{-3}$ to $0.51$. The second axis is
 genuinely isolated here, not merely emphasized.
 
-@fig-rho-centering does not follow the shape predicted by the leading-order
-ratio. The empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ rises steeply until
+@fig-rho-centering does not follow the shape predicted by the first-update bound
+heuristic. The empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ rises steeply until
 $\bar\rho^2 \approx 0.04$ and then remains within $5\%$ of the asymptotic limit
 $L_0/H_{00}$. By contrast, the leading-order ratio
 $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ is nearly flat where the
 empirical curve is steep and remains well below it. The heuristic predicts the
-direction of the effect but not its shape or magnitude.
+direction of the first-update effect but not the long-run shape or magnitude.
 
-Feature centering therefore acts on the pass-count ratio as a switch rather than
-as a dial: once the intercept couples to the features at all, the solver sits in
-the intercept-dominated regime, where the first axis alone fixes the ratio. The
-natural explanation---that uncentering inflates $|\beta_0^\star|$ until the
-$R_0^2$ terms dominate @eq-rate-gap, which is the route by which
-@eq-rate-gap-asymptotic is derived---does not survive the sweep. The intercept
-share $|\beta_0^\star| / \|\beta^\star\|$ varies non-monotonically from $0.045$
-to $1.06$ across the plateau, without changing the ratio. The empirical curve
-therefore reaches the asymptotic limit by a mechanism that @eq-rate-gap does not
-explain.
+The intercept-distance explanation for this plateau does not survive the sweep.
+Uncentering changes $|\beta_0^\star| / \|\beta^\star\|$ non-monotonically from
+$0.045$ to $1.06$ across the saturated cells, without changing the ratio. The
+mechanism must therefore be local: coupling determines which convergence mode is
+slowest, while $H_{00}/L_0$ determines the relative rate once the coupled mode
+dominates.
 
 ```{julia}
 #| label: fig-rho-centering
 #| fig-cap: Centering sweep at fixed $H_{00}/L_0$. The panels show empirical and
-#|   leading-order $T_{\mathrm{G}}/T_{\mathrm{N}}$ together with the dashed
-#|   $L_0/H_{00}$ reference as a centering fraction $\alpha$ moves the weighted
-#|   $\bar\rho^2$ from standardized to uncentered designs for $n = 500$, $p =
-#|   1000$, $s = 10$, and $\lambda = 0.05\lambda_{\max}$.
+#|   first-update-heuristic $T_{\mathrm{G}}/T_{\mathrm{N}}$ together with the
+#|   dashed $L_0/H_{00}$ reference as a centering fraction $\alpha$ moves the
+#|   weighted $\bar\rho^2$ from standardized to uncentered designs for $n =
+#|   500$, $p = 1000$, $s = 10$, and $\lambda = 0.05\lambda_{\max}$.
 
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
 df = DataFrame(dd["records"])
@@ -981,7 +977,7 @@ df_long = stack(
 df_long.quantity = map(df_long.quantity) do q
     q == "empirical_ratio" ?
         L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
-        L"Leading-order prediction${}$"
+        L"First-update heuristic${}$"
 end
 
 spec = data(df_long) * mapping(:barρ2, :ratio, color = :quantity, col = :μ0_label)
@@ -1001,15 +997,142 @@ draw(
 )
 ```
 
+The plateau follows from the local iteration rather than from the cold-start
+distance. Freeze the Hessian at the optimum, restrict the coefficients to the
+active set $A$, and translate the optimum to zero. Once the active signs are
+fixed, the penalty is locally affine and the quadratic error has Hessian
+$$
+  H =
+\begin{bmatrix}
+  H_{00} & H_{0A} \\
+  H_{A0} & H_{AA}
+\end{bmatrix}
+  .
+$$
+The collective coupling between the intercept and the active coefficient block
+is
+$$
+  \kappa = \frac{H_{0A}H_{AA}^{-1}H_{A0}}{H_{00}} \in [0, 1).
+$$ {#eq-collective-coupling}
+Unlike $\bar\rho^2$, which averages diagonal coordinate-wise correlations,
+$\kappa$ allows many individually small correlations to combine through
+$H_{AA}^{-1}$.
+
+::: {.proposition #prp-frozen-block-rate}
+**(Frozen two-block rate.)** Let $q = H_{00}/L_0$. On the frozen quadratic,
+suppose $H$ is positive definite and each pass first minimizes over the active
+coefficient block and then updates the intercept. The Newton and gradient
+strategies contract the intercept error by
+$$
+  r_{\mathrm{N}} = \kappa, \qquad r_{\mathrm{G}} = 1 - q(1 - \kappa),
+$$
+respectively. Their asymptotic pass-count ratio is
+$$
+\begin{aligned}
+  \frac{T_{\mathrm{G}}}{T_{\mathrm{N}}}
+   & \approx \frac{\log \kappa}{\log\!\bigl(1 - q(1 - \kappa)\bigr)} \\
+   & \longrightarrow \frac{1}{q} = \frac{L_0}{H_{00}}
+  \quad \text{as } \kappa \to 1.
+\end{aligned}
+$$ {#eq-frozen-block-rate}
+:::
+
+To see this, let $a$ denote the intercept error. Conditional minimization gives
+$\beta_A^+ = -H_{AA}^{-1}H_{A0}a$, after which the intercept gradient is
+$H_{00}(1 - \kappa)a$. Newton therefore leaves error $\kappa a$, whereas the
+gradient strategy leaves $[1 - q(1 - \kappa)]a$. Taking logarithms gives
+@eq-frozen-block-rate; expanding both logarithms at $\kappa = 1$ gives the
+limit. This route contains no cold-start distance $R_0$.
+
+The proposition solves the coefficient block exactly, while the algorithm uses
+one permuted coordinate sweep. For that algorithm, let $C_\pi$ be the frozen
+linear map for a coefficient sweep in order $\pi$, and let
+$$
+  E_{\mathrm{N}} = I - \frac{1}{H_{00}}e_0e_0^\top H, \qquad E_{\mathrm{G}}
+                 = I - \frac{1}{L_0}e_0e_0^\top H
+                 = (1 - q)I + qE_{\mathrm{N}}.
+$$
+One frozen pass is $P_{\mathrm{N},\pi} = E_{\mathrm{N}}C_\pi$ or
+$P_{\mathrm{G},\pi} = E_{\mathrm{G}}C_\pi$. Because the experiment draws a new
+$\pi$ each pass, its local rate is governed by products of these random
+matrices, not by the spectral radius of one cyclic pass.
+
+@fig-rho-frozen compares the top random-product rates with the late-stage slopes
+of the nonlinear solver. We fit each nonlinear $\log(\text{relative gap})$ curve
+between $10^{-4}$ and $10^{-8}$, freeze $H$ at the converged Newton solution,
+and propagate the corresponding random pass matrices for 20,000 passes. The
+twelve cells include the transition at $\rho = 0.6$ and a second $\rho = 0.2$
+sweep that moves $L_0/H_{00}$ from $4.69$ to $17.68$.
+
+```{julia}
+#| label: fig-rho-frozen
+#| fig-cap: Frozen-pass validation of the centering mechanism. Each point
+#|   compares the gradient/Newton ratio of the frozen random-product log rates
+#|   with the ratio of fitted late-stage log-gap slopes from the nonlinear
+#|   solver. The cells cover both the weak-to-strong coupling transition at
+#|   $\rho = 0.6$ and a second $\rho = 0.2$ imbalance sweep. The dashed line is
+#|   equality.
+
+df_frozen = DataFrame(CSV.File(@projectroot("results", "rho-frozen-hessian.csv")))
+df_diagnostic = DataFrame(CSV.File(
+    @projectroot("results", "rho-centering-diagnostics.csv"),
+))
+df_local_rate = innerjoin(df_frozen, df_diagnostic; on = [:rho, :mu0, :alpha])
+df_local_rate.design = [L"$\rho = %$(v)$" for v in df_local_rate.rho]
+
+rate_limit = maximum([
+    maximum(df_local_rate.random_log_rate_ratio),
+    maximum(df_local_rate.slope_ratio),
+]) *
+    1.04
+identity_rate = DataFrame(x = [0.0, rate_limit], y = [0.0, rate_limit])
+
+spec_local_rate = data(df_local_rate) *
+    mapping(
+        :random_log_rate_ratio => L"Frozen random-product rate ratio${}$",
+        :slope_ratio => L"Nonlinear late-stage slope ratio${}$",
+        color = :design => "Feature correlation",
+    ) *
+    visual(Scatter, markersize = 12)
+spec_rate_identity = data(identity_rate) *
+    mapping(:x, :y) *
+    visual(Lines, color = :gray, linestyle = :dash)
+
+draw(
+    spec_local_rate + spec_rate_identity,
+    axis = (; aspect = 1),
+    figure = (; size = (520, 390)),
+)
+```
+
+The frozen and nonlinear rates agree across the transition. At $\mu_0 = 0.5$,
+$\kappa$ moves from $0.41$ to $0.81$, $0.94$, and $0.97$ as $\alpha$ moves from
+$0$ to $0.3$; the frozen gradient/Newton rate ratio moves from $1.00$ to $1.81$,
+$3.29$, and $3.32$, matching nonlinear ratios $1.00$, $1.81$, $3.30$, and
+$3.31$. Across the second design, the frozen ratios $4.72$, $5.75$, $8.81$, and
+$17.96$ likewise match nonlinear ratios $4.67$, $5.75$, $8.66$, and $16.91$.
+Newton accepts the full intercept step on $91\%$--$100\%$ of these late-stage
+passes, so its safeguard does not create the difference.
+
+The calculation explains both parts of the apparent switch. Under weak coupling,
+an ordinary coefficient mode controls both strategies and their rate ratio stays
+near one. As collective coupling approaches one, the coupled mode becomes
+slowest; relaxing its intercept correction by $q$ then produces the
+$1/q = L_0/H_{00}$ plateau. We have proved the exact-block limit in
+@prp-frozen-block-rate and verified the full permuted-sweep operator
+numerically. A general Lyapunov-exponent theorem for the random matrix products
+is beyond our present analysis.
+
 The rate-gap argument connects directly to @sec-production-solvers. glmnet's
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
 at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
-@eq-rate-gap predicts their pass counts should grow with $L_0/H_{00}$ at
-$\mu_0 = 0.99$, matching the empirical ≈5× and ≈10× slowdowns reported in
-@fig-real-glmnet and @fig-real-biglasso. skglm (version 0.5), the direct-CD
-solver, exhibits the same scaling on a continuous trajectory in @fig-real-skglm:
-the slow convergence from suboptimality $\approx 10^{-1}$ to $\approx 10^{-5}$
-is the intercept climb to $\mathrm{logit}(\mu_0)$ at step size $1/L_0$.
+$L_0/H_{00}$ therefore sets their relative local rate when a coupled mode
+dominates. At $\mu_0 = 0.99$, this matches the empirical ≈5× and ≈10× slowdowns
+reported in @fig-real-glmnet and @fig-real-biglasso. skglm (version 0.5), the
+direct-CD solver, exhibits the same scaling on a continuous trajectory in
+@fig-real-skglm: the slow convergence from suboptimality $\approx 10^{-1}$ to
+$\approx 10^{-5}$ is the intercept climb to $\mathrm{logit}(\mu_0)$ at step size
+$1/L_0$.
 
 An obvious objection to the Schur-coupling residual (@eq-grad-residual) is that
 adaptive step sizing should rescue the gradient strategy: an Armijo line search
@@ -2029,9 +2152,9 @@ regime of @sec-warmstart-path largely avoids that window.
 ### Imbalance and Regularization {#sec-imbalance-reg}
 
 The single-$\lambda$ experiments above test the framework along one axis at a
-time. The quantitative prediction of @eq-rate-gap is two-dimensional: the
-gradient/Newton pass-count ratio scales with $L_0/H_{00}(\hat\eta)$, and both
-$\lambda$ and $\mu_0$ shift $\hat\eta$ and therefore $H_{00}$. We sweep
+time. The curvature ratio is two-dimensional: both $\lambda$ and $\mu_0$ shift
+$\hat\eta$ and therefore $H_{00}$, while the active set also changes the
+collective coupling in @eq-collective-coupling. We sweep
 $\mu_0 \in \{0.5, 0.7, 0.9, 0.95, 0.99\}$ against
 $\lambda/\lambda_{\max} \in \{0.5, 0.2, 0.1, 0.05, 0.02, 0.01\}$ on the
 standardized binary-logistic design of @fig-mu-extreme (3 seeds per cell),
@@ -2129,22 +2252,20 @@ the exact strategy needs essentially the same number of outer passes as bare
 Newton. Its price is therefore an inner-step overhead, not an outer-pass
 overhead, as @sec-per-pass-cost shows.
 
-Taken together, the two heatmaps show what @eq-rate-gap does and does not
-predict. Along the $H_{00}/L_0$ axis, it captures scaling and monotonicity well:
-the empirical ratio grows as the intercept update becomes more conservative
-($H_{00}/L_0 \to 0$), and it rises monotonically with $\mu_0$ and with
-$1/\lambda$. It does not predict the magnitude tightly. Across this grid the
-empirical ratio sits about two to four times below the iterate-level
-@eq-rate-gap prediction, which is what one would expect from a comparison built
-from upper bounds and heuristic substitutions rather than from a sharp
-iteration-complexity formula.
+Taken together, the two heatmaps show where the curvature ratio remains useful
+outside the tightly coupled plateau. Along the $H_{00}/L_0$ axis, it captures
+scaling and monotonicity well: the empirical ratio grows as the intercept update
+becomes more conservative ($H_{00}/L_0 \to 0$), and it rises monotonically with
+$\mu_0$ and with $1/\lambda$. It does not predict the magnitude tightly. Across
+this grid the empirical ratio sits about two to four times below the
+iterate-level @eq-rate-gap prediction, which is what one would expect from a
+comparison built from upper bounds and heuristic substitutions rather than from
+a sharp iteration-complexity formula.
 
-The centering sweep of @fig-rho-centering is where the agreement is weakest.
-There, the empirical ratio does increase with $\bar\rho^2$, as @eq-rate-gap
-requires, but it saturates at $L_0/H_{00}$ by $\bar\rho^2 \approx 0.04$ and then
-stays there while the leading-order factor continues up to $\bar\rho^2 = 0.51$.
-On that axis the theory gets the direction right, but not the shape or the
-scale.
+The centering sweep of @fig-rho-centering separates the first-update bound
+heuristic from the local rate. The heuristic gets the direction right but not
+the shape or scale. The collective coupling and frozen-pass calculation of
+@fig-rho-frozen recover the transition and the $L_0/H_{00}$ plateau instead.
 
 ### Production Solvers {#sec-production-solvers}
 
@@ -2575,6 +2696,10 @@ losses such as Poisson, it prevents the cold-start overshoot seen in
 @fig-cold-start-poisson. The gradient strategy fails for the same reason it
 fails under imbalance more generally: once $H_{00}/L_0$ becomes small---or once
 $L_0 = \infty$ in Poisson---it stops making a meaningful intercept correction.
+On a strongly coupled local mode, @prp-frozen-block-rate makes the cost
+quantitative: the gradient/Newton rate ratio approaches $L_0/H_{00}$. The frozen
+random-pass calculation reproduces the nonlinear late-stage rates across both
+the onset of this mode and the plateau (@fig-rho-frozen).
 
 The production-solver survey turns this into a practical diagnostic. Solvers
 that use local Newton curvature on the intercept---glmnet `Newton`, biglasso
@@ -2593,11 +2718,11 @@ also makes Newton and exact nearly indistinguishable there.
 
 Our analysis has two main limitations. First, the Newton-strategy results are
 *local*. @eq-newton-error and @eq-newton-coupling are Taylor identities for a
-single Newton step, not a global convergence proof for CD with a Newton-updated
-intercept, and the empirical evidence in @sec-results is supportive rather than
-conclusive. A sharper rate analysis under restricted strong convexity would let
-@eq-rate-gap predict the empirical pass-count constant, not just its scaling and
-monotonicity (@sec-imbalance-reg).
+single Newton step, and @prp-frozen-block-rate freezes the Hessian and solves
+the active coefficient block exactly. The frozen products of permuted coordinate
+passes reproduce the nonlinear rates, but we do not prove a general theorem for
+their Lyapunov exponents or a global convergence rate for CD with a
+Newton-updated intercept.
 
 Second, the production-solver experiments in @sec-production-solvers run on a
 single shared problem. The heatmap of @sec-imbalance-reg replicates the binary

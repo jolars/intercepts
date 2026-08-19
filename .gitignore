@@ -75,6 +75,13 @@ devenv.local.yaml
 # recomputing. The assembled results/rho-centering.jld2 is the tracked artifact.
 /results/rho-centering/cells/
 
+# Per-cell checkpoints for the local-rate follow-up to the centering sweep.
+# The assembled JLD2 and CSV summaries remain tracked.
+/results/rho-centering-diagnostics/cells/
+
+# Per-cell checkpoints for the frozen-Hessian follow-up.
+/results/rho-frozen-hessian/cells/
+
 # Heavy design matrices for the production-solver problems; reproducible
 # from experiments/sim-real-problem.jl. y.csv and meta.json are small
 # enough to keep tracked for documentation of the (n, p, lambda, mu0) cells.
