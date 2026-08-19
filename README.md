@@ -1,6 +1,6 @@
 # How to Train Your Intercept
 Johan Larsson, Frederik Fabricius Bjerre
-2026-08-13
+2026-08-19
 
 *How the intercept is updated inside coordinate descent for regularized
 generalized linear models, and why the choice matters under response
@@ -165,8 +165,24 @@ This will generate the HTML and PDF versions of the document in the
 
 ### (Optional) Reproduce using devenv
 
-We provide a [devenv](https://devenv.sh) configuration (`devenv.nix` /
-`devenv.lock`) that pins the system-level dependencies for the project.
+We provide a [devenv](https://devenv.sh) configuration (`devenv.nix` and
+`devenv.lock`) that reconstructs the complete toolchain. The lock file
+records the exact Nix revisions and content hashes behind each input;
+`devenv.nix` then selects packages from those immutable inputs. The
+environments map to the drivers as follows.
+
+- **Julia 1.11:** devenv supplies the interpreter, while `Project.toml`
+  and `Manifest.toml` supply the packages used by the tests, notebook,
+  and Julia experiments.
+- **R:** locked `nixpkgs` supplies R, glmnet, biglasso, adelie, and the
+  other CRAN packages used by `experiments/*.R`.
+- **Python:** locked `nixpkgs` and the fixed-output sources in
+  `devenv.nix` supply Python, skglm 0.5, BlitzL1, Celer, and their
+  dependencies for `experiments/*.py`.
+- **Controlled skglm comparison:** separate locked inputs supply the
+  pre-fix and post-fix skglm source trees used by
+  `run-skglm-controlled.sh`.
+
 After [installing devenv](https://devenv.sh/getting-started/), enter the
 environment from the root of the project with:
 
@@ -174,9 +190,14 @@ environment from the root of the project with:
 devenv shell
 ```
 
-and this will set up the environment with all the dependencies needed to
-run the project. But you will still need to activate the Julia
-environment as described above, and resolve the dependencies.
+This provides R, Python, Julia 1.11, Quarto, and every external solver
+used by the production drivers. Instantiate the Julia packages once with
+`task install`. The controlled skglm comparison needs no separate
+checkout:
+
+``` bash
+bash experiments/run-skglm-controlled.sh
+```
 
 ### Continuous integration
 

@@ -4,19 +4,15 @@
 #
 # Pipeline:
 #   1. (re)generate the problem family via sim-skglm-controlled-problem.jl
-#   2. for each pinned commit of the local skglm checkout, run
-#      sim-skglm-controlled.py with PYTHONPATH pointing at the checkout so
-#      the run uses that exact source tree
+#   2. for each source tree pinned by devenv.lock, run sim-skglm-controlled.py
+#      with PYTHONPATH pointing at that tree
 #
 # Requires:
-#   - a clean working tree at $SKGLM_REPO (otherwise we refuse to checkout
-#     over the user's uncommitted changes)
-#   - both pinned SHAs reachable in that repo
+#   - the devenv shell, which exports both pinned source-tree paths
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &>/dev/null && pwd)"
-SKGLM_REPO="${SKGLM_REPO:-/home/jola/projects/skglm}"
 
 PRE_FIX_SHA="b03644fe"
 POST_FIX_SHA="8f9cbd77"
@@ -25,31 +21,10 @@ RESULTS_DIR="$PROJECT_ROOT/results/skglm-controlled"
 RESULTS_CSV="$RESULTS_DIR/results.csv"
 INDEX_CSV="$RESULTS_DIR/index.csv"
 
-if [[ ! -d "$SKGLM_REPO/.git" ]]; then
-    echo "error: SKGLM_REPO=$SKGLM_REPO is not a git checkout" >&2
-    exit 1
-fi
-
-if [[ -n "$(git -C "$SKGLM_REPO" status --porcelain)" ]]; then
-    echo "error: $SKGLM_REPO has uncommitted changes; aborting before checkout" >&2
-    git -C "$SKGLM_REPO" status --short >&2
-    exit 1
-fi
-
-original_ref="$(git -C "$SKGLM_REPO" rev-parse --abbrev-ref HEAD)"
-if [[ "$original_ref" == "HEAD" ]]; then
-    original_ref="$(git -C "$SKGLM_REPO" rev-parse HEAD)"
-fi
-echo "Will restore $SKGLM_REPO to '$original_ref' on exit."
-
-restore_skglm() {
-    git -C "$SKGLM_REPO" checkout "$original_ref" -- skglm/ 2>/dev/null || true
-}
-trap restore_skglm EXIT
-
-for sha in "$PRE_FIX_SHA" "$POST_FIX_SHA"; do
-    if ! git -C "$SKGLM_REPO" cat-file -e "$sha^{commit}" 2>/dev/null; then
-        echo "error: commit $sha not found in $SKGLM_REPO" >&2
+for source_var in SKGLM_PRE_FIX_SOURCE SKGLM_POST_FIX_SOURCE; do
+    source_dir="${!source_var:-}"
+    if [[ ! -f "$source_dir/skglm/__init__.py" ]]; then
+        echo "error: $source_var is unavailable; run this script inside 'devenv shell'" >&2
         exit 1
     fi
 done
@@ -65,14 +40,15 @@ fi
 # 2. start with a fresh results.csv so the run is reproducible
 rm -f "$RESULTS_CSV"
 
-for sha in "$PRE_FIX_SHA" "$POST_FIX_SHA"; do
+for spec in \
+    "$PRE_FIX_SHA:$SKGLM_PRE_FIX_SOURCE" \
+    "$POST_FIX_SHA:$SKGLM_POST_FIX_SOURCE"; do
+    sha="${spec%%:*}"
+    source_dir="${spec#*:}"
     echo
-    echo "=== Checking out skglm at $sha ==="
-    git -C "$SKGLM_REPO" checkout "$sha" -- skglm/
-    # Drop bytecode caches in case stale .pyc shadow source differences
-    find "$SKGLM_REPO/skglm" -type d -name __pycache__ -prune -exec rm -rf {} +
-
-    PYTHONPATH="$SKGLM_REPO" python "$PROJECT_ROOT/experiments/sim-skglm-controlled.py" \
+    echo "=== Running skglm at $sha ==="
+    PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$source_dir" \
+        python "$PROJECT_ROOT/experiments/sim-skglm-controlled.py" \
         --commit "$sha" --out "$RESULTS_CSV" --index "$INDEX_CSV"
 done
 
