@@ -349,9 +349,11 @@ the disagreement is large enough to determine convergence speed. In this
 section, we identify the cause. A gradient step rests on the global
 per-coordinate Lipschitz constant $L_0$, which does not adapt to the
 iterate-level intercept curvature $H_{00}$, and under response imbalance the
-ratio $L_0/H_{00}$ diverges. The gradient strategy pays for that ratio in every
-iteration. The Newton and exact strategies, which track $H_{00}$ directly, do
-not. We make this quantitative in the rest of the section.
+ratio $L_0/H_{00}$ diverges. The gradient strategy can inherit that scaling in
+its local rate when the intercept or a coupled intercept--coefficient mode
+controls convergence. The Newton and exact strategies track $H_{00}$ directly.
+We distinguish the proved local result, the bound-based heuristic, and the
+empirical regimes in the rest of the section.
 
 Throughout this section, we work with the per-observation-averaged,
 canonical-link GLM loss
@@ -681,18 +683,21 @@ is lost.
 achieves. Let $k_0$ denote the number of inner Newton steps consumed at the end
 of a pass to drive $|\partial_0 F| < \varepsilon$. The intercept subproblem
 $\beta_0 \mapsto F(\beta_0, \beta)$ is a smooth, strongly convex one-dimensional
-problem, since $\partial_{00} F = H_{00} > 0$ in a neighborhood of its
-minimizer. Newton therefore converges quadratically on it, so that
-$k_0 = O(\log\log(1/\varepsilon))$, a small constant in practice. The empirical
-decomposition in @fig-per-pass-cost confirms that $k_0 \in [1, 6]$ across the
-imbalance sweep, and each step costs $O(n)$ work. By @eq-intercept-drift, the
+problem near any minimizer with $H_{00} > 0$. Once an inner iterate enters a
+neighborhood where the usual Newton conditions hold, its remaining iteration
+count scales as $O(\log\log(1/\varepsilon))$. This local result does not bound
+the steps needed to reach that neighborhood, nor does it show that every
+outer-pass subproblem begins there. In the experiments, however,
+@fig-per-pass-cost records $k_0 \in [1, 6]$ across the imbalance sweep, and each
+step costs $O(n)$ work. By @eq-intercept-drift, the
 conditional optimum that these $k_0$ steps establish survives exactly one
 coefficient update of the next pass; by the second update it has drifted by
 $H_{0j}\delta_j$. Only the first coefficient update therefore receives the full
-benefit of exact profiling. This suggests that the
-$k_0 - 1 = O(\log\log(1/\varepsilon))$ additional inner Newton steps will
-produce little improvement in outer convergence over a single Newton step. The
-experiments in @sec-per-pass-cost support this prediction on our test problems.
+benefit of exact profiling. This suggests that the $k_0 - 1$ additional inner
+Newton steps will produce little improvement in outer convergence over a single
+Newton step. The experiments in @sec-per-pass-cost support this expectation on
+our test problems; we do not claim a global complexity bound for the exact
+strategy.
 The extra work should matter most when several $|H_{0j}|$ are large, because the
 next coordinate sweep then perturbs $\partial_0 F$ immediately.
 
@@ -870,8 +875,9 @@ the $L_j R_j^2$ sum gives @eq-rate-gap; retaining only the $R_0^2$ term in the
 $|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit gives
 @eq-rate-gap-asymptotic.
 
-The heuristic predicts a diverging ratio as $H_{00}/L_0 \to 0$. @fig-rate-gap
-tests whether the empirical pass-count ratio follows this scaling.
+The heuristic proxy diverges as $H_{00}/L_0 \to 0$. @fig-rate-gap tests whether
+the empirical pass-count ratio follows this scaling; it does not test or imply
+an iteration-complexity theorem.
 
 @eq-rate-gap separates into two regimes. In strongly coupled designs
 ($\bar\rho^2 \to 1$, e.g. uncentered designs where the intercept absorbs the
@@ -924,7 +930,7 @@ draw(
 ```
 
 @fig-rate-gap shows both evaluations of @eq-rate-gap against the empirical
-ratio. The cold-start prediction, evaluated at
+ratio. The cold-start proxy, evaluated at
 $\eta^{(0)} = \mathrm{logit}(\mu_0)$, is computable before solving and reduces
 analytically to a convex combination of
 $L_0/H_{00}(\eta^{(0)}) = 1/(4\mu_0(1 - \mu_0))$ (the @sec-imbalance-reg proxy)
@@ -960,7 +966,7 @@ holds at $0.304$ ($\mu_0 = 0.5$) and $0.170$ ($\mu_0 = 0.9$) to four digits
 while $\bar\rho^2$ travels from $2 \times 10^{-3}$ to $0.51$. The second axis is
 genuinely isolated here, not merely emphasized.
 
-@fig-rho-centering does not follow the shape predicted by the first-update bound
+@fig-rho-centering does not follow the shape suggested by the first-update bound
 heuristic. The empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ rises steeply until
 $\bar\rho^2 \approx 0.04$ and then remains within $5\%$ of the asymptotic limit
 $L_0/H_{00}$. By contrast, the leading-order ratio
@@ -971,9 +977,10 @@ direction of the first-update effect but not the long-run shape or magnitude.
 The intercept-distance explanation for this plateau does not survive the sweep.
 Uncentering changes $|\beta_0^\star| / \|\beta^\star\|$ non-monotonically from
 $0.045$ to $1.06$ across the saturated cells, without changing the ratio. The
-mechanism must therefore be local: coupling determines which convergence mode is
-slowest, while $H_{00}/L_0$ determines the relative rate once the coupled mode
-dominates.
+evidence instead points to a local mechanism: coupling determines which
+convergence mode is slowest, while $H_{00}/L_0$ determines the relative rate
+once the coupled mode dominates. This interpretation concerns late-stage local
+rates, not global iteration complexity from an arbitrary start.
 
 ```{julia}
 #| label: fig-rho-centering
@@ -1143,11 +1150,12 @@ $1/q = L_0/H_{00}$ plateau. We have proved the exact-block limit in
 numerically. A general Lyapunov-exponent theorem for the random matrix products
 is beyond our present analysis.
 
-The rate-gap argument connects directly to @sec-production-solvers. glmnet's
+The local-rate argument connects directly to @sec-production-solvers. glmnet's
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
 at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
-$L_0/H_{00}$ therefore sets their relative local rate when a coupled mode
-dominates. At $\mu_0 = 0.99$, this matches the empirical ≈5× and ≈10× slowdowns
+$L_0/H_{00}$ is therefore the strongly coupled limit suggested by the frozen
+local model. At $\mu_0 = 0.99$, this is consistent with the empirical ≈5× and
+≈10× slowdowns
 reported in @fig-real-glmnet and @fig-real-biglasso. skglm (version 0.5), the
 direct-CD solver, exhibits the same scaling on a continuous trajectory in
 @fig-real-skglm: the slow convergence from suboptimality $\approx 10^{-1}$ to
@@ -1857,7 +1865,7 @@ gap $10^{-6}$, and news20-3pct ($\mu_0 = 0.030$, a $4\,675$-feature bag-of-words
 text panel after dropping low-support vocabulary) reproduces a
 ${ \approx }6 \times$ ratio at $10^{-4}$ before hitting the $120\mathrm{s}$
 wall-time cap. Both sit within the constant-factor offset of the leading-order
-$L_0/H_{00}$ prediction that @fig-rate-gap exhibits, and the cross-design
+$L_0/H_{00}$ heuristic proxy that @fig-rate-gap exhibits, and the cross-design
 agreement shows the gap is a property of the response imbalance, not of the w1a
 design specifically. The mild-slowdown middle (a4a, breast-cancer) gives
 gradient/Newton ratios between $1.3$ and $2.3$, consistent with their
@@ -2089,12 +2097,13 @@ alternative when a path solve is already being used.
 The pass-count and wall-clock figures above conflate two distinct quantities
 that the within-pass drift (@eq-intercept-drift) separates: the *number of outer
 passes* needed to reach a tolerance and the *per-pass inner cost* paid at the
-intercept update. The claim there is that the exact strategy pays $k_0 - 1$
-extra inner Newton steps per outer pass with no commensurate rate improvement,
-where $k_0 = O(\log\log(1/\varepsilon))$ is the number of inner steps consumed
-to drive $|\partial_0 F| < \varepsilon$ at the end of the pass via quadratic
-Newton convergence on the one-dimensional intercept subproblem. We instrument
-the solver to record $k_0$ for every outer pass and compare the resulting cost
+intercept update. We test whether the exact strategy pays $k_0 - 1$ extra inner
+Newton steps per outer pass without a commensurate rate improvement, where
+$k_0$ is the observed number of steps required to drive
+$|\partial_0 F| < \varepsilon$. Local quadratic convergence explains why the
+final steps can be few once an iterate is near the conditional minimizer, but it
+does not supply a global bound on $k_0$. We instrument the solver to record
+$k_0$ for every outer pass and compare the resulting cost
 trajectories against the relative-gap trajectories on the imbalanced simulated
 design of @fig-mu-extreme ($n = 500$, $p = 1000$, $s = 10$, cyclic CD,
 $\lambda / \lambda_{\max} = 0.05$, tolerance $10^{-8}$), sweeping
@@ -2164,12 +2173,13 @@ comparable pass counts (Newton: 109/107/121; exact: 109/108/120). In other
 words, the exact strategy spends strictly more inner Newton work for essentially
 the same outer-pass progress.
 
-The penalty is modest because quadratic Newton convergence on the
-one-dimensional intercept subproblem keeps $k_0 = O(\log\log(1/\varepsilon))$,
-well below the inner-loop cap of 20, and most passes need only a single inner
-step. Still, the pattern is clear: the exact strategy pays its price in the
-first few cold-start passes, when $|\partial_0 F|$ is largest. The warm-start
-regime of @sec-warmstart-path largely avoids that window.
+The penalty is modest in these runs: $k_0$ remains well below the inner-loop cap
+of 20, and most passes need only a single inner step. This behavior is
+consistent with local quadratic convergence after the iterates approach their
+conditional minimizers, but the experiment, rather than a global Newton bound,
+establishes the reported cost. The exact strategy pays its price in the first
+few cold-start passes, when $|\partial_0 F|$ is largest. The warm-start regime
+of @sec-warmstart-path largely avoids that window.
 
 ### Imbalance and Regularization {#sec-imbalance-reg}
 
@@ -2280,7 +2290,7 @@ scaling and monotonicity well: the empirical ratio grows as the intercept update
 becomes more conservative ($H_{00}/L_0 \to 0$), and it rises monotonically with
 $\mu_0$ and with $1/\lambda$. It does not predict the magnitude tightly. Across
 this grid the empirical ratio sits about two to four times below the
-iterate-level @eq-rate-gap prediction, which is what one would expect from a
+iterate-level @eq-rate-gap proxy, which is what one would expect from a
 comparison built from upper bounds and heuristic substitutions rather than from
 a sharp iteration-complexity formula.
 
@@ -2715,10 +2725,12 @@ losses such as Poisson, it prevents the cold-start overshoot seen in
 @fig-cold-start-poisson. The gradient strategy fails for the same reason it
 fails under imbalance more generally: once $H_{00}/L_0$ becomes small---or once
 $L_0 = \infty$ in Poisson---it stops making a meaningful intercept correction.
-On a strongly coupled local mode, @prp-frozen-block-rate makes the cost
-quantitative: the gradient/Newton rate ratio approaches $L_0/H_{00}$. The frozen
-random-pass calculation reproduces the nonlinear late-stage rates across both
-the onset of this mode and the plateau (@fig-rho-frozen).
+On the strongly coupled local mode of the frozen, exact-block model,
+@prp-frozen-block-rate makes the cost quantitative: the gradient/Newton rate
+ratio approaches $L_0/H_{00}$. The frozen random-pass calculation reproduces
+the nonlinear late-stage rates across both the onset of this mode and the
+plateau (@fig-rho-frozen). Neither result is a global iteration-complexity bound
+for the nonlinear solver.
 
 The production-solver survey turns this into a practical diagnostic. Solvers
 that use local Newton curvature on the intercept---glmnet `Newton`, biglasso

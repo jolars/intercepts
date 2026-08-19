@@ -444,13 +444,19 @@ open repetition and repository-copy tasks above rather than duplicating them.
   canonical-link identity, limited the scalar theory to Gaussian, binomial,
   and Poisson, and pointed forward to the vector-intercept treatment of
   multinomial logistic regression.)
-- [ ] Separate proved, local, and heuristic conclusions throughout the rate-gap
+- [x] Separate proved, local, and heuristic conclusions throughout the rate-gap
   discussion. In particular, qualify the complexity argument after
   @eq-intercept-drift: quadratic Newton convergence is local, and the paper
   does not establish that every exact-strategy iterate enters and remains in
   the Newton basin. Keep @eq-rate-gap and @eq-rate-gap-asymptotic framed as
   scaling diagnostics, and ensure that @fig-rate-gap and @fig-rho-centering
-  do not imply a general iteration-complexity theorem.
+  do not imply a general iteration-complexity theorem. (resolved: made the
+  $O(\log\log(1/\varepsilon))$ statement conditional on reaching the local
+  Newton neighborhood and removed it as a global bound on $k_0$; recast the
+  per-pass cost as an empirical result; renamed bound-based “predictions” as
+  heuristic proxies; and explicitly limited the centering and frozen-Hessian
+  conclusions to late-stage local rates rather than global iteration
+  complexity.)
 - [ ] Either derive a matrix analogue of @eq-grad-residual for the multinomial
   intercept block or explicitly frame the explanation around
   @fig-multinomial-imbalance and @fig-multinomial-sweep as an empirically
