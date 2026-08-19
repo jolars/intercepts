@@ -457,12 +457,17 @@ open repetition and repository-copy tasks above rather than duplicating them.
   heuristic proxies; and explicitly limited the centering and frozen-Hessian
   conclusions to late-stage local rates rather than global iteration
   complexity.)
-- [ ] Either derive a matrix analogue of @eq-grad-residual for the multinomial
+- [x] Either derive a matrix analogue of @eq-grad-residual for the multinomial
   intercept block or explicitly frame the explanation around
   @fig-multinomial-imbalance and @fig-multinomial-sweep as an empirically
   supported heuristic. A small diagonal entry of the intercept Hessian does
   not, by itself, describe the corresponding component of a coupled block
-  Newton solve.
+  Newton solve. (resolved: derived @eq-grad-residual-matrix with attenuation
+  operator $Q = H_{00}/L_0$; described its eigenmode-wise correction
+  factors; and used Rayleigh quotients to show how a rare free class or rare
+  reference class forces a low-curvature direction. Corrected the experiment
+  discussion, where class 5 is the reference and therefore has no fifth
+  Hessian diagonal.)
 
 ### Evaluation and reproducibility (major)
 

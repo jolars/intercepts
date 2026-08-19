@@ -2,8 +2,8 @@
 ## Yeoh2002 (Yeoh, St. Jude, 2002) pediatric ALL gene-expression panel.
 ## n = 248 samples, p = 12 625 genes, K = 6 subtypes with class marginals
 ## (BCR=6%, MLL=8%, E2A=11%, T=17%, Hyperdip=26%, TEL=32%). The rare classes
-## BCR and MLL sit in the regime where the gradient strategy's per-class
-## fraction H_{00,kk}/L_0 is smallest, so the synthetic-imbalance story of
+## BCR and MLL induce low-Rayleigh directions in the intercept Hessian, so the
+## attenuation operator H_00/L_0 predicts that the synthetic-imbalance story of
 ## @fig-multinomial-imbalance has a direct empirical analogue here.
 ##
 ## Fetch the data first via `Rscript experiments/fetch-yeoh.R`.

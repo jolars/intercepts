@@ -260,8 +260,8 @@ Multinomial Extension
     $(K, n, p)$ regimes: the Yeoh2002 pediatric ALL gene-expression panel
     (@fig-real-multinomial; $K = 6$, $p \gg n$, rarest class $6\%$) and the
     StatLog Shuttle sensor-data dataset (@fig-real-multinomial-shuttle; $K = 7$,
-    $n \gg p$, rarest class $0.02\%$). On both, the gradient strategy stalls
-    along the rare-class intercept components while the Newton and exact
+    $n \gg p$, rarest class $0.02\%$). On both, the gradient strategy stalls in
+    the low-curvature modes associated with rare classes, while Newton and exact
     strategies follow nearly the same trajectory.
 
 ## Related Work {#sec-related-work}
@@ -334,12 +334,15 @@ canonical exposition of MM. @krishnapuram2005 apply Böhning's bound to
 L1-penalized multinomial logistic regression, a direct precedent for the
 multinomial extension of this paper. In regularized logistic regression the same
 construction lives on as the `modified.Newton` mode of glmnet and the `MM` mode
-of biglasso\ (@tbl-classification). The Schur-coupling residual
-@eq-grad-residual gives the quantitative cost: when the response is imbalanced,
-$H_{00}/L_0$ shrinks to zero and the MM step loses progress in proportion. The
-MM literature treats this as loose majorization; what this paper adds is that
-imbalanced logistic and rare-class multinomial problems make that looseness the
-rule rather than the exception (@sec-irls, @fig-multinomial-sweep).
+of biglasso\ (@tbl-classification). The scalar Schur-coupling residual
+@eq-grad-residual gives the quantitative cost in binary logistic regression:
+when the response is imbalanced, $H_{00}/L_0$ shrinks to zero and the MM step
+loses progress in proportion. Its multinomial analogue,
+@eq-grad-residual-matrix, replaces that scalar ratio with the eigenvalues of
+$H_{00}/L_0$. The MM literature treats this as loose majorization; what this
+paper adds is that imbalanced logistic and rare-class multinomial problems make
+that looseness the rule rather than the exception (@sec-irls,
+@fig-multinomial-sweep).
 
 ## Theory {#sec-theory}
 
@@ -367,9 +370,8 @@ $\eta_i = x_i^\intercal \beta + \beta_0$ for the linear predictor of observation
 $i$ and let $\ilink$ denote the inverse link, so the exponential-family mean
 takes the form $\E(y_i \mid \eta_i) = \ilink(\eta_i)$. The per-observation loss
 $f$ is the negative log-likelihood, with the mean parameterized as
-$\ilink(\eta_i)$. Because we use each exponential-family model's canonical
-link, its derivative with respect to $\eta$ collapses to the *generalized
-residual*,
+$\ilink(\eta_i)$. Because we use each exponential-family model's canonical link,
+its derivative with respect to $\eta$ collapses to the *generalized residual*,
 $$
   f'(\eta_i; y_i) = \ilink(\eta_i) - y_i = r_i.
 $$
@@ -689,17 +691,16 @@ count scales as $O(\log\log(1/\varepsilon))$. This local result does not bound
 the steps needed to reach that neighborhood, nor does it show that every
 outer-pass subproblem begins there. In the experiments, however,
 @fig-per-pass-cost records $k_0 \in [1, 6]$ across the imbalance sweep, and each
-step costs $O(n)$ work. By @eq-intercept-drift, the
-conditional optimum that these $k_0$ steps establish survives exactly one
-coefficient update of the next pass; by the second update it has drifted by
-$H_{0j}\delta_j$. Only the first coefficient update therefore receives the full
-benefit of exact profiling. This suggests that the $k_0 - 1$ additional inner
-Newton steps will produce little improvement in outer convergence over a single
-Newton step. The experiments in @sec-per-pass-cost support this expectation on
-our test problems; we do not claim a global complexity bound for the exact
-strategy.
-The extra work should matter most when several $|H_{0j}|$ are large, because the
-next coordinate sweep then perturbs $\partial_0 F$ immediately.
+step costs $O(n)$ work. By @eq-intercept-drift, the conditional optimum that
+these $k_0$ steps establish survives exactly one coefficient update of the next
+pass; by the second update it has drifted by $H_{0j}\delta_j$. Only the first
+coefficient update therefore receives the full benefit of exact profiling. This
+suggests that the $k_0 - 1$ additional inner Newton steps will produce little
+improvement in outer convergence over a single Newton step. The experiments in
+@sec-per-pass-cost support this expectation on our test problems; we do not
+claim a global complexity bound for the exact strategy. The extra work should
+matter most when several $|H_{0j}|$ are large, because the next coordinate sweep
+then perturbs $\partial_0 F$ immediately.
 
 This conclusion holds most sharply in the cold-start, direct-CD setting that
 drives this paper, and three regimes soften it. The first is warm-started path
@@ -930,9 +931,8 @@ draw(
 ```
 
 @fig-rate-gap shows both evaluations of @eq-rate-gap against the empirical
-ratio. The cold-start proxy, evaluated at
-$\eta^{(0)} = \mathrm{logit}(\mu_0)$, is computable before solving and reduces
-analytically to a convex combination of
+ratio. The cold-start proxy, evaluated at $\eta^{(0)} = \mathrm{logit}(\mu_0)$,
+is computable before solving and reduces analytically to a convex combination of
 $L_0/H_{00}(\eta^{(0)}) = 1/(4\mu_0(1 - \mu_0))$ (the @sec-imbalance-reg proxy)
 on the intercept share and one on the slope share---the Schur correction is
 inactive on the standardized design because
@@ -1155,12 +1155,11 @@ The local-rate argument connects directly to @sec-production-solvers. glmnet's
 at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
 $L_0/H_{00}$ is therefore the strongly coupled limit suggested by the frozen
 local model. At $\mu_0 = 0.99$, this is consistent with the empirical ≈5× and
-≈10× slowdowns
-reported in @fig-real-glmnet and @fig-real-biglasso. skglm (version 0.5), the
-direct-CD solver, exhibits the same scaling on a continuous trajectory in
-@fig-real-skglm: the slow convergence from suboptimality $\approx 10^{-1}$ to
-$\approx 10^{-5}$ is the intercept climb to $\mathrm{logit}(\mu_0)$ at step size
-$1/L_0$.
+≈10× slowdowns reported in @fig-real-glmnet and @fig-real-biglasso. skglm
+(version 0.5), the direct-CD solver, exhibits the same scaling on a continuous
+trajectory in @fig-real-skglm: the slow convergence from suboptimality
+$\approx 10^{-1}$ to $\approx 10^{-5}$ is the intercept climb to
+$\mathrm{logit}(\mu_0)$ at step size $1/L_0$.
 
 An obvious objection to the Schur-coupling residual (@eq-grad-residual) is that
 adaptive step sizing should rescue the gradient strategy: an Armijo line search
@@ -1339,9 +1338,10 @@ the within-pass-drift cost identified in @eq-intercept-drift.
 
 #### Extension to Vector Intercepts
 
-The scalar story extends almost verbatim to multinomial logistic regression with
-$K$ classes, where the intercept is a vector $\beta_0 \in \mathbb{R}^{K - 1}$
-under the reference-class parameterization $\eta_{iK} = 0$. Writing
+The scalar story extends to multinomial logistic regression with $K$ classes,
+but the scalar curvature ratio becomes a matrix operator. The intercept is a
+vector $\beta_0 \in \mathbb{R}^{K - 1}$ under the reference-class
+parameterization $\eta_{iK} = 0$. Writing
 $\eta_{ik} = x_i^\intercal \beta_k + \beta_{0k}$ for $k = 1, \dots, K - 1$ and
 $p_{ik} = e^{\eta_{ik}}/\bigl(1 + \sum_{l < K} e^{\eta_{il}}\bigr)$, the
 per-observation Hessian block has diagonal $p_{ik}(1 - p_{ik})$ and off-diagonal
@@ -1354,17 +1354,63 @@ within-pass drift (@eq-intercept-drift), and the Newton-coupling bias
 (@eq-newton-coupling) all carry through with matrix-valued $H_{00}$ in place of
 the scalar.
 
-The Schur-coupling residual (@eq-grad-residual) sharpens. The gradient strategy
-applies a uniform Lipschitz bound $L_0$ across all classes, so the per-class
-fraction of the correction is
-$H_{00,kk}/L_0 = \bigl((1/n)\sum_i p_{ik}(1 - p_{ik})\bigr)/L_0$. With $K$
-classes the diagonal $H_{00,kk}$ scales linearly with class prevalence, so any
-rare class produces a microscopic intercept correction along that coordinate
-while the dominant classes are well fit. Class imbalance is no longer a corner
-case---with $K = 10$ and a uniform marginal, $\bar p_k = 0.1$ already, and
+To derive the matrix analogue of @eq-grad-residual, let $g_0 = \nabla_0 F$,
+collect the coefficient gradients in $g_\beta$, and let $H_{\beta 0}$ be the
+coefficient--intercept cross block. For an intercept step
+$\beta_0 \mapsto \beta_0 - A g_0$, a Taylor expansion gives
+$$
+  g_\beta^+ = g_\beta - H_{\beta 0} A g_0 + O\bigl(\lVert A g_0\rVert^2\bigr).
+$$
+Newton uses $A = H_{00}^{-1}$, while the gradient strategy uses $A = L_0^{-1}I$.
+Dropping the common second-order remainder gives
+$$
+\begin{aligned}
+  g_\beta^{\mathrm{grad}}
+   & = g_\beta - H_{\beta 0}H_{00}^{-1}Q g_0,
+   & Q                                        & = \frac{H_{00}}{L_0}, \\
+  g_\beta^{\mathrm{grad}} - g_\beta^{\mathrm{prof}}
+   & = H_{\beta 0}H_{00}^{-1}(I - Q)g_0,
+   & g_\beta^{\mathrm{prof}}
+   & = g_\beta - H_{\beta 0}H_{00}^{-1}g_0.
+\end{aligned}
+$$ {#eq-grad-residual-matrix}
+Thus $Q$, rather than the individual ratios $H_{00,kk}/L_0$, is the matrix
+analogue of the scalar correction fraction. Because the multinomial majorant
+satisfies $0 \preceq H_{00} \preceq L_0 I$, write
+$H_{00} = U\operatorname{diag}(\lambda_r)U^\intercal$. The gradient strategy
+then retains the fraction $\lambda_r/L_0 \in [0,1]$ of Newton's correction in
+eigenmode $u_r$. The cross block $H_{\beta0}$ subsequently maps that attenuated
+correction into the coefficient gradients. A diagonal entry alone does not
+describe this coupled block solve.
+
+Rare classes nevertheless force small eigenvalues. Put $q = K - 1$. For a
+nonreference class $k < K$, the Rayleigh quotient in its coordinate direction is
+$$
+  e_k^\intercal H_{00} e_k = \frac{1}{n}\sum_i p_{ik}(1 - p_{ik})
+                           \leq \bar p_k(1 - \bar p_k).
+$$ {#eq-multinomial-free-rayleigh}
+Here $\bar p_k = n^{-1}\sum_i p_{ik}$; at intercept stationarity, it equals the
+empirical class prevalence. For the reference class, the corresponding direction
+changes all free-class log odds together. With $v = \mathbf{1}_q/\sqrt q$,
+$$
+  v^\intercal H_{00}v = \frac{1}{qn}\sum_i p_{iK}(1 - p_{iK})
+                      \leq \frac{\bar p_K(1 - \bar p_K)}{q}.
+$$ {#eq-multinomial-reference-rayleigh}
+In either case, the smallest eigenvalue is no larger than the displayed Rayleigh
+quotient and therefore vanishes with the rare-class prevalence. When the
+probabilities are constant across observations, this structure is especially
+explicit. If $D = \operatorname{diag}(\bar p_1, \ldots, \bar p_q)$ and
+$\bar p = (\bar p_1, \ldots, \bar p_q)^\intercal$, then
+$$
+  H_{00} = D - \bar p\bar p^\intercal, \qquad H_{00}^{-1}
+         = D^{-1} + \frac{1}{\bar p_K}\mathbf{1}_q\mathbf{1}_q^\intercal.
+$$ {#eq-multinomial-intercept-inverse}
+The first term adapts to a rare free class, while the second adapts the common
+shift to a rare reference class. The global-Lipschitz gradient step does not
+adapt to either. With $K = 10$, even a uniform marginal is only $0.1$, and
 typical text or image-classification label distributions skew further. The
-multinomial setting is where the imbalance failure of the gradient strategy is
-the *common* regime rather than an extreme.
+multinomial setting is therefore where low-curvature intercept modes are common
+rather than extreme.
 
 We implement block coordinate descent over classes: for each feature $j$ we
 cycle through the $K - 1$ class coefficients with elementwise $\ell_1$
@@ -1406,21 +1452,26 @@ binary solvers use---and on every problem the Newton and exact strategies drive
 that gap below $10^{-4}$, certifying $F^\star$ as the optimum. A stalling run is
 therefore scored against the shared optimum, not against its own lowest primal.
 
-The gradient strategy stalls, as expected. With the marginal class probabilities
-above, the rare-class diagonal entries $H_{00,4,4}, H_{00,5,5}$ sit near
-$0.05 \times 0.95 \approx 0.05$, about a tenth of the Böhning majorant
-$L_0 = 1/2$ that the gradient strategy divides by, so its per-class correction
-along those coordinates is correspondingly small. The strategy reaches the same
-optimum but takes roughly an order of magnitude longer: the Newton and exact
-strategies converge in $47$ to $107$ passes across the three seeds, while the
-gradient strategy needs $451$ to the full thousand-pass budget.
+The gradient strategy stalls, as expected. Here class 4 is a free rare class,
+while class 5 is the rare reference class. Using the nominal prevalence $0.05$,
+@eq-multinomial-free-rayleigh--@eq-multinomial-reference-rayleigh bound the two
+relevant Rayleigh quotients near intercept stationarity by
+$0.05 \times 0.95 = 0.0475$ in the class-4 coordinate and
+$0.05 \times 0.95/4 \approx 0.0119$ in the common-shift direction. Relative to
+the Böhning majorant $L_0 = 1/2$, these are at most $0.095$ and $0.024$.
+@eq-grad-residual-matrix therefore predicts a strongly attenuated correction in
+at least one intercept eigenmode without pretending that either coordinate
+direction is itself an eigenvector. The strategy reaches the same optimum but
+takes roughly an order of magnitude longer: the Newton and exact strategies
+converge in $47$ to $107$ passes across the three seeds, while the gradient
+strategy needs $451$ to the full thousand-pass budget.
 
 The Newton and exact strategies follow the same visible curve. The
-$(K - 1)$-block Newton solve distributes each per-class correction through the
-off-diagonal coupling $H_{00,kl} = -\sum_i p_{ik} p_{il}$, so the rare-class
-step is computed in concert with the dominant-class step rather than amplified
-proportionally to the rare-class gradient, and the Armijo guard absorbs any
-residual cold-start transient that the Newton-coupling bias
+$(K - 1)$-block Newton solve uses the full inverse in
+@eq-multinomial-intercept-inverse, including the off-diagonal coupling
+$H_{00,kl} = -(1/n)\sum_i p_{ik}p_{il}$. It therefore rescales the low-curvature
+eigenmodes that the gradient strategy attenuates, while the Armijo guard absorbs
+any residual cold-start transient that the Newton-coupling bias
 (@eq-newton-coupling) identifies in the scalar setting. A 2-D grid extends the
 test, shrinking the rarest class probability $\bar p_K$ down to $0.005$ and
 growing the feature amplitude to four times the anchor value.
@@ -1487,8 +1538,10 @@ The same pattern holds on real high-dimensional multinomial data. The Yeoh2002
 pediatric ALL gene-expression panel\ [@yeoh2002] is a $K = 6$ subtype problem on
 $n = 248$ samples and $p = 12\,625$ genes with class marginals BCR\ $= 6\%$,
 MLL\ $= 8\%$, E2A\ $= 11\%$, T\ $= 17\%$, Hyperdip\ $= 26\%$, and TEL\ $= 32\%$.
-The two rare classes BCR and MLL sit in exactly the regime where the per-class
-fraction $H_{00,kk}/L_0$ predicts a stall under the gradient strategy.
+The two rare classes BCR and MLL are nonreference classes, so
+@eq-multinomial-free-rayleigh places low-curvature directions in the intercept
+block. The attenuation operator in @eq-grad-residual-matrix predicts that the
+gradient strategy will make little progress along those directions.
 
 ```{julia}
 #| label: fig-real-multinomial
@@ -1515,7 +1568,7 @@ draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (550, 30
 
 @fig-real-multinomial reproduces the synthetic pattern on a genuine $p > n$
 gene-expression multinomial problem with rare classes: the gradient strategy
-lags along the rare-class intercept components while Newton and exact follow the
+lags in the associated low-curvature modes, while Newton and exact follow the
 same curve. The slowdown ratio ($\approx 3 \times$ at relative suboptimality
 $10^{-6}$) is milder than the order-of-magnitude slowdown of
 @fig-multinomial-imbalance because Yeoh2002's rarest class is at $6\%$ rather
@@ -1527,8 +1580,10 @@ Shuttle dataset\ [@michie1994] is a $K = 7$ sensor-data classification with
 $n = 58\,000$ observations and $p = 9$ features---the opposite shape to
 Yeoh2002---and class frequencies that span four orders of magnitude ($78.6\%$,
 $0.09\%$, $0.30\%$, $15.4\%$, $5.6\%$, $0.02\%$, $0.02\%$). The three rarest
-classes have ten, thirteen, and fifty samples, so the per-class diagonal
-$H_{00,kk}$ collapses much further below $L_0$ than in Yeoh2002.
+classes have ten, thirteen, and fifty samples. Here the reference class is
+itself among the rarest, so both @eq-multinomial-free-rayleigh and
+@eq-multinomial-reference-rayleigh force Rayleigh quotients much further below
+$L_0$ than in Yeoh2002.
 
 ```{julia}
 #| label: fig-real-multinomial-shuttle
@@ -1558,15 +1613,15 @@ draw(
 @fig-real-multinomial-shuttle shows a larger separation. The Newton and exact
 strategies reach relative primal suboptimality $10^{-6}$ in $32$ and $30$ passes
 respectively, while the gradient strategy fails to reach $10^{-4}$ within $1000$
-passes and stalls at a relative gap near $5 \times 10^{-3}$ on the rare-class
-intercept coordinates. The slowdown is qualitatively worse than Yeoh's
-$\approx 3 \times$ pass-count ratio because the rarest Shuttle classes (ten,
-thirteen, and fifty samples) are two orders of magnitude rarer than Yeoh's
-rarest, and the block-Schur prediction sharpens with class imbalance exactly as
-the scalar theory says it should. With one $p \gg n$ panel on gene expression
-and one $n \gg p$ panel on sensor data, the rare-class multinomial slowdown is
-documented across the practical range of high-dimensional shapes a CD-based
-multinomial solver encounters.
+passes and stalls at a relative gap near $5 \times 10^{-3}$. The slowdown is
+qualitatively worse than Yeoh's $\approx 3 \times$ pass-count ratio because the
+rarest Shuttle classes (ten, thirteen, and fifty samples) are two orders of
+magnitude rarer than Yeoh's rarest. This is consistent with the smaller
+eigenmode correction factors in @eq-grad-residual-matrix; it is not a claim that
+a single Hessian diagonal controls the block solve. With one $p \gg n$ panel on
+gene expression and one $n \gg p$ panel on sensor data, the rare-class
+multinomial slowdown is documented across the practical range of
+high-dimensional shapes a CD-based multinomial solver encounters.
 
 The class-by-class scheme of glmnet's symmetric-multinomial path tells a
 different but parallel story. Holding all $\eta_{il}$ for $l \neq k$ fixed, the
@@ -1577,9 +1632,9 @@ scalar logistic regression. The scalar Schur-coupling residual
 extreme per-class response imbalance triggers exactly the gradient-strategy
 failure documented in the binary setting---now along the rare class's intercept
 coordinate specifically. The multinomial setting hits the gradient-strategy
-failure mode through two independent mechanisms then: rare-class diagonal
-scaling under block CD, and rare-class scalar imbalance under class-by-class CD.
-The Newton-strategy recommendation transfers to both schemes.
+failure mode through two independent mechanisms then: rare-class scalar
+imbalance under class-by-class CD, and rare-class eigenmode attenuation under
+block CD. The Newton-strategy recommendation transfers to both schemes.
 
 ### Connection to IRLS {#sec-irls}
 
@@ -2098,14 +2153,14 @@ The pass-count and wall-clock figures above conflate two distinct quantities
 that the within-pass drift (@eq-intercept-drift) separates: the *number of outer
 passes* needed to reach a tolerance and the *per-pass inner cost* paid at the
 intercept update. We test whether the exact strategy pays $k_0 - 1$ extra inner
-Newton steps per outer pass without a commensurate rate improvement, where
-$k_0$ is the observed number of steps required to drive
+Newton steps per outer pass without a commensurate rate improvement, where $k_0$
+is the observed number of steps required to drive
 $|\partial_0 F| < \varepsilon$. Local quadratic convergence explains why the
 final steps can be few once an iterate is near the conditional minimizer, but it
 does not supply a global bound on $k_0$. We instrument the solver to record
-$k_0$ for every outer pass and compare the resulting cost
-trajectories against the relative-gap trajectories on the imbalanced simulated
-design of @fig-mu-extreme ($n = 500$, $p = 1000$, $s = 10$, cyclic CD,
+$k_0$ for every outer pass and compare the resulting cost trajectories against
+the relative-gap trajectories on the imbalanced simulated design of
+@fig-mu-extreme ($n = 500$, $p = 1000$, $s = 10$, cyclic CD,
 $\lambda / \lambda_{\max} = 0.05$, tolerance $10^{-8}$), sweeping
 $\mu_0 \in \{0.5,0.9,0.99\}$ to vary the cold-start magnitude of
 $|\partial_0 F|$.
@@ -2727,10 +2782,10 @@ fails under imbalance more generally: once $H_{00}/L_0$ becomes small---or once
 $L_0 = \infty$ in Poisson---it stops making a meaningful intercept correction.
 On the strongly coupled local mode of the frozen, exact-block model,
 @prp-frozen-block-rate makes the cost quantitative: the gradient/Newton rate
-ratio approaches $L_0/H_{00}$. The frozen random-pass calculation reproduces
-the nonlinear late-stage rates across both the onset of this mode and the
-plateau (@fig-rho-frozen). Neither result is a global iteration-complexity bound
-for the nonlinear solver.
+ratio approaches $L_0/H_{00}$. The frozen random-pass calculation reproduces the
+nonlinear late-stage rates across both the onset of this mode and the plateau
+(@fig-rho-frozen). Neither result is a global iteration-complexity bound for the
+nonlinear solver.
 
 The production-solver survey turns this into a practical diagnostic. Solvers
 that use local Newton curvature on the intercept---glmnet `Newton`, biglasso
@@ -2742,10 +2797,13 @@ glmnet and biglasso, the before-and-after skglm comparison, and the structural
 absence of gradient-class Poisson solvers all support that reading.
 
 Multinomial problems make the issue more common rather than less. Every rare
-class creates its own slow intercept direction, so long-tailed label
-distributions naturally fall into the regime where gradient updates stall
-(@fig-multinomial-imbalance, @fig-multinomial-sweep). The same block structure
-also makes Newton and exact nearly indistinguishable there.
+nonreference class supplies a low-Rayleigh coordinate direction, while a rare
+reference class supplies a low-Rayleigh common-shift direction
+(@eq-multinomial-free-rayleigh--@eq-multinomial-reference-rayleigh). Long-tailed
+label distributions therefore naturally contain intercept modes that the
+gradient update attenuates (@fig-multinomial-imbalance, @fig-multinomial-sweep).
+The same block structure also makes Newton and exact nearly indistinguishable
+there.
 
 Our analysis has two main limitations. First, the Newton-strategy results are
 *local*. @eq-newton-error and @eq-newton-coupling are Taylor identities for a
