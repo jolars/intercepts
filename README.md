@@ -27,9 +27,9 @@ update by a fixed, worst-case constant, and when the response is
 imbalanced, for example when one class is rare, or counts are heavily
 skewed, that constant is far too cautious for the intercept, so it
 barely moves while the other coordinates wait on it. And the slowdown
-grows as the imbalance worsens. A Newton step instead uses the curvature
-at the current iterate, which stays well-scaled however imbalanced the
-data are. It matches the exact strategy in convergence per iteration and
+grows as the imbalance worsens. A Newton step instead scales the update
+by the curvature at the current iterate, adapting as the imbalance
+worsens. It matches the exact strategy in convergence per iteration and
 avoids the wasted inner iterations that the exact strategy spends. The
 distinction mattes only for solvers that run coordinate descent directly
 on the GLM loss and for the global-upper-bound modes that are selectable

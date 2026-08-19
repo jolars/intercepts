@@ -409,7 +409,7 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
 
 ### Claims and presentation (minor)
 
-- [ ] Replace “Newton curvature stays well-scaled however imbalanced the data
+- [x] Replace “Newton curvature stays well-scaled however imbalanced the data
   are” in the abstract / metadata and any parallel Discussion wording. Under
   extreme imbalance, $H_{00}$ itself can approach zero; the supported claim
   is that dividing by the local curvature gives an adaptive update ratio.
