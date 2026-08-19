@@ -53,6 +53,14 @@ def run_sweep(probdir, problem):
         eta = beta0 + X @ beta
         return float(np.mean(np.exp(eta) - y * eta) + lam * np.abs(beta).sum())
 
+    # Untimed warm-up fit so the first timed run does not pay skglm's
+    # one-off numba JIT compilation cost (~3 s, ~250x the actual solve).
+    GeneralizedLinearEstimator(
+        datafit=Poisson(),
+        penalty=L1(alpha=lam),
+        solver=ProxNewton(tol=tol_grid[0], max_iter=500, fit_intercept=True),
+    ).fit(X, y)
+
     rows = []
     print(f"=== skglm ProxNewton Poisson problem={problem} ===")
     for tol in tol_grid:

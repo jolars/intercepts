@@ -25,37 +25,71 @@ param_dict = Dict{String, Any}(
 
 params = dict_list(param_dict);
 
+# Timing hygiene: the recorded per-pass wall-clock trajectory is a single
+# time() sample per pass, so JIT compilation and GC pauses land directly on
+# the plotted time axis. Warm up each strategy once to compile its solver
+# specialization, collect garbage before every timed run, and keep the
+# fastest of `nreps` identical runs (the solver is deterministic given the
+# seed, so repetitions differ only in wall time).
+for strategy in param_dict["strategy"]
+    Random.seed!(0)
+    simulated_experiment(
+        50,
+        20;
+        response = :poisson,
+        strategy = strategy,
+        μ0 = 10.0,
+        s = 5,
+        reg = 0.1,
+        amplitude = 0.1,
+        randomize = false,
+        maxit = 3,
+    )
+end
+
+nreps = 3;
+
+finaltime(r) = isempty(r.time) ? Inf : r.time[end];
+
 results = [];
 
 for (i, d) in enumerate(params)
     @unpack it, n, p, s, reg, μ0, strategy = d
 
-    Random.seed!(it)
+    res = nothing
+    for rep in 1:nreps
+        Random.seed!(it)
+        GC.gc()
 
-    res = try
-        simulated_experiment(
-            n,
-            p;
-            response = :poisson,
-            strategy = strategy,
-            μ0 = μ0,
-            s = s,
-            reg = reg,
-            amplitude = 0.1,
-            randomize = false,
-            maxit = 1000,
-        )
-    catch err
-        # Unguarded Newton can overflow to Inf/NaN at extreme μ₀; record an
-        # empty trajectory rather than crashing the sweep.
-        @warn "solver failed" strategy μ0 it err
-        (
-            time = Float64[],
-            gaps = Float64[],
-            relgaps = Float64[],
-            primals = Float64[],
-            duals = Float64[],
-        )
+        r = try
+            simulated_experiment(
+                n,
+                p;
+                response = :poisson,
+                strategy = strategy,
+                μ0 = μ0,
+                s = s,
+                reg = reg,
+                amplitude = 0.1,
+                randomize = false,
+                maxit = 1000,
+            )
+        catch err
+            # Unguarded Newton can overflow to Inf/NaN at extreme μ₀; record an
+            # empty trajectory rather than crashing the sweep.
+            @warn "solver failed" strategy μ0 it err
+            (
+                time = Float64[],
+                gaps = Float64[],
+                relgaps = Float64[],
+                primals = Float64[],
+                duals = Float64[],
+            )
+        end
+
+        if res === nothing || finaltime(r) < finaltime(res)
+            res = r
+        end
     end
 
     d_exp = Dict{String, Any}(copy(d))

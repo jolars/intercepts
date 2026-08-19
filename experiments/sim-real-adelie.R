@@ -40,13 +40,12 @@ root <- normalizePath(file.path(get_script_dir(), ".."))
 
 ## adelie's `tol` is dimensionless relative to the deviance gap (effective
 ## tolerance ~ tol * (loss_null - loss_full) / hess_sum inside the pin solver),
-## so tol=3e-4 already drives suboptimality to ~7e-5 on this problem. Tighter
-## than ~3e-4 the outer IRLS criterion `|Σ (resid - resid_prev)·(eta - eta_prev)|
-## ≤ irls_tol` runs out of progress for a long time before the iterate cap,
-## so each tol below the wall takes many minutes (and may fail outright by
-## returning a state with zero stored λs). The working range gives a clean
-## three-order-of-magnitude span in suboptimality.
-tol_grid <- 10 ^ seq(-1, -3.5, by = -0.25)
+## so it sits on a much finer scale than glmnet's coefficient-based `thresh`.
+## In path mode the warm starts alone already reach ~1e-5 suboptimality, and
+## the sweep is flat for every tol down to ~1e-4; the curve only begins below
+## that. The grid therefore runs to 1e-12, where all three problems bottom out
+## at ~4e-13 (the floor of the primal evaluation) in under half a second.
+tol_grid <- 10 ^ seq(-1, -12, by = -0.25)
 
 run_sweep <- function(probdir, problem) {
   X <- as.matrix(read.csv(file.path(probdir, "X.csv"), header = FALSE))

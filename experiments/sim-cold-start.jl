@@ -23,24 +23,55 @@ param_dict = Dict{String, Any}(
 
 params = dict_list(param_dict);
 
+# Timing hygiene: the recorded per-pass wall-clock trajectory is a single
+# time() sample per pass, so JIT compilation and GC pauses land directly on
+# the plotted time axis. Warm up each strategy once to compile its solver
+# specialization, collect garbage before every timed run, and keep the
+# fastest of `nreps` identical runs (the solver is deterministic given the
+# seed, so repetitions differ only in wall time).
+for strategy in param_dict["strategy"]
+    Random.seed!(0)
+    simulated_experiment(
+        50,
+        20;
+        response = :binomial,
+        strategy = strategy,
+        μ0 = 0.5,
+        s = 5,
+        reg = 0.05,
+        randomize = false,
+        maxit = 3,
+    )
+end
+
+nreps = 3;
+
 results = [];
 
 for (i, d) in enumerate(params)
     @unpack it, n, p, s, reg, μ0, strategy = d
 
-    Random.seed!(it)
+    res = nothing
+    for rep in 1:nreps
+        Random.seed!(it)
+        GC.gc()
 
-    res = simulated_experiment(
-        n,
-        p;
-        response = :binomial,
-        strategy = strategy,
-        μ0 = μ0,
-        s = s,
-        reg = reg,
-        randomize = false,
-        maxit = 1000,
-    )
+        r = simulated_experiment(
+            n,
+            p;
+            response = :binomial,
+            strategy = strategy,
+            μ0 = μ0,
+            s = s,
+            reg = reg,
+            randomize = false,
+            maxit = 1000,
+        )
+
+        if res === nothing || r.time[end] < res.time[end]
+            res = r
+        end
+    end
 
     d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time

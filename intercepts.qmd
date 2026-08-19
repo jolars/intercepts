@@ -1152,7 +1152,7 @@ while the other strategies are essentially unaffected.
 #| fig-cap: Logistic cold-start comparison. The panels show relative duality gap
 #|   versus time for bare Newton (`unguarded_newton`), Armijo-guarded Newton
 #|   (`newton`), and the exact strategy across the $\mu_0$ levels of
-#|   @fig-mu-extreme.
+#|   @fig-mu-extreme. Each panel shows five simulated replicates per strategy.
 
 dd = JLD2.load(@projectroot("results", "sim-cold-start.jld2"))
 df = DataFrame(dd["results"])
@@ -1161,10 +1161,11 @@ df = flatten(df, [:time, :relgaps, :gaps, :primals])
 df.relgaps .= max.(df.relgaps, 1.0e-10)
 df.μ0 = [L"$\mu_0 = %$(v)$" for v in df.μ0]
 
-spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :μ0)
+spec = data(df) *
+    mapping(:time, :relgaps, color = :strategy, col = :μ0, group = :it => nonnumeric)
 
 draw(
-    visual(Lines) * spec,
+    visual(Lines, alpha = 0.6) * spec,
     axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
     figure = (; size = (800, 250)),
@@ -1179,9 +1180,10 @@ regression, including the adversarial $\mu_0 = 0.99$ row, the three trajectories
 are indistinguishable. The Armijo guard rarely fires: twelve of the twenty runs
 (five seeds at each of the four $\mu_0$ levels) are bit-identical to the bare
 Newton step, and the eight that diverge do so late in the solve---at pass $78$
-or beyond, never at cold start---costing a pass or two in either direction. The
-lone exception is one $\mu_0 = 0.99$ seed, where the guarded run takes $759$
-passes against the bare step's $643$. The bounded Hessian
+or beyond, never at cold start---costing at most a few passes in either
+direction. The
+lone exception is one $\mu_0 = 0.99$ seed, where the guarded run takes $626$
+passes against the bare step's $552$. The bounded Hessian
 $f'' = \mu(1 - \mu) \le 1/4$ is what makes this possible: the linear model is
 globally accurate enough that the full Newton step on the intercept always
 descends.
@@ -1200,7 +1202,8 @@ $\mu_0 \in \{10, 30, 100, 300\}$.
 #|   versus time for bare Newton (`unguarded_newton`), Armijo-guarded Newton
 #|   (`newton`), and the exact strategy at baseline rates $\mu_0 \in \{10, 30,
 #|   100, 300\}$, with $n = 500$, $p = 1000$, $s = 10$, and $\lambda =
-#|   0.1\lambda_{\max}$.
+#|   0.1\lambda_{\max}$. Each panel shows five simulated replicates per
+#|   strategy.
 
 dd_p = JLD2.load(@projectroot("results", "sim-cold-start-poisson.jld2"))
 df_p = DataFrame(dd_p["results"])
@@ -1211,10 +1214,16 @@ df_p.relgaps .= max.(df_p.relgaps, 1.0e-10)
 df_p.μ0 = [L"$\mu_0 = %$(Int(m))$" for m in df_p.μ0]
 
 spec_p = data(df_p) *
-    mapping(:time, :relgaps, color = :strategy, col = :μ0 => sorter(μ0_levels))
+    mapping(
+        :time,
+        :relgaps,
+        color = :strategy,
+        col = :μ0 => sorter(μ0_levels),
+        group = :it => nonnumeric,
+    )
 
 draw(
-    visual(Lines) * spec_p,
+    visual(Lines, alpha = 0.6) * spec_p,
     axis = (yscale = log10, ylabel = "Relative duality gap", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
     figure = (; size = (800, 250)),
@@ -1284,7 +1293,7 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
-df.it = "seed = " .* string.(df.it)
+df.it = "seed " .* string.(df.it)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :it)
 
@@ -1854,7 +1863,7 @@ spec = data(df) *
         :time => "Time (s)",
         :relgaps => "Relative duality gap",
         color = :strategy,
-        row = :ordering,
+        col = :ordering,
     )
 
 draw(visual(Lines) * spec, axis = (; yscale = log10), figure = (; size = (500, 500)))
@@ -2447,33 +2456,43 @@ By construction, the intercept therefore sits at the surrogate optimum on every
 outer pass, with no separate update step.
 
 That places adelie in the same class as glmnet `Newton` and biglasso `Newton`,
-and @fig-real-adelie reports its per-tolerance wall-clock cost across the same
-three problems used above. adelie's outer-IRLS criterion is coarser than
-glmnet's coefficient-based `thresh`, which is reflected in a higher achievable
-suboptimality from a single tolerance sweep. The quantity that matters for the
-present argument, however, is per-iteration cost, and on that margin adelie sits
-in the same range as the other local-IRLS solvers.
+and @fig-real-adelie sweeps its convergence tolerance across the same three
+problems used above. Two features stand out. The curves are flat above `tol`
+around $10^{-4}$: path mode warm-starts each of the 50 lambdas from its
+predecessor, and those warm starts alone land within $10^{-5}$ of the optimum,
+so the tolerance has nothing left to do. Below that plateau adelie descends
+cleanly to $\sim \!10^{-13}$ on all three problems, with no stall and no failed
+solve. The whole sweep costs at most $0.35$ seconds per fit, so the descent is
+cheap as well as clean---adelie shows none of the tolerance-driven blowup that
+the slow-converging solvers exhibit on these same problems.
 
 ```{julia}
 #| label: fig-real-adelie
 #| fig-cap: adelie on three imbalanced logistic problems. The panels show primal
 #|   suboptimality versus convergence tolerance on the same three problems as
 #|   @fig-real-glmnet. The horizontal axis is the coupled outer/inner tolerance
-#|   (`tol = irls_tol`).
+#|   (`tol = irls_tol`). $F^\star$ is the minimum primal observed across all
+#|   five production solvers and all tolerances.
 
-df = vcat(
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "adelie.csv"))),
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "adelie.csv"))),
-    DataFrame(CSV.File(
-        @projectroot("results", "real-solvers", "news20-3pct", "adelie.csv"),
-    )),
+solverroot = @projectroot("results", "real-solvers")
+df = reduce(
+    vcat,
+    DataFrame(CSV.File(joinpath(solverroot, d, "adelie.csv")))
+        for d in ("", "w1a", "news20-3pct")
 )
-df_ref = vcat(
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
-    DataFrame(CSV.File(
-        @projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"),
-    )),
+# Reference F* per problem: the best primal any solver reached at any
+# tolerance. A single-solver reference is not safe here---skglm hits its
+# iteration cap on news20-3pct and stalls above the optimum.
+df_ref = reduce(
+    vcat,
+    DataFrame(CSV.File(joinpath(solverroot, d, s)))[:, [:problem, :primal]]
+        for d in ("", "w1a", "news20-3pct"), s in (
+    "glmnet.csv",
+    "biglasso.csv",
+    "adelie.csv",
+    "skglm.csv",
+    "proxnewton.csv",
+)
 )
 F_star = combine(groupby(df_ref, :problem), :primal => minimum => :F_star)
 df = leftjoin(df, F_star, on = :problem)
@@ -2486,6 +2505,7 @@ draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
         xreversed = true,
+        xscale = log10,
         yscale = log10,
         xlabel = "Convergence tolerance (tol = irls_tol)",
         ylabel = "Primal suboptimality",
