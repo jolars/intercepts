@@ -61,8 +61,8 @@ $$
 $$ {#eq-primal-problem}
 where $P$ is the primal objective, $F$ is the loss, and $G_\lambda$ penalizes
 large coefficients while leaving the intercept unpenalized. Throughout the
-paper, we assume that the penalty $G_\lambda$ is separable and that $F$ is the
-per-observation-averaged loss
+paper, we assume that $G_\lambda$ is a proper, closed, convex, separable penalty
+and that $F$ is the per-observation-averaged loss
 $$
   F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
@@ -73,8 +73,9 @@ compare against in @sec-production-solvers:
 $(1/n) \cdot \text{loss} + \lambda \|\beta\|_1$. For brevity, we write $x_i$ for
 the $i$th row of the design matrix $X$ and $x_j$ for its $j$th column, and we
 let $(\hat{\beta}_0, \hat{\beta})$ denote a solution to @eq-primal-problem.
-Although we do not assume $P$ is convex in general, our empirical work focuses
-on the convex case.
+These assumptions make $P$ a convex composite objective. They cover every
+penalty and model used in the analysis and experiments; nonconvex penalties lie
+outside the scope of the paper.
 
 Because omitting the intercept makes the fit depend on the locations of both $y$
 and $X$, regularized regression usually needs one. Yet existing solvers update
@@ -352,23 +353,28 @@ ratio $L_0/H_{00}$ diverges. The gradient strategy pays for that ratio in every
 iteration. The Newton and exact strategies, which track $H_{00}$ directly, do
 not. We make this quantitative in the rest of the section.
 
-Throughout, we work with the per-observation-averaged GLM loss
+Throughout this section, we work with the per-observation-averaged,
+canonical-link GLM loss
 $$
   F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
-which covers the GLMs considered here. We write
+which covers the GLMs considered here. The scalar derivations apply directly to
+the Gaussian, binomial, and Poisson models; the vector-intercept extension below
+treats multinomial logistic regression. We write
 $\eta_i = x_i^\intercal \beta + \beta_0$ for the linear predictor of observation
 $i$ and let $\ilink$ denote the inverse link, so the exponential-family mean
 takes the form $\E(y_i \mid \eta_i) = \ilink(\eta_i)$. The per-observation loss
 $f$ is the negative log-likelihood, with the mean parameterized as
-$\ilink(\eta_i)$, and its derivative with respect to $\eta$ collapses to the
-*generalized residual*,
+$\ilink(\eta_i)$. Because we use each exponential-family model's canonical
+link, its derivative with respect to $\eta$ collapses to the *generalized
+residual*,
 $$
   f'(\eta_i; y_i) = \ilink(\eta_i) - y_i = r_i.
 $$
-Every gradient below resolves through this identity, and every Hessian through
-its derivative. @tbl-glm instantiates these objects, giving the loss, link, and
-inverse link for the four models we study: Gaussian, binomial, Poisson, and
+Every gradient below resolves through this canonical-link identity, and every
+Hessian through its derivative. We do not claim the identity for arbitrary
+noncanonical links. @tbl-glm instantiates these objects, giving the loss, link,
+and inverse link for the four models we study: Gaussian, binomial, Poisson, and
 multinomial.
 
   | Model       | $f(\eta; y)$                                                                             | $\link(\mu)$                                                    | $\ilink(\eta)$                                           |
@@ -2338,8 +2344,8 @@ end
 #| fig-cap: glmnet mode comparison on three imbalanced logistic problems. The
 #|   panels show primal suboptimality versus inner CD passes for `type.logistic
 #|   = "Newton"` and `"modified.Newton"` in path mode on the shared synthetic
-#|   problem, w1a, and news20-3pct. All modes use the common certified
-#|   $F^\star$ for each problem.
+#|   problem, w1a, and news20-3pct. All modes use the common certified $F^\star$
+#|   for each problem.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "glmnet.csv"))),
@@ -2401,8 +2407,8 @@ draw(
 #| label: fig-real-skglm
 #| fig-cap: skglm 0.5 on three imbalanced logistic problems. The panels show
 #|   primal suboptimality versus `AndersonCD` outer iterations on the same three
-#|   problems as @fig-real-glmnet, using the common certified $F^\star$ for
-#|   each problem.
+#|   problems as @fig-real-glmnet, using the common certified $F^\star$ for each
+#|   problem.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),

@@ -256,8 +256,8 @@ version in `@sec-methodology` --- was fixed directly rather than left open.
   caption. The shared-reference choice is defensible --- it stops a stalling
   solver from understating its own gap, the same principle the 2026-05-20
   pass propagated to @fig-real-multinomial-shuttle --- but the asymmetry
-  should be visible to a reader comparing panels. (superseded and resolved by
-  the shared certified-reference protocol below)
+  should be visible to a reader comparing panels. (superseded and resolved
+  by the shared certified-reference protocol below)
 
 ### Correctness (minor)
 
@@ -386,12 +386,12 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   and use a common, independently justified reference whenever curves are
   compared across implementations. State the convention in the methods text
   and captions. This supersedes the narrower open note above that asks only
-  for an adelie-caption disclosure. (resolved: added a separate guarded-Newton
-  CD reference solve for every logistic and Poisson problem, required a
-  relative primal--dual gap below $10^{-8}$, cached both bounds in
-  `results/production-references.csv`, and made every production panel join the
-  same per-problem reference. The methods text and captions now state the
-  convention.)
+  for an adelie-caption disclosure. (resolved: added a separate
+  guarded-Newton CD reference solve for every logistic and Poisson problem,
+  required a relative primal--dual gap below $10^{-8}$, cached both bounds
+  in `results/production-references.csv`, and made every production panel
+  join the same per-problem reference. The methods text and captions now
+  state the convention.)
 - [x] Make the pinned R and Python environments obvious to a cold referee. Check
   that `devenv.nix` and `devenv.lock` pin every package and external solver
   needed by the production drivers, including both skglm revisions used by
@@ -402,10 +402,10 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   from the open Zenodo task: the reviewer found the cached outputs and
   drivers but could not infer the non-Julia dependency provenance from the
   conventional environment files. (resolved: documented the language-to-
-  environment mapping and lock-file reconstruction in the README; pinned both
-  controlled-comparison skglm revisions as content-addressed devenv inputs;
-  changed the runner to consume those immutable sources; and smoke-tested the
-  R, Python, Julia, and Quarto entry points.)
+  environment mapping and lock-file reconstruction in the README; pinned
+  both controlled-comparison skglm revisions as content-addressed devenv
+  inputs; changed the runner to consume those immutable sources; and
+  smoke-tested the R, Python, Julia, and Quarto entry points.)
 
 ### Claims and presentation (minor)
 
@@ -425,3 +425,63 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   README), change “Compute journal” to “Computo journal” in `README.qmd`,
   and compare the rendered README author list with `_quarto.yml` so every
   manuscript author is represented in the intended order.
+
+## Submission-readiness follow-ups (2026-08-19)
+
+From the latest independent Computo-referee pass. These notes supplement the
+open repetition and repository-copy tasks above rather than duplicating them.
+
+### Correctness and scope (major)
+
+- [x] Tighten the scope of @sec-theory. State consistently that the residual
+  identity and the analysis built on it concern the canonical-link models
+  treated in the paper. Reconcile the statement after @eq-primal-problem
+  that convexity is not assumed with the later use of convex composite-CD
+  bounds, profiling arguments, and optimum certificates. (resolved:
+  restricted the paper to proper, closed, convex, separable penalties, stated
+  that the resulting objective is convex composite, and excluded nonconvex
+  penalties; also identified the generalized-residual formula as a
+  canonical-link identity, limited the scalar theory to Gaussian, binomial,
+  and Poisson, and pointed forward to the vector-intercept treatment of
+  multinomial logistic regression.)
+- [ ] Separate proved, local, and heuristic conclusions throughout the rate-gap
+  discussion. In particular, qualify the complexity argument after
+  @eq-intercept-drift: quadratic Newton convergence is local, and the paper
+  does not establish that every exact-strategy iterate enters and remains in
+  the Newton basin. Keep @eq-rate-gap and @eq-rate-gap-asymptotic framed as
+  scaling diagnostics, and ensure that @fig-rate-gap and @fig-rho-centering
+  do not imply a general iteration-complexity theorem.
+- [ ] Either derive a matrix analogue of @eq-grad-residual for the multinomial
+  intercept block or explicitly frame the explanation around
+  @fig-multinomial-imbalance and @fig-multinomial-sweep as an empirically
+  supported heuristic. A small diagonal entry of the intercept Hessian does
+  not, by itself, describe the corresponding component of a coupled block
+  Newton solve.
+
+### Evaluation and reproducibility (major)
+
+- [ ] Strengthen or narrow the conclusion drawn from the single-$\lambda$
+  production diagnostic in @sec-cold-start-diag. Check sensitivity to the
+  stopping tolerance and, if feasible, replicate the diagnostic. Otherwise,
+  restrict the claim that default Newton behavior can return no solution to
+  the exact configurations reported in @tbl-cold-start-diag.
+- [ ] Add an end-to-end reproduction map for every cache consumed by the
+  notebook. For each cached figure or table, identify the producing script,
+  required data, environment or language, expected cost, output path, and
+  execution order. Put the operational detail in the README if that keeps
+  @sec-methodology focused, but make the route complete rather than
+  exemplary. Before submission, verify it by following the documented route
+  from a clean checkout. This referee pass assessed reproducibility by
+  inspection, not by executing the pipeline.
+
+### Consistency and documentation (minor)
+
+- [ ] Fix the limitations text that describes the production comparison as a
+  “single shared problem” even though @sec-production-solvers evaluates
+  three problems.
+- [ ] Reconcile “bare Newton block step” after @fig-multinomial-sweep with the
+  paper's definition of `NewtonStrategy` as Armijo-guarded.
+- [ ] Add docstrings for the exported package API used by @algo-cd and
+  @sec-methodology, especially the solvers, loss interface, intercept
+  strategies, normalization and coefficient rescaling, stopping criteria,
+  and returned diagnostics.
