@@ -246,7 +246,7 @@ version in `@sec-methodology` --- was fixed directly rather than left open.
 
 ### Clarity and presentation (minor)
 
-- [ ] Document the cross-panel $F^\star$ convention in @fig-real-adelie. The
+- [x] Document the cross-panel $F^\star$ convention in @fig-real-adelie. The
   adelie panel references skglm's minimum primal as $F^\star$ (`df_ref` from
   `skglm.csv`, `intercepts.qmd:2670`), while @fig-real-glmnet /
   @fig-real-biglasso / @fig-real-skglm / @fig-real-proxnewton each use their
@@ -256,8 +256,8 @@ version in `@sec-methodology` --- was fixed directly rather than left open.
   caption. The shared-reference choice is defensible --- it stops a stalling
   solver from understating its own gap, the same principle the 2026-05-20
   pass propagated to @fig-real-multinomial-shuttle --- but the asymmetry
-  should be visible to a reader comparing panels. (verified: adelie uses
-  skglm's primal; the other four real-data panels use their own minimum)
+  should be visible to a reader comparing panels. (superseded and resolved by
+  the shared certified-reference protocol below)
 
 ### Correctness (minor)
 
@@ -378,7 +378,7 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
 
 ### Evaluation and reproducibility (major)
 
-- [ ] Define one explicit $F^\star$ protocol for all production-solver panels in
+- [x] Define one explicit $F^\star$ protocol for all production-solver panels in
   @sec-production-solvers. Inventory the current references used by
   @fig-real-glmnet, @fig-real-biglasso, @fig-real-adelie, @fig-real-skglm,
   @fig-real-proxnewton, and @fig-real-poisson-production; decide whether
@@ -386,7 +386,12 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   and use a common, independently justified reference whenever curves are
   compared across implementations. State the convention in the methods text
   and captions. This supersedes the narrower open note above that asks only
-  for an adelie-caption disclosure.
+  for an adelie-caption disclosure. (resolved: added a separate guarded-Newton
+  CD reference solve for every logistic and Poisson problem, required a
+  relative primal--dual gap below $10^{-8}$, cached both bounds in
+  `results/production-references.csv`, and made every production panel join the
+  same per-problem reference. The methods text and captions now state the
+  convention.)
 - [ ] Make the pinned R and Python environments obvious to a cold referee. Check
   that `devenv.nix` and `devenv.lock` pin every package and external solver
   needed by the production drivers, including both skglm revisions used by
