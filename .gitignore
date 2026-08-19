@@ -101,3 +101,5 @@ devenv.local.yaml
 # tracked on purpose --- their diffs show which figures moved after a re-run ---
 # but the PNGs are binary churn.
 /results/figure-tables/png/
+/.agents/scheduled_tasks.lock
+/.agents/settings.local.json
