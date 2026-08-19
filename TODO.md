@@ -392,7 +392,7 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   `results/production-references.csv`, and made every production panel join the
   same per-problem reference. The methods text and captions now state the
   convention.)
-- [ ] Make the pinned R and Python environments obvious to a cold referee. Check
+- [x] Make the pinned R and Python environments obvious to a cold referee. Check
   that `devenv.nix` and `devenv.lock` pin every package and external solver
   needed by the production drivers, including both skglm revisions used by
   @fig-skglm-controlled. Add a compact language-to-environment mapping to
@@ -401,7 +401,11 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   documented environment entry point before submission. This is separate
   from the open Zenodo task: the reviewer found the cached outputs and
   drivers but could not infer the non-Julia dependency provenance from the
-  conventional environment files.
+  conventional environment files. (resolved: documented the language-to-
+  environment mapping and lock-file reconstruction in the README; pinned both
+  controlled-comparison skglm revisions as content-addressed devenv inputs;
+  changed the runner to consume those immutable sources; and smoke-tested the
+  R, Python, Julia, and Quarto entry points.)
 
 ### Claims and presentation (minor)
 
