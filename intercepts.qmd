@@ -14,9 +14,6 @@ using DataFrames
 using CSV
 using Statistics
 
-# Typeset every figure---plain strings, tick labels, and LaTeXStrings alike---in
-# the LaTeX font (New Computer Modern), so labels match the math and there is no
-# sans/serif split within or across figures. AlgebraOfGraphics' draw honors this.
 set_theme!(theme_latexfonts())
 
 Random.seed!(14)
