@@ -1,4 +1,5 @@
 {
+  inputs,
   pkgs,
   ...
 }:
@@ -12,6 +13,11 @@
     librsvg
     liblinear
   ];
+
+  # These source trees let the controlled comparison run without a separate
+  # mutable checkout; devenv.lock records their full revisions and NAR hashes.
+  env.SKGLM_PRE_FIX_SOURCE = inputs.skglm-pre-fix;
+  env.SKGLM_POST_FIX_SOURCE = inputs.skglm-post-fix;
 
   languages = {
     julia = {

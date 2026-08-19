@@ -2,6 +2,12 @@
 inputs:
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
+  skglm-pre-fix:
+    url: github:scikit-learn-contrib/skglm/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc
+    flake: false
+  skglm-post-fix:
+    url: github:scikit-learn-contrib/skglm/8f9cbd77e0827b2a91f9a46c68cef46c21d156a8
+    flake: false
 
 # If you're using non-OSS software, you can set allowUnfree to true.
 # allowUnfree: true
