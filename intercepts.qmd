@@ -700,11 +700,14 @@ alignment of @prp-profile-equiv suggests a potential first-update gain that can
 partially offset the per-pass overhead, though the cyclic drift of
 @eq-intercept-drift still applies. The third is the prox-Newton or IRLS
 linearization boundary, where the solver recomputes the Hessian for the next
-subproblem, so the
-within-pass drift no longer matters. This case explains the intercept handling
-in LIBLINEAR and BlitzL1 (@sec-irls). In all three regimes the exact strategy is
-a defensible choice, and our recommendation against it applies only to the
-cold-start, direct-CD setting outside them.
+subproblem, so the within-pass drift no longer matters. This case explains why
+LIBLINEAR fully resolves the intercept of its frozen quadratic and why BlitzL1
+goes further, applying an exact-strategy loop to the original loss after the
+prox-Newton step (@sec-irls). In the first two regimes the exact strategy on the
+original loss is defensible; at a linearization boundary, fully resolving the
+quadratic surrogate is the analogous choice. Our recommendation against extra
+intercept iterations applies only to the cold-start, direct-CD setting outside
+them.
 
 A single Newton step on the intercept matches the conditional minimizer at
 leading order. Taylor-expanding $\partial_0 F$ around the conditional minimizer
@@ -854,11 +857,11 @@ motivates using the profiled gradient at the *first* coefficient update of each
 pass. The corresponding local quadratic model has curvatures
 $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ by @eq-schur-diag; as a heuristic, we
 extend this one-update model to the full pass and treat the Schur curvature as
-the effective coefficient curvature. The gradient strategy removes
-only fraction $H_{00}/L_0$ of the coupling (@eq-grad-residual), giving effective
-curvature $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$. Substituting
-(ii)--(iii) into the $L_j R_j^2$ sum gives @eq-rate-gap; retaining only the
-$R_0^2$ term in the $|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit gives
+the effective coefficient curvature. The gradient strategy removes only fraction
+$H_{00}/L_0$ of the coupling (@eq-grad-residual), giving effective curvature
+$H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$. Substituting (ii)--(iii) into
+the $L_j R_j^2$ sum gives @eq-rate-gap; retaining only the $R_0^2$ term in the
+$|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit gives
 @eq-rate-gap-asymptotic.
 
 The heuristic predicts a diverging ratio as $H_{00}/L_0 \to 0$. @fig-rate-gap
@@ -1631,38 +1634,38 @@ does not support an intercept at all in version 0.7.4, and its documentation
 redirects users with logistic needs to skglm; it is therefore absent from the
 table.)
 
-  | Solver                                        | Family                | Intercept Update on the Original Loss                       |
-  | :-------------------------------------------- | :-------------------- | :---------------------------------------------------------- |
-  | skglm 0.5                                     | Constant-Lipschitz CD | Gradient ($L_0 = 1/4$)                                      |
-  | glmnet (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Gradient ($L_0 = 1/4$) per outer iteration                  |
-  | biglasso (`alg.logistic = "MM"`)              | MM-IRLS               | Gradient ($L_0 = 1/4$) per outer iteration                  |
-  | glmnet (`type.logistic = "Newton"`)           | Local-IRLS            | Convergence on the local quadratic per outer iter           |
-  | biglasso (`alg.logistic = "Newton"`, default) | Local-IRLS            | Convergence on the local quadratic per outer iter           |
-  | adelie                                        | Local-IRLS            | Implicit, via weighted-centered-features parameterization   |
-  | LIBLINEAR (newGLMNET, L1-LR)                  | Prox-Newton           | Convergence on the quadratic; intercept unregularized       |
-  | BlitzL1                                       | Prox-Newton           | Combined-direction backtrack + post-step Newton convergence |
+  | Solver                                        | Family                | Intercept treatment                                    |
+  | :-------------------------------------------- | :-------------------- | :----------------------------------------------------- |
+  | skglm 0.5                                     | Constant-Lipschitz CD | Gradient on original loss ($L_0 = 1/4$)                |
+  | glmnet (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
+  | biglasso (`alg.logistic = "MM"`)              | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
+  | glmnet (`type.logistic = "Newton"`)           | Local-IRLS            | Conditional minimum of frozen local quadratic          |
+  | biglasso (`alg.logistic = "Newton"`, default) | Local-IRLS            | Conditional minimum of frozen local quadratic          |
+  | adelie                                        | Local-IRLS            | Conditional minimum of weighted, centered quadratic    |
+  | LIBLINEAR (newGLMNET, L1-LR)                  | Prox-Newton           | Conditional minimum of frozen quadratic; unregularized |
+  | BlitzL1                                       | Prox-Newton           | Post-step Newton convergence on original loss          |
 
   : Classification of CD-based production solvers by algorithmic family and
-    intercept update on the original loss. Local-IRLS and prox-Newton rows
-    freeze the Hessian within each subproblem; BlitzL1 additionally applies a
-    post-step one-dimensional Newton loop on the original loss.
-    {#tbl-classification}
+    intercept treatment. IRLS and prox-Newton rows conditionally minimize a
+    frozen quadratic surrogate, not the original GLM loss; BlitzL1 alone
+    additionally applies a post-step one-dimensional Newton loop on the original
+    loss. {#tbl-classification}
 
-A consequence of the table is that two production solvers---LIBLINEAR
-(newGLMNET) and BlitzL1---end up with the exact strategy on the intercept at the
-boundary of each prox-Newton step. BlitzL1 arrives there by design, with an
-explicit one-dimensional Newton convergence loop on the original loss after each
-subproblem; LIBLINEAR arrives there as a byproduct of leaving the intercept
-unregularized inside the inner CD, whose QP convergence carries the intercept to
-its conditional minimum on the quadratic. The within-pass drift of
+A consequence of the table is that LIBLINEAR (newGLMNET) and BlitzL1 treat the
+intercept differently at the boundary of each prox-Newton step. LIBLINEAR leaves
+the intercept unregularized inside inner CD, whose QP convergence carries it to
+the conditional minimum of the frozen quadratic---but not, in general, of the
+original loss. BlitzL1 additionally runs an explicit one-dimensional Newton loop
+to convergence on the original loss after each subproblem and therefore does
+realize the exact strategy at that boundary. The within-pass drift of
 @eq-intercept-drift penalizes exact-strategy within direct CD because the inner
 Hessian drifts between iterations; that critique does not apply at the
 prox-Newton boundary, where the next subproblem's Hessian is recomputed anyway.
 The structural distinction between the families thus carries over to a sensible
-recommendation: use Newton on the intercept within direct CD, and run the exact
-strategy at the linearization boundary inside IRLS or prox-Newton. The
-production solvers that fit serious imbalanced-GLM problems in practice appear
-to use this prescription.
+recommendation: use Newton on the intercept within direct CD, fully resolve the
+intercept of each quadratic surrogate in IRLS or prox-Newton, and optionally
+apply an original-loss correction at the linearization boundary. The surveyed
+production solvers follow the first two parts; BlitzL1 also follows the third.
 
 ```{julia}
 #| label: fig-irls-comparison
@@ -2070,9 +2073,10 @@ reduction in pass count across the board.
 Warm-starting therefore narrows the gap between Newton and exact: bare Newton
 and the exact strategy become hard to distinguish in practice. It does not,
 however, rescue the gradient strategy. The recommendation from
-@eq-intercept-drift still stands---bare Newton in direct CD, exact strategy at
-the prox-Newton/IRLS boundary---with the added nuance that the exact strategy
-becomes a defensible alternative when a path solve is already being used.
+@eq-intercept-drift still stands---bare Newton in direct CD and a fully resolved
+intercept on the frozen quadratic at a prox-Newton/IRLS boundary---with the
+added nuance that the exact original-loss strategy becomes a defensible
+alternative when a path solve is already being used.
 
 ### Per-Pass Cost Decomposition {#sec-per-pass-cost}
 
@@ -2297,17 +2301,17 @@ solver attains on that problem.
     failure of @eq-newton-coupling on the two extreme-imbalance real datasets
     used here; @sec-cold-start-diag reports the diagnostic.
 
-We sort these solvers into two buckets by the intercept update each realizes on
-the original loss\ (@tbl-classification). Bucket A contains the
-gradient-strategy solvers---glmnet `modified.Newton`, biglasso `MM`, and
-skglm---while Bucket B contains the local-IRLS solvers---glmnet `Newton`,
-biglasso `Newton`, and adelie. LIBLINEAR and BlitzL1 sit outside the split
-because their prox-Newton boundary effectively realizes the exact strategy. The
-figure sequence follows that structure: within-package toggles in glmnet and
-biglasso isolate the weight scheme, skglm 0.5 shows the direct-CD gradient case,
-@fig-skglm-controlled isolates skglm's upstream Newton fix, and the
-LIBLINEAR/BlitzL1 and adelie panels check the fast-converging side of the
-prediction.
+We sort these solvers into two buckets by the curvature used for their intercept
+correction\ (@tbl-classification). Bucket A contains the gradient-strategy
+solvers---glmnet `modified.Newton`, biglasso `MM`, and skglm---while Bucket B
+contains the local-IRLS solvers---glmnet `Newton`, biglasso `Newton`, and
+adelie. LIBLINEAR and BlitzL1 sit outside the split because they solve
+prox-Newton quadratics; only BlitzL1 additionally realizes the exact strategy on
+the original loss at the subproblem boundary. The figure sequence follows that
+structure: within-package toggles in glmnet and biglasso isolate the weight
+scheme, skglm 0.5 shows the direct-CD gradient case, @fig-skglm-controlled
+isolates skglm's upstream Newton fix, and the LIBLINEAR/BlitzL1 and adelie
+panels check the fast-converging side of the prediction.
 
 ```{julia}
 #| label: fig-real-glmnet
@@ -2472,13 +2476,14 @@ spec_sk = data(wide_sk) *
 draw(spec_sk * visual(Heatmap), figure = (; size = (560, 320)))
 ```
 
-The prox-Newton solvers tell the complementary story. If a solver realizes the
-exact strategy at a prox-Newton boundary, it should converge quickly on these
-problems. LIBLINEAR\ (newGLMNET) and BlitzL1 are the two production solvers in
-our survey that fit this description. @fig-real-proxnewton reports their
-wall-clock cost to reach $F^\star$ across the same three problems used above,
-complementing the inner-pass curves for skglm 0.5 (gradient strategy on the
-intercept) and glmnet's `modified.Newton` (the constant-majorant alternative).
+The prox-Newton solvers tell the complementary story. Resolving the intercept
+with local curvature inside each quadratic should avoid the global-majorant
+stall; an additional original-loss correction may refine that boundary value.
+LIBLINEAR\ (newGLMNET) implements the former, while BlitzL1 implements both.
+@fig-real-proxnewton reports their wall-clock cost to reach $F^\star$ across the
+same three problems used above, complementing the inner-pass curves for skglm
+0.5 (gradient strategy on the intercept) and glmnet's `modified.Newton` (the
+constant-majorant alternative).
 
 ```{julia}
 #| label: fig-real-proxnewton

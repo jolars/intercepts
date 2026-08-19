@@ -361,13 +361,20 @@ in @prp-profile-equiv and the production-panel definition of $F^\star$.
   finite-step descent guarantee without a coordinate-curvature bound; and
   narrowed every downstream appeal to a gradient identity or a heuristic
   local-model comparison.)
-- [ ] Tighten the production-solver taxonomy in @tbl-classification and
+- [x] Tighten the production-solver taxonomy in @tbl-classification and
   @sec-irls. For each IRLS / prox-Newton implementation, name whether the
   intercept is conditionally minimized for the original GLM loss or only for
   the frozen quadratic surrogate. In particular, verify LIBLINEAR's
   `newGLMNET` update against its algorithm or source, and withdraw or
   qualify the claim that it realizes the paper's exact original-loss
-  strategy if it only converges on the quadratic subproblem.
+  strategy if it only converges on the quadratic subproblem. (resolved:
+  verified `solve_l1r_lr` at LIBLINEAR commit `491c9f1`; its unregularized
+  bias receives `z = -G/H` inside the frozen QP, and no original-loss
+  intercept loop follows. Renamed the table column, labeled every
+  IRLS/prox-Newton row by the objective it conditionally minimizes, and
+  withdrew the downstream claim that LIBLINEAR realizes the exact
+  original-loss strategy. BlitzL1 retains that classification because its
+  post-step Newton loop operates on the original loss.)
 
 ### Evaluation and reproducibility (major)
 
