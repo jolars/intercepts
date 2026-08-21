@@ -783,7 +783,16 @@ applies no coupling correction at all and the coefficient subproblem sees the
 full, uncorrected gradient. In this regime the strategy leaves the intercept
 unchanged.
 
-#### A rate-gap heuristic
+Equation @eq-grad-residual describes one coefficient update; it does not give a
+convergence rate. We next connect that mechanism to the observed slowdown in two
+layers. First, @eq-rate-gap gives a deliberately non-sharp scaling heuristic for
+cold-start pass counts; @fig-rho-centering then shows that it predicts neither
+the transition nor the late-stage plateau. Second, the frozen local model in
+@prp-frozen-block-rate and @fig-rho-frozen explains both. The heuristic
+motivates the relevant curvature ratio; the local model supplies the rate
+explanation.
+
+#### A scaling heuristic and its limit
 
 The $H_{00}/L_0$ ratio also appears in standard randomized-CD rate bounds. Our
 algorithm does not satisfy all assumptions of those bounds: it updates the
@@ -933,9 +942,12 @@ $L_0/H_{00}$ of @eq-rate-gap-asymptotic at their respective evaluation points.
 
 The sweep in @fig-rate-gap varies $H_{00}/L_0$ through $\mu_0$ while keeping
 $\bar\rho^2$ close to zero in the standardized design. A second experiment holds
-$\mu_0$ fixed and varies $\bar\rho^2$ directly. On the same problem family with
-`means = :random` (so each column carries an $O(1)$ mean), a centering fraction
-$\alpha$ interpolates between the standardized and uncentered designs,
+$\mu_0$ fixed and varies $\bar\rho^2$ directly. This is a stronger test: rather
+than asking whether the heuristic tracks imbalance, it asks whether its
+first-update coupling correction predicts the long-run rate. On the same problem
+family with `means = :random` (so each column carries an $O(1)$ mean), a
+centering fraction $\alpha$ interpolates between the standardized and uncentered
+designs,
 $$
   X(\alpha) = \bigl(X - (1 - \alpha)\,\bar{x}^\top\bigr) / s, \qquad \alpha
             \in [0, 1],
@@ -1006,10 +1018,12 @@ draw(
 )
 ```
 
-The plateau follows from the local iteration rather than from the cold-start
-distance. Freeze the Hessian at the optimum, restrict the coefficients to the
-active set $A$, and translate the optimum to zero. Once the active signs are
-fixed, the penalty is locally affine and the quadratic error has Hessian
+This failure ends the role of @eq-rate-gap as a rate model: it supplies a useful
+imbalance scaling, but not the long-run shape. The plateau instead follows from
+the local iteration. Freeze the Hessian at the optimum, restrict the
+coefficients to the active set $A$, and translate the optimum to zero. Once the
+active signs are fixed, the penalty is locally affine and the quadratic error
+has Hessian
 $$
   H =
 \begin{bmatrix}
@@ -1254,9 +1268,12 @@ the solve---at pass $78$ or beyond, never at cold start---costing at most a few
 passes in either direction. The lone exception is one $\mu_0 = 0.99$ seed, where
 the guarded run takes $626$ passes against the bare step's $552$.
 
-The bounded Hessian $f'' = \mu(1 - \mu) \le 1/4$ is what makes this possible:
-the linear model is globally accurate enough that the full Newton step on the
-intercept always descends.
+Thus, the Armijo safeguard does not improve the logistic cold starts tested
+here: the full Newton step is accepted at the initial iterate, and the few later
+differences do not systematically favor either variant. Logistic curvature is
+bounded, $f'' = \mu(1 - \mu) \le 1/4$, but bounded curvature alone does not make
+an undamped Newton step globally descending. These experiments establish the
+narrower empirical result for the zero-initialized problem family above.
 
 Unbounded-Hessian losses behave differently. For Poisson regression with the
 canonical log link, $f''(\eta) = e^\eta$ and $f'''(\eta) = e^\eta$ both grow

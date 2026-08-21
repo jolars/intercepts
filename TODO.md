@@ -109,23 +109,29 @@ presentation judgment rather than a defect in the evidence.
   reported cold-start values from the unnormalized scores to $0.20$ and
   $0.47$. The qualitative warm-start mechanism is unaffected.)
 
-- [ ] Narrow or prove the assertion after @fig-cold-start that bounded logistic
+- [x] Narrow or prove the assertion after @fig-cold-start that bounded logistic
   curvature makes an undamped Newton intercept step always descend. The
   experiments establish benign behavior for the tested, zero-initialized
   configurations, not global descent from an arbitrary intercept. Bounded
   curvature alone does not imply descent. Prefer narrowing the claim; the
   recommendation of an Armijo-guarded Newton step does not depend on it.
+  (Resolved: restricted the conclusion to the tested zero-initialized
+  problem family and stated explicitly that bounded curvature alone does not
+  imply global descent.)
 
 ### Editorial improvements
 
-- [ ] Clarify the hierarchy of the rate explanations earlier in the section:
+- [x] Clarify the hierarchy of the rate explanations earlier in the section:
   @eq-grad-residual describes the first-update mechanism, @eq-rate-gap is a
   deliberately non-sharp scaling heuristic, @fig-rho-centering shows that it
   misses the long-run shape, and @prp-frozen-block-rate with @fig-rho-frozen
   explains the local plateau. The manuscript already makes each
   qualification, so first try stronger signposting and compression. Move an
   intermediate diagnostic to the supplement only if the revised section
-  remains too dense.
+  remains too dense. (Resolved: added an explicit roadmap before the
+  heuristic, reframed the centering sweep as a test of its limit, and made
+  the transition to the frozen local-rate model explicit. Kept the
+  diagnostics in the main text because each now has a distinct role.)
 
 - [ ] Reduce repeated conclusions across @sec-theory, @sec-results, and the
   Discussion, especially that Newton and exact overlap, that the gradient
