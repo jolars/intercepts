@@ -293,6 +293,22 @@ end
     )
 end
 
+@testset "ExactStrategy cap uses its documented numerical margin" begin
+    f = PoissonLoss()
+    y = [1.0]
+    tol = 1.0e-4
+    strategy = ExactStrategy(gradient_tol = tol, maxit = 1)
+
+    # These starts place the post-Newton residual on opposite sides of the
+    # floating-point margin and make the cap policy observable in one step.
+    η_within_margin = [0.02]
+    intercept = update_intercept(strategy, f, 0.0, η_within_margin, y)
+    normalized_gradient = abs(only(gradient(f, η_within_margin .+ intercept, y)))
+
+    @test tol < normalized_gradient <= 5 * tol
+    @test_throws ErrorException update_intercept(strategy, f, 0.0, [0.04], y)
+end
+
 @testset "UnguardedNewtonStrategy matches Newton on quadratic loss" begin
     Random.seed!(2024)
     n = 200

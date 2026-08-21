@@ -34,26 +34,22 @@ description: >
   imbalance.
 abstract: >
   Coordinate descent solvers for regularized generalized linear models (GLMs)
-  differ in how they update the intercept, and this choice can substantially
-  affect convergence under response imbalance. For direct coordinate descent
-  on the original GLM loss, we compare three strategies: one step using a global
-  curvature bound, one Armijo-safeguarded Newton step using local curvature, and
-  repeated Newton steps that solve the intercept subproblem. Our analysis shows
-  that the global-bound strategy removes only a fraction $H_{00}/L_0$ of the
-  intercept--coefficient coupling. In logistic regression, this fraction can
-  become small as the response grows more imbalanced, producing a corresponding
-  slowdown when a coupled mode controls convergence. A single Newton step avoids
-  this attenuation and, in our experiments, follows nearly the same outer
-  convergence trajectory as exact minimization while requiring fewer inner
-  steps. The same mechanism distinguishes global-majorant IRLS from local-weight
-  IRLS and proximal-Newton methods, whose quadratic surrogates already supply
-  local curvature. Experiments with simulated and real data, including
-  comparisons across six production solvers, weight-scheme comparisons within
-  glmnet and biglasso, and an intercept-only intervention within skglm, support
-  these predictions. A multinomial extension shows how rare classes create
-  low-curvature intercept directions. We therefore recommend a safeguarded
-  Newton update for direct coordinate descent and full intercept optimization
-  within frozen local quadratic surrogates.
+  differ in how they update the intercept. This seemingly routine choice can
+  substantially affect convergence when the response is imbalanced. For direct
+  coordinate descent on the original GLM loss, we compare a conservative step
+  based on worst-case curvature, a safeguarded Newton step based on current
+  curvature, and repeated Newton steps that solve the intercept subproblem. The
+  conservative update can leave much of the interaction between the intercept
+  and the coefficients unresolved, producing a slowdown when that interaction
+  controls convergence. A single Newton step avoids this attenuation and, in
+  our experiments, follows nearly the same outer trajectory as exact
+  minimization while requiring fewer inner steps. Simulated and real-data
+  experiments, including comparisons across six production solvers and a
+  controlled intervention within skglm, support this explanation. We also show
+  how the same mechanism appears in quadratic-approximation methods and extends
+  to multinomial models with rare classes. We recommend a safeguarded Newton
+  update for direct coordinate descent and full intercept optimization within
+  frozen local quadratic surrogates.
 
 keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib

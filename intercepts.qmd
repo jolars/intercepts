@@ -46,19 +46,18 @@ model, yet solvers update it in different ways. Research on coordinate descent
 has examined acceleration, parallelization, and convergence rates, but has
 largely treated the intercept update as a routine implementation choice. That
 choice can dominate convergence speed when the response is imbalanced. For
-direct coordinate descent, a single safeguarded Newton step fixes the problem.
+direct coordinate descent, a single safeguarded Newton step per pass fixes the
+problem in our experiments.
 
-The disagreement follows a deeper split among implementations. skglm 0.5[^1]\
-[@bertrand2022] runs coordinate descent directly on the original GLM loss.
-glmnet\ [@friedman2010; @tay2023], biglasso\ [@zeng2017], adelie\
-[@yang2024], and ncvreg\ [@breheny2011] instead solve a sequence of weighted
-least-squares problems by inner coordinate descent, that is, by iteratively
-reweighted least squares\ (IRLS). LIBLINEAR\ [@fan2008; @yuan2012] and BlitzL1\
-[@johnson2015] use coordinate descent within proximal-Newton quadratics\
-[@lee2014]. Within local-weight IRLS and proximal-Newton, the quadratic supplies
-the current intercept curvature, and the update strategies coincide. The choice
-remains consequential for direct coordinate descent and for MM-IRLS built from a
-global curvature bound (@sec-theory and @sec-irls).
+The disagreement follows a deeper split among implementations. Some solvers,
+including skglm 0.5[^1]\ [@bertrand2022], run coordinate descent directly on the
+original GLM loss. Others repeatedly replace that loss with a quadratic
+approximation and solve the approximation by coordinate descent. A local
+quadratic already contains the current intercept curvature, so the update
+strategies coincide within it. A quadratic built from a worst-case curvature
+bound retains the same problem as the conservative direct update. The six
+production solvers in @sec-production-solvers instantiate these designs;
+@sec-theory and @sec-irls explain when the distinction matters.
 
 We study the optimization problem
 $$
@@ -99,21 +98,20 @@ Gradient Strategy
 
 Newton Strategy
 :   Takes a single Newton step, wrapped in an Armijo backtracking line search,
-    before each pass over the coordinates. The line search accepts the full step
-    ($\alpha = 1$) on the first attempt away from cold start and safeguards the
-    cold-start or saturated-loss regime, where an undamped step could overshoot.
+    before each pass over the coordinates. The line search usually accepts the
+    full step ($\alpha = 1$) and backtracks when the undamped step would
+    overshoot.
 
 Exact Strategy
 :   Iterates Armijo-safeguarded Newton steps on the intercept subproblem until
-    the normalized intercept gradient is at most $10^{-10}$ for scalar models
-    and $10^{-8}$ for multinomial blocks. The implementation raises an error
-    rather than returning an unconverged iterate if it reaches its 50-step inner
-    limit.
+    it meets a tight numerical convergence criterion. It raises an error rather
+    than return an iterate outside its documented residual bounds.
 
 The analysis uses *exact* for the ideal conditional minimizer. The empirical
-strategy is its numerical realization with the residual guarantees above; a
-completed experiment therefore distinguishes a tolerance-certified conditional
-solve from a capped approximation.
+strategy is its numerical realization. [Supplement S3](#sec-s-methodology)
+documents its tolerances, iteration cap, and scalar floating-point margin; a
+completed experiment therefore distinguishes a numerically certified conditional
+solve from an uncontrolled capped approximation.
 
 The three paths in @fig-parametric trace the strategies across the level sets of
 @eq-primal-problem for a toy problem with one feature and an intercept. The
@@ -328,12 +326,13 @@ In regularized logistic regression, the same construction lives on as the
 `modified.Newton` mode of glmnet and the `MM` mode of
 biglasso\ (@tbl-classification). In binary logistic regression, the scalar
 Schur-coupling residual quantifies the cost: when the response is imbalanced,
-$H_{00}/L_0$ shrinks to zero and the MM step loses progress in proportion
-(@eq-grad-residual). Its multinomial analogue replaces that scalar ratio with
-the eigenvalues of $H_{00}/L_0$ (@eq-grad-residual-matrix). The MM literature
-treats this as loose majorization. We show that the bound is routinely loose for
-imbalanced binary logistic and rare-class multinomial problems (@sec-irls,
-@fig-multinomial-sweep).
+$H_{00}/L_0$ shrinks to zero, the MM intercept step shrinks in direct proportion
+to the local Newton step, and its effect on the next coefficient gradient is
+attenuated to first order (@eq-grad-residual). Its multinomial analogue replaces
+that scalar ratio with the eigenvalues of $H_{00}/L_0$
+(@eq-grad-residual-matrix). The MM literature treats this as loose majorization.
+We show that the bound is routinely loose for imbalanced binary logistic and
+rare-class multinomial problems (@sec-irls, @fig-multinomial-sweep).
 
 ## Theory {#sec-theory}
 
@@ -429,7 +428,7 @@ Production solvers, however, realize three different intercept updates:
    Lipschitz constant with respect to $\beta_0$ or choosing it by a backtracking
    line search.
 3. Repeated safeguarded Newton steps on the intercept subproblem, iterated until
-   the normalized intercept gradient is at most $10^{-10}$---the *exact
+   the scalar convergence contract described below is met---the *exact
    strategy*.
 
 The resulting coordinate-descent algorithm appears in @algo-cd.
@@ -461,11 +460,16 @@ The resulting coordinate-descent algorithm appears in @algo-cd.
             \ElsIf{intercept strategy is "Gradient"}
                 \State $\beta_0 \gets \beta_0 - \frac{1}{L_0} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
             \ElsIf{intercept strategy is "Exact"}
-                \While{$|\partial_0 F| > 10^{-10}$}
+                \State $k \gets 0$
+                \While{$|\partial_0 F| > 10^{-10}$ and $k < 50$}
                     \State $\delta \gets -\left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1} \frac{\partial}{\partial \beta_0} F(\beta_0, \beta)$
                     \State choose $\alpha$ by Armijo backtracking as in the Newton branch
                     \State $\beta_0 \gets \beta_0 + \alpha \delta$
+                    \State $k \gets k + 1$
                 \EndWhile
+                \If{$k = 50$ and $|\partial_0 F| > 5 \times 10^{-10}$}
+                    \State raise a convergence error
+                \EndIf
             \EndIf
         \EndWhile
         \State \textbf{Output:} $(\beta_0, \beta)$
@@ -477,7 +481,12 @@ The Newton branch of @algo-cd wraps the same Newton direction in an Armijo
 backtracking line search. In the common case it accepts the full step
 immediately, shrinking $\alpha$ only when the step overshoots. The
 slope-tolerance constant $c \in (0, 1)$ controls the sufficient-decrease
-threshold; we use $c = 10^{-4}$.
+threshold; we use $c = 10^{-4}$. The exact branch shows the scalar convergence
+contract. Its fivefold allowance applies only after all 50 steps and addresses
+the floating-point floor of saturated predictors; the ordinary stopping
+threshold remains $10^{-10}$. The multinomial implementation uses a strict
+$10^{-8}$ threshold without this allowance. [Supplement S3](#sec-s-methodology)
+gives the complete numerical policy.
 
 ### What sets the intercept apart
 
@@ -556,16 +565,20 @@ nonzero even after centering.
 #### A normalized measure of intercept--coefficient coupling
 
 To quantify how strongly the intercept and the $j$th coefficient are coupled,
-the natural quantity is the normalized cross-curvature
+suppose that $H_{00} > 0$ and $H_{jj} > 0$ and define the normalized
+cross-curvature
 $$
   \rho_{0j} = \frac{H_{0j}}{\sqrt{H_{00} H_{jj}}} \in [-1, 1],
 $$ {#eq-rho}
 which is invariant to rescaling of the features and the loss function, and which
-the Cauchy--Schwarz inequality bounds in $[-1,1]$. The two extremes are easy to
-interpret: $\rho_{0j} = 0$ means the intercept and $\beta_j$ can be optimized
-independently; $|\rho_{0j}| \to 1$ means a change in $\beta_0$ is fully absorbed
-by an opposite change in $\beta_j$ (or vice versa), and the two coordinates are
-degenerate up to that direction.
+the Cauchy--Schwarz inequality bounds in $[-1,1]$. A zero-curvature intercept
+direction does not admit a local Newton step, and the normalization is undefined
+when either diagonal curvature is zero; we exclude those directions when using
+$\rho_{0j}$. The two extremes are easy to interpret in the local quadratic
+model: $\rho_{0j} = 0$ means the coordinates are locally decoupled, while
+$|\rho_{0j}| \to 1$ means a change in $\beta_0$ is almost fully absorbed by an
+opposite change in $\beta_j$ (or vice versa), making the two coordinates nearly
+degenerate along that direction.
 
 #### The profiled objective
 
@@ -575,7 +588,8 @@ $$
   \tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta).
 $$
 
-The Hessian of $\tilde F$ is the Schur complement
+Evaluate the Hessian blocks at $(\beta_0^\star(\beta), \beta)$. When
+$H_{00} > 0$, the Hessian of $\tilde F$ is the Schur complement
 $$
   \tilde H_{jk} = H_{jk} - \frac{H_{0j} H_{0k}}{H_{00}},
 $$ {#eq-schur}
@@ -597,19 +611,26 @@ $\tilde H_{jj}$ and the unprofiled curvature $H_{jj}$.
 #### Strategies as Schur approximations
 
 We can now classify the three intercept-update strategies by how completely they
-remove the intercept--coefficient coupling. We track the *gradient response* of
-the coefficient subproblem to an intercept step: if we take the step
-$\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, the partial derivative with
-respect to $\beta_j$ that the next coefficient update sees satisfies, to first
-order in $\alpha$,
+remove the intercept--coefficient coupling in a local model. We track the
+*gradient response* of the coefficient subproblem to an intercept step. If we
+take the step $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, twice continuous
+differentiability gives
 $$
   \partial_j F(\beta_0 - \alpha\partial_0 F, \beta) = \partial_j F(\beta_0, \beta)
-                                                      - \alpha H_{j0} \partial_0 F(\beta_0, \beta).
+                                                      - \alpha H_{j0} \partial_0 F(\beta_0, \beta)
+                                                      + r_j(\alpha),
 $$ {#eq-gradient-response}
-The Schur-corrected gradient $\partial_j F - (H_{j0}/H_{00})\partial_0 F$ is the
-gradient of the profiled objective $\tilde F$ at the current $\beta$. The three
-strategies differ in how closely the residual gradient in @eq-gradient-response
-approximates that target.
+where $r_j(\alpha) = o(|d_0|)$ as the intercept displacement
+$d_0 = -\alpha \partial_0 F$ tends to zero. If $H_{j0}$ is locally Lipschitz,
+then $r_j(\alpha) = O(d_0^2)$. The remainder vanishes for a frozen quadratic.
+
+When $H_{00} > 0$, the local Schur correction
+$\partial_j F - (H_{j0}/H_{00})\partial_0 F$ is the gradient that a Newton
+intercept step predicts for the profiled objective at the current $\beta$. It
+equals the profiled gradient in a frozen quadratic and approximates it locally
+for a nonlinear loss; conditional minimization gives the true profiled gradient.
+The three strategies differ in how closely the gradient response in
+@eq-gradient-response approaches that target.
 
 At the intercept's conditional minimizer, the next coefficient update uses the
 profiled gradient, and its diagonal curvature gives a conservative step relative
@@ -789,30 +810,34 @@ current iterate (@eq-newton-error--@eq-newton-coupling). The experiments in
 @sec-results show how those gains accumulate across an outer solve.
 
 The gradient strategy is the Schur-coupling correction with step size
-$\alpha = 1/L_0$ rather than $1/H_{00}$. Substituting $\alpha = 1/L_0$ into
-@eq-gradient-response gives
+$\alpha = 1/L_0$ rather than $1/H_{00}$. When $H_{00} > 0$, substituting
+$\alpha = 1/L_0$ into @eq-gradient-response gives
 $$
   \partial_j F^{\text{grad}} = \partial_j F
-                               - \frac{H_{00}}{L_0}\frac{H_{j0}}{H_{00}}\partial_0 F,
+                               - \frac{H_{00}}{L_0}\frac{H_{j0}}{H_{00}}\partial_0 F
+                               + r_j(1/L_0),
 $$ {#eq-grad-residual}
-so the gradient strategy removes a fraction $H_{00}/L_0 \in (0, 1]$ of the
-coupling component $(H_{j0}/H_{00})\partial_0 F$ that the Newton and exact
-strategies remove. The residual coupling is $(1 - H_{00}/L_0)$ of its pre-step
-value; when $L_0 = \infty$, no coupling is removed.
+so, to first order, the gradient strategy removes a fraction
+$H_{00}/L_0 \in (0, 1]$ of the coupling component $(H_{j0}/H_{00})\partial_0 F$
+that Newton targets at leading order. The exact strategy instead reaches the
+true profiled gradient by conditional minimization. In a frozen quadratic,
+$r_j(1/L_0) = 0$ and the correction fraction is exact. For a nonlinear loss, the
+leading-order residual relative to the local Schur-corrected target is
+$(1 - H_{00}/L_0)(H_{j0}/H_{00})\partial_0 F + r_j(1/L_0)$. When $L_0 = \infty$,
+the intercept step is zero, so no coupling is removed.
 
-The gradient strategy is fully effective only when $H_{00} \approx L_0$, that
-is, when the Lipschitz bound is tight at the current iterate. Whenever $H_{00}$
-is appreciably below $L_0$---as happens for logistic regression once predictions
-become confident, or whenever the weights $w_i$ are concentrated on a small
-subset of observations---the gradient strategy leaves a residual coupling of
-order $(1 - H_{00}/L_0)$ uncorrected, and coordinate descent continues to run on
-a worse-conditioned objective than necessary.
+The leading-order correction is fully effective only when $H_{00} \approx L_0$,
+that is, when the Lipschitz bound is tight at the current iterate. Whenever
+$H_{00}$ is appreciably below $L_0$---as happens for logistic regression once
+predictions become confident, or whenever the weights $w_i$ are concentrated on
+a small subset of observations---the gradient strategy leaves a leading-order
+residual of size $(1 - H_{00}/L_0)$, and coordinate descent continues to run on
+a worse-conditioned local model than necessary.
 
 The Poisson loss is the limiting case: $H_{00}$ has no global upper bound, so
-$L_0 = \infty$ and $H_{00}/L_0 = 0$. By @eq-grad-residual, the gradient strategy
-applies no coupling correction at all and the coefficient subproblem sees the
-full, uncorrected gradient. In this regime the strategy leaves the intercept
-unchanged.
+$L_0 = \infty$ and $H_{00}/L_0 = 0$. The gradient strategy then leaves the
+intercept unchanged, so the coefficient subproblem sees the full, uncorrected
+gradient.
 
 #### Local-rate interpretation
 
@@ -954,7 +979,7 @@ $$
 which is the gradient strategy with a global Lipschitz step. The Schur-coupling
 residual (@eq-grad-residual) therefore applies directly to glmnet's
 `modified.Newton` mode: under response imbalance, the per-iteration correction
-fraction $H_{00} / L_0$ shrinks and the intercept update slows in proportion,
+fraction $H_{00} / L_0$ shrinks to leading order and the intercept update slows,
 approaching a true stall only in the limit $\mu_0 \to 1$. There is a historical
 irony here---MM majorization was introduced for numerical stability of the
 working response $z_i$ when $w_i \to 0$, which is the same imbalance regime
@@ -1094,11 +1119,10 @@ budgets, data preparation, hardware, and reproduction protocol.
 
 ### Simulated data
 
-We begin with the simplest consequence of @sec-theory. Under the Schur-coupling
-residual (@eq-grad-residual), the effective intercept step of the gradient
-strategy is the bare gradient step scaled by $H_{00}/L_0$. As imbalance pushes
-$\mu_0$ toward one, $H_{00}$ shrinks while $L_0 = 1/4$ remains fixed. We
-therefore expect the intercept update to slow.
+We begin with the simplest consequence of @sec-theory. The gradient strategy's
+intercept step is the local Newton direction scaled by $H_{00}/L_0$. As
+imbalance pushes $\mu_0$ toward one, $H_{00}$ shrinks while $L_0 = 1/4$ remains
+fixed. We therefore expect the intercept update to slow.
 
 On the standardized binary-logistic design used throughout the simulated
 experiments below ($n = 500$, $p = 1000$, $s = 10$, $\rho = 0.6$,
@@ -1142,7 +1166,7 @@ draw(
 ```
 
 The Schur-coupling residual (@eq-grad-residual) leads to our first prediction.
-The gradient strategy scales its intercept correction by $H_{00}/L_0$, which
+The gradient strategy scales the local Newton direction by $H_{00}/L_0$, which
 approaches zero as the response imbalance $\mu_0$ approaches one. At
 $\mu_0 = 0.99$, the gradient strategy therefore needs about eleven times as many
 passes as Newton to reach $10^{-8}$, whereas the Newton and exact strategies
@@ -1884,13 +1908,13 @@ S4.2](#sec-warmstart-path)). Solvers that freeze a local IRLS or proximal-Newton
 quadratic should instead resolve the intercept within that surrogate, where the
 quadratic curvature is already available.
 
-The curvature ratio $H_{00}/L_0$ explains this rule. A global-majorant update
-removes only that fraction of the intercept--coefficient coupling
-(@eq-grad-residual), whereas Newton uses the local curvature. The frozen model
-then explains how this one-step mismatch becomes the late-stage $L_0/H_{00}$
-rate plateau under strong collective coupling (@prp-frozen-block-rate,
-@fig-rho-frozen). This is a local explanation, not a global iteration-complexity
-theorem.
+The curvature ratio $H_{00}/L_0$ explains this rule. On the original nonlinear
+loss, a global-majorant update removes that fraction of the local
+intercept--coefficient coupling to first order (@eq-grad-residual); in the
+frozen quadratic model, the fraction is exact. That model then explains how the
+one-step mismatch becomes the late-stage $L_0/H_{00}$ rate plateau under strong
+collective coupling (@prp-frozen-block-rate, @fig-rho-frozen). This is a local
+explanation, not a global iteration-complexity theorem.
 
 The production comparisons test the rule outside our implementation. The glmnet
 and biglasso switches hold the package fixed but change the full IRLS weight
@@ -2011,9 +2035,9 @@ assumptions; we retain only the predicted scaling:
    at the *first* coefficient update of each pass. The corresponding local
    quadratic model has curvatures $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ by
    @eq-schur-diag. As a heuristic, we extend this one-update model to the full
-   pass and treat the Schur curvature as the effective coefficient curvature.
-   The gradient strategy removes only a fraction $H_{00}/L_0$ of the coupling
-   (@eq-grad-residual), giving effective curvature
+   pass and treat the Schur curvature as the effective coefficient curvature. To
+   leading order, the gradient strategy removes only a fraction $H_{00}/L_0$ of
+   the coupling (@eq-grad-residual), giving the heuristic effective curvature
    $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$.
 
 Substituting the second and third approximations into the $L_j R_j^2$ sum gives
@@ -2720,6 +2744,16 @@ are fixed per script. The heatmap of @sec-imbalance-reg averages three seeds per
 cell, @fig-irls-comparison shows three, and the safeguard experiments show five.
 The remaining single-trajectory figures use one fixed seed.
 
+For scalar models, the exact strategy ordinarily returns when the normalized
+intercept gradient is at most $10^{-10}$. If it consumes all 50 safeguarded
+Newton steps, a final check accepts a normalized gradient of at most
+$5 \times 10^{-10}$; larger residuals raise an error. This cap-only margin
+prevents saturated floating-point predictors from stalling at the nominal
+boundary and remains twenty times smaller than the $10^{-8}$ reporting
+threshold. The multinomial implementation uses a strict $10^{-8}$ normalized
+block-gradient threshold and raises an error whenever it misses that target
+after 50 steps. Tests exercise both acceptance and rejection at the scalar cap.
+
 At each diagnostic point, the raw residual lies in the loss-conjugate domain but
 need not satisfy dual stationarity for the unpenalized intercept. Simply
 subtracting its mean can leave that domain. We therefore blend the centered
@@ -3035,13 +3069,16 @@ work as imbalance grows without improving outer-pass progress
 
 The penalty is modest in these runs: $k_0$ remains well below the inner-loop cap
 of 50, and most passes need at most one Newton direction. Every returned update
-satisfies the stated conditional-gradient tolerance; reaching the cap would
-raise an error rather than produce a cached result. This behavior is consistent
-with local quadratic convergence after the iterates approach their conditional
-minimizers, but the experiment, rather than a global Newton bound, establishes
-the reported cost. The exact strategy incurs most of its overhead in the first
-few cold-start passes, when $|\partial_0 F|$ is largest. The warm-start regime
-of [Supplement S4.2](#sec-warmstart-path) largely avoids that window.
+satisfies the nominal $10^{-10}$ conditional-gradient tolerance because no
+update reaches the cap; the largest observed $k_0$ is five. A cap hit would
+invoke the final numerical check documented in [Supplement
+S3](#sec-s-methodology), not automatically produce a cached result. This
+behavior is consistent with local quadratic convergence after the iterates
+approach their conditional minimizers, but the experiment, rather than a global
+Newton bound, establishes the reported cost. The exact strategy incurs most of
+its overhead in the first few cold-start passes, when $|\partial_0 F|$ is
+largest. The warm-start regime of [Supplement S4.2](#sec-warmstart-path) largely
+avoids that window.
 
 ### S4.4 Full warm-start grids {.unnumbered}
 
