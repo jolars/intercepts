@@ -102,14 +102,12 @@ presentation judgment rather than a defect in the evidence.
 
 ### Major
 
-- [ ] Reconcile the normalization of $\partial_0F$ in @fig-warm-start-mechanism
+- [x] Reconcile the normalization of $\partial_0F$ in @fig-warm-start-mechanism
   and its discussion with the averaged objective in @eq-primal-problem.
-  `sim-warmstart-path.jl` currently records `abs(sum(gradient(...)))`, so
-  the plotted quantity is the unnormalized intercept score. Either divide it
-  by $n$ or label it explicitly and explain the conversion. The reported
-  magnitudes near $10^2$ and $1.2 \times 10^3$ cannot be gradients of the
-  averaged binary logistic loss, whose magnitude is bounded by one. The
-  qualitative warm-start mechanism is unaffected.
+  (Resolved: divided the diagnostic by $n$ in `sim-warmstart-path.jl`,
+  updated the cached vectors by the same mechanical scaling, and changed the
+  reported cold-start values from the unnormalized scores to $0.20$ and
+  $0.47$. The qualitative warm-start mechanism is unaffected.)
 
 - [ ] Narrow or prove the assertion after @fig-cold-start that bounded logistic
   curvature makes an undamped Newton intercept step always descend. The

@@ -2108,8 +2108,7 @@ In @fig-warm-start-mechanism, warm-starting drives $|\partial_0 F|$ toward zero
 as $\lambda$ shrinks and the previous-$\lambda$ solution moves closer to the
 current optimum. Cold start, by contrast, sets the initial iterate to zero at
 every $\lambda$, so $|\partial_0 F|$ is the marginal class imbalance---roughly
-$10^2$ on the simulated problem and $1.2 \times 10^3$ on w1a, identical across
-strategies.
+$0.20$ on the simulated problem and $0.47$ on w1a, identical across strategies.
 
 With one exception, the pass-count panel (@fig-warm-start) shows the expected
 reduction. On both problems and both orderings, warm-starting trims the few

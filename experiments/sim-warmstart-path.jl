@@ -74,7 +74,7 @@ function run_path(X, y, strategy_sym, randomize, warm_start)
         else
             X * ci .+ ii
         end
-        init_partial0F[k] = abs(sum(gradient(lossfun, η_init, y)))
+        init_partial0F[k] = abs(sum(gradient(lossfun, η_init, y))) / n
 
         t_start = time()
         res = cdsolver(
