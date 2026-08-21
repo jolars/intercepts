@@ -65,16 +65,6 @@ tree; the rest are analysis or presentation judgments to weigh.
   it. Until then, document the `INTERCEPTS_DATA_ARCHIVE=...` local override
   as the working path. (verified: DOI reserved, archive gitignored)
 
-- [x] Reconcile the README with the actual environment files. `README.qmd:117`
-  and `:121` tell the re-runner to `nix develop` against a `flake.nix`, but
-  the repo ships `devenv.nix` / `devenv.lock` and there is no root
-  `flake.nix` --- the documented path dead-ends. Point the README at the
-  real files (or add the flake). (verified: no `flake.nix`) (resolved:
-  rewrote the README section to point at `devenv.nix`/`devenv.lock`, enter
-  with `devenv shell`, and link to the devenv install docs; fixed the same
-  stale `nix develop` in `AGENTS.md`. Regenerate `README.md` with
-  `task readme`.)
-
 - [ ] Determine whether the frozen-Hessian result extends to a general theorem
   for randomly permuted coordinate sweeps. @prp-frozen-block-rate proves the
   exact coefficient-block result, while @fig-rho-frozen verifies the full
@@ -83,79 +73,3 @@ tree; the rest are analysis or presentation judgments to weigh.
   $L_0/H_{00}$ limit under explicit coupling conditions. This extension
   would strengthen the analysis, but it is not needed to explain the
   observed centering plateau.
-
-## Referee-pass follow-ups (2026-08-21)
-
-From a fresh Computo-referee read of the current draft. Major items first, then
-editorial improvements and pre-submission checks. The normalization and
-global-descent findings are substantive; the proposed rate-section overhaul is a
-presentation judgment rather than a defect in the evidence.
-
-### Major
-
-- [x] Reconcile the normalization of $\partial_0F$ in @fig-warm-start-mechanism
-  and its discussion with the averaged objective in @eq-primal-problem.
-  (Resolved: divided the diagnostic by $n$ in `sim-warmstart-path.jl`,
-  updated the cached vectors by the same mechanical scaling, and changed the
-  reported cold-start values from the unnormalized scores to $0.20$ and
-  $0.47$. The qualitative warm-start mechanism is unaffected.)
-
-- [x] Narrow or prove the assertion after @fig-cold-start that bounded logistic
-  curvature makes an undamped Newton intercept step always descend. The
-  experiments establish benign behavior for the tested, zero-initialized
-  configurations, not global descent from an arbitrary intercept. Bounded
-  curvature alone does not imply descent. Prefer narrowing the claim; the
-  recommendation of an Armijo-guarded Newton step does not depend on it.
-  (Resolved: restricted the conclusion to the tested zero-initialized
-  problem family and stated explicitly that bounded curvature alone does not
-  imply global descent.)
-
-### Editorial improvements
-
-- [x] Clarify the hierarchy of the rate explanations earlier in the section:
-  @eq-grad-residual describes the first-update mechanism, @eq-rate-gap is a
-  deliberately non-sharp scaling heuristic, @fig-rho-centering shows that it
-  misses the long-run shape, and @prp-frozen-block-rate with @fig-rho-frozen
-  explains the local plateau. The manuscript already makes each
-  qualification, so first try stronger signposting and compression. Move an
-  intermediate diagnostic to the supplement only if the revised section
-  remains too dense. (Resolved: added an explicit roadmap before the
-  heuristic, reframed the centering sweep as a test of its limit, and made
-  the transition to the frozen local-rate model explicit. Kept the
-  diagnostics in the main text because each now has a distinct role.)
-
-- [x] Reduce repeated conclusions across @sec-theory, @sec-results, and the
-  Discussion, especially that Newton and exact overlap, that the gradient
-  update stalls under imbalance, and that production solvers divide by
-  curvature class. (Resolved: rewrote the opening of the Discussion around
-  the practical decision rule, the evidential hierarchy, and the scope of
-  the conclusion. Removed its repeated solver catalogue and repeated
-  descriptions of the Newton/exact and imbalance results.)
-
-- [x] Document the remaining exported package functions, especially
-  experiment-facing helpers. Prefer removing exports for internal experiment
-  infrastructure such as `simulated_experiment`, `real_experiment`, and
-  `suboptimality_against_certified_optimum!` unless they are intended as a
-  supported public API. (Resolved: retained the three reproduction helpers
-  as the experiment-driver interface, documented them and the other
-  undocumented exports, and added a test requiring documentation for every
-  exported name.)
-
-- [x] Correct the README errors "Compute journal" and "The distinction mattes,"
-  and reconcile the two authors listed at the top with the single author
-  under "Authors." Make the source corrections in `README.qmd`, then
-  regenerate `README.md` with `task readme`. (Resolved in the README source
-  and shared abstract metadata; the author list now renders both authors.)
-
-- [ ] Add a concise figure-to-driver table or a single orchestration command to
-  the README so that a referee need not reconstruct the complete
-  regeneration sequence across Julia, R, and Python scripts. Low priority
-  because the current README already documents the principal commands.
-
-### Pre-submission verification
-
-- [ ] Before submission, execute the notebook and representative
-  cache-regeneration paths to confirm Computo's necessary reproducibility
-  condition. The referee assessed provenance, data and cached-result
-  presence, environment pinning, CI scope, experiment layout, and code and
-  test quality only by inspection.
