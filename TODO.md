@@ -92,3 +92,68 @@ tree; the rest are analysis or presentation judgments to weigh.
   $L_0/H_{00}$ limit under explicit coupling conditions. This extension
   would strengthen the analysis, but it is not needed to explain the
   observed centering plateau.
+
+## Referee-pass follow-ups (2026-08-21)
+
+From a fresh Computo-referee read of the current draft. Major items first, then
+editorial improvements and pre-submission checks. The normalization and
+global-descent findings are substantive; the proposed rate-section overhaul is a
+presentation judgment rather than a defect in the evidence.
+
+### Major
+
+- [ ] Reconcile the normalization of $\partial_0F$ in @fig-warm-start-mechanism
+  and its discussion with the averaged objective in @eq-primal-problem.
+  `sim-warmstart-path.jl` currently records `abs(sum(gradient(...)))`, so
+  the plotted quantity is the unnormalized intercept score. Either divide it
+  by $n$ or label it explicitly and explain the conversion. The reported
+  magnitudes near $10^2$ and $1.2 \times 10^3$ cannot be gradients of the
+  averaged binary logistic loss, whose magnitude is bounded by one. The
+  qualitative warm-start mechanism is unaffected.
+
+- [ ] Narrow or prove the assertion after @fig-cold-start that bounded logistic
+  curvature makes an undamped Newton intercept step always descend. The
+  experiments establish benign behavior for the tested, zero-initialized
+  configurations, not global descent from an arbitrary intercept. Bounded
+  curvature alone does not imply descent. Prefer narrowing the claim; the
+  recommendation of an Armijo-guarded Newton step does not depend on it.
+
+### Editorial improvements
+
+- [ ] Clarify the hierarchy of the rate explanations earlier in the section:
+  @eq-grad-residual describes the first-update mechanism, @eq-rate-gap is a
+  deliberately non-sharp scaling heuristic, @fig-rho-centering shows that it
+  misses the long-run shape, and @prp-frozen-block-rate with @fig-rho-frozen
+  explains the local plateau. The manuscript already makes each
+  qualification, so first try stronger signposting and compression. Move an
+  intermediate diagnostic to the supplement only if the revised section
+  remains too dense.
+
+- [ ] Reduce repeated conclusions across @sec-theory, @sec-results, and the
+  Discussion, especially that Newton and exact overlap, that the gradient
+  update stalls under imbalance, and that production solvers divide by
+  curvature class.
+
+- [ ] Document the remaining exported package functions, especially
+  experiment-facing helpers. Prefer removing exports for internal experiment
+  infrastructure such as `simulated_experiment`, `real_experiment`, and
+  `suboptimality_against_certified_optimum!` unless they are intended as a
+  supported public API.
+
+- [ ] Correct the README errors "Compute journal" and "The distinction mattes,"
+  and reconcile the two authors listed at the top with the single author
+  under "Authors." Make the source corrections in `README.qmd`, then
+  regenerate `README.md` with `task readme`.
+
+- [ ] Add a concise figure-to-driver table or a single orchestration command to
+  the README so that a referee need not reconstruct the complete
+  regeneration sequence across Julia, R, and Python scripts. Low priority
+  because the current README already documents the principal commands.
+
+### Pre-submission verification
+
+- [ ] Before submission, execute the notebook and representative
+  cache-regeneration paths to confirm Computo's necessary reproducibility
+  condition. The referee assessed provenance, data and cached-result
+  presence, environment pinning, CI scope, experiment layout, and code and
+  test quality only by inspection.
