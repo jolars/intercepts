@@ -34,26 +34,25 @@ description: >
   imbalance.
 abstract: >
   Coordinate descent solvers for regularized generalized linear models (GLMs)
-  disagree on how to update the intercept, and the disagreement matters under
-  response imbalance. Three strategies span what these solvers do: a single
-  gradient step, a single Newton step (with a backtracking safeguard), or
-  solving the one-dimensional intercept subproblem exactly. The gradient step is
-  the culprit. It scales every update by a fixed, worst-case constant, and when
-  the response is imbalanced, for example when one class is rare, or counts are
-  heavily skewed, that constant is far too cautious for the intercept, so it
-  barely moves while the other coordinates wait on it. And the slowdown grows as
-  the imbalance worsens. A Newton step instead scales the update by the
-  curvature at the current iterate, adapting as the imbalance worsens. It
-  matches the exact strategy in convergence per iteration and avoids the wasted
-  inner iterations that the exact strategy spends. The distinction matters only
-  for solvers that run coordinate descent directly on the GLM loss and for the
-  global-upper-bound modes that are selectable in some implementations. Solvers
-  that reduce each step to a weighted-least-squares problem already get the
-  adaptive update for free. Across six production solvers (glmnet, biglasso,
-  skglm, adelie, LIBLINEAR, BlitzL1), the predicted ordering holds in our
-  experiments. A multinomial extension shows that rare classes turn the
-  gradient-strategy slowdown into the common regime. The practical
-  recommendation is to update the intercept with a single Newton step.
+  differ in how they update the intercept, and this choice can substantially
+  affect convergence under response imbalance. For direct coordinate descent
+  on the original GLM loss, we compare three strategies: one step using a global
+  curvature bound, one Armijo-safeguarded Newton step using local curvature, and
+  repeated Newton steps that solve the intercept subproblem. Our analysis shows
+  that the global-bound strategy removes only a fraction $H_{00}/L_0$ of the
+  intercept--coefficient coupling. In logistic regression, this fraction can
+  become small as the response grows more imbalanced, producing a corresponding
+  slowdown when a coupled mode controls convergence. A single Newton step avoids
+  this attenuation and, in our experiments, follows nearly the same outer
+  convergence trajectory as exact minimization while requiring fewer inner
+  steps. The same mechanism distinguishes global-majorant IRLS from local-weight
+  IRLS and proximal-Newton methods, whose quadratic surrogates already supply
+  local curvature. Experiments with simulated and real data, including
+  comparisons across six production solvers and controlled comparisons within
+  glmnet, biglasso, and skglm, support these predictions. A multinomial extension
+  shows how rare classes create low-curvature intercept directions. We therefore
+  recommend a safeguarded Newton update for direct coordinate descent and full
+  intercept optimization within frozen local quadratic surrogates.
 
 keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib
