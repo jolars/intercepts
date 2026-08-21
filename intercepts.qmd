@@ -29,28 +29,27 @@ Random.seed!(14)
 
 # Introduction
 
-Proximal coordinate descent is the dominant method for fitting regularized
-regression models. It is the default optimizer in many popular packages,
-including glmnet\ [@friedman2010; @tay2023], biglasso\ [@zeng2017],
-ncvreg\ [@breheny2011], skglm\ [@bertrand2022], adelie\ [@yang2024],
-LIBLINEAR\ [@fan2008; @yuan2012], and BlitzL1\ [@johnson2015]. The method itself
-has been studied extensively in terms of acceleration, parallelization, and
-convergence rates. One question, however, has received little attention: how
-should a solver update the intercept? The intercept appears in every regularized
-generalized linear model\ (GLM). It is unpenalized and never drops out of the
-model, yet these packages disagree on how to fit it, and this disagreement has
-been examined anywhere. And although the choice might appear to be a minor
-detail, we show that it can dominate convergence speed when the response is
-imbalanced, and that the fix is a single Newton step.
+Popular solvers for regularized generalized linear models\ (GLMs) agree on
+coordinate descent but disagree about one coordinate: the intercept. GLMs
+usually include this coordinate so that the fitted slopes do not depend on the
+locations of $y$ and $X$. It is unpenalized and never drops out of the fitted
+model, yet solvers update it in different ways. Research on coordinate descent
+has examined acceleration, parallelization, and convergence rates, but has
+largely treated the intercept update as a routine implementation choice. That
+choice can dominate convergence speed when the response is imbalanced. For
+direct coordinate descent, a single safeguarded Newton step fixes the problem.
 
-These packages all use coordinate descent, but not in the same way. glmnet,
-biglasso, adelie, and ncvreg solve a sequence of weighted least-squares problems
-by inner coordinate descent, that is, by iteratively reweighted least
-squares\ (IRLS). LIBLINEAR and BlitzL1 do the equivalent through a
-proximal-Newton linearization\ [@lee2014]. skglm instead runs coordinate descent
-directly on the original GLM loss. As we show in @sec-theory and @sec-irls, this
-distinction determines whether the intercept update remains effective under
-imbalance.
+The disagreement follows a deeper split among implementations. skglm 0.5[^1]\
+[@bertrand2022] runs coordinate descent directly on the original GLM loss.
+glmnet\ [@friedman2010; @tay2023], biglasso\ [@zeng2017], adelie\
+[@yang2024], and ncvreg\ [@breheny2011] instead solve a sequence of weighted
+least-squares problems by inner coordinate descent, that is, by iteratively
+reweighted least squares\ (IRLS). LIBLINEAR\ [@fan2008; @yuan2012] and BlitzL1\
+[@johnson2015] use coordinate descent within proximal-Newton quadratics\
+[@lee2014]. Within local-weight IRLS and proximal-Newton, the quadratic supplies
+the current intercept curvature, and the update strategies coincide. The choice
+remains consequential for direct coordinate descent and for MM-IRLS built from a
+global curvature bound (@sec-theory and @sec-irls).
 
 We study the optimization problem
 $$
@@ -74,14 +73,11 @@ Under these assumptions, $P$ is a convex composite objective. The assumptions
 cover every penalty and model in our analysis and experiments; we do not
 consider nonconvex penalties.
 
-Regularized regression usually includes an intercept because the fitted slopes
-would otherwise depend on the locations of $y$ and $X$. Existing solvers,
-however, update the intercept in different ways. Some take a gradient step based
-on a global curvature bound, some use the curvature at the current iterate, and
-others optimize the intercept within a quadratic subproblem. These choices can
-produce substantially different convergence rates under response imbalance---for
-example, when positive cases are rare in logistic regression. We classify the
-packages in detail in @sec-related-work and @sec-irls.
+Within this problem, we compare three ways to update the intercept: a gradient
+step based on a global curvature bound, a Newton step based on the curvature at
+the current iterate, and exact minimization of the intercept subproblem. They
+can converge at substantially different rates when the response is
+imbalanced---for example, when positive cases are rare in logistic regression.
 
 [^1]: Among the surveyed solvers, only skglm's intercept update is
     version-dependent: version 0.5 and earlier take the gradient step described
@@ -89,22 +85,18 @@ packages in detail in @sec-related-work and @sec-irls.
     (@sec-production-solvers). We pin the version throughout wherever this
     behavior is at issue.
 
-We consider three strategies for updating the intercept.
-
 Gradient Strategy
-:   The intercept is updated using a single gradient step before each pass over
-    the coordinates.
+:   Takes a single gradient step before each pass over the coordinates.
 
 Newton Strategy
-:   The intercept is updated using a single Newton step, wrapped in an Armijo
-    backtracking line search, before each pass over the coordinates. The line
-    search accepts the full step ($\alpha = 1$) on the first attempt away from
-    cold start and provides a safeguard in the cold-start or saturated-loss
-    regime where an undamped step could overshoot.
+:   Takes a single Newton step, wrapped in an Armijo backtracking line search,
+    before each pass over the coordinates. The line search accepts the full step
+    ($\alpha = 1$) on the first attempt away from cold start and safeguards the
+    cold-start or saturated-loss regime, where an undamped step could overshoot.
 
 Exact Strategy
-:   The intercept is updated by iterating Newton steps on the one-dimensional
-    intercept subproblem to convergence before each pass over the coordinates.
+:   Iterates Newton steps on the one-dimensional intercept subproblem to
+    convergence before each pass over the coordinates.
 
 The three paths in @fig-parametric trace the strategies across the level sets of
 @eq-primal-problem for a toy problem with one feature and an intercept. The
@@ -189,11 +181,10 @@ fig[1, 2] = Legend(fig, ax)
 fig
 ```
 
-In @fig-first-example, we compare the three strategies with respect to
-convergence speed on $\ell_1$-regularized logistic regression on the w1a
-dataset\ [@platt1998]. The Newton and exact strategies reach the optimal
-solution at indistinguishable pass counts, and the gradient strategy is markedly
-slower.
+In @fig-first-example, we compare how quickly the three strategies converge on
+$\ell_1$-regularized logistic regression on the w1a dataset\ [@platt1998]. The
+Newton and exact strategies reach the optimal solution at indistinguishable pass
+counts, and the gradient strategy is markedly slower.
 
 ```{julia}
 #| label: fig-first-example
@@ -217,13 +208,6 @@ draw(
     figure = (; size = (500, 300)),
 )
 ```
-
-The strategies differ mainly for direct CD on the original GLM loss and for
-MM-IRLS inner solves built from a global majorant of $f''$. Within local-weight
-IRLS and prox-Newton inner solves, all three strategies produce the same update
-for the inner quadratic (@sec-irls). The distinction therefore affects skglm
-(version 0.5[^1]) and the MM modes of glmnet (`modified.Newton`) and biglasso
-(`MM`).
 
 We make four contributions:
 
