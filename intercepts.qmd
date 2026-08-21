@@ -222,8 +222,9 @@ We make four contributions:
 - We classify CD-based GLM solvers as direct CD, local-IRLS, MM-IRLS, or
   prox-Newton, and identify the intercept strategy used by each family. Tests on
   simulated and real data include six production solvers. Comparisons within
-  glmnet and biglasso isolate the intercept update; a controlled comparison of
-  two skglm versions measures the effect of replacing the gradient update with
+  glmnet and biglasso hold the implementation fixed while changing the weight
+  scheme for the entire IRLS surrogate; a controlled comparison of two skglm
+  versions isolates the effect of replacing the intercept's gradient update with
   Newton.
 - We extend the analysis to vector intercepts in multinomial logistic
   regression, where rare classes make the slowdown common rather than
@@ -935,6 +936,13 @@ bound on $f''$ exists, so the MM construction is not directly available; glmnet
 uses local-weight IRLS for Poisson, where the three strategies coincide as
 described above.
 
+Changing from local weights to the constant majorant also changes every
+coefficient's curvature and cross-curvature in the surrogate. A within-package
+mode comparison therefore isolates the IRLS weight scheme, not the intercept
+update alone. The intercept correction is the component of that scheme analyzed
+by @eq-grad-residual; @fig-skglm-controlled supplies the intercept-only
+intervention.
+
 Across IRLS linearizations the weights $w_i^{(t)}$ change with $\eta^{(t)}$, so
 even a fully resolved inner intercept becomes stale once the weights are
 recomputed. This outer-level drift is analogous to but distinct from the
@@ -1643,10 +1651,9 @@ glmnet and biglasso, changing the weight scheme within the package produces the
 slowdown predicted for the constant-majorant update. In skglm 0.5---the only
 production solver in our survey whose intercept update is unambiguously the
 gradient strategy---the trajectory has the same slow convergence predicted by
-the Newton-coupling bias (@eq-newton-coupling) and the Schur-coupling residual
-(@eq-grad-residual). That diagnosis motivated a pull request to skglm replacing
-the gradient update with a Newton step; the change was merged upstream as commit
-`8f9cbd77`.[^skglm-pr]
+the Schur-coupling residual (@eq-grad-residual). That diagnosis motivated a pull
+request to skglm replacing the gradient update with a Newton step; the change
+was merged upstream as commit `8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
     2026-05-13. skglm 0.6 is unreleased at the time of writing; the controlled
@@ -1902,18 +1909,26 @@ proxies for gradient and Newton. The coordinate decomposition gives
 $$
   \frac{B_{\mathrm{G}}}{B_{\mathrm{N}}} = \frac{L_0R_0^2 + \sum_{j \ge 1} H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)R_j^2} {H_{00}R_0^2 + \sum_{j \ge 1} H_{jj}\bigl(1 - \rho_{0j}^2\bigr)R_j^2}.
 $$ {#eq-rate-gap}
-In the regime $|\beta_0^\star|/\|\beta^\star\| \to \infty$---for binary logistic
-regression with cold start, $|\beta_0^\star| = |\mathrm{logit}(\mu_0)|$ diverges
-as $\mu_0 \to 1$---the intercept term dominates both numerator and denominator,
-and @eq-rate-gap collapses to
+Let $S_{\mathrm{G}}$ and $S_{\mathrm{N}}$ denote the coefficient sums in the
+numerator and denominator of @eq-rate-gap. In any sequence of problems for which
+$$
+\begin{aligned}
+  \frac{L_0 R_0^2}{S_{\mathrm{G}}}    & \to \infty,
+  \\
+  \frac{H_{00} R_0^2}{S_{\mathrm{N}}} & \to \infty.
+\end{aligned}
+$$
+the intercept term dominates both sums, and @eq-rate-gap collapses to
 $$
   \frac{B_{\mathrm{G}}}{B_{\mathrm{N}}} \approx \frac{L_0}{H_{00}(\hat\eta)}.
 $$ {#eq-rate-gap-asymptotic}
 For logistic regression, $L_0 = 1/4$ stays fixed while $H_{00}(\hat\eta) \to 0$
-as imbalance grows, so the limit diverges. Outside that regime---in particular
-at $\mu_0 = 1/2$, where $\beta_0^\star = 0$ sets the $R_0^2$ terms to zero---the
-asymptotic in @eq-rate-gap-asymptotic does not apply, and the full @eq-rate-gap
-is needed.
+as fitted probabilities approach the boundary, so the limit diverges whenever
+the two dominance conditions also hold. Response imbalance or a large
+$|\beta_0^\star|/\|\beta^\star\|$ ratio alone does not imply those conditions:
+the intercept score equation with active slopes generally does not give
+$\beta_0^\star = \mathrm{logit}(\mu_0)$. Outside the intercept-dominated regime,
+the full @eq-rate-gap is needed.
 :::
 
 The rate-gap heuristic starts from the standard sublinear bound for randomized
@@ -1945,9 +1960,8 @@ assumptions; we retain only the predicted scaling:
    $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$.
 
 Substituting the second and third approximations into the $L_j R_j^2$ sum gives
-@eq-rate-gap. Retaining only the $R_0^2$ term in the
-$|\beta_0^\star|/\|\beta^\star\| \to \infty$ limit gives
-@eq-rate-gap-asymptotic.
+@eq-rate-gap. Retaining only the $R_0^2$ term under the two curvature-weighted
+dominance conditions stated above gives @eq-rate-gap-asymptotic.
 
 The heuristic proxy diverges as $H_{00}/L_0 \to 0$. @fig-rate-gap tests whether
 the empirical pass-count ratio follows this scaling; it does not test or imply
@@ -2238,8 +2252,8 @@ local model. At $\mu_0 = 0.99$, this is consistent with the empirical ≈5× and
 ≈10× slowdowns reported in @fig-real-glmnet and @fig-real-biglasso. skglm
 (version 0.5), the direct-CD solver, exhibits the same scaling on a continuous
 trajectory in @fig-real-skglm: the slow convergence from suboptimality
-$\approx 10^{-1}$ to $\approx 10^{-5}$ is the intercept climb to
-$\mathrm{logit}(\mu_0)$ at step size $1/L_0$.
+$\approx 10^{-1}$ to $\approx 10^{-5}$ is the intercept's slow climb toward its
+fitted value at step size $1/L_0$.
 
 An Armijo line search cannot rescue the gradient strategy when it starts from
 the global-Lipschitz step $-\partial_0 F / L_0$. It can only *shrink* the step,
