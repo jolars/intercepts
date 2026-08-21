@@ -133,10 +133,13 @@ presentation judgment rather than a defect in the evidence.
   the transition to the frozen local-rate model explicit. Kept the
   diagnostics in the main text because each now has a distinct role.)
 
-- [ ] Reduce repeated conclusions across @sec-theory, @sec-results, and the
+- [x] Reduce repeated conclusions across @sec-theory, @sec-results, and the
   Discussion, especially that Newton and exact overlap, that the gradient
   update stalls under imbalance, and that production solvers divide by
-  curvature class.
+  curvature class. (Resolved: rewrote the opening of the Discussion around
+  the practical decision rule, the evidential hierarchy, and the scope of
+  the conclusion. Removed its repeated solver catalogue and repeated
+  descriptions of the Newton/exact and imbalance results.)
 
 - [ ] Document the remaining exported package functions, especially
   experiment-facing helpers. Prefer removing exports for internal experiment

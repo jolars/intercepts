@@ -2781,48 +2781,40 @@ tolerances, or for the packages' otherwise default calls.
 
 ## Discussion
 
-Our theory and experiments show that the intercept update can determine the
-convergence rate and is not merely an implementation detail. For direct
-coordinate descent on a smooth GLM loss, we recommend a Newton block step with
-Armijo backtracking. In our experiments, this update remains effective under
-imbalance and matches the exact strategy in the number of outer passes. It does
-so without the $k_0 - 1$ additional inner Newton steps that exact profiling
-requires on each pass. The main exception is the warm-started path setting in
-@sec-warmstart-path, where $|\partial_0 F|$ is already small and most of the
-extra inner work disappears.
+Our analysis yields a practical decision rule: direct coordinate descent on a
+smooth GLM loss should update the intercept with one Newton block step and an
+Armijo safeguard. Repeatedly optimizing the intercept adds inner work that is
+usually erased by the next coefficient sweep; warm-started paths are the main
+case in which that work becomes cheap enough to reconsider
+(@sec-warmstart-path). Solvers that freeze a local IRLS or proximal-Newton
+quadratic should instead resolve the intercept within that surrogate, where the
+quadratic curvature is already available.
 
-We recommend including the guard by default rather than treating it as an option
-for particular loss families. It is effectively free for losses with a bounded
-Hessian. For losses with an unbounded Hessian, such as Poisson, it prevents the
-cold-start overshoot seen in @fig-cold-start-poisson.
+The curvature ratio $H_{00}/L_0$ explains this rule. A global-majorant update
+removes only that fraction of the intercept--coefficient coupling
+(@eq-grad-residual), whereas Newton uses the local curvature. The frozen model
+then explains how this one-step mismatch becomes the late-stage $L_0/H_{00}$
+rate plateau under strong collective coupling (@prp-frozen-block-rate,
+@fig-rho-frozen). This is a local explanation, not a global iteration-complexity
+theorem.
 
-The gradient strategy fails for the same reason it fails under imbalance more
-generally: once $H_{00}/L_0$ becomes small---or once $L_0 = \infty$ in
-Poisson---it stops making a meaningful intercept correction.
+The production comparisons test the rule outside our implementation. The most
+informative evidence comes from interventions that hold the surrounding solver
+fixed: the weight-mode switches in glmnet and biglasso and the before-and-after
+skglm comparison (@sec-production-solvers). Their agreement with the internal
+experiments supports curvature choice, rather than package identity, as the
+cause of the slowdown.
 
-On the strongly coupled local mode of the frozen, exact-block model, the
-gradient/Newton rate ratio approaches $L_0/H_{00}$ (@prp-frozen-block-rate). The
-frozen random-pass calculation reproduces the nonlinear late-stage rates across
-both the onset of this mode and the plateau (@fig-rho-frozen). Neither result is
-a global iteration-complexity bound for the nonlinear solver.
+The Armijo guard completes the recommendation. It adds little work when the full
+Newton step is acceptable and prevents the Poisson cold-start overshoot in
+@fig-cold-start-poisson. Using it by default avoids relying on a loss-specific
+global descent claim.
 
-The production solvers exhibit the same division. Solvers that use local Newton
-curvature for the intercept---glmnet `Newton`, biglasso `Newton`, adelie,
-LIBLINEAR, and BlitzL1---remain fast on the imbalanced problems that we study.
-By contrast, glmnet `modified.Newton`, biglasso `MM`, and skglm 0.5 use a
-gradient-class update and inherit the same sensitivity to imbalance as the
-direct-CD gradient strategy. The mode switches in glmnet and biglasso, the
-before-and-after comparison in skglm, and the structural absence of
-gradient-class Poisson solvers all support this conclusion.
-
-For multinomial problems, the issue becomes more common. Every rare nonreference
-class supplies a low-Rayleigh coordinate direction, while a rare reference class
-supplies a low-Rayleigh common-shift direction
+For multinomial problems, rare nonreference classes and rare reference classes
+create low-curvature intercept directions of different forms
 (@eq-multinomial-free-rayleigh--@eq-multinomial-reference-rayleigh). Long-tailed
-label distributions therefore naturally contain intercept modes that the
-gradient update attenuates (@fig-multinomial-imbalance, @fig-multinomial-sweep).
-The same block structure also makes Newton and exact nearly indistinguishable
-there.
+label distributions therefore make the scalar binary mechanism a routine block
+phenomenon rather than an edge case.
 
 Our analysis has two main limitations. First, our results for the Newton
 strategy are *local*. @eq-newton-error and @eq-newton-coupling are Taylor
