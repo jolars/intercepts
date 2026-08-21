@@ -45,7 +45,7 @@ abstract: >
   the imbalance worsens. A Newton step instead scales the update by the
   curvature at the current iterate, adapting as the imbalance worsens. It
   matches the exact strategy in convergence per iteration and avoids the wasted
-  inner iterations that the exact strategy spends. The distinction mattes only
+  inner iterations that the exact strategy spends. The distinction matters only
   for solvers that run coordinate descent directly on the GLM loss and for the
   global-upper-bound modes that are selectable in some implementations. Solvers
   that reduce each step to a weighted-least-squares problem already get the

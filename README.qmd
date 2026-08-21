@@ -14,6 +14,7 @@ License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommo
 
 - [{{< meta by-author.1.name.literal >}}]({{< meta by-author.1.url >}})
   ({{< meta by-affiliation.1.name >}})
+- {{< meta by-author.2.name.literal >}} ({{< meta by-affiliation.1.name >}})
 
 ### Abstract
 
@@ -21,7 +22,7 @@ License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommo
 
 ## Project structure
 
-This project is structured for the [Compute
+This project is structured for the [Computo
 journal](https://computo.sfds.asso.fr/), a journal for reproducible research in
 computational science. It is built around a [Quarto](https://quarto.org/)
 notebook, which is a document format that allows you to combine text, code, and
@@ -151,12 +152,11 @@ drivers as follows.
 - **Python:** locked `nixpkgs` and the fixed-output sources in `devenv.nix`
   supply Python, skglm 0.5, BlitzL1, Celer, and their dependencies for
   `experiments/*.py`.
-- **Controlled skglm comparison:** separate locked inputs supply the pre-fix
-  and post-fix skglm source trees used by `run-skglm-controlled.sh`.
+- **Controlled skglm comparison:** separate locked inputs supply the pre-fix and
+  post-fix skglm source trees used by `run-skglm-controlled.sh`.
 
-After
-[installing devenv](https://devenv.sh/getting-started/), enter the environment
-from the root of the project with:
+After [installing devenv](https://devenv.sh/getting-started/), enter the
+environment from the root of the project with:
 
 ```bash
 devenv shell

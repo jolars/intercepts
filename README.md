@@ -1,10 +1,9 @@
 # How to Train Your Intercept
-Johan Larsson, Frederik Fabricius Bjerre
-2026-08-19
+
+Johan Larsson, Frederik Fabricius Bjerre 2026-08-21
 
 *How the intercept is updated inside coordinate descent for regularized
-generalized linear models, and why the choice matters under response
-imbalance.*
+generalized linear models, and why the choice matters under response imbalance.*
 
 [![build and
 publish](https://github.com/jolars/intercepts/actions/workflows/build.yml/badge.svg)](https://github.com/jolars/intercepts/actions/workflows/build.yml)
@@ -14,128 +13,121 @@ License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommo
 ### Authors
 
 - [Johan Larsson](https://jolars.co) (University of Copenhagen)
+- Frederik Fabricius Bjerre (University of Copenhagen)
 
 ### Abstract
 
-Coordinate descent solvers for regularized generalized linear models
-(GLMs) disagree on how to update the intercept, and the disagreement
-matters under response imbalance. Three strategies span what these
-solvers do: a single gradient step, a single Newton step (with a
-backtracking safeguard), or solving the one-dimensional intercept
-subproblem exactly. The gradient step is the culprit. It scales every
-update by a fixed, worst-case constant, and when the response is
-imbalanced, for example when one class is rare, or counts are heavily
-skewed, that constant is far too cautious for the intercept, so it
-barely moves while the other coordinates wait on it. And the slowdown
-grows as the imbalance worsens. A Newton step instead scales the update
-by the curvature at the current iterate, adapting as the imbalance
-worsens. It matches the exact strategy in convergence per iteration and
-avoids the wasted inner iterations that the exact strategy spends. The
-distinction mattes only for solvers that run coordinate descent directly
-on the GLM loss and for the global-upper-bound modes that are selectable
-in some implementations. Solvers that reduce each step to a
-weighted-least-squares problem already get the adaptive update for free.
-Across six production solvers (glmnet, biglasso, skglm, adelie,
-LIBLINEAR, BlitzL1), the predicted ordering holds in our experiments. A
-multinomial extension shows that rare classes turn the gradient-strategy
-slowdown into the common regime. The practical recommendation is to
-update the intercept with a single Newton step.
+Coordinate descent solvers for regularized generalized linear models (GLMs)
+disagree on how to update the intercept, and the disagreement matters under
+response imbalance. Three strategies span what these solvers do: a single
+gradient step, a single Newton step (with a backtracking safeguard), or solving
+the one-dimensional intercept subproblem exactly. The gradient step is the
+culprit. It scales every update by a fixed, worst-case constant, and when the
+response is imbalanced, for example when one class is rare, or counts are
+heavily skewed, that constant is far too cautious for the intercept, so it
+barely moves while the other coordinates wait on it. And the slowdown grows as
+the imbalance worsens. A Newton step instead scales the update by the curvature
+at the current iterate, adapting as the imbalance worsens. It matches the exact
+strategy in convergence per iteration and avoids the wasted inner iterations
+that the exact strategy spends. The distinction matters only for solvers that
+run coordinate descent directly on the GLM loss and for the global-upper-bound
+modes that are selectable in some implementations. Solvers that reduce each step
+to a weighted-least-squares problem already get the adaptive update for free.
+Across six production solvers (glmnet, biglasso, skglm, adelie, LIBLINEAR,
+BlitzL1), the predicted ordering holds in our experiments. A multinomial
+extension shows that rare classes turn the gradient-strategy slowdown into the
+common regime. The practical recommendation is to update the intercept with a
+single Newton step.
 
 ## Project structure
 
-This project is structured for the [Compute
-journal](https://computo.sfds.asso.fr/), a journal for reproducible
-research in computational science. It is built around a
-[Quarto](https://quarto.org/) notebook, which is a document format that
-allows you to combine text, code, and results in a single document. But
-the project also contains some code to run experiments and generate
-results for the notebook:
+This project is structured for the [Computo
+journal](https://computo.sfds.asso.fr/), a journal for reproducible research in
+computational science. It is built around a [Quarto](https://quarto.org/)
+notebook, which is a document format that allows you to combine text, code, and
+results in a single document. But the project also contains some code to run
+experiments and generate results for the notebook:
 
 - <experiments/> contains the scripts to run experiments
 - <src/> contains a Julia module (`Intercepts`) which is used to run the
   experiments.
 - <test/> contains tests for the `Intercepts` module.
-- <results/> contains the results of the experiments, which are
-  generated by the scripts in <experiments/>.
+- <results/> contains the results of the experiments, which are generated by the
+  scripts in <experiments/>.
 
 ## Reproducibility
 
-Our intention is for this project to be fully reproducible. To reproduce
-the results, you need to follow these steps.
+Our intention is for this project to be fully reproducible. To reproduce the
+results, you need to follow these steps.
 
 ### Setup Quarto and the Computo extension
 
-You need [quarto](https://quarto.org/) installed on your computer, as
-well as the [Computo
-extension](https://github.com/computorg/computo-quarto-extension) to
-prepare your document. The latter can be installed as follows:
+You need [quarto](https://quarto.org/) installed on your computer, as well as
+the [Computo extension](https://github.com/computorg/computo-quarto-extension)
+to prepare your document. The latter can be installed as follows:
 
-``` .bash
+```.bash
 quarto add computorg/computo-quarto-extension@v0.2.6
 ```
 
 ### Install Julia
 
-You need to have [Julia](https://julialang.org/) installed on your
-computer. This project is built using Julia 1.11 (currently 1.11.9 — the
-version CI pins and under which `Manifest.toml` was resolved), which you
-can install through juliaup, a tool to manage Julia installations.
+You need to have [Julia](https://julialang.org/) installed on your computer.
+This project is built using Julia 1.11 (currently 1.11.9 — the version CI pins
+and under which `Manifest.toml` was resolved), which you can install through
+juliaup, a tool to manage Julia installations.
 
-After this, you need to activate the Julia environment for this project.
-You can do this by running the following command in the root directory
-of the project:
+After this, you need to activate the Julia environment for this project. You can
+do this by running the following command in the root directory of the project:
 
-``` julia
+```julia
 ]activate .
 ]instantiate
 ```
 
-This will use the `Project.toml` and `Manifest.toml` files to set up the
-Julia environment with the required dependencies.
+This will use the `Project.toml` and `Manifest.toml` files to set up the Julia
+environment with the required dependencies.
 
 ### (Optional) Retrieve the real-data inputs
 
-The real-data experiments read their inputs from a pinned archive
-deposited on Zenodo (DOI: `10.5281/zenodo.20315625`), rather than
-fetching datasets at run time. The archive holds the exact inputs behind
-the real-data figures: the Yeoh2002 gene-expression panel, the LIBSVM
-datasets (w1a, news20.binary, shuttle.scale, a4a, leukemia,
-breast-cancer, gisette), and the congress109 phrase-count matrix. To
-stage them under `data/`, run:
+The real-data experiments read their inputs from a pinned archive deposited on
+Zenodo (DOI: `10.5281/zenodo.20315625`), rather than fetching datasets at run
+time. The archive holds the exact inputs behind the real-data figures: the
+Yeoh2002 gene-expression panel, the LIBSVM datasets (w1a, news20.binary,
+shuttle.scale, a4a, leukemia, breast-cancer, gisette), and the congress109
+phrase-count matrix. To stage them under `data/`, run:
 
-``` bash
+```bash
 bash experiments/fetch-data.sh
 ```
 
 This downloads the archive, verifies every file against the committed
-`data/MANIFEST.sha256`, unpacks it, and derives the Yeoh CSV inputs from
-the shipped RDS. See \<data/README.md\> for the provenance of each
-dataset.
+`data/MANIFEST.sha256`, unpacks it, and derives the Yeoh CSV inputs from the
+shipped RDS. See \<data/README.md\> for the provenance of each dataset.
 
-You only need this step to re-run the real-data experiments. The cached
-results in <results/> already render the paper without it.
+You only need this step to re-run the real-data experiments. The cached results
+in <results/> already render the paper without it.
 
 ### (Optional) Reproduce results
 
 Many of the results have already been computed and are included in the
-<results/> directory. You can reproduce these results by running the
-scripts in the <experiments/> directory. For example, to reproduce the
-results for the `intercepts` module, you can run:
+<results/> directory. You can reproduce these results by running the scripts in
+the <experiments/> directory. For example, to reproduce the results for the
+`intercepts` module, you can run:
 
-``` bash
+```bash
 julia --project=. experiments/sim-mu-extreme.jl
 ```
 
 The production-solver comparison uses a two-stage workflow. First, Julia
-generates the shared standardized logistic problem consumed by every
-solver:
+generates the shared standardized logistic problem consumed by every solver:
 
-``` bash
+```bash
 julia --project=. experiments/sim-real-problem.jl
 ```
 
-Then the solver-specific drivers consume those cached inputs and write
-the CSV outputs used by the paper:
+Then the solver-specific drivers consume those cached inputs and write the CSV
+outputs used by the paper:
 
 - `Rscript experiments/sim-real-glmnet.R`
 - `Rscript experiments/sim-real-biglasso.R`
@@ -143,72 +135,69 @@ the CSV outputs used by the paper:
 - `python experiments/sim-real-skglm.py`
 - `python experiments/sim-real-proxnewton.py`
 
-The exact tolerance grids and iterate caps for these sweeps are encoded
-in the driver scripts. The single-$\lambda$ cold-start diagnostic
-discussed in the paper can be reproduced with:
+The exact tolerance grids and iterate caps for these sweeps are encoded in the
+driver scripts. The single-$\lambda$ cold-start diagnostic discussed in the
+paper can be reproduced with:
 
-``` bash
+```bash
 Rscript experiments/sim-cold-start-real.R
 ```
 
 ### Render the Quarto document
 
-To render the Quarto document, you can run the following command in the
-root directory of the project:
+To render the Quarto document, you can run the following command in the root
+directory of the project:
 
-``` .bash
+```.bash
 quarto render intercepts.qmd
 ```
 
-This will generate the HTML and PDF versions of the document in the
-`_site/` directory.
+This will generate the HTML and PDF versions of the document in the `_site/`
+directory.
 
 ### (Optional) Reproduce using devenv
 
 We provide a [devenv](https://devenv.sh) configuration (`devenv.nix` and
-`devenv.lock`) that reconstructs the complete toolchain. The lock file
-records the exact Nix revisions and content hashes behind each input;
-`devenv.nix` then selects packages from those immutable inputs. The
-environments map to the drivers as follows.
+`devenv.lock`) that reconstructs the complete toolchain. The lock file records
+the exact Nix revisions and content hashes behind each input; `devenv.nix` then
+selects packages from those immutable inputs. The environments map to the
+drivers as follows.
 
-- **Julia 1.11:** devenv supplies the interpreter, while `Project.toml`
-  and `Manifest.toml` supply the packages used by the tests, notebook,
-  and Julia experiments.
-- **R:** locked `nixpkgs` supplies R, glmnet, biglasso, adelie, and the
-  other CRAN packages used by `experiments/*.R`.
-- **Python:** locked `nixpkgs` and the fixed-output sources in
-  `devenv.nix` supply Python, skglm 0.5, BlitzL1, Celer, and their
-  dependencies for `experiments/*.py`.
-- **Controlled skglm comparison:** separate locked inputs supply the
-  pre-fix and post-fix skglm source trees used by
-  `run-skglm-controlled.sh`.
+- **Julia 1.11:** devenv supplies the interpreter, while `Project.toml` and
+  `Manifest.toml` supply the packages used by the tests, notebook, and Julia
+  experiments.
+- **R:** locked `nixpkgs` supplies R, glmnet, biglasso, adelie, and the other
+  CRAN packages used by `experiments/*.R`.
+- **Python:** locked `nixpkgs` and the fixed-output sources in `devenv.nix`
+  supply Python, skglm 0.5, BlitzL1, Celer, and their dependencies for
+  `experiments/*.py`.
+- **Controlled skglm comparison:** separate locked inputs supply the pre-fix and
+  post-fix skglm source trees used by `run-skglm-controlled.sh`.
 
 After [installing devenv](https://devenv.sh/getting-started/), enter the
 environment from the root of the project with:
 
-``` bash
+```bash
 devenv shell
 ```
 
-This provides R, Python, Julia 1.11, Quarto, and every external solver
-used by the production drivers. Instantiate the Julia packages once with
-`task install`. The controlled skglm comparison needs no separate
-checkout:
+This provides R, Python, Julia 1.11, Quarto, and every external solver used by
+the production drivers. Instantiate the Julia packages once with `task install`.
+The controlled skglm comparison needs no separate checkout:
 
-``` bash
+```bash
 bash experiments/run-skglm-controlled.sh
 ```
 
 ### Continuous integration
 
-Two GitHub Actions workflows cover the project, and they guarantee
-different things. `build.yml` renders and publishes the paper: it
-delegates to Computo’s reusable workflows—`global-env.yml` builds the
-pinned environment, and `publish-render.yml` runs `quarto render` and
-deploys to GitHub Pages—and it never runs the test suite. It is the
-journal-managed builder, so per Computo’s [author
-guidelines](https://computo-journal.org/site/guidelines-authors.html) we
+Two GitHub Actions workflows cover the project, and they guarantee different
+things. `build.yml` renders and publishes the paper: it delegates to Computo’s
+reusable workflows—`global-env.yml` builds the pinned environment, and
+`publish-render.yml` runs `quarto render` and deploys to GitHub Pages—and it
+never runs the test suite. It is the journal-managed builder, so per Computo’s
+[author guidelines](https://computo-journal.org/site/guidelines-authors.html) we
 do not modify it. `test.yml` is ours: it builds the package and runs the
-`Intercepts` test suite (`Pkg.test()`) on every push and pull request,
-which is what guarantees the correctness of the code in `src/`. Both pin
-Julia 1.11 to match the version under which `Manifest.toml` is resolved.
+`Intercepts` test suite (`Pkg.test()`) on every push and pull request, which is
+what guarantees the correctness of the code in `src/`. Both pin Julia 1.11 to
+match the version under which `Manifest.toml` is resolved.

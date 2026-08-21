@@ -150,10 +150,11 @@ presentation judgment rather than a defect in the evidence.
   undocumented exports, and added a test requiring documentation for every
   exported name.)
 
-- [ ] Correct the README errors "Compute journal" and "The distinction mattes,"
+- [x] Correct the README errors "Compute journal" and "The distinction mattes,"
   and reconcile the two authors listed at the top with the single author
   under "Authors." Make the source corrections in `README.qmd`, then
-  regenerate `README.md` with `task readme`.
+  regenerate `README.md` with `task readme`. (Resolved in the README source
+  and shared abstract metadata; the author list now renders both authors.)
 
 - [ ] Add a concise figure-to-driver table or a single orchestration command to
   the README so that a referee need not reconstruct the complete
