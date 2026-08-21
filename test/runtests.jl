@@ -5,6 +5,12 @@ using GLM
 using Statistics
 
 @testset "Intercepts" begin
+    @testset "Public API documentation" begin
+        undocumented = filter(names(Intercepts)) do name
+            name != :Intercepts && !Base.Docs.hasdoc(Intercepts, name)
+        end
+        @test isempty(undocumented)
+    end
     @testset "Coordinate Descent" begin
         include("cd.jl")
     end

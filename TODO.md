@@ -141,11 +141,14 @@ presentation judgment rather than a defect in the evidence.
   the conclusion. Removed its repeated solver catalogue and repeated
   descriptions of the Newton/exact and imbalance results.)
 
-- [ ] Document the remaining exported package functions, especially
+- [x] Document the remaining exported package functions, especially
   experiment-facing helpers. Prefer removing exports for internal experiment
   infrastructure such as `simulated_experiment`, `real_experiment`, and
   `suboptimality_against_certified_optimum!` unless they are intended as a
-  supported public API.
+  supported public API. (Resolved: retained the three reproduction helpers
+  as the experiment-driver interface, documented them and the other
+  undocumented exports, and added a test requiring documentation for every
+  exported name.)
 
 - [ ] Correct the README errors "Compute journal" and "The distinction mattes,"
   and reconcile the two authors listed at the top with the single author

@@ -3,6 +3,7 @@ using Statistics
 using Random
 using SparseArrays
 
+"""Abstract type for curvature rules used to form an IRLS quadratic."""
 abstract type IRLSWeights end
 """Use observation-wise logistic curvature at the current iterate."""
 struct LocalWeights <: IRLSWeights end

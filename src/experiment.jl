@@ -105,6 +105,18 @@ end
 # point. `instance_of` maps a result dict to the key identifying its problem
 # instance; results sharing a key share an F*. The original gap is preserved as
 # `dual_relgaps`, and the certifying gap as `dual_cert`.
+"""
+    suboptimality_against_certified_optimum!(results; instance_of, cert_tol=1e-4)
+
+Replace each run's gap history with relative primal suboptimality against the
+best certified objective value among runs of the same problem instance.
+`instance_of(result)` supplies the grouping key. The function preserves the
+original relative duality gaps in `"dual_relgaps"` and records the shared
+certificate and objective in `"dual_cert"` and `"Fstar"`.
+
+The function mutates and returns `results`. It warns when no run in a group has
+a relative duality gap at or below `cert_tol`.
+"""
 function suboptimality_against_certified_optimum!(
     results;
     instance_of::Function,
@@ -133,6 +145,18 @@ function suboptimality_against_certified_optimum!(
     return results
 end
 
+"""
+    simulated_experiment(n=100, p=10000; kwargs...)
+
+Generate a synthetic GLM problem and run the coordinate-descent solver used by
+the paper's experiment scripts. The `response` keyword selects `:binomial`,
+`:gaussian`, `:poisson`, or `:multinomial`; `strategy` selects the intercept
+update. Remaining keywords control data generation, regularization, coordinate
+ordering, and solver budgets.
+
+Return a named tuple containing time, gap, relative-gap, primal, and dual
+histories.
+"""
 function simulated_experiment(
     n = 100,
     p = 10000;
@@ -182,6 +206,18 @@ function simulated_experiment(
     )
 end;
 
+"""
+    real_experiment(dataset="w1a"; kwargs...)
+
+Load a staged dataset and run the coordinate-descent solver used by the paper's
+real-data experiment scripts. For binary responses, the largest label is mapped
+to the positive class. `n_positive` and `n_negative` optionally construct a
+seeded class-imbalanced subset; `min_nnz_per_column` removes features without
+enough retained support.
+
+Return a named tuple containing time, gap, relative-gap, primal, and dual
+histories.
+"""
 function real_experiment(
     dataset = "w1a";
     response = :binomial,

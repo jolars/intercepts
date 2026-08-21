@@ -184,7 +184,13 @@ end
     lipschitz::Float64 = 0.5
 end
 
-# Softmax probabilities (n × K) given η ∈ Matrix(n, K-1) with reference class K.
+"""
+    softmax_probs(η)
+
+Return the `n × K` matrix of softmax probabilities for an `n × (K - 1)` matrix
+of linear predictors. The omitted final column is the reference class, whose
+linear predictor is zero.
+"""
 function softmax_probs(η::AbstractMatrix{<:Real})
     n, Km1 = size(η)
     K = Km1 + 1

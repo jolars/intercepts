@@ -1,5 +1,6 @@
 using Statistics
 
+"""Abstract type for rules that update an unpenalized model intercept."""
 abstract type InterceptStrategy end
 
 """Disable intercept updates and fit a model with a zero intercept."""
