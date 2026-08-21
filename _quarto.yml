@@ -48,11 +48,12 @@ abstract: >
   steps. The same mechanism distinguishes global-majorant IRLS from local-weight
   IRLS and proximal-Newton methods, whose quadratic surrogates already supply
   local curvature. Experiments with simulated and real data, including
-  comparisons across six production solvers and controlled comparisons within
-  glmnet, biglasso, and skglm, support these predictions. A multinomial extension
-  shows how rare classes create low-curvature intercept directions. We therefore
-  recommend a safeguarded Newton update for direct coordinate descent and full
-  intercept optimization within frozen local quadratic surrogates.
+  comparisons across six production solvers, weight-scheme comparisons within
+  glmnet and biglasso, and an intercept-only intervention within skglm, support
+  these predictions. A multinomial extension shows how rare classes create
+  low-curvature intercept directions. We therefore recommend a safeguarded
+  Newton update for direct coordinate descent and full intercept optimization
+  within frozen local quadratic surrogates.
 
 keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib

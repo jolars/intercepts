@@ -228,12 +228,11 @@ We make four contributions:
   Newton.
 - We extend the analysis to vector intercepts in multinomial logistic
   regression, where rare classes make the slowdown common rather than
-  exceptional. We test the result on two real datasets in opposite $(K, n, p)$
-  regimes: the Yeoh2002 pediatric ALL gene-expression panel ($K = 6$, $p \gg n$,
-  rarest class $6\%$) and the StatLog Shuttle sensor-data dataset ($K = 7$,
-  $n \gg p$, rarest class $0.02\%$; @fig-multinomial-summary). On both, the
-  gradient strategy stalls in low-curvature modes associated with rare classes,
-  while the Newton and exact strategies follow nearly the same trajectory.
+  exceptional. We test the result on the Yeoh2002 gene-expression panel and the
+  StatLog Shuttle sensor dataset, which occupy opposite dimensional regimes
+  (@fig-multinomial-summary). On both, the gradient strategy stalls in
+  low-curvature modes associated with rare classes, while the Newton and exact
+  strategies follow nearly the same trajectory.
 
 ## Related work {#sec-related-work}
 
@@ -472,8 +471,8 @@ $\beta_j$:
    $L_0 = \|\mathbf{1}\|^2 f''_{\max}/n = f''_{\max}$ does not shrink with the
    data (for binary logistic this gives $L_0 = 1/4$); and the cross-Hessian
    $H_{0j} = (1/n)\sum_i w_i x_{ij}$ is the $w$-weighted column mean, so the
-   intercept couples to *every* slope through a single scalar regardless of
-   feature correlations.
+   intercept couples to *every* slope through a single scalar rather than
+   explicitly through pairwise feature correlations.
 
 2. **The intercept is unpenalized.** The regularizer $G_\lambda$ acts only on
    $\beta$, so $\beta_0$ is the only coordinate whose update is smooth---no
@@ -520,8 +519,10 @@ for the intercept--coefficient block. The coefficients couple to each other
 *pairwise* through the weighted covariance structure of the features. Correlated
 features produce large $|H_{jk}|$, which is the classical reason coordinate
 descent struggles on such designs. The intercept instead couples to each
-coefficient *globally* through the weighted mean of that feature, independent of
-feature correlations.
+coefficient *globally* through the weighted mean of that feature, without an
+explicit pairwise-correlation term. This distinction is structural rather than
+probabilistic: outside squared loss, the weights depend on the full fitted
+predictor and therefore indirectly on the joint design.
 
 For squared loss, $w_i = 1$ and $H_{0j} = (1/n)\sum_i x_{ij}$, so centering the
 features makes $H_{0j} = 0$ and the intercept decouples from the coefficients
@@ -1659,13 +1660,15 @@ was merged upstream as commit `8f9cbd77`.[^skglm-pr]
     2026-05-13. skglm 0.6 is unreleased at the time of writing; the controlled
     comparison below pins the two relevant commits directly.
 
-Across @fig-real-glmnet--@fig-real-skglm, the gradient-class solvers are slow on
-the fixed problems, while the solvers based on local Newton curvature are fast.
-To separate that result from other codebase differences, @fig-skglm-controlled
-compares two skglm commits that differ only in the intercept update: `b03644fe`,
-the last pre-fix commit and behaviorally identical to the released 0.5, and
-`8f9cbd77`, the merged Newton fix. Running the same `AndersonCD` driver on both
-yields a controlled 30-cell comparison.
+Across @fig-real-glmnet--@fig-real-skglm, the fixed-problem comparisons are
+consistent with slow convergence under global curvature and fast convergence
+under local curvature. The glmnet and biglasso switches change the full IRLS
+weight scheme, however, and the cross-package panels also reflect implementation
+differences. To isolate the intercept update, @fig-skglm-controlled compares two
+skglm commits that differ only in that update: `b03644fe`, the last pre-fix
+commit and behaviorally identical to the released 0.5, and `8f9cbd77`, the
+merged Newton fix. Running the same `AndersonCD` driver on both yields a
+controlled 30-cell comparison.
 
 As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
 $1/\lambda$, although it is not monotone in every cell. The pre-fix commit needs
@@ -1836,12 +1839,13 @@ rate plateau under strong collective coupling (@prp-frozen-block-rate,
 @fig-rho-frozen). This is a local explanation, not a global iteration-complexity
 theorem.
 
-The production comparisons test the rule outside our implementation. The most
-informative evidence comes from interventions that hold the surrounding solver
-fixed: the weight-mode switches in glmnet and biglasso and the before-and-after
-skglm comparison (@sec-production-solvers). Their agreement with the internal
-experiments supports curvature choice, rather than package identity, as the
-cause of the slowdown.
+The production comparisons test the rule outside our implementation. The glmnet
+and biglasso switches hold the package fixed but change the full IRLS weight
+scheme, while the before-and-after skglm comparison changes only the intercept
+update (@sec-production-solvers). The skglm intervention supplies the direct
+causal evidence for the intercept update. The other comparisons support the
+broader prediction about global versus local curvature, but they do not isolate
+that update from the rest of the surrogate or implementation.
 
 The Armijo guard completes the recommendation. It adds little work when the full
 Newton step is acceptable and prevents the Poisson cold-start overshoot in
