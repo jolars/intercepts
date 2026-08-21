@@ -75,15 +75,6 @@ tree; the rest are analysis or presentation judgments to weigh.
   stale `nix develop` in `AGENTS.md`. Regenerate `README.md` with
   `task readme`.)
 
-- [ ] Decide on the main-text / supplement `-full` pairing. A cold referee read
-  @fig-multinomial-sweep vs @fig-multinomial-sweep-full and
-  @fig-warm-start(-mechanism) vs their `-full` twins as near-duplicate. The
-  compact-main / full-supplement split is the intended structure (the
-  2026-05-20 pass routed the dense grids to the supplement on purpose), so
-  this is likely a signposting fix --- a one-clause pointer from each
-  compact main figure to its supplement twin --- rather than a cut. Low
-  priority. (verified: `-full` versions live in the supplement)
-
 - [ ] Determine whether the frozen-Hessian result extends to a general theorem
   for randomly permuted coordinate sweeps. @prp-frozen-block-rate proves the
   exact coefficient-block result, while @fig-rho-frozen verifies the full
