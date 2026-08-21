@@ -438,9 +438,9 @@ open repetition and repository-copy tasks above rather than duplicating them.
   treated in the paper. Reconcile the statement after @eq-primal-problem
   that convexity is not assumed with the later use of convex composite-CD
   bounds, profiling arguments, and optimum certificates. (resolved:
-  restricted the paper to proper, closed, convex, separable penalties, stated
-  that the resulting objective is convex composite, and excluded nonconvex
-  penalties; also identified the generalized-residual formula as a
+  restricted the paper to proper, closed, convex, separable penalties,
+  stated that the resulting objective is convex composite, and excluded
+  nonconvex penalties; also identified the generalized-residual formula as a
   canonical-link identity, limited the scalar theory to Gaussian, binomial,
   and Poisson, and pointed forward to the vector-intercept treatment of
   multinomial logistic regression.)
@@ -471,11 +471,15 @@ open repetition and repository-copy tasks above rather than duplicating them.
 
 ### Evaluation and reproducibility (major)
 
-- [ ] Strengthen or narrow the conclusion drawn from the single-$\lambda$
+- [x] Strengthen or narrow the conclusion drawn from the single-$\lambda$
   production diagnostic in @sec-cold-start-diag. Check sensitivity to the
   stopping tolerance and, if feasible, replicate the diagnostic. Otherwise,
   restrict the claim that default Newton behavior can return no solution to
-  the exact configurations reported in @tbl-cold-start-diag.
+  the exact configurations reported in @tbl-cold-start-diag. (resolved:
+  restricted the conclusion to the reported $\lambda$, loose tolerances, and
+  package versions; distinguished biglasso's inaccurate returned fits from
+  adelie's empty state on w1a; and framed the proposed design-dependent
+  mechanism as a plausible explanation rather than an established result.)
 - [ ] Add an end-to-end reproduction map for every cache consumed by the
   notebook. For each cached figure or table, identify the producing script,
   required data, environment or language, expected cost, output path, and
