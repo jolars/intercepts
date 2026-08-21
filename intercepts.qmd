@@ -2563,12 +2563,22 @@ attenuation under block CD. We recommend the Newton strategy for both schemes.
 
 ### S2.2 Full imbalance--amplitude sweep {.unnumbered}
 
+The four-corner view in @fig-multinomial-sweep shows the endpoints of the
+imbalance--amplitude experiment but hides the transition between them. Here we
+report all sixteen cells. We use the same $K = 5$ multinomial logistic design
+with $n = 500$, $p = 200$, $s = 5$, feature correlation $\rho = 0.3$, and
+$\lambda = 0.05\lambda_{\max}$. The rarest-class marginal ranges from $0.05$ to
+$0.005$, and the feature amplitude ranges from $0.5$ to $2.0$. Each curve is the
+median relative primal suboptimality over three seeds.
+
 ```{julia}
 #| label: fig-multinomial-sweep-full
 #| fig-cap: Full multinomial imbalance-amplitude sweep. The panels show relative
-#|   primal suboptimality versus outer-pass index over the full $4 \times 4$
-#|   grid of rarest-class marginal $\bar p_K$ and feature amplitude from
-#|   @fig-multinomial-sweep.
+#|   primal suboptimality versus outer-pass index over a $4 \times 4$ grid of
+#|   rarest-class marginal $\bar p_K \in \{0.05, 0.02, 0.01, 0.005\}$ and
+#|   feature amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$. Curves are medians over
+#|   three seeds for $K = 5$, $n = 500$, $p = 200$, $s = 5$, $\rho = 0.3$, and
+#|   $\lambda = 0.05\lambda_{\max}$.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
 df = DataFrame(dd["results"])
@@ -2605,6 +2615,13 @@ draw(
     figure = (; size = (800, 600)),
 )
 ```
+
+The full grid shows a smooth strengthening of the effect seen at the four
+corners. The gradient strategy stalls more severely as the rarest class becomes
+rarer and as the feature amplitude grows. Newton and exact remain nearly
+indistinguishable in every cell. The corner panels in @fig-multinomial-sweep
+therefore summarize a systematic pattern rather than a favorable selection from
+the grid.
 
 ## S3. Experimental methods and reproducibility {#sec-s-methodology .unnumbered}
 
@@ -2909,13 +2926,22 @@ window.
 
 ### S4.4 Full warm-start grids {.unnumbered}
 
+The cyclic-CD panels in [Supplement S4.2](#sec-warmstart-path) show the ordering
+used throughout most of the article. This section restores the permuted-CD runs
+to display the complete experiment. We solve a $K = 20$ regularization path from
+$\lambda_{\max}$ to $5 \cdot 10^{-3}\lambda_{\max}$ on two problems: the
+simulated design with $n = 500$, $p = 1000$, $s = 10$, $\mu_0 = 0.9$, and
+$\rho = 0.6$, and the w1a benchmark. Each subproblem starts either from zero or
+from the preceding solution and runs to relative-gap tolerance $10^{-8}$, a
+budget of 300 outer passes, or a 20-second time limit.
+
 ```{julia}
 #| label: fig-warm-start-full
 #| fig-cap: Full warm-started and cold-started regularization paths. The panels
 #|   show outer passes per subproblem along the logistic-regression $\lambda$
-#|   path for cyclic CD (top) and permuted CD (bottom); dashed lines use warm
-#|   starts, solid lines cold starts, and curves capped at 300 hit the pass
-#|   budget.
+#|   path on the simulated imbalanced design and w1a for cyclic CD (top) and
+#|   permuted CD (bottom). Dashed lines use warm starts, solid lines use cold
+#|   starts, and curves capped at 300 hit the pass budget.
 
 dd = JLD2.load(@projectroot("results", "sim-warmstart-path.jld2"))
 df = DataFrame(dd["results"])
@@ -2952,12 +2978,25 @@ draw(
 )
 ```
 
+The full pass-count grid confirms that feature ordering does not change the
+comparison among intercept strategies. Warm starts bring the Newton and exact
+curves close together under both orderings and reduce their budget-limited
+subproblems on w1a. The gradient strategy remains largely insensitive to warm
+starting on w1a, where its small intercept correction controls the rate; on the
+less imbalanced simulated problem, all three strategies remain competitive.
+
+To connect these pass counts to the proposed mechanism,
+@fig-warm-start-mechanism-full reports the intercept gradient before the first
+pass of every subproblem. This quantity measures how much intercept error the
+new subproblem inherits from its initialization.
+
 ```{julia}
 #| label: fig-warm-start-mechanism-full
 #| fig-cap: Full initial-gradient regularization paths. The panels show
-#|   $|\partial_0 F|$ at the initial iterate of each subproblem along the
-#|   $\lambda$ path for cyclic CD (top) and permuted CD (bottom); dashed lines
-#|   use warm starts and solid lines cold starts.
+#|   $|\partial_0 F|$ at the initial iterate of each subproblem along the $K =
+#|   20$ $\lambda$ path on the simulated imbalanced design and w1a for cyclic CD
+#|   (top) and permuted CD (bottom). Dashed lines use warm starts, and solid
+#|   lines use cold starts.
 
 spec_partial = data(df) *
     mapping(
@@ -2975,6 +3014,13 @@ draw(
     figure = (; size = (800, 500)),
 )
 ```
+
+Under both orderings, warm starting drives $|\partial_0 F|$ toward zero as the
+path proceeds, whereas cold starting resets it to the marginal class imbalance
+at every value of $\lambda$. The repeated pattern links the Newton--exact
+agreement in @fig-warm-start-full to the initialization rather than to cyclic
+ordering: when the inherited intercept gradient is already small, resolving the
+conditional intercept problem beyond one guarded Newton step adds little.
 
 ## S5. Production-solver diagnostics {#sec-s-production .unnumbered}
 
