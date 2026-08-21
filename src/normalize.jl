@@ -1,5 +1,13 @@
 using Statistics
 
+"""
+    normalizefeatures(x, normalization = :standardize)
+
+Normalize feature columns and return `(x_out, centers, scales)`. With
+`:standardize`, columns are centered and divided by their population standard
+deviation; with `:none`, `x` is unchanged. Constant columns use a scale of
+one.
+"""
 function normalizefeatures(x::AbstractMatrix, normalization::Symbol = :standardize)
     p = size(x, 2)
 
@@ -28,6 +36,13 @@ function normalizefeatures(x::AbstractMatrix, normalization::Symbol = :standardi
     return x_out, centers, scales
 end
 
+"""
+    rescalecoefs(coefs, intercept, centers, scales; fit_intercept = true)
+
+Undo feature normalization and return the intercept and coefficients on the
+original feature scale. When `fit_intercept` is false, only the coefficients
+are rescaled.
+"""
 function rescalecoefs(
     coefs::AbstractVector,
     intercept::Real,

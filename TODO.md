@@ -491,7 +491,8 @@ open repetition and repository-copy tasks above rather than duplicating them.
   paper's definition of `NewtonStrategy` as Armijo-guarded. (resolved: made
   the recommendation explicitly Armijo-guarded and identified the line
   search as the damping safeguard.)
-- [ ] Add docstrings for the exported package API used by @algo-cd and
+- [x] Add docstrings for the exported package API used by @algo-cd and
   @sec-methodology, especially the solvers, loss interface, intercept
   strategies, normalization and coefficient rescaling, stopping criteria,
-  and returned diagnostics.
+  and returned diagnostics. (resolved: documented the public solver, loss,
+  strategy, normalization, data-generation, and diagnostic interfaces.)

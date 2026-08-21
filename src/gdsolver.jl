@@ -3,6 +3,14 @@ using Statistics
 using Random
 using Arpack
 
+"""
+    gdsolver(x, y, reg = 0.1; kwargs...)
+
+Fit an L1-regularized generalized linear model by proximal gradient descent.
+This reference solver uses a global Lipschitz step size and updates the
+intercept after each gradient step. The result contains fitted values and the
+per-pass `primals`, `duals`, `gaps`, `time`, and `passes` diagnostics.
+"""
 function gdsolver(
     x::AbstractMatrix,
     y::AbstractVector,

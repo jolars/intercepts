@@ -4,7 +4,9 @@ using Random
 using SparseArrays
 
 abstract type IRLSWeights end
+"""Use observation-wise logistic curvature at the current iterate."""
 struct LocalWeights <: IRLSWeights end
+"""Use the global logistic curvature bound for every observation."""
 struct MajorizedWeights <: IRLSWeights end
 
 # Per-observation weights for the IRLS quadratic majorizer at iterate η.
@@ -37,6 +39,15 @@ function _irls_inner_intercept_step(::InterceptStrategy, grad_0::Real, curv::Rea
     return curv > 0 ? -grad_0 / curv : 0.0
 end
 
+"""
+    irlssolver(x, y, reg = 0.1; kwargs...)
+
+Fit an L1-regularized logistic model with iteratively reweighted least
+squares. `weights` selects local curvature (`LocalWeights`) or a global
+quadratic majorizer (`MajorizedWeights`). `outer_tol` and `inner_tol` control
+the outer and inner stopping criteria. The result contains fitted values,
+primal-dual diagnostics, `λ`, `λmax`, and optional histories.
+"""
 function irlssolver(
     x::AbstractMatrix,
     y::AbstractVector,

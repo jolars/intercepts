@@ -2,9 +2,16 @@ using Statistics
 
 abstract type InterceptStrategy end
 
+"""Disable intercept updates and fit a model with a zero intercept."""
 struct NoIntercept <: InterceptStrategy end
+
+"""Take one intercept gradient step using the loss Lipschitz bound."""
 struct GradientStrategy <: InterceptStrategy end
+
+"""Take one Armijo-guarded Newton step for the intercept."""
 struct NewtonStrategy <: InterceptStrategy end
+
+"""Iterate intercept updates until the intercept gradient is negligible."""
 struct ExactStrategy <: InterceptStrategy end
 
 """
@@ -18,12 +25,20 @@ production use.
 """
 struct UnguardedNewtonStrategy <: InterceptStrategy end
 
+"""Take a Lipschitz gradient step with configurable Armijo backtracking."""
 @kwdef struct BacktrackingGradientStrategy <: InterceptStrategy
     armijo_c::Float64 = 1.0e-4
     backtrack::Float64 = 0.5
     max_backtracks::Int = 20
 end
 
+"""
+    update_intercept(strategy, f, intercept, η, y)
+
+Return the next intercept for `f` at linear predictor `η` and response `y`,
+using the selected `strategy`. For multinomial logistic loss, `η` is an
+`n × (K - 1)` matrix and the intercept is a length `K - 1` vector.
+"""
 function update_intercept(
     ::NoIntercept,
     f::LossFunction,

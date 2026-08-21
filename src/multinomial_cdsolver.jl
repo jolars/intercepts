@@ -51,6 +51,14 @@ function rescalecoefs_multinomial(
     return intercept_rescaled, coefs_rescaled
 end
 
+"""
+    multinomial_cdsolver(x, y, reg = 0.1; lossfun, kwargs...)
+
+Fit a multinomial logistic model with an L1 penalty by proximal coordinate
+descent. The final class is the reference class, so `coef` has size
+`(p, K - 1)` and `intercept` has length `K - 1`. The result contains fitted
+values, primal-dual diagnostics, `λ`, `λmax`, and optional histories.
+"""
 function multinomial_cdsolver(
     x::AbstractMatrix,
     y::AbstractVector{<:Integer},

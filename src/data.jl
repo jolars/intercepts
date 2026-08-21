@@ -3,6 +3,14 @@ using LinearAlgebra
 using SparseArrays
 using GLM
 
+"""
+    generatedata(n, p; kwargs...)
+
+Generate a synthetic design matrix, response, and true coefficients for the
+Gaussian, logistic, Poisson, and multinomial experiments. Keyword arguments
+control the response family, feature distribution, correlation, sparsity,
+signal amplitude, and multinomial class probabilities.
+"""
 function generatedata(
     n::Int,
     p::Int;

@@ -1,45 +1,56 @@
 using LinearAlgebra
 using Statistics
 
+"""Abstract interface implemented by the supported GLM loss functions."""
 abstract type LossFunction end
 
+"""Squared-error loss with identity link."""
 @kwdef struct QuadraticLoss <: LossFunction
     lipschitz::Float64 = 1.0
 end
 
+"""Bernoulli negative log-likelihood with logistic link."""
 @kwdef struct LogisticLoss <: LossFunction
     lipschitz::Float64 = 0.25
 end
 
+"""Poisson negative log-likelihood with log link."""
 @kwdef struct PoissonLoss <: LossFunction
     lipschitz::Float64 = Inf
 end
 
 # QuadraticLoss loss
+"""Evaluate the negative log-likelihood at linear predictor `η` and response `y`."""
 function loss(::QuadraticLoss, η::AbstractVector, y::AbstractVector)
     return 0.5 * sum(abs2, η .- y)
 end
 
+"""Evaluate the Fenchel dual objective for a loss and dual variable `θ`."""
 function dual(::QuadraticLoss, θ::AbstractVector, y::AbstractVector)
     return 0.5 * (norm(y)^2 - norm(θ .+ y)^2)
 end
 
+"""Map a mean response `μ` to its linear-predictor scale."""
 function link(::QuadraticLoss, μ::Union{Real, AbstractVector})
     return μ
 end
 
+"""Map a linear predictor `η` to the mean-response scale."""
 function invlink(::QuadraticLoss, η::AbstractVector)
     return η
 end
 
+"""Return the pointwise curvature weights at `η`."""
 function weight(::QuadraticLoss, η::AbstractVector)
     return ones(length(η))
 end
 
+"""Return the pointwise loss gradient with respect to `η`."""
 function gradient(::QuadraticLoss, η::AbstractVector, y::AbstractVector)
     return η - y
 end
 
+"""Return the pointwise loss Hessian with respect to `η`."""
 function hessian(::QuadraticLoss, η::AbstractVector, y::AbstractVector)
     return ones(length(η))
 end
@@ -84,10 +95,12 @@ function hessian(::LogisticLoss, η::AbstractVector, ::AbstractVector)
     return sigmoid.(η) .* (1 .- sigmoid.(η))
 end
 
+"""Return `invlink(f, η) - y`, the response-scale residual."""
 function residual(f::LossFunction, η::AbstractVector, y::AbstractVector)
     return invlink(f, η) - y
 end
 
+"""Construct the IRLS working response from `η`, `y`, and weights `w`."""
 function workingresponse(
     f::LossFunction,
     η::AbstractVector,
@@ -165,6 +178,7 @@ end
 # MultinomialLogisticLoss: K-class softmax with reference class K (η_iK = 0).
 # η is stored as Matrix(n, K-1) for the K-1 free classes.
 # y is a Vector{Int} of class labels in 1..K.
+"""Multinomial logistic loss with class `K` as the reference class."""
 @kwdef struct MultinomialLogisticLoss <: LossFunction
     K::Int
     lipschitz::Float64 = 0.5

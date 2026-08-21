@@ -2,6 +2,20 @@ using LinearAlgebra
 using Statistics
 using Random
 
+"""
+    cdsolver(x, y, reg = 0.1; kwargs...)
+
+Fit an L1-regularized generalized linear model by proximal coordinate descent.
+Features are normalized according to `normalization`, while returned
+coefficients and the intercept are on the original scale. `reg` is the
+regularization strength as a fraction of `lambdamax(lossfun, x, y)`.
+
+Iteration stops at relative primal-dual gap `tol`, after `maxit` passes, or
+when `maxtime` is reached. The result contains fitted values and the
+`primals`, `duals`, `gaps`, `relgaps`, `time`, `inner_steps`, `passes`, `λ`,
+and `λmax` diagnostics. Set `save_history` to `true` to populate `coefs` and
+`intercepts`.
+"""
 function cdsolver(
     x::AbstractMatrix,
     y::AbstractVector,
