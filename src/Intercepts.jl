@@ -51,6 +51,6 @@ export load_libsvm
 export load_local_dataset
 export simulated_experiment
 export real_experiment
-export suboptimality_against_certified_optimum!
+export suboptimality_against_shared_dual!
 
 end

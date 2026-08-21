@@ -17,7 +17,9 @@ struct NewtonStrategy <: InterceptStrategy end
 
 Minimize the conditional intercept problem with safeguarded Newton iterations.
 The solve raises an error rather than silently returning an iterate that has not
-reached `gradient_tol` within `maxit` iterations.
+reached `gradient_tol` within `maxit` iterations, except for a fivefold numerical
+margin that prevents saturated floating-point predictors from stalling at the
+tolerance boundary.
 """
 @kwdef struct ExactStrategy <: InterceptStrategy
     gradient_tol::Float64 = 1.0e-10
@@ -222,7 +224,7 @@ function update_intercept_with_count(
     end
 
     normalized_gradient = abs(sum(gradient(f, η_copy, y))) / n
-    normalized_gradient <= strategy.gradient_tol && return intercept, k0
+    normalized_gradient <= 5 * strategy.gradient_tol && return intercept, k0
     error(
         "ExactStrategy failed to converge in $(strategy.maxit) iterations " *
             "(normalized intercept gradient = $normalized_gradient)",

@@ -219,7 +219,7 @@ end
         intercept_strategy = ExactStrategy(),
         maxit = 500,
         randomize = false,
-        tol = 1.0e-12,
+        tol = 1.0e-8,
     )
 
     scale = max.(abs.(res.primals), 1.0)
@@ -232,6 +232,39 @@ end
     # plots. It need not reach machine zero: the dual point is a feasible
     # lower-bound construction, not the exact dual optimum.
     @test minimum(res.relgaps) < 1.0e-4
+    @test res.passes < 500
+    @test res.relgaps[end] <= 1.0e-8
+end
+
+@testset "Multinomial dual certificates stay in the simplex" begin
+    f = MultinomialLogisticLoss(K = 3)
+    y = [1, 1, 2, 3]
+    P = [
+        0.98 0.01 0.01
+        0.01 0.98 0.01
+        0.01 0.98 0.01
+        0.01 0.98 0.01
+    ]
+    η = link(f, P)
+    Θ = Intercepts._dual_point(f, η, y, true)
+    naive = residual(f, η, y)
+    naive .-= mean(naive; dims = 1)
+
+    U = zeros(4, 3)
+    U_naive = zeros(4, 3)
+    for i in axes(U, 1)
+        U[i, 1:2] .= Θ[i, :] .+ [y[i] == 1, y[i] == 2]
+        U[i, 3] = 1 - sum(U[i, 1:2])
+        U_naive[i, 1:2] .= naive[i, :] .+ [y[i] == 1, y[i] == 2]
+        U_naive[i, 3] = 1 - sum(U_naive[i, 1:2])
+    end
+
+    @test any(U_naive .< 0)
+    @test all(isapprox.(vec(sum(Θ; dims = 1)), 0.0; atol = 1.0e-14))
+    @test all(U .>= 0)
+    @test all(isapprox.(vec(sum(U; dims = 2)), 1.0; atol = 1.0e-14))
+    @test_throws DomainError dual(f, reshape([-0.1, 0.0], 1, 2), [3])
+    @test_throws ArgumentError dual(f, reshape([NaN, 0.0], 1, 2), [3])
 end
 
 @testset "Shared multinomial dual gives a certified suboptimality bound" begin
@@ -248,7 +281,7 @@ end
         ),
     ]
 
-    suboptimality_against_certified_optimum!(
+    suboptimality_against_shared_dual!(
         results;
         instance_of = _ -> 1,
         cert_tol = 0.02,

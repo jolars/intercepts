@@ -58,7 +58,7 @@ function rate_quantities(X_used, η, lossfun)
 end
 
 passes_to(relgaps, tol) = let i = findfirst(g -> g ≤ tol, relgaps)
-    i === nothing ? length(relgaps) : i
+    i === nothing ? length(relgaps) : i - 1
 end
 
 # The large-α cells run tens of thousands of passes, so the sweep is checkpointed
@@ -69,7 +69,10 @@ end
 const CELLDIR = @projectroot("results", "rho-centering", "cells")
 mkpath(CELLDIR)
 
-cellpath(μ0, α) = joinpath(CELLDIR, "mu0=$(μ0)_alpha=$(round(α; digits = 2)).jld2")
+cellpath(μ0, α) = joinpath(
+    CELLDIR,
+    "mu0=$(μ0)_alpha=$(round(α; digits = 2))_shared-v1.jld2",
+)
 
 records = Dict{String, Any}[]
 
@@ -129,6 +132,10 @@ for μ0 in Μ0_GRID
         intercept_share = abs(newton_ref.intercept) / norm(newton_ref.coef)
 
         predicted_ratio = (1 - (q.H00 / L0) * q.barρ2) / (1 - q.barρ2)
+        reference_dual = maximum(newton_ref.duals)
+        reference_primal = minimum(newton_ref.primals)
+        reference_scale = max(abs(reference_primal), 1.0e-15)
+        primal_stop = reference_dual + TOL_TARGET * reference_scale
 
         Random.seed!(1)
         grad_res = cdsolver(
@@ -141,6 +148,7 @@ for μ0 in Μ0_GRID
             randomize = true,
             tol = TOL_TARGET,
             normalization = :none,
+            primal_stop = primal_stop,
         )
 
         Random.seed!(1)
@@ -154,12 +162,25 @@ for μ0 in Μ0_GRID
             randomize = true,
             tol = TOL_TARGET,
             normalization = :none,
+            primal_stop = primal_stop,
         )
 
-        T_grad = passes_to(grad_res.relgaps, TOL_TARGET)
-        T_newt = passes_to(newton_short.relgaps, TOL_TARGET)
-        grad_reached = any(g -> g ≤ TOL_TARGET, grad_res.relgaps)
-        newt_reached = any(g -> g ≤ TOL_TARGET, newton_short.relgaps)
+        trajectories = [
+            Dict{String, Any}(
+                "primals" => result.primals,
+                "duals" => result.duals,
+                "gaps" => result.gaps,
+                "relgaps" => result.relgaps,
+            ) for result in (grad_res, newton_short, newton_ref)
+        ]
+        suboptimality_against_shared_dual!(trajectories; instance_of = _ -> (μ0, α))
+        grad_relgaps = trajectories[1]["relgaps"]
+        newton_relgaps = trajectories[2]["relgaps"]
+
+        T_grad = passes_to(grad_relgaps, TOL_TARGET)
+        T_newt = passes_to(newton_relgaps, TOL_TARGET)
+        grad_reached = any(g -> g ≤ TOL_TARGET, grad_relgaps)
+        newt_reached = any(g -> g ≤ TOL_TARGET, newton_relgaps)
 
         empirical_ratio = T_grad / T_newt
 

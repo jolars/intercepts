@@ -76,10 +76,9 @@ for (i, d) in enumerate(params)
     push!(results, d_exp)
 end
 
-# Shared feasible dual bound per (p_K, amplitude, seed) cell; relgaps become
-# certified relative suboptimality upper bounds. Each cell is a distinct random
-# problem, so the bound is computed per cell.
-suboptimality_against_certified_optimum!(
+# Shared feasible dual bound per (p_K, amplitude, seed) cell. Each cell is a
+# distinct random problem, so the bound is computed per cell.
+suboptimality_against_shared_dual!(
     results;
     instance_of = r -> (r["p_K"], r["amplitude"], r["it"]),
 )

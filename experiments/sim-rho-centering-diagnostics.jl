@@ -10,9 +10,10 @@ using Statistics
 import Intercepts: update_intercept
 
 # Follow-up to sim-rho-centering.jl. This experiment tests whether the empirical
-# T_G / T_N plateau is a local convergence-rate phenomenon. A single solve to
-# the tightest tolerance supplies threshold crossings at 1e-4, 1e-6, and 1e-8,
-# as well as the slope of log(relative gap) between those thresholds.
+# T_G / T_N plateau is a local convergence-rate phenomenon. The strategy runs
+# supply threshold crossings at 1e-4, 1e-6, and 1e-8, while Newton continues to
+# 1e-12 so the shared dual reference is substantially tighter than the lowest
+# reporting threshold.
 
 const N = 500
 const P = 1000
@@ -98,7 +99,9 @@ function rate_quantities(X, η, lossfun)
     return (; H00, barρ2 = sum(Hjj .* ρ2) / sum(Hjj))
 end
 
-passes_to(relgaps, tol) = findfirst(g -> g <= tol, relgaps)
+passes_to(relgaps, tol) = let i = findfirst(g -> g <= tol, relgaps)
+    isnothing(i) ? nothing : i - 1
+end
 
 function loggap_slope(relgaps; upper = 1.0e-4, lower = 1.0e-8)
     inds = findall(g -> isfinite(g) && lower <= g <= upper, relgaps)
@@ -122,7 +125,7 @@ mkpath(CELLDIR)
 
 cellpath(ρ, μ0, α) = joinpath(
     CELLDIR,
-    "rho=$(ρ)_mu0=$(μ0)_alpha=$(α).jld2",
+    "rho=$(ρ)_mu0=$(μ0)_alpha=$(α)_shared-v1.jld2",
 )
 
 records = Dict{String, Any}[]
@@ -153,6 +156,25 @@ for cell in CELLS
     lossfun = LogisticLoss()
     L0 = lossfun.lipschitz * N
 
+    traced_newton = TracedNewtonStrategy()
+    Random.seed!(1)
+    newton_result = cdsolver(
+        X,
+        y,
+        REG;
+        lossfun = lossfun,
+        intercept_strategy = traced_newton,
+        maxit = MAXIT,
+        randomize = true,
+        tol = 1.0e-12,
+        normalization = :none,
+    )
+
+    reference_dual = maximum(newton_result.duals)
+    reference_primal = minimum(newton_result.primals)
+    reference_scale = max(abs(reference_primal), 1.0e-15)
+    primal_stop = reference_dual + minimum(TOLERANCES) * reference_scale
+
     Random.seed!(1)
     gradient_result = cdsolver(
         X,
@@ -164,32 +186,30 @@ for cell in CELLS
         randomize = true,
         tol = minimum(TOLERANCES),
         normalization = :none,
-    )
-
-    traced_newton = TracedNewtonStrategy()
-    Random.seed!(1)
-    newton_result = cdsolver(
-        X,
-        y,
-        REG;
-        lossfun = lossfun,
-        intercept_strategy = traced_newton,
-        maxit = MAXIT,
-        randomize = true,
-        tol = minimum(TOLERANCES),
-        normalization = :none,
+        primal_stop = primal_stop,
     )
 
     η_hat = X * newton_result.coef .+ newton_result.intercept
     q = rate_quantities(X, η_hat, lossfun)
-    gradient_slope = loggap_slope(gradient_result.relgaps)
-    newton_slope = loggap_slope(newton_result.relgaps)
+    trajectories = [
+        Dict{String, Any}(
+            "primals" => result.primals,
+            "duals" => result.duals,
+            "gaps" => result.gaps,
+            "relgaps" => result.relgaps,
+        ) for result in (gradient_result, newton_result)
+    ]
+    suboptimality_against_shared_dual!(trajectories; instance_of = _ -> (ρ, μ0, α))
+    gradient_relgaps = trajectories[1]["relgaps"]
+    newton_relgaps = trajectories[2]["relgaps"]
+    gradient_slope = loggap_slope(gradient_relgaps)
+    newton_slope = loggap_slope(newton_relgaps)
 
     crossings = Dict{String, Any}()
     for tol in TOLERANCES
         suffix = string(Int(round(-log10(tol))))
-        T_gradient = passes_to(gradient_result.relgaps, tol)
-        T_newton = passes_to(newton_result.relgaps, tol)
+        T_gradient = passes_to(gradient_relgaps, tol)
+        T_newton = passes_to(newton_relgaps, tol)
         crossings["T_gradient_1e-$suffix"] = T_gradient
         crossings["T_newton_1e-$suffix"] = T_newton
         crossings["ratio_1e-$suffix"] =
@@ -209,12 +229,12 @@ for cell in CELLS
             missing : newton_slope / gradient_slope,
         "newton_late_full_step_fraction" => late_full_step_fraction(
             traced_newton.accepted_scales,
-            newton_result.relgaps,
+            newton_relgaps,
         ),
-        "gradient_final_relgap" => gradient_result.relgaps[end],
-        "newton_final_relgap" => newton_result.relgaps[end],
-        "gradient_relgaps" => gradient_result.relgaps,
-        "newton_relgaps" => newton_result.relgaps,
+        "gradient_final_relgap" => gradient_relgaps[end],
+        "newton_final_relgap" => newton_relgaps[end],
+        "gradient_relgaps" => gradient_relgaps,
+        "newton_relgaps" => newton_relgaps,
         "newton_accepted_scales" => traced_newton.accepted_scales,
     )
     merge!(record, crossings)

@@ -10,27 +10,27 @@ struct LocalWeights <: IRLSWeights end
 """Use the global logistic curvature bound for every observation."""
 struct MajorizedWeights <: IRLSWeights end
 
-# Per-observation weights for the IRLS quadratic majorizer at iterate η.
+# Per-observation weights for the IRLS quadratic surrogate at iterate η.
 function _irls_weights(
-    ::LocalWeights,
-    lossfun::LogisticLoss,
-    η::AbstractVector,
-    y::AbstractVector,
-)
+        ::LocalWeights,
+        lossfun::LogisticLoss,
+        η::AbstractVector,
+        y::AbstractVector,
+    )
     return hessian(lossfun, η, y)
 end
 
 function _irls_weights(
-    ::MajorizedWeights,
-    lossfun::LogisticLoss,
-    η::AbstractVector,
-    ::AbstractVector,
-)
+        ::MajorizedWeights,
+        lossfun::LogisticLoss,
+        η::AbstractVector,
+        ::AbstractVector,
+    )
     return fill(lossfun.lipschitz, length(η))
 end
 
 # Inner-quadratic intercept update.
-# All non-NoIntercept strategies coincide on the quadratic majorizer: Newton is
+# All non-NoIntercept strategies coincide on the quadratic surrogate: Newton is
 # exact, the gradient step with the inner Lipschitz (= curvature = sum(w))
 # matches it, ExactStrategy reaches the same point in one step, and a
 # damped Newton step with backtracking accepts the full step. The dispatch is
@@ -50,21 +50,21 @@ the outer and inner stopping criteria. The result contains fitted values,
 primal-dual diagnostics, `λ`, `λmax`, and optional histories.
 """
 function irlssolver(
-    x::AbstractMatrix,
-    y::AbstractVector,
-    reg::Real = 0.1;
-    lossfun::LogisticLoss = LogisticLoss(),
-    weights::IRLSWeights = LocalWeights(),
-    intercept_strategy::InterceptStrategy = NewtonStrategy(),
-    outer_tol::Real = 1.0e-10,
-    inner_tol::Real = 1.0e-4,
-    max_outer::Int = 200,
-    max_inner::Int = 50,
-    maxtime::Real = Inf,
-    randomize::Bool = true,
-    normalization::Symbol = :standardize,
-    save_history::Bool = false,
-)
+        x::AbstractMatrix,
+        y::AbstractVector,
+        reg::Real = 0.1;
+        lossfun::LogisticLoss = LogisticLoss(),
+        weights::IRLSWeights = LocalWeights(),
+        intercept_strategy::InterceptStrategy = NewtonStrategy(),
+        outer_tol::Real = 1.0e-10,
+        inner_tol::Real = 1.0e-4,
+        max_outer::Int = 200,
+        max_inner::Int = 50,
+        maxtime::Real = Inf,
+        randomize::Bool = true,
+        normalization::Symbol = :standardize,
+        save_history::Bool = false,
+    )
     n, p = size(x)
     y = Float64.(y)
 
@@ -99,11 +99,7 @@ function irlssolver(
 
         # Outer-level primal/dual gap on the original loss (matches cdsolver).
         primal = loss(lossfun, η, y) + λ * norm(coef, 1)
-        r = residual(lossfun, η, y)
-        θ = copy(r)
-        if fit_intercept
-            θ .-= mean(r)
-        end
+        θ = _dual_point(lossfun, η, y, fit_intercept)
         grad_outer = x' * θ
         if sparse_norm
             θsum = sum(θ)
@@ -111,7 +107,7 @@ function irlssolver(
                 grad_outer[j] -= x_sparse_offset[j] * θsum
             end
         end
-        dual_scale = max(1, norm(grad_outer, Inf) / λ)
+        dual_scale = _dual_scale(grad_outer, λ)
         θ ./= dual_scale
         dua = dual(lossfun, θ, y)
         gap = primal - dua
@@ -139,7 +135,7 @@ function irlssolver(
             break
         end
 
-        # Linearize: form the weighted-LS majorizer at the current iterate.
+        # Linearize: form the weighted least-squares surrogate at the current iterate.
         # w_i: per-observation curvature; z_i = η_i - r_i / w_i is the working response,
         # written here as η + (y - μ)/w to keep numerator and denominator co-signed.
         w = _irls_weights(weights, lossfun, η, y)
@@ -166,7 +162,7 @@ function irlssolver(
                 xj = x[:, j]
                 resid_in = η_in .- z
                 grad_j = sum(w .* xj .* resid_in)
-                hess_j = sum(w .* xj.^2)
+                hess_j = sum(w .* xj .^ 2)
                 if sparse_norm
                     grad_j -= x_sparse_offset[j] * sum(w .* resid_in)
                     hess_j -= 2 * x_sparse_offset[j] * sum(w .* xj) -
@@ -195,7 +191,7 @@ function irlssolver(
                 end
             end
 
-            inner_obj = 0.5 * sum(w .* (η_in .- z).^2) + λ * norm(coef_in, 1)
+            inner_obj = 0.5 * sum(w .* (η_in .- z) .^ 2) + λ * norm(coef_in, 1)
             if abs(prev_inner_obj - inner_obj) <= inner_tol * max(1.0, abs(inner_obj))
                 break
             end

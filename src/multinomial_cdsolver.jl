@@ -7,10 +7,10 @@ using Random
 # giving uniform-across-i softmax probs p[k] = n_k / n. The KKT residual is
 # X' R where R[i, k] = p[k] - 𝟙{y_i = k}; λmax is the max-abs entry.
 function lambdamax_multinomial(
-    f::MultinomialLogisticLoss,
-    x::AbstractMatrix,
-    y::AbstractVector{<:Integer},
-)
+        f::MultinomialLogisticLoss,
+        x::AbstractMatrix,
+        y::AbstractVector{<:Integer},
+    )
     n = size(x, 1)
     K = f.K
     counts = zeros(K)
@@ -28,12 +28,12 @@ function lambdamax_multinomial(
 end
 
 function rescalecoefs_multinomial(
-    coefs::AbstractMatrix,
-    intercept::AbstractVector,
-    centers::AbstractMatrix,
-    scales::AbstractMatrix;
-    fit_intercept::Bool = true,
-)
+        coefs::AbstractMatrix,
+        intercept::AbstractVector,
+        centers::AbstractMatrix,
+        scales::AbstractMatrix;
+        fit_intercept::Bool = true,
+    )
     p, Km1 = size(coefs)
     coefs_rescaled = copy(coefs)
     intercept_rescaled = copy(intercept)
@@ -57,22 +57,24 @@ end
 Fit a multinomial logistic model with an L1 penalty by proximal coordinate
 descent. The final class is the reference class, so `coef` has size
 `(p, K - 1)` and `intercept` has length `K - 1`. The result contains fitted
-values, primal-dual diagnostics, `λ`, `λmax`, and optional histories.
+values, primal-dual diagnostics, `λ`, `λmax`, and optional histories. Iteration
+stops at relative primal-dual gap `tol`, after `maxit` passes, or after
+`maxtime` seconds.
 """
 function multinomial_cdsolver(
-    x::AbstractMatrix,
-    y::AbstractVector{<:Integer},
-    reg::Real = 0.1;
-    lossfun::MultinomialLogisticLoss,
-    intercept_strategy::InterceptStrategy = NewtonStrategy(),
-    update_freq::Int = 1,
-    tol::Real = 1.0e-10,
-    maxit::Int = 1000,
-    maxtime::Real = Inf,
-    randomize::Bool = true,
-    normalization::Symbol = :standardize,
-    save_history::Bool = false,
-)
+        x::AbstractMatrix,
+        y::AbstractVector{<:Integer},
+        reg::Real = 0.1;
+        lossfun::MultinomialLogisticLoss,
+        intercept_strategy::InterceptStrategy = NewtonStrategy(),
+        update_freq::Int = 1,
+        tol::Real = 1.0e-10,
+        maxit::Int = 1000,
+        maxtime::Real = Inf,
+        randomize::Bool = true,
+        normalization::Symbol = :standardize,
+        save_history::Bool = false,
+    )
     n, p = size(x)
     K = lossfun.K
     Km1 = K - 1
@@ -116,26 +118,11 @@ function multinomial_cdsolver(
         push!(primals, primal)
         push!(times, time() - t0)
 
-        # Dual point by dual scaling (mirrors cdsolver/irlssolver): center the
-        # residual per free class to meet the unpenalized-intercept stationarity
-        # condition Σ_i Θ_ik = 0, then rescale onto the ℓ∞ ball ‖XᵀΘ‖_∞ ≤ λ. The
-        # result is dual-feasible, so primal - dual is a true relative duality
-        # gap---a lower-bound certificate, unlike a run-local primal minimum.
-        Θ = residual(lossfun, η, y)
-        if fit_intercept
-            @inbounds for k in 1:Km1
-                colsum = 0.0
-                for i in 1:n
-                    colsum += Θ[i, k]
-                end
-                colmean = colsum / n
-                for i in 1:n
-                    Θ[i, k] -= colmean
-                end
-            end
-        end
+        # The domain-safe centering step enforces intercept stationarity before
+        # feature scaling enforces the penalized-coordinate constraint.
+        Θ = _dual_point(lossfun, η, y, fit_intercept)
         grad_outer = x' * Θ
-        dual_scale = max(1.0, norm(grad_outer, Inf) / λ)
+        dual_scale = _dual_scale(grad_outer, λ)
         Θ ./= dual_scale
         dua = dual(lossfun, Θ, y)
         gap = primal - dua
@@ -156,11 +143,8 @@ function multinomial_cdsolver(
             push!(coefs_history, coef_resc)
         end
 
-        if length(primals) >= 2
-            change = abs(primals[end - 1] - primal) / max(abs(primal), 1.0e-15)
-            if change < tol
-                break
-            end
+        if relgap <= tol
+            break
         end
 
         ind = randomize ? randperm(p) : (1:p)

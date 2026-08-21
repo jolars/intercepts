@@ -12,15 +12,15 @@ intercept after each gradient step. The result contains fitted values and the
 per-pass `primals`, `duals`, `gaps`, `time`, and `passes` diagnostics.
 """
 function gdsolver(
-    x::AbstractMatrix,
-    y::AbstractVector,
-    reg::Real = 0.1;
-    lossfun::LossFunction = QuadraticLoss(),
-    intercept_strategy::InterceptStrategy = GradientStrategy(),
-    tol::Real = 1.0e-10,
-    normalization::Symbol = :standardize,
-    maxit::Int = 1000,
-)
+        x::AbstractMatrix,
+        y::AbstractVector,
+        reg::Real = 0.1;
+        lossfun::LossFunction = QuadraticLoss(),
+        intercept_strategy::InterceptStrategy = GradientStrategy(),
+        tol::Real = 1.0e-10,
+        normalization::Symbol = :standardize,
+        maxit::Int = 1000,
+    )
     n, p = size(x)
 
     validateresponse(lossfun, y)
@@ -63,9 +63,8 @@ function gdsolver(
 
         primal = loss(lossfun, η, y) + λ * norm(coef, 1)
 
-        r = residual(lossfun, η, y)
-        θ = r .- mean(r)
-        dual_scale = max(1, norm(x' * θ, Inf) / λ)
+        θ = _dual_point(lossfun, η, y, fit_intercept)
+        dual_scale = _dual_scale(x' * θ, λ)
         θ ./= dual_scale
         dua = dual(lossfun, θ, y)
         gap = primal - dua

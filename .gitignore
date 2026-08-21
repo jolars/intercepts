@@ -79,6 +79,10 @@ devenv.local.yaml
 # The assembled JLD2 and CSV summaries remain tracked.
 /results/rho-centering-diagnostics/cells/
 
+# Per-cell checkpoints for the imbalance-regularization heatmap.
+# The assembled JLD2 summary remains tracked.
+/results/sim-mu-reg-heatmap/cells/
+
 # Per-cell checkpoints for the frozen-Hessian follow-up.
 /results/rho-frozen-hessian/cells/
 

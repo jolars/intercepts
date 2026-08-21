@@ -6,7 +6,7 @@ using LinearAlgebra
 using Statistics
 
 # Quantitative rate gap experiment: sweep μ0 and compare empirical pass counts
-# to reach a fixed relative-gap tolerance against the predicted ratio
+# to reach a fixed relative-suboptimality tolerance against the predicted ratio
 # (1 - (H_00/L_0) ρ̄²) / (1 - ρ̄²), with weights and curvatures evaluated at
 # the Newton-strategy converged iterate.
 
@@ -36,7 +36,7 @@ function rate_quantities(X_std, η, lossfun)
 end
 
 passes_to(relgaps, tol) = let i = findfirst(g -> g ≤ tol, relgaps)
-    i === nothing ? length(relgaps) : i
+    i === nothing ? length(relgaps) : i - 1
 end
 
 records = Dict{String, Any}[]
@@ -141,10 +141,22 @@ for μ0 in Μ0_GRID
         tol = TOL_TARGET,
     )
 
-    T_grad = passes_to(grad_res.relgaps, TOL_TARGET)
-    T_newt = passes_to(newton_short.relgaps, TOL_TARGET)
-    grad_reached = any(g -> g ≤ TOL_TARGET, grad_res.relgaps)
-    newt_reached = any(g -> g ≤ TOL_TARGET, newton_short.relgaps)
+    trajectories = [
+        Dict{String, Any}(
+            "primals" => result.primals,
+            "duals" => result.duals,
+            "gaps" => result.gaps,
+            "relgaps" => result.relgaps,
+        ) for result in (grad_res, newton_short, newton_res)
+    ]
+    suboptimality_against_shared_dual!(trajectories; instance_of = _ -> μ0)
+    grad_relgaps = trajectories[1]["relgaps"]
+    newton_relgaps = trajectories[2]["relgaps"]
+
+    T_grad = passes_to(grad_relgaps, TOL_TARGET)
+    T_newt = passes_to(newton_relgaps, TOL_TARGET)
+    grad_reached = any(g -> g ≤ TOL_TARGET, grad_relgaps)
+    newt_reached = any(g -> g ≤ TOL_TARGET, newton_relgaps)
 
     empirical_ratio = T_grad / T_newt
 

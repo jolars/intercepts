@@ -36,9 +36,15 @@ for (i, d) in enumerate(params)
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps
     d_exp["primals"] = res.primals
+    d_exp["duals"] = res.duals
 
     push!(results, d_exp)
 end
+
+suboptimality_against_shared_dual!(
+    results;
+    instance_of = r -> (r["dataset"], r["reg"]),
+)
 
 outfile = @projectroot("results", "first-example.jld2");
 

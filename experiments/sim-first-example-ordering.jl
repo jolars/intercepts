@@ -44,6 +44,7 @@ for (i, d) in enumerate(params)
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps
     d_exp["primals"] = res.primals
+    d_exp["duals"] = res.duals
 
     println(
         "[$i/$(length(params))] dataset=$dataset strategy=$strategy randomize=$randomize " *
@@ -52,6 +53,11 @@ for (i, d) in enumerate(params)
 
     push!(results, d_exp)
 end
+
+suboptimality_against_shared_dual!(
+    results;
+    instance_of = r -> (r["dataset"], r["reg"]),
+)
 
 outfile = @projectroot("results", "first-example-ordering.jld2")
 @save outfile results

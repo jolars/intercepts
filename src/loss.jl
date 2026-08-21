@@ -64,10 +64,19 @@ function loss(::LogisticLoss, η::AbstractVector, y::AbstractVector)
     return sum(log1pexp.(η) .- η .* y)
 end
 
-function dual(f::LogisticLoss, θ::AbstractVector, y::AbstractVector)
-    η = link(f, θ .+ y)
-
-    return loss(f, η, y) - dot(θ, η)
+function dual(::LogisticLoss, θ::AbstractVector, y::AbstractVector)
+    value = 0.0
+    tol = 64 * eps(Float64)
+    for u_raw in θ .+ y
+        isfinite(u_raw) || throw(ArgumentError("logistic dual means must be finite"))
+        if u_raw < -tol || u_raw > 1 + tol
+            throw(DomainError(u_raw, "logistic dual means must lie in [0, 1]"))
+        end
+        u = clamp(u_raw, 0.0, 1.0)
+        value -= iszero(u) ? 0.0 : u * log(u)
+        value -= isone(u) ? 0.0 : (1 - u) * log1p(-u)
+    end
+    return value
 end
 
 function link(::LogisticLoss, μ::Real)
@@ -102,20 +111,22 @@ end
 
 """Construct the IRLS working response from `η`, `y`, and weights `w`."""
 function workingresponse(
-    f::LossFunction,
-    η::AbstractVector,
-    y::AbstractVector,
-    w::AbstractVector,
-)
+        f::LossFunction,
+        η::AbstractVector,
+        y::AbstractVector,
+        w::AbstractVector,
+    )
     return η + (y - invlink(f, η)) ./ w
 end
 
 function validateresponse(::LogisticLoss, y::AbstractVector)
     ok = unique(y) ⊆ (0.0, 1.0)
-    if !ok
-        throw(ArgumentError(
-            "Response variable for LogisticLoss regression must be binary (0 or 1)",
-        ))
+    return if !ok
+        throw(
+            ArgumentError(
+                "Response variable for LogisticLoss regression must be binary (0 or 1)",
+            )
+        )
     end
 end
 
@@ -125,14 +136,97 @@ function loss(::PoissonLoss, η::AbstractVector, y::AbstractVector)
 end
 
 function dual(::PoissonLoss, θ::AbstractVector, y::AbstractVector)
-    # check if eta is finite
     if any(!isfinite, θ)
         throw(ArgumentError("θ must be finite"))
     end
 
-    e = θ .+ y
-    e = max.(e, 1.0e-15) # clamp to avoid log(0)
-    return sum(e .* (1 .- log.(e)))
+    value = 0.0
+    tol = 64 * eps(Float64)
+    for u_raw in θ .+ y
+        if u_raw < -tol
+            throw(DomainError(u_raw, "Poisson dual means must be nonnegative"))
+        end
+        u = max(u_raw, 0.0)
+        value += iszero(u) ? 0.0 : u * (1 - log(u))
+    end
+    return value
+end
+
+# Centering a residual enforces the unpenalized-intercept constraint but can
+# leave the conjugate domain. Blending from the intercept-only feasible point
+# keeps that constraint while moving as far as possible toward the centered
+# residual. Scaling this result toward zero later also preserves feasibility.
+function _dual_point(
+        f::QuadraticLoss,
+        η::AbstractVector,
+        y::AbstractVector,
+        fit_intercept::Bool,
+    )
+    r = residual(f, η, y)
+    if fit_intercept
+        r .-= mean(r)
+    end
+    return r
+end
+
+function _scalar_dual_point(
+        f::LossFunction,
+        η::AbstractVector,
+        y::AbstractVector,
+        fit_intercept::Bool,
+        upper::Real,
+    )
+    r = residual(f, η, y)
+    fit_intercept || return r
+
+    r .-= mean(r)
+    response_mean = mean(y)
+    α = 1.0
+
+    for i in eachindex(r, y)
+        target = y[i] + r[i]
+        direction = target - response_mean
+        if direction < 0
+            α = min(α, response_mean / -direction)
+        elseif direction > 0 && isfinite(upper)
+            α = min(α, (upper - response_mean) / direction)
+        end
+    end
+
+    α = clamp(α, 0.0, 1.0)
+    if 0 < α < 1
+        # Keep roundoff from crossing a domain boundary attained by the exact step.
+        α *= 1 - sqrt(eps(Float64))
+    end
+    for i in eachindex(r, y)
+        anchor = response_mean - y[i]
+        r[i] = anchor + α * (r[i] - anchor)
+    end
+    return r
+end
+
+function _dual_point(
+        f::LogisticLoss,
+        η::AbstractVector,
+        y::AbstractVector,
+        fit_intercept::Bool,
+    )
+    return _scalar_dual_point(f, η, y, fit_intercept, 1.0)
+end
+
+function _dual_point(
+        f::PoissonLoss,
+        η::AbstractVector,
+        y::AbstractVector,
+        fit_intercept::Bool,
+    )
+    return _scalar_dual_point(f, η, y, fit_intercept, Inf)
+end
+
+function _dual_scale(gradient, λ::Real)
+    gradient_norm = norm(gradient, Inf)
+    iszero(gradient_norm) && return 1.0
+    return max(1.0, gradient_norm / λ)
 end
 
 function link(::PoissonLoss, μ::Real)
@@ -164,14 +258,18 @@ function validateresponse(::PoissonLoss, y::AbstractVector)
         throw(ArgumentError("Response must be non-negative"))
     end
     if !all(isinteger.(y))
-        throw(ArgumentError(
-            "Response variable for Poisson regression must be integer-valued counts",
-        ))
+        throw(
+            ArgumentError(
+                "Response variable for Poisson regression must be integer-valued counts",
+            )
+        )
     end
-    if length(unique(y)) < 2
-        throw(ArgumentError(
-            "Response variable for Poisson regression must contain at least two distinct values",
-        ))
+    return if length(unique(y)) < 2
+        throw(
+            ArgumentError(
+                "Response variable for Poisson regression must contain at least two distinct values",
+            )
+        )
     end
 end
 
@@ -217,10 +315,10 @@ function softmax_probs(η::AbstractMatrix{<:Real})
 end
 
 function loss(
-    f::MultinomialLogisticLoss,
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        f::MultinomialLogisticLoss,
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     n, Km1 = size(η)
     K = f.K
     L = 0.0
@@ -244,10 +342,10 @@ function loss(
 end
 
 function gradient(
-    f::MultinomialLogisticLoss,
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        f::MultinomialLogisticLoss,
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     p = softmax_probs(η)
     n, Km1 = size(η)
     G = Matrix{Float64}(undef, n, Km1)
@@ -262,10 +360,10 @@ end
 # Per-observation Hessian blocks: H[i, k, l] = p[i, k] (𝟙{k=l} - p[i, l]).
 # Returns Array(n, K-1, K-1).
 function hessian(
-    f::MultinomialLogisticLoss,
-    η::AbstractMatrix{<:Real},
-    ::AbstractVector{<:Integer},
-)
+        f::MultinomialLogisticLoss,
+        η::AbstractMatrix{<:Real},
+        ::AbstractVector{<:Integer},
+    )
     p = softmax_probs(η)
     n, Km1 = size(η)
     H = Array{Float64, 3}(undef, n, Km1, Km1)
@@ -290,10 +388,10 @@ function weight(f::MultinomialLogisticLoss, η::AbstractMatrix{<:Real})
 end
 
 function residual(
-    f::MultinomialLogisticLoss,
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        f::MultinomialLogisticLoss,
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     return gradient(f, η, y)
 end
 
@@ -312,45 +410,101 @@ function link(f::MultinomialLogisticLoss, P::AbstractMatrix{<:Real})
     return η
 end
 
-# Fenchel dual of the multinomial logistic loss at a dual point Θ (n × K-1).
-# Θ is a dual-feasible variable (the intercept-centered, ℓ∞-rescaled residual
-# built by the solver). The conjugate is evaluated by recovering its maximizing
-# η: the implied class probabilities are u_ik = Θ_ik + 𝟙{y_i = k} for the free
-# classes and u_iK = 1 - Σ_k u_ik for the reference, so the dual value is
-# loss(η⋆) - ⟨Θ, η⋆⟩ with η⋆ = link(u). For the scaled residual u is a convex
-# combination of the softmax row and a simplex vertex and so stays in the
-# simplex; the small floor only guards the logarithm against a boundary point
-# far from the optimum.
 function dual(
-    f::MultinomialLogisticLoss,
-    Θ::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        f::MultinomialLogisticLoss,
+        Θ::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     n, Km1 = size(Θ)
     K = f.K
-    U = Matrix{Float64}(undef, n, K)
+    size(Θ, 2) == K - 1 || throw(DimensionMismatch("Θ must have K - 1 columns"))
+    length(y) == n || throw(DimensionMismatch("Θ and y must have the same row count"))
+
+    value = 0.0
+    tol = 64 * eps(Float64)
     @inbounds for i in 1:n
         ref = 1.0
         for k in 1:Km1
-            u = Θ[i, k] + (y[i] == k ? 1.0 : 0.0)
-            U[i, k] = u
-            ref -= u
+            u_raw = Θ[i, k] + (y[i] == k ? 1.0 : 0.0)
+            isfinite(u_raw) ||
+                throw(ArgumentError("multinomial dual probabilities must be finite"))
+            if u_raw < -tol
+                throw(DomainError(u_raw, "multinomial dual rows must lie in the simplex"))
+            end
+            u = max(u_raw, 0.0)
+            value -= iszero(u) ? 0.0 : u * log(u)
+            ref -= u_raw
         end
-        U[i, K] = ref
+        if ref < -tol
+            throw(DomainError(ref, "multinomial dual rows must lie in the simplex"))
+        end
+        ref = max(ref, 0.0)
+        value -= iszero(ref) ? 0.0 : ref * log(ref)
     end
-    U .= max.(U, 1.0e-12)
-    η = link(f, U)
-    return loss(f, η, y) - sum(Θ .* η)
+    return value
+end
+
+function _dual_point(
+        f::MultinomialLogisticLoss,
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+        fit_intercept::Bool,
+    )
+    Θ = residual(f, η, y)
+    fit_intercept || return Θ
+
+    n, Km1 = size(Θ)
+    K = f.K
+    for k in 1:Km1
+        @views Θ[:, k] .-= mean(Θ[:, k])
+    end
+
+    counts = zeros(Float64, K)
+    for yi in y
+        counts[yi] += 1
+    end
+    proportions = counts ./ n
+    proportions[K] = 1 - sum(@view proportions[1:Km1])
+
+    α = 1.0
+    for i in 1:n
+        target_ref = 1.0
+        for k in 1:Km1
+            target = Θ[i, k] + (y[i] == k ? 1.0 : 0.0)
+            direction = target - proportions[k]
+            if direction < 0
+                α = min(α, proportions[k] / -direction)
+            end
+            target_ref -= target
+        end
+        ref_direction = target_ref - proportions[K]
+        if ref_direction < 0
+            α = min(α, proportions[K] / -ref_direction)
+        end
+    end
+
+    α = clamp(α, 0.0, 1.0)
+    if 0 < α < 1
+        # Keep roundoff from crossing a simplex face attained by the exact step.
+        α *= 1 - sqrt(eps(Float64))
+    end
+    for i in 1:n, k in 1:Km1
+        anchor = proportions[k] - (y[i] == k ? 1.0 : 0.0)
+        Θ[i, k] = anchor + α * (Θ[i, k] - anchor)
+    end
+    return Θ
 end
 
 function validateresponse(f::MultinomialLogisticLoss, y::AbstractVector{<:Integer})
     K = f.K
     if any(y .< 1) || any(y .> K)
-        throw(ArgumentError(
-            "Response for MultinomialLogisticLoss must be class indices in 1..$(K)",
-        ))
+        throw(
+            ArgumentError(
+                "Response for MultinomialLogisticLoss must be class indices in 1..$(K)",
+            )
+        )
     end
-    if length(unique(y)) < 2
+    return if length(unique(y)) < 2
         throw(ArgumentError("Response variable must contain at least two distinct classes"))
     end
 end

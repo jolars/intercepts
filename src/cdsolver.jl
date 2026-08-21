@@ -11,27 +11,30 @@ coefficients and the intercept are on the original scale. `reg` is the
 regularization strength as a fraction of `lambdamax(lossfun, x, y)`.
 
 Iteration stops at relative primal-dual gap `tol`, after `maxit` passes, or
-when `maxtime` is reached. The result contains fitted values and the
+when `maxtime` is reached. Experiments with an independently computed feasible
+dual reference may set `primal_stop` to stop once the primal reaches that fixed
+target. The result contains fitted values and the
 `primals`, `duals`, `gaps`, `relgaps`, `time`, `inner_steps`, `passes`, `λ`,
 and `λmax` diagnostics. Set `save_history` to `true` to populate `coefs` and
 `intercepts`.
 """
 function cdsolver(
-    x::AbstractMatrix,
-    y::AbstractVector,
-    reg::Real = 0.1;
-    lossfun::LossFunction = QuadraticLoss(),
-    intercept_strategy::InterceptStrategy = GradientStrategy(),
-    update_freq::Int = 1,
-    tol::Real = 1.0e-10,
-    maxit::Int = 1000,
-    maxtime::Real = Inf,
-    randomize::Bool = true,
-    normalization::Symbol = :standardize,
-    save_history::Bool = false,
-    coef_init::Union{Nothing, AbstractVector} = nothing,
-    intercept_init::Real = 0.0,
-)
+        x::AbstractMatrix,
+        y::AbstractVector,
+        reg::Real = 0.1;
+        lossfun::LossFunction = QuadraticLoss(),
+        intercept_strategy::InterceptStrategy = GradientStrategy(),
+        update_freq::Int = 1,
+        tol::Real = 1.0e-10,
+        maxit::Int = 1000,
+        maxtime::Real = Inf,
+        randomize::Bool = true,
+        normalization::Symbol = :standardize,
+        save_history::Bool = false,
+        coef_init::Union{Nothing, AbstractVector} = nothing,
+        intercept_init::Real = 0.0,
+        primal_stop::Union{Nothing, Real} = nothing,
+    )
     n, p = size(x)
 
     y = Float64.(y)
@@ -96,12 +99,7 @@ function cdsolver(
 
         primal = loss(lossfun, η, y) + λ * norm(coef, 1)
 
-        r = residual(lossfun, η, y)
-        θ = r
-
-        if fit_intercept
-            θ .-= mean(r)
-        end
+        θ = _dual_point(lossfun, η, y, fit_intercept)
 
         grad = x' * θ
 
@@ -112,7 +110,7 @@ function cdsolver(
             end
         end
 
-        dual_scale = max(1, norm(grad, Inf) / λ)
+        dual_scale = _dual_scale(grad, λ)
 
         θ ./= dual_scale
         dua = dual(lossfun, θ, y)
@@ -140,7 +138,7 @@ function cdsolver(
         push!(relgaps, gap / max(abs(primal), 1.0e-10))
         push!(gaps, gap)
 
-        if rel_gap <= tol
+        if rel_gap <= tol || (primal_stop !== nothing && primal <= primal_stop)
             break
         end
 

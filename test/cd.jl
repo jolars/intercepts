@@ -2,6 +2,40 @@ using Test
 using Intercepts
 using GLM
 
+@testset "Dual certificates respect conjugate domains" begin
+    y_logistic = [1.0, 1.0, 1.0, 0.0]
+    p_logistic = [0.99, 0.01, 0.01, 0.01]
+    η_logistic = log.(p_logistic ./ (1 .- p_logistic))
+    θ_logistic = Intercepts._dual_point(LogisticLoss(), η_logistic, y_logistic, true)
+    u_logistic = y_logistic + θ_logistic
+    raw_logistic = residual(LogisticLoss(), η_logistic, y_logistic)
+    naive_logistic = raw_logistic .- mean(raw_logistic)
+
+    @test any((y_logistic .+ naive_logistic .< 0) .| (y_logistic .+ naive_logistic .> 1))
+    @test isapprox(sum(θ_logistic), 0.0; atol = 1.0e-14)
+    @test all((0 .<= u_logistic) .& (u_logistic .<= 1))
+    @test dual(LogisticLoss(), raw_logistic, y_logistic) ≈
+        loss(LogisticLoss(), η_logistic, y_logistic) - sum(raw_logistic .* η_logistic)
+    @test_throws DomainError dual(LogisticLoss(), [0.2], [1.0])
+    @test_throws ArgumentError dual(LogisticLoss(), [NaN], [0.0])
+
+    y_poisson = [0.0, 10.0, 10.0]
+    μ_poisson = [0.01, 20.0, 20.0]
+    η_poisson = log.(μ_poisson)
+    θ_poisson = Intercepts._dual_point(PoissonLoss(), η_poisson, y_poisson, true)
+    u_poisson = y_poisson + θ_poisson
+    raw_poisson = residual(PoissonLoss(), η_poisson, y_poisson)
+    naive_poisson = raw_poisson .- mean(raw_poisson)
+
+    @test any(y_poisson .+ naive_poisson .< 0)
+    @test isapprox(sum(θ_poisson), 0.0; atol = 1.0e-14)
+    @test all(u_poisson .>= 0)
+    @test dual(PoissonLoss(), raw_poisson, y_poisson) ≈
+        loss(PoissonLoss(), η_poisson, y_poisson) - sum(raw_poisson .* η_poisson)
+    @test_throws DomainError dual(PoissonLoss(), [-0.1], [0.0])
+    @test_throws ArgumentError dual(PoissonLoss(), [NaN], [0.0])
+end
+
 @testset "Intercepts methods converge" begin
     n = 100
     p = 10
@@ -146,6 +180,22 @@ end
 
     @test isapprox(res_default.coef, res_explicit.coef; atol = 1.0e-8)
     @test isapprox(res_default.intercept, res_explicit.intercept; atol = 1.0e-8)
+end
+
+@testset "Fixed primal target stops before a pass" begin
+    Random.seed!(199)
+    X, y = generatedata(40, 8; response = :binomial, μ0 = 0.7, s = 3)
+    result = cdsolver(
+        X,
+        y,
+        0.05;
+        lossfun = LogisticLoss(),
+        intercept_strategy = NewtonStrategy(),
+        primal_stop = Inf,
+    )
+
+    @test length(result.primals) == 1
+    @test isempty(result.inner_steps)
 end
 
 @testset "Per-coord Armijo gives monotone primal" begin
@@ -335,4 +385,54 @@ end
     ηs = [-8.0, -1.0, 0.0, 2.0, 9.0]
     ys = [0.0, 1.0, 0.0, 1.0, 0.0]
     @test isapprox(loss(f, ηs, ys), sum(log1p.(exp.(ηs)) .- ηs .* ys); atol = 1.0e-12)
+end
+
+@testset "Shared dual reference is strategy-independent" begin
+    results = [
+        Dict{String, Any}(
+            "instance" => :a,
+            "primals" => [10.0, 5.0],
+            "duals" => [0.0, 4.0],
+            "gaps" => [10.0, 1.0],
+            "relgaps" => [1.0, 0.2],
+        ),
+        Dict{String, Any}(
+            "instance" => :a,
+            "primals" => [9.0, 4.5],
+            "duals" => [1.0, 4.4],
+            "gaps" => [8.0, 0.1],
+            "relgaps" => [8 / 9, 1 / 45],
+        ),
+        Dict{String, Any}(
+            "instance" => :a,
+            "primals" => Float64[],
+            "duals" => Float64[],
+            "gaps" => Float64[],
+            "relgaps" => Float64[],
+        ),
+        Dict{String, Any}(
+            "instance" => :b,
+            "primals" => [3.0],
+            "duals" => [2.5],
+            "gaps" => [0.5],
+            "relgaps" => [1 / 6],
+        ),
+    ]
+
+    suboptimality_against_shared_dual!(
+        results;
+        instance_of = r -> r["instance"],
+        cert_tol = 1.0,
+    )
+
+    @test results[1]["dual_bound"] == 4.4
+    @test results[2]["dual_bound"] == 4.4
+    @test results[1]["Fstar"] == 4.5
+    @test results[1]["gaps"] ≈ [5.6, 0.6]
+    @test results[2]["gaps"] ≈ [4.6, 0.1]
+    @test results[1]["dual_relgaps"] == [1.0, 0.2]
+    @test results[2]["primal_relgaps"] ≈ [1.0, 1.0e-20]
+    @test isempty(results[3]["relgaps"])
+    @test results[3]["dual_bound"] == 4.4
+    @test results[4]["dual_bound"] == 2.5
 end

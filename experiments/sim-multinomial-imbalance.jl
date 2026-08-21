@@ -56,9 +56,9 @@ for (i, d) in enumerate(params)
     push!(results, d_exp)
 end
 
-# Score each run by a certified suboptimality upper bound from the strongest
-# feasible dual point for its seed.
-suboptimality_against_certified_optimum!(results; instance_of = r -> r["it"])
+# Score each run by the suboptimality bound from the strongest feasible dual
+# point for its seed.
+suboptimality_against_shared_dual!(results; instance_of = r -> r["it"])
 
 outfile = @projectroot("results", "sim-multinomial-imbalance.jld2");
 

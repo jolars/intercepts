@@ -58,6 +58,9 @@ function run_path(X, y, strategy_sym, randomize, warm_start)
     final_relgap = zeros(Float64, K_GRID)
     init_partial0F = zeros(Float64, K_GRID)
     nnz_solution = zeros(Int, K_GRID)
+    primal_paths = Vector{Vector{Float64}}(undef, K_GRID)
+    dual_paths = Vector{Vector{Float64}}(undef, K_GRID)
+    dual_relgap_paths = Vector{Vector{Float64}}(undef, K_GRID)
 
     coef_carry = nothing
     intercept_carry = 0.0
@@ -97,6 +100,9 @@ function run_path(X, y, strategy_sym, randomize, warm_start)
         init_relgap[k] = isempty(res.relgaps) ? NaN : res.relgaps[1]
         final_relgap[k] = isempty(res.relgaps) ? NaN : res.relgaps[end]
         nnz_solution[k] = count(!iszero, res.coef)
+        primal_paths[k] = res.primals
+        dual_paths[k] = res.duals
+        dual_relgap_paths[k] = res.relgaps
 
         coef_carry = res.coef
         intercept_carry = res.intercept
@@ -122,6 +128,9 @@ function run_path(X, y, strategy_sym, randomize, warm_start)
         init_partial0F = init_partial0F,
         nnz_solution = nnz_solution,
         λmax = λmax,
+        primal_paths = primal_paths,
+        dual_paths = dual_paths,
+        dual_relgap_paths = dual_relgap_paths,
     )
 end
 
@@ -164,9 +173,41 @@ for (i, d) in enumerate(params)
         "init_partial0F" => path.init_partial0F,
         "nnz_solution" => path.nnz_solution,
         "lambdamax" => path.λmax,
+        "primal_paths" => path.primal_paths,
+        "dual_paths" => path.dual_paths,
+        "dual_relgap_paths" => path.dual_relgap_paths,
     )
 
     push!(results, d_exp)
+end
+
+for dataset in unique(r["dataset"] for r in results)
+    group = filter(r -> r["dataset"] == dataset, results)
+    for k in 1:K_GRID
+        slices = [
+            Dict{String, Any}(
+                "primals" => r["primal_paths"][k],
+                "duals" => r["dual_paths"][k],
+                "gaps" => copy(r["primal_paths"][k]),
+                "relgaps" => r["dual_relgap_paths"][k],
+            ) for r in group
+        ]
+        suboptimality_against_shared_dual!(slices; instance_of = _ -> k)
+
+        for (r, slice) in zip(group, slices)
+            relgaps = slice["relgaps"]
+            crossing = findfirst(g -> g <= TOL, relgaps)
+            r["passes"][k] = isnothing(crossing) ? length(relgaps) : crossing - 1
+            r["init_relgap"][k] = isempty(relgaps) ? NaN : relgaps[1]
+            r["final_relgap"][k] = isempty(relgaps) ? NaN : relgaps[end]
+        end
+    end
+end
+
+for r in results
+    delete!(r, "primal_paths")
+    delete!(r, "dual_paths")
+    delete!(r, "dual_relgap_paths")
 end
 
 outfile = @projectroot("results", "sim-warmstart-path.jld2")

@@ -44,9 +44,15 @@ for (i, d) in enumerate(params)
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps
     d_exp["primals"] = res.primals
+    d_exp["duals"] = res.duals
 
     push!(results, d_exp)
 end
+
+suboptimality_against_shared_dual!(
+    results;
+    instance_of = r -> (r["it"], r["n"], r["p"], r["s"], r["reg"], r["μ0"]),
+)
 
 outfile = @projectroot("results", "sim-mu-extreme.jld2");
 

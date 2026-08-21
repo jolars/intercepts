@@ -6,7 +6,7 @@ using JLD2
 
 # Per-pass cost decomposition for the exact strategy.
 # Records, per outer pass, the number of inner Newton steps consumed at the
-# intercept (k_0) and the outer progress (relative gap), for both the Newton
+# intercept (k_0) and the outer progress (relative suboptimality), for both the Newton
 # strategy (single inner step per pass) and the exact strategy (iterates
 # until |∂_0 F| < 1e-10).
 #
@@ -28,7 +28,7 @@ param_dict = Dict{String, Any}(
 params = dict_list(param_dict)
 
 const MAXIT = 200
-const TOL = 1.0e-8
+const TOL = 1.0e-10
 
 results = Vector{Dict{String, Any}}()
 
@@ -66,19 +66,8 @@ for (i, d) in enumerate(params)
         maxit = MAXIT,
     )
 
-    # cdsolver records relgaps[t] before pass t starts. inner_steps[t] is the
-    # number of inner intercept steps consumed during pass t. If the tolerance
-    # halts the loop, relgaps has one more entry than inner_steps (the entry
-    # logged at the halt). We report the relgap AT THE END of pass t — that is
-    # relgaps[t+1] when available, falling back to relgaps[end].
     inner_steps = res.inner_steps
     T = length(inner_steps)
-    n_rg = length(res.relgaps)
-    relgap_after = Vector{Float64}(undef, T)
-    for t in 1:T
-        idx = min(t + 1, n_rg)
-        relgap_after[t] = max(res.relgaps[idx], 1.0e-20)
-    end
     pass = collect(1:T)
 
     d_exp = Dict{String, Any}(
@@ -88,8 +77,11 @@ for (i, d) in enumerate(params)
         "reg" => reg,
         "μ0" => μ0,
         "strategy" => String(strategy),
+        "primals" => res.primals,
+        "duals" => res.duals,
+        "gaps" => res.gaps,
+        "relgaps" => res.relgaps,
         "pass" => pass,
-        "relgap_after" => relgap_after,
         "inner_steps" => inner_steps,
         "cum_inner_steps" => cumsum(inner_steps),
         "time" => res.time[1:T],
@@ -98,10 +90,24 @@ for (i, d) in enumerate(params)
 
     println(
         "[$i/$(length(params))] μ0=$μ0 strategy=$strategy passes=$(res.passes) " *
-            "total_inner_steps=$(sum(inner_steps)) final_relgap=$(relgap_after[end])",
+            "total_inner_steps=$(sum(inner_steps)) final_relgap=$(res.relgaps[end])",
     )
 
     push!(results, d_exp)
+end
+
+suboptimality_against_shared_dual!(
+    results;
+    instance_of = r -> (r["n"], r["p"], r["s"], r["reg"], r["μ0"]),
+)
+
+for r in results
+    # cdsolver records relgaps[t] before pass t starts. inner_steps[t] is the
+    # work consumed during pass t, so progress after that pass is relgaps[t+1]
+    # when the next diagnostic exists.
+    T = length(r["inner_steps"])
+    n_rg = length(r["relgaps"])
+    r["relgap_after"] = [max(r["relgaps"][min(t + 1, n_rg)], 1.0e-20) for t in 1:T]
 end
 
 outfile = @projectroot("results", "sim-per-pass-cost.jld2")

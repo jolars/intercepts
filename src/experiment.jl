@@ -63,9 +63,9 @@ function run_solver(
             randomize = randomize,
             update_freq = update_freq,
         )
-        # The multinomial solver now maintains a dual-feasible point by dual
-        # scaling, so report the true relative duality gap (floored for the
-        # log-scale plots) rather than a run-local primal-suboptimality proxy.
+        # The multinomial solver maintains a domain-safe dual-feasible point, so
+        # report the true relative duality gap rather than a run-local
+        # primal-suboptimality proxy.
         return (
             time = res.time,
             gaps = res.gaps,
@@ -97,24 +97,25 @@ function run_solver(
     )
 end
 
-# Score every multinomial run against the strongest shared feasible dual bound.
+# Score comparable runs against the strongest shared feasible dual bound.
 # This remains a valid upper bound on suboptimality below the accuracy of the
 # best observed primal, where subtracting that primal would overstate precision.
 """
-    suboptimality_against_certified_optimum!(results; instance_of, cert_tol=1e-4)
+    suboptimality_against_shared_dual!(results; instance_of, cert_tol=1e-4)
 
-Replace each run's gap history with a certified relative upper bound on primal
-suboptimality, computed from the largest feasible dual value attained by any
-run of the same problem instance. `instance_of(result)` supplies the grouping
-key. The function preserves the run-local duality gaps in `"dual_relgaps"`,
+Replace each run's gap history with a relative suboptimality bound computed from
+the largest feasible dual value attained by any run of the same problem
+instance. `instance_of(result)` supplies the grouping key. The function
+preserves the run-local duality gaps in `"dual_relgaps"`,
 the distance to the best observed primal in `"primal_relgaps"`, and records the
 shared dual bound, certificate width, and best primal in `"dual_bound"`,
 `"dual_cert"`, and `"Fstar"`.
 
-The function mutates and returns `results`. It warns when no run in a group has
-a relative duality gap at or below `cert_tol`.
+Empty trajectories receive the shared metadata but remain empty. The function
+mutates and returns `results`. It warns when the best primal and dual values in
+a group differ by more than `cert_tol` on the relative scale.
 """
-function suboptimality_against_certified_optimum!(
+function suboptimality_against_shared_dual!(
         results;
         instance_of::Function,
         cert_tol::Real = 1.0e-4,
@@ -124,14 +125,26 @@ function suboptimality_against_certified_optimum!(
         push!(get!(groups, instance_of(r), Any[]), r)
     end
     for (key, group) in groups
-        fstar = minimum(minimum(r["primals"]) for r in group)
-        dual_bound = maximum(maximum(r["duals"]) for r in group)
+        valid = filter(group) do r
+            primals = r["primals"]
+            duals = r["duals"]
+            length(primals) == length(duals) ||
+                throw(DimensionMismatch("primal and dual histories must have equal length"))
+            return !isempty(primals) && all(isfinite, primals) && all(isfinite, duals)
+        end
+        isempty(valid) && error("no finite primal-dual trajectory for instance $key")
+
+        fstar = minimum(minimum(r["primals"]) for r in valid)
+        dual_bound = maximum(maximum(r["duals"]) for r in valid)
         scale = max(abs(fstar), 1.0e-15)
+        weak_duality_tol = 128 * eps(Float64) * max(abs(fstar), abs(dual_bound), 1.0)
+        dual_bound <= fstar + weak_duality_tol ||
+            error("shared dual bound exceeds the best primal for instance $key")
         cert = max((fstar - dual_bound) / scale, 0.0)
         cert <= cert_tol ||
-            @warn "F* only weakly certified by the duality gap" instance = key gap = cert
+            @warn "best primal is only weakly bounded by the shared dual" instance = key gap = cert
         for r in group
-            r["dual_relgaps"] = r["relgaps"]
+            r["dual_relgaps"] = copy(r["relgaps"])
             r["primal_relgaps"] = max.(
                 (r["primals"] .- fstar) ./ scale,
                 1.0e-20,
@@ -148,6 +161,11 @@ function suboptimality_against_certified_optimum!(
     end
     return results
 end
+
+# Retain the old internal name for cached experiment scripts created before the
+# shared-reference audit. New code should use the more precise public name.
+suboptimality_against_certified_optimum!(args...; kwargs...) =
+    suboptimality_against_shared_dual!(args...; kwargs...)
 
 """
     simulated_experiment(n=100, p=10000; kwargs...)

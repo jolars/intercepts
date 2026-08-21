@@ -88,9 +88,9 @@ for (i, d) in enumerate(params)
     push!(results, d_exp)
 end
 
-# Certified suboptimality upper bounds from the strongest shared feasible dual
-# point. One problem instance means that every run shares the same bound.
-suboptimality_against_certified_optimum!(results; instance_of = r -> 0)
+# Shared suboptimality bounds from the strongest feasible dual point. One
+# problem instance means that every run shares the same bound.
+suboptimality_against_shared_dual!(results; instance_of = r -> 0)
 
 outfile = @projectroot("results", "real-multinomial-yeoh.jld2")
 
