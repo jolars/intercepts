@@ -12,8 +12,20 @@ struct GradientStrategy <: InterceptStrategy end
 """Take one Armijo-guarded Newton step for the intercept."""
 struct NewtonStrategy <: InterceptStrategy end
 
-"""Iterate intercept updates until the intercept gradient is negligible."""
-struct ExactStrategy <: InterceptStrategy end
+"""
+    ExactStrategy(; gradient_tol=1e-10, maxit=50)
+
+Minimize the conditional intercept problem with safeguarded Newton iterations.
+The solve raises an error rather than silently returning an iterate that has not
+reached `gradient_tol` within `maxit` iterations.
+"""
+@kwdef struct ExactStrategy <: InterceptStrategy
+    gradient_tol::Float64 = 1.0e-10
+    maxit::Int = 50
+    armijo_c::Float64 = 1.0e-4
+    backtrack::Float64 = 0.5
+    max_backtracks::Int = 50
+end
 
 """
     UnguardedNewtonStrategy()
@@ -41,32 +53,32 @@ using the selected `strategy`. For multinomial logistic loss, `η` is an
 `n × (K - 1)` matrix and the intercept is a length `K - 1` vector.
 """
 function update_intercept(
-    ::NoIntercept,
-    f::LossFunction,
-    intercept::Real,
-    η::AbstractVector{<:Real},
-    y::AbstractVector{<:Real},
-)
-    0
+        ::NoIntercept,
+        f::LossFunction,
+        intercept::Real,
+        η::AbstractVector{<:Real},
+        y::AbstractVector{<:Real},
+    )
+    return 0
 end
 
 function update_intercept(
-    ::GradientStrategy,
-    f::LossFunction,
-    intercept::Real,
-    η::AbstractVector{<:Real},
-    y::AbstractVector{<:Real},
-)
+        ::GradientStrategy,
+        f::LossFunction,
+        intercept::Real,
+        η::AbstractVector{<:Real},
+        y::AbstractVector{<:Real},
+    )
     return intercept - sum(gradient(f, η, y)) / (f.lipschitz * length(η))
 end
 
 function update_intercept(
-    ::NewtonStrategy,
-    f::LossFunction,
-    intercept::Real,
-    η::AbstractVector{<:Real},
-    y::AbstractVector{<:Real},
-)
+        ::NewtonStrategy,
+        f::LossFunction,
+        intercept::Real,
+        η::AbstractVector{<:Real},
+        y::AbstractVector{<:Real},
+    )
     grad = sum(gradient(f, η, y))
     hess = sum(hessian(f, η, y))
 
@@ -98,12 +110,12 @@ function update_intercept(
 end
 
 function update_intercept(
-    ::UnguardedNewtonStrategy,
-    f::LossFunction,
-    intercept::Real,
-    η::AbstractVector{<:Real},
-    y::AbstractVector{<:Real},
-)
+        ::UnguardedNewtonStrategy,
+        f::LossFunction,
+        intercept::Real,
+        η::AbstractVector{<:Real},
+        y::AbstractVector{<:Real},
+    )
     grad = sum(gradient(f, η, y))
     hess = sum(hessian(f, η, y))
 
@@ -116,12 +128,12 @@ end
 
 # Gradient step (with global Lipschitz step size) protected by Armijo backtracking
 function update_intercept(
-    s::BacktrackingGradientStrategy,
-    f::LossFunction,
-    intercept::Real,
-    η::AbstractVector{<:Real},
-    y::AbstractVector{<:Real},
-)
+        s::BacktrackingGradientStrategy,
+        f::LossFunction,
+        intercept::Real,
+        η::AbstractVector{<:Real},
+        y::AbstractVector{<:Real},
+    )
     n = length(η)
     grad = sum(gradient(f, η, y))
 
@@ -147,54 +159,74 @@ function update_intercept(
     return intercept + α * direction
 end
 
-# Iteratively update the intercept until convergence
+# Safeguarded conditional minimization of the intercept.
 function update_intercept(
-    ::ExactStrategy,
-    f::LossFunction,
-    intercept::Real,
-    η::AbstractVector{<:Real},
-    y::AbstractVector{<:Real},
-)
-    new_intercept, _ = update_intercept_with_count(ExactStrategy(), f, intercept, η, y)
+        strategy::ExactStrategy,
+        f::LossFunction,
+        intercept::Real,
+        η::AbstractVector{<:Real},
+        y::AbstractVector{<:Real},
+    )
+    new_intercept, _ = update_intercept_with_count(strategy, f, intercept, η, y)
     return new_intercept
 end
 
 function update_intercept_with_count(
-    ::ExactStrategy,
-    f::LossFunction,
-    intercept::Real,
-    η::AbstractVector{<:Real},
-    y::AbstractVector{<:Real},
-)
+        strategy::ExactStrategy,
+        f::LossFunction,
+        intercept::Real,
+        η::AbstractVector{<:Real},
+        y::AbstractVector{<:Real},
+    )
     η_copy = copy(η)
     n = length(η)
 
-    max_it = 20
     k0 = 0
 
-    for _ in 1:max_it
+    for _ in 1:strategy.maxit
         grad = sum(gradient(f, η_copy, y))
 
-        if abs(grad) < 1.0e-10
-            break
+        if abs(grad) / n <= strategy.gradient_tol
+            return intercept, k0
         end
 
         hess = sum(hessian(f, η_copy, y))
 
-        if abs(hess) < 1.0e-10
-            # If Hessian is small, use standard gradient descent step
-            new_intercept = intercept - grad / (f.lipschitz * n)
+        direction = if hess > 0 && isfinite(hess)
+            -grad / hess
+        elseif isfinite(f.lipschitz) && f.lipschitz > 0
+            -grad / (f.lipschitz * n)
         else
-            new_intercept = intercept - grad / hess
+            -grad / n
         end
 
-        η_copy .+= new_intercept - intercept
+        f0 = loss(f, η_copy, y)
+        slope = strategy.armijo_c * grad * direction
+        fp_tol = 4 * eps(Float64) * (1.0 + abs(f0))
+        α = 1.0
+        accepted = false
+        for _ in 0:strategy.max_backtracks
+            f_trial = loss(f, η_copy .+ α * direction, y)
+            if f_trial <= f0 + α * slope + fp_tol
+                accepted = true
+                break
+            end
+            α *= strategy.backtrack
+        end
+        accepted || error("ExactStrategy line search failed to find a descent step")
 
-        intercept = new_intercept
+        step = α * direction
+        η_copy .+= step
+        intercept += step
         k0 += 1
     end
 
-    return intercept, k0
+    normalized_gradient = abs(sum(gradient(f, η_copy, y))) / n
+    normalized_gradient <= strategy.gradient_tol && return intercept, k0
+    error(
+        "ExactStrategy failed to converge in $(strategy.maxit) iterations " *
+            "(normalized intercept gradient = $normalized_gradient)",
+    )
 end
 
 # Generic fallback: any one-step strategy counts as a single inner step.
@@ -224,34 +256,34 @@ function _intercept_hess(f::LossFunction, η::AbstractMatrix, y::AbstractVector{
 end
 
 function update_intercept(
-    ::NoIntercept,
-    f::LossFunction,
-    intercept::AbstractVector{<:Real},
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        ::NoIntercept,
+        f::LossFunction,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     return zeros(length(intercept))
 end
 
 function update_intercept(
-    ::GradientStrategy,
-    f::LossFunction,
-    intercept::AbstractVector{<:Real},
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        ::GradientStrategy,
+        f::LossFunction,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     n = size(η, 1)
     g = _intercept_grad(f, η, y)
     return intercept .- g ./ (f.lipschitz * n)
 end
 
 function update_intercept(
-    ::NewtonStrategy,
-    f::LossFunction,
-    intercept::AbstractVector{<:Real},
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        ::NewtonStrategy,
+        f::LossFunction,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     n = size(η, 1)
     g = _intercept_grad(f, η, y)
     H = _intercept_hess(f, η, y)
@@ -295,12 +327,12 @@ function update_intercept(
 end
 
 function update_intercept(
-    ::UnguardedNewtonStrategy,
-    f::LossFunction,
-    intercept::AbstractVector{<:Real},
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        ::UnguardedNewtonStrategy,
+        f::LossFunction,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     n = size(η, 1)
     g = _intercept_grad(f, η, y)
     H = _intercept_hess(f, η, y)
@@ -325,12 +357,12 @@ function update_intercept(
 end
 
 function update_intercept(
-    s::BacktrackingGradientStrategy,
-    f::LossFunction,
-    intercept::AbstractVector{<:Real},
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        s::BacktrackingGradientStrategy,
+        f::LossFunction,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     n = size(η, 1)
     g = _intercept_grad(f, η, y)
 
@@ -357,52 +389,74 @@ function update_intercept(
 end
 
 function update_intercept(
-    ::ExactStrategy,
-    f::LossFunction,
-    intercept::AbstractVector{<:Real},
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
-    new_intercept, _ = update_intercept_with_count(ExactStrategy(), f, intercept, η, y)
+        strategy::ExactStrategy,
+        f::LossFunction,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
+    new_intercept, _ = update_intercept_with_count(strategy, f, intercept, η, y)
     return new_intercept
 end
 
 function update_intercept_with_count(
-    ::ExactStrategy,
-    f::LossFunction,
-    intercept::AbstractVector{<:Real},
-    η::AbstractMatrix{<:Real},
-    y::AbstractVector{<:Integer},
-)
+        strategy::ExactStrategy,
+        f::LossFunction,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
     n = size(η, 1)
     η_copy = copy(η)
     intercept = copy(intercept)
 
-    max_it = 20
     k0 = 0
-    for _ in 1:max_it
+    for _ in 1:strategy.maxit
         g = _intercept_grad(f, η_copy, y)
 
-        if maximum(abs, g) < 1.0e-10
-            break
+        if maximum(abs, g) / n <= strategy.gradient_tol
+            return intercept, k0
         end
 
         H = _intercept_hess(f, η_copy, y)
 
-        local δ
+        local direction
         try
-            δ = -(H \ g)
+            direction = -(H \ g)
         catch
-            δ = -g ./ (f.lipschitz * n)
+            direction = -g ./ (f.lipschitz * n)
         end
-        if any(!isfinite, δ)
-            δ = -g ./ (f.lipschitz * n)
+        if any(!isfinite, direction) || !(dot(g, direction) < 0)
+            direction = isfinite(f.lipschitz) && f.lipschitz > 0 ?
+                -g ./ (f.lipschitz * n) :
+                -g ./ n
         end
 
-        η_copy .+= δ' # broadcast across rows
-        intercept .+= δ
+        f0 = loss(f, η_copy, y)
+        slope = strategy.armijo_c * dot(g, direction)
+        fp_tol = 4 * eps(Float64) * (1.0 + abs(f0))
+        α = 1.0
+        accepted = false
+        for _ in 0:strategy.max_backtracks
+            f_trial = loss(f, η_copy .+ α .* direction', y)
+            if f_trial <= f0 + α * slope + fp_tol
+                accepted = true
+                break
+            end
+            α *= strategy.backtrack
+        end
+        accepted || error("ExactStrategy line search failed to find a descent step")
+
+        step = α .* direction
+        η_copy .+= step'
+        intercept .+= step
         k0 += 1
     end
 
-    return intercept, k0
+    normalized_gradient = maximum(abs, _intercept_grad(f, η_copy, y)) / n
+    normalized_gradient <= strategy.gradient_tol && return intercept, k0
+    error(
+        "ExactStrategy failed to converge in $(strategy.maxit) iterations " *
+            "(normalized intercept gradient = $normalized_gradient)",
+    )
 end

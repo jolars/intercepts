@@ -61,7 +61,7 @@ for (i, d) in enumerate(params)
     elseif strategy == :newton
         NewtonStrategy()
     elseif strategy == :exact
-        ExactStrategy()
+        ExactStrategy(gradient_tol = 1.0e-8)
     else
         error("Unknown strategy: $strategy")
     end
@@ -81,15 +81,15 @@ for (i, d) in enumerate(params)
     d_exp = Dict{String, Any}(copy(d))
     d_exp["time"] = res.time
     d_exp["primals"] = res.primals
+    d_exp["duals"] = res.duals
     d_exp["relgaps"] = max.(res.relgaps, 1.0e-20)
     d_exp["gaps"] = res.gaps
 
     push!(results, d_exp)
 end
 
-# Relative primal suboptimality against a shared optimum F* (best primal across
-# strategies), certified by the duality gap. One problem instance, so all runs
-# share a single F*.
+# Certified suboptimality upper bounds from the strongest shared feasible dual
+# point. One problem instance means that every run shares the same bound.
 suboptimality_against_certified_optimum!(results; instance_of = r -> 0)
 
 outfile = @projectroot("results", "real-multinomial-yeoh.jld2")

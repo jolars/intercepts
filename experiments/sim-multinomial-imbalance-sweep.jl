@@ -8,7 +8,7 @@ Random.seed!(1234)
 
 # Sweep of class imbalance (p_K, the rarest-class marginal) × feature amplitude
 # for the K=5 multinomial logistic problem of sim-multinomial-imbalance.jl,
-# testing whether the collapse of {bare Newton, convergence} observed at the
+# testing whether the collapse of {bare Newton, exact} observed at the
 # single anchor point persists across the steelman range (down to p_K = 0.005
 # and up to four-times the figure amplitude).
 #
@@ -70,14 +70,15 @@ for (i, d) in enumerate(params)
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps
     d_exp["primals"] = res.primals
+    d_exp["duals"] = res.duals
     d_exp["pass"] = collect(1:length(res.relgaps))
 
     push!(results, d_exp)
 end
 
-# Shared optimum F* per (p_K, amplitude, seed) cell, certified by the duality
-# gap; relgaps become relative primal suboptimality against it. Each cell is a
-# distinct random problem, so F* is computed per cell.
+# Shared feasible dual bound per (p_K, amplitude, seed) cell; relgaps become
+# certified relative suboptimality upper bounds. Each cell is a distinct random
+# problem, so the bound is computed per cell.
 suboptimality_against_certified_optimum!(
     results;
     instance_of = r -> (r["p_K"], r["amplitude"], r["it"]),

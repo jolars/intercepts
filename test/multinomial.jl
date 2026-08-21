@@ -234,6 +234,33 @@ end
     @test minimum(res.relgaps) < 1.0e-4
 end
 
+@testset "Shared multinomial dual gives a certified suboptimality bound" begin
+    results = Any[
+        Dict{String, Any}(
+            "primals" => [1.2, 1.05],
+            "duals" => [0.7, 0.99],
+            "relgaps" => [0.5, 0.1],
+        ),
+        Dict{String, Any}(
+            "primals" => [1.1, 1.0],
+            "duals" => [0.8, 0.98],
+            "relgaps" => [0.3, 0.02],
+        ),
+    ]
+
+    suboptimality_against_certified_optimum!(
+        results;
+        instance_of = _ -> 1,
+        cert_tol = 0.02,
+    )
+
+    @test all(r["dual_bound"] == 0.99 for r in results)
+    @test all(r["Fstar"] == 1.0 for r in results)
+    @test results[2]["gaps"] ≈ [0.11, 0.01]
+    @test results[2]["relgaps"] ≈ [0.11, 0.01]
+    @test results[2]["primal_relgaps"] ≈ [0.1, 1.0e-20]
+end
+
 @testset "Multinomial K=2 dual matches binary logistic dual" begin
     Random.seed!(77)
     n = 60

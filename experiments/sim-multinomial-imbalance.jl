@@ -51,13 +51,13 @@ for (i, d) in enumerate(params)
     d_exp["gaps"] = res.gaps
     d_exp["relgaps"] = res.relgaps
     d_exp["primals"] = res.primals
+    d_exp["duals"] = res.duals
 
     push!(results, d_exp)
 end
 
-# Score each run as relative primal suboptimality against a shared optimum F*
-# (best primal across strategies for the seed), with the duality gap certifying
-# F*. Per seed, since each seed is a distinct random problem.
+# Score each run by a certified suboptimality upper bound from the strongest
+# feasible dual point for its seed.
 suboptimality_against_certified_optimum!(results; instance_of = r -> r["it"])
 
 outfile = @projectroot("results", "sim-multinomial-imbalance.jld2");

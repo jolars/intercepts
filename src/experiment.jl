@@ -33,18 +33,22 @@ function get_intercept_strategy(strategy)
 end
 
 function run_solver(
-    X,
-    y;
-    response,
-    strategy,
-    reg,
-    maxit,
-    maxtime,
-    randomize,
-    update_freq,
-    K::Int = 3,
-)
-    intercept_strategy = get_intercept_strategy(strategy)
+        X,
+        y;
+        response,
+        strategy,
+        reg,
+        maxit,
+        maxtime,
+        randomize,
+        update_freq,
+        K::Int = 3,
+    )
+    intercept_strategy = if response == :multinomial && strategy == :exact
+        ExactStrategy(gradient_tol = 1.0e-8)
+    else
+        get_intercept_strategy(strategy)
+    end
 
     if response == :multinomial
         lossfun = get_lossfun(response; K = K)
@@ -93,51 +97,51 @@ function run_solver(
     )
 end
 
-# Re-express each multinomial run's suboptimality as relative *primal*
-# suboptimality against a shared optimum F*, the best primal achieved by any
-# strategy on the same problem instance. The multinomial CD solver maintains a
-# duality gap (the per-iteration `relgaps`), and we use it the way a referee
-# would: confirm that at least one strategy drove the gap to ~0 --- certifying
-# that F* is the true optimum --- then measure every run against that F*. This
-# avoids the run-local-minimum understatement (a stalling run is scored against
-# the shared optimum, not its own floor) and avoids reporting the raw gap, which
-# can sit slightly above zero when a converged primal has a not-yet-tight dual
-# point. `instance_of` maps a result dict to the key identifying its problem
-# instance; results sharing a key share an F*. The original gap is preserved as
-# `dual_relgaps`, and the certifying gap as `dual_cert`.
+# Score every multinomial run against the strongest shared feasible dual bound.
+# This remains a valid upper bound on suboptimality below the accuracy of the
+# best observed primal, where subtracting that primal would overstate precision.
 """
     suboptimality_against_certified_optimum!(results; instance_of, cert_tol=1e-4)
 
-Replace each run's gap history with relative primal suboptimality against the
-best certified objective value among runs of the same problem instance.
-`instance_of(result)` supplies the grouping key. The function preserves the
-original relative duality gaps in `"dual_relgaps"` and records the shared
-certificate and objective in `"dual_cert"` and `"Fstar"`.
+Replace each run's gap history with a certified relative upper bound on primal
+suboptimality, computed from the largest feasible dual value attained by any
+run of the same problem instance. `instance_of(result)` supplies the grouping
+key. The function preserves the run-local duality gaps in `"dual_relgaps"`,
+the distance to the best observed primal in `"primal_relgaps"`, and records the
+shared dual bound, certificate width, and best primal in `"dual_bound"`,
+`"dual_cert"`, and `"Fstar"`.
 
 The function mutates and returns `results`. It warns when no run in a group has
 a relative duality gap at or below `cert_tol`.
 """
 function suboptimality_against_certified_optimum!(
-    results;
-    instance_of::Function,
-    cert_tol::Real = 1.0e-4,
-)
+        results;
+        instance_of::Function,
+        cert_tol::Real = 1.0e-4,
+    )
     groups = Dict{Any, Vector{Any}}()
     for r in results
         push!(get!(groups, instance_of(r), Any[]), r)
     end
     for (key, group) in groups
         fstar = minimum(minimum(r["primals"]) for r in group)
-        cert = minimum(minimum(r["relgaps"]) for r in group)
+        dual_bound = maximum(maximum(r["duals"]) for r in group)
+        scale = max(abs(fstar), 1.0e-15)
+        cert = max((fstar - dual_bound) / scale, 0.0)
         cert <= cert_tol ||
             @warn "F* only weakly certified by the duality gap" instance = key gap = cert
         for r in group
             r["dual_relgaps"] = r["relgaps"]
+            r["primal_relgaps"] = max.(
+                (r["primals"] .- fstar) ./ scale,
+                1.0e-20,
+            )
             r["dual_cert"] = cert
             r["Fstar"] = fstar
-            r["gaps"] = r["primals"] .- fstar
+            r["dual_bound"] = dual_bound
+            r["gaps"] = max.(r["primals"] .- dual_bound, 0.0)
             r["relgaps"] = max.(
-                (r["primals"] .- fstar) ./ max(abs(fstar), 1.0e-15),
+                r["gaps"] ./ scale,
                 1.0e-20,
             )
         end
@@ -158,25 +162,25 @@ Return a named tuple containing time, gap, relative-gap, primal, and dual
 histories.
 """
 function simulated_experiment(
-    n = 100,
-    p = 10000;
-    response = :binomial,
-    strategy = :gradient,
-    μ0 = 0.9,
-    s = 10,
-    reg = 0.01,
-    randomize = false,
-    update_freq = 1,
-    maxit = 1000,
-    maxtime = Inf,
-    ρ = 0.6,
-    amplitude = 1.0,
-    x_density = 1.0,
-    x_type = :normal,
-    means = :random,
-    K::Int = 3,
-    class_probs::Union{AbstractVector, Nothing} = nothing,
-)
+        n = 100,
+        p = 10000;
+        response = :binomial,
+        strategy = :gradient,
+        μ0 = 0.9,
+        s = 10,
+        reg = 0.01,
+        randomize = false,
+        update_freq = 1,
+        maxit = 1000,
+        maxtime = Inf,
+        ρ = 0.6,
+        amplitude = 1.0,
+        x_density = 1.0,
+        x_type = :normal,
+        means = :random,
+        K::Int = 3,
+        class_probs::Union{AbstractVector, Nothing} = nothing,
+    )
     X, y = generatedata(
         n,
         p;
@@ -219,19 +223,19 @@ Return a named tuple containing time, gap, relative-gap, primal, and dual
 histories.
 """
 function real_experiment(
-    dataset = "w1a";
-    response = :binomial,
-    strategy = :gradient,
-    reg = 0.01,
-    randomize = false,
-    update_freq = 1,
-    maxit = 1000,
-    maxtime = Inf,
-    n_positive::Union{Nothing, Int} = nothing,
-    n_negative::Union{Nothing, Int} = nothing,
-    seed::Int = 42,
-    min_nnz_per_column::Int = 1,
-)
+        dataset = "w1a";
+        response = :binomial,
+        strategy = :gradient,
+        reg = 0.01,
+        randomize = false,
+        update_freq = 1,
+        maxit = 1000,
+        maxtime = Inf,
+        n_positive::Union{Nothing, Int} = nothing,
+        n_negative::Union{Nothing, Int} = nothing,
+        seed::Int = 42,
+        min_nnz_per_column::Int = 1,
+    )
 
     X, y = load_local_dataset(dataset)
 
@@ -273,12 +277,12 @@ function real_experiment(
             Xc = X::SparseMatrixCSC
             keep = [
                 Xc.colptr[j + 1] - Xc.colptr[j] >= min_nnz_per_column
-                for j in 1:size(Xc, 2)
+                    for j in 1:size(Xc, 2)
             ]
         else
             keep = [
                 !iszero(maximum(@view X[:, j]) - minimum(@view X[:, j]))
-                for j in axes(X, 2)
+                    for j in axes(X, 2)
             ]
         end
         X = X[:, keep]

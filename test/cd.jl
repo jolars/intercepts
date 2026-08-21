@@ -215,6 +215,34 @@ end
     @test f_new <= f0 + 1.0e-10
 end
 
+@testset "ExactStrategy safeguards an extreme Poisson cold start" begin
+    n = 100
+    y = fill(300.0, n)
+    η = zeros(n)
+    f = PoissonLoss()
+
+    intercept_new = update_intercept(ExactStrategy(), f, 0.0, η, y)
+    η_new = η .+ intercept_new
+    normalized_gradient = abs(sum(gradient(f, η_new, y))) / n
+
+    @test isapprox(intercept_new, log(300.0); atol = 1.0e-10)
+    @test normalized_gradient <= 1.0e-10
+    @test loss(f, η_new, y) < loss(f, η, y)
+end
+
+@testset "ExactStrategy does not silently return a capped iterate" begin
+    y = fill(300.0, 10)
+    η = zeros(10)
+
+    @test_throws ErrorException update_intercept(
+        ExactStrategy(maxit = 1),
+        PoissonLoss(),
+        0.0,
+        η,
+        y,
+    )
+end
+
 @testset "UnguardedNewtonStrategy matches Newton on quadratic loss" begin
     Random.seed!(2024)
     n = 200
