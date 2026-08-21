@@ -1520,8 +1520,9 @@ draw(
 )
 ```
 
-For multinomial models, we therefore recommend a single Newton block step. It
-already includes the damping safeguard needed at a scalar cold start.
+For multinomial models, we therefore recommend a single Armijo-guarded Newton
+block step. The line search supplies the damping safeguard needed at a scalar
+cold start.
 
 The same pattern holds on real high-dimensional multinomial data. The Yeoh2002
 pediatric ALL gene-expression panel\ [@yeoh2002] is a $K = 6$ subtype problem on
@@ -2816,11 +2817,11 @@ general theorem for their Lyapunov exponents or a global convergence rate for CD
 with a Newton-updated intercept.
 
 Second, the production-solver experiments in @sec-production-solvers include
-only three problems. The heatmap in @sec-imbalance-reg reproduces the binary
-direct-CD predictions across a 30-cell grid, but the cross-package comparison
-does not yet sweep the full $(\mu_0, \lambda)$ plane. Future work should extend
-the production-solver sweep along those axes and check the multinomial
-predictions against glmnet's symmetric-multinomial path and adelie's
+only three benchmark problems. The heatmap in @sec-imbalance-reg reproduces the
+binary direct-CD predictions across a 30-cell grid, but the cross-package
+comparison does not yet sweep the full $(\mu_0, \lambda)$ plane. Future work
+should extend the production-solver sweep along those axes and check the
+multinomial predictions against glmnet's symmetric-multinomial path and adelie's
 multi-response solver.
 
 # Supplementary figures {.unnumbered}

@@ -480,22 +480,17 @@ open repetition and repository-copy tasks above rather than duplicating them.
   package versions; distinguished biglasso's inaccurate returned fits from
   adelie's empty state on w1a; and framed the proposed design-dependent
   mechanism as a plausible explanation rather than an established result.)
-- [ ] Add an end-to-end reproduction map for every cache consumed by the
-  notebook. For each cached figure or table, identify the producing script,
-  required data, environment or language, expected cost, output path, and
-  execution order. Put the operational detail in the README if that keeps
-  @sec-methodology focused, but make the route complete rather than
-  exemplary. Before submission, verify it by following the documented route
-  from a clean checkout. This referee pass assessed reproducibility by
-  inspection, not by executing the pipeline.
 
 ### Consistency and documentation (minor)
 
-- [ ] Fix the limitations text that describes the production comparison as a
+- [x] Fix the limitations text that describes the production comparison as a
   “single shared problem” even though @sec-production-solvers evaluates
-  three problems.
-- [ ] Reconcile “bare Newton block step” after @fig-multinomial-sweep with the
-  paper's definition of `NewtonStrategy` as Armijo-guarded.
+  three problems. (resolved: described the comparison as covering three
+  benchmark problems.)
+- [x] Reconcile “bare Newton block step” after @fig-multinomial-sweep with the
+  paper's definition of `NewtonStrategy` as Armijo-guarded. (resolved: made
+  the recommendation explicitly Armijo-guarded and identified the line
+  search as the damping safeguard.)
 - [ ] Add docstrings for the exported package API used by @algo-cd and
   @sec-methodology, especially the solvers, loss interface, intercept
   strategies, normalization and coefficient rescaling, stopping criteria,
