@@ -71,7 +71,7 @@ for μ0 in Μ0_GRID
         lossfun = lossfun,
         intercept_strategy = NewtonStrategy(),
         maxit = MAXIT,
-        randomize = true,
+        randomize = false,
         tol = 1.0e-12,
         save_history = false,
     )
@@ -125,7 +125,7 @@ for μ0 in Μ0_GRID
         lossfun = lossfun,
         intercept_strategy = GradientStrategy(),
         maxit = MAXIT,
-        randomize = true,
+        randomize = false,
         tol = TOL_TARGET,
     )
 
@@ -137,7 +137,7 @@ for μ0 in Μ0_GRID
         lossfun = lossfun,
         intercept_strategy = NewtonStrategy(),
         maxit = MAXIT,
-        randomize = true,
+        randomize = false,
         tol = TOL_TARGET,
     )
 

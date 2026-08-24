@@ -71,7 +71,7 @@ function multinomial_cdsolver(
         tol::Real = 1.0e-10,
         maxit::Int = 1000,
         maxtime::Real = Inf,
-        randomize::Bool = true,
+        randomize::Bool = false,
         normalization::Symbol = :standardize,
         save_history::Bool = false,
     )

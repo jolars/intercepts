@@ -37,7 +37,7 @@ function run_method(method, X, y, reg)
             lossfun = LogisticLoss(),
             intercept_strategy = NewtonStrategy(),
             maxit = 500,
-            randomize = true,
+            randomize = false,
         )
     elseif method == :direct_gradient
         return cdsolver(
@@ -47,7 +47,7 @@ function run_method(method, X, y, reg)
             lossfun = LogisticLoss(),
             intercept_strategy = GradientStrategy(),
             maxit = 500,
-            randomize = true,
+            randomize = false,
         )
     elseif method == :local_irls
         return irlssolver(
@@ -59,7 +59,7 @@ function run_method(method, X, y, reg)
             intercept_strategy = NewtonStrategy(),
             max_outer = 200,
             max_inner = 30,
-            randomize = true,
+            randomize = false,
         )
     elseif method == :mm_irls
         return irlssolver(
@@ -71,7 +71,7 @@ function run_method(method, X, y, reg)
             intercept_strategy = NewtonStrategy(),
             max_outer = 200,
             max_inner = 30,
-            randomize = true,
+            randomize = false,
         )
     else
         error("Unknown method $method")

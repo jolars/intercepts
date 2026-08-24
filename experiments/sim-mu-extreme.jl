@@ -6,9 +6,9 @@ using JLD2
 
 Random.seed!(1234);
 
-# Extreme-imbalance logistic regression: gradient strategy applies fraction
-# H_00/L_0 of correction (Lemma 3.3). For mu0 -> 1, H_00 -> 0 while L_0 = n/4
-# stays fixed, so the gradient strategy stalls.
+# Extreme-imbalance logistic regression: the gradient strategy applies only the
+# fraction H_00/L_0 of the Newton intercept correction. For mu0 -> 1, H_00 -> 0
+# while L_0 stays fixed, so the gradient strategy stalls.
 param_dict = Dict{String, Any}(
     "it" => collect(1:1),
     "n" => [500],
@@ -36,7 +36,7 @@ for (i, d) in enumerate(params)
         μ0 = μ0,
         s = s,
         reg = reg,
-        randomize = true,
+        randomize = false,
     )
 
     d_exp = Dict{String, Any}(copy(d))

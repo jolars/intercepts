@@ -213,6 +213,7 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
+df.strategy = strategy_label.(df.strategy)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy)
 
@@ -323,16 +324,16 @@ L1-penalized multinomial logistic regression, a direct precedent for our
 multinomial extension.
 
 In regularized logistic regression, the same construction lives on as the
-`modified.Newton` mode of glmnet and the `MM` mode of
-biglasso\ (@tbl-classification). In binary logistic regression, the scalar
-Schur-coupling residual quantifies the cost: when the response is imbalanced,
-$H_{00}/L_0$ shrinks to zero, the MM intercept step shrinks in direct proportion
-to the local Newton step, and its effect on the next coefficient gradient is
-attenuated to first order (@eq-grad-residual). Its multinomial analogue replaces
-that scalar ratio with the eigenvalues of $H_{00}/L_0$
-(@eq-grad-residual-matrix). The MM literature treats this as loose majorization.
-We show that the bound is routinely loose for imbalanced binary logistic and
-rare-class multinomial problems (@sec-irls, @fig-multinomial-sweep).
+`modified.Newton` mode of glmnet and the `MM` mode of biglasso\ [@zeng2017]
+(@tbl-classification). In binary logistic regression, the scalar Schur-coupling
+residual quantifies the cost: when the response is imbalanced, $H_{00}/L_0$
+shrinks to zero, the MM intercept step shrinks in direct proportion to the local
+Newton step, and its effect on the next coefficient gradient is attenuated to
+first order (@eq-grad-residual). Its multinomial analogue replaces that scalar
+ratio with the eigenvalues of $H_{00}/L_0$ (@eq-grad-residual-matrix). The MM
+literature treats this as loose majorization. We show that the bound is
+routinely loose for imbalanced binary logistic and rare-class multinomial
+problems (@sec-irls, @fig-multinomial-sweep).
 
 ## Theory {#sec-theory}
 
@@ -477,7 +478,11 @@ The resulting coordinate-descent algorithm appears in @algo-cd.
 \end{algorithm}
 ```
 
-The Newton branch of @algo-cd wraps the same Newton direction in an Armijo
+In the implementation, every coefficient update in @algo-cd is additionally
+wrapped in a Tseng--Yun Armijo backtrack on the proximal model decrease, so each
+pass is descent by construction; the pseudocode suppresses this guard for
+readability, and [Supplement S3](#sec-s-methodology) states its constants. The
+Newton branch of @algo-cd wraps the same Newton direction in an Armijo
 backtracking line search. In the common case it accepts the full step
 immediately, shrinking $\alpha$ only when the step overshoots. The
 slope-tolerance constant $c \in (0, 1)$ controls the sufficient-decrease
@@ -706,7 +711,7 @@ count scales as $O(\log\log(1/\varepsilon))$. This local result does not bound
 the steps needed to reach that neighborhood, nor does it show that every
 outer-pass subproblem begins there.
 
-Across the experimental imbalance sweep, $k_0 \in [1, 6]$, and each step costs
+Across the experimental imbalance sweep, $k_0 \in [1, 5]$, and each step costs
 $O(n)$ work (@fig-per-pass-cost).
 
 The conditional optimum that these $k_0$ steps establish survives exactly one
@@ -793,8 +798,8 @@ Under the same local conditions as @eq-newton-error, this bias is
 $O\bigl(|H_{j0}^*|\,|\partial_0 F|^2\bigr)$, so the coupling conclusion still
 holds with the explicit Newton-residual bound.
 
-This criterion behaves differently in two regimes. Near the optimum,
-$|r_0| = O((\partial_0 F)^2)$ shrinks quadratically while
+This criterion (@eq-newton-good-enough) behaves differently in two regimes. Near
+the optimum, $|r_0| = O((\partial_0 F)^2)$ shrinks quadratically while
 $\|\partial_j \tilde F\|$ shrinks only linearly with the iterate's distance from
 the optimum, so the bias becomes negligible. Far from the optimum, the
 inequality can fail when the third derivative is large, the intercept curvature
@@ -847,7 +852,7 @@ optimum, restrict the coefficients to the active set $A$, and define the
 collective coupling
 $$
   \kappa = \frac{H_{0A}H_{AA}^{-1}H_{A0}}{H_{00}} \in [0, 1).
-$$
+$$ {#eq-collective-coupling}
 If each pass first minimizes the active coefficient block and then updates the
 intercept, Newton contracts the intercept error by $\kappa$, whereas the
 gradient strategy contracts it by $1 - (H_{00}/L_0)(1 - \kappa)$. As
@@ -925,6 +930,7 @@ df_multinomial = vcat(
     select(df_shuttle, :time, :relgaps, :strategy, :dataset),
 )
 df_multinomial.relgaps .= max.(df_multinomial.relgaps, 1.0e-10)
+df_multinomial.strategy = strategy_label.(df_multinomial.strategy)
 
 draw(
     visual(Lines) *
@@ -976,8 +982,14 @@ $$
                 = \beta_0 - \frac{1}{L_0} \partial_0 F, \qquad L_0
                 = 1/4,
 $$
-which is the gradient strategy with a global Lipschitz step. The Schur-coupling
-residual (@eq-grad-residual) therefore applies directly to glmnet's
+which is the gradient strategy with a global Lipschitz step. The identity holds
+at the linearization point, where $p_i$ is evaluated, so it describes the first
+inner intercept update after each re-linearization; once inner CD has moved
+$\beta$, subsequent inner updates drive the intercept to the conditional minimum
+of the frozen majorant quadratic (@tbl-classification) rather than taking
+further $1/L_0$ steps on the original loss. The correction transmitted per
+re-linearization is nevertheless governed by the same attenuation, so the
+Schur-coupling residual (@eq-grad-residual) applies directly to glmnet's
 `modified.Newton` mode: under response imbalance, the per-iteration correction
 fraction $H_{00} / L_0$ shrinks to leading order and the intercept update slows,
 approaching a true stall only in the limit $\mu_0 \to 1$. There is a historical
@@ -1004,10 +1016,19 @@ The appropriate intercept strategy therefore depends on the solver family. The
 production solvers fall into the classes in @tbl-classification. Of the CD-based
 packages that we surveyed, only skglm 0.5 and earlier apply the gradient
 strategy directly to the original loss. The remaining solvers---glmnet,
-biglasso, adelie, LIBLINEAR, BlitzL1, Lasso.jl, and ncvreg---all linearize
-before doing CD, either via IRLS or via proximal-Newton on a quadratic upper
-bound. The mode switches within glmnet (`Newton` versus `modified.Newton`) and
-biglasso (`Newton` versus `MM`) isolate the weight scheme in @eq-grad-residual.
+biglasso, adelie, LIBLINEAR, BlitzL1, Lasso.jl, and ncvreg\ [@breheny2011]---all
+linearize before doing CD, either via IRLS or via proximal-Newton\ [@lee2014] on
+a quadratic upper bound.^[Sources for the two solvers not in
+@tbl-classification: ncvreg recomputes local weights
+`w[i] = fmax2(mu * (1 - mu), 0.0001)` at each linearization and updates the
+intercept as the weighted-least-squares conditional minimum of the surrogate
+(`b0[l] = xwr / xwx + a0`,
+<https://github.com/pbreheny/ncvreg/blob/77a3d83/src/glm.c#L198-L237>); Lasso.jl
+fits GLMs by glmnet-style IRLS, an outer re-linearization loop with working
+weights and residuals around an inner CD solve
+(<https://github.com/JuliaStats/Lasso.jl/blob/cffedae/src/coordinate_descent.jl#L696-L704>).]
+The mode switches within glmnet (`Newton` versus `modified.Newton`) and biglasso
+(`Newton` versus `MM`) isolate the weight scheme in @eq-grad-residual.
 
 The table excludes two related implementations. Scikit-learn's L1-logistic path
 either delegates to LIBLINEAR or uses SAGA, a variance-reduced
@@ -1077,10 +1098,10 @@ draw(
 ```
 
 Local-IRLS converges fastest under $\mu_0 = 0.99$, bringing the bound below
-$10^{-8}$ in 33--34 passes across the three seeds (@fig-irls-comparison).
-Direct-CD with Newton needs 76--78 passes, and Direct-CD with the gradient
-strategy needs 350--418. MM-IRLS does not reach even $10^{-4}$ in 200 passes;
-its final bounds range from $3.8 \times 10^{-4}$ to $8.1 \times 10^{-4}$. Within
+$10^{-8}$ in 24--26 passes across the three seeds (@fig-irls-comparison).
+Direct-CD with Newton needs 49--60 passes, and Direct-CD with the gradient
+strategy needs 340--407. MM-IRLS does not reach even $10^{-4}$ in 200 passes;
+its final bounds range from $3.1 \times 10^{-4}$ to $6.7 \times 10^{-4}$. Within
 Local-IRLS, the three strategies coincide exactly: once
 $L_0^{\text{inner}} = H_{00}$, they share the single inner update
 $-\partial_0 \tilde F^{(t)} / H_{00}$ and so produce bit-identical iterates; the
@@ -1128,12 +1149,12 @@ On the standardized binary-logistic design used throughout the simulated
 experiments below ($n = 500$, $p = 1000$, $s = 10$, $\rho = 0.6$,
 $\lambda = 0.05\lambda_{\max}$), the gradient strategy is competitive at
 $\mu_0 = 0.5$ and slows visibly past $\mu_0 = 0.9$. At $\mu_0 = 0.99$, it needs
-743 passes to bring the relative suboptimality bound below $10^{-8}$, compared
-with 68 passes for Newton and exact. The latter two lie almost directly on top
-of each other across the full sweep (@fig-mu-extreme). This agreement supports
-the prediction that exact profiling will add little outer progress over one
-Newton step (@eq-intercept-drift). The two methods still differ in their inner
-work, measured directly in [Supplement S4.3](#sec-per-pass-cost).
+731 passes to bring the relative suboptimality bound below $10^{-8}$, compared
+with 50 passes for Newton and 52 for exact. The latter two lie almost directly
+on top of each other across the full sweep (@fig-mu-extreme). This agreement
+supports the prediction that exact profiling will add little outer progress over
+one Newton step (@eq-intercept-drift). The two methods still differ in their
+inner work, measured directly in [Supplement S4.3](#sec-per-pass-cost).
 
 #### Synthetic trajectories and safeguards
 
@@ -1168,9 +1189,9 @@ draw(
 The Schur-coupling residual (@eq-grad-residual) leads to our first prediction.
 The gradient strategy scales the local Newton direction by $H_{00}/L_0$, which
 approaches zero as the response imbalance $\mu_0$ approaches one. At
-$\mu_0 = 0.99$, the gradient strategy therefore needs about eleven times as many
-passes as Newton to reach $10^{-8}$, whereas the Newton and exact strategies
-remain close across the sweep (@fig-mu-extreme).
+$\mu_0 = 0.99$, the gradient strategy therefore needs about fifteen times as
+many passes as Newton to reach $10^{-8}$, whereas the Newton and exact
+strategies remain close across the sweep (@fig-mu-extreme).
 
 ```{julia}
 #| label: fig-cold-start
@@ -1332,6 +1353,7 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
+df.strategy = strategy_label.(df.strategy)
 df.dataset = replace.(
     df.dataset,
     "gisette_scale" => "gisette",
@@ -2034,10 +2056,11 @@ assumptions; we retain only the predicted scaling:
    approximation in @eq-newton-coupling, motivates using the profiled gradient
    at the *first* coefficient update of each pass. The corresponding local
    quadratic model has curvatures $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ by
-   @eq-schur-diag. As a heuristic, we extend this one-update model to the full
-   pass and treat the Schur curvature as the effective coefficient curvature. To
-   leading order, the gradient strategy removes only a fraction $H_{00}/L_0$ of
-   the coupling (@eq-grad-residual), giving the heuristic effective curvature
+   @eq-schur-diag, with $\rho_{0j}$ the normalized cross-curvature of @eq-rho.
+   As a heuristic, we extend this one-update model to the full pass and treat
+   the Schur curvature as the effective coefficient curvature. To leading order,
+   the gradient strategy removes only a fraction $H_{00}/L_0$ of the coupling
+   (@eq-grad-residual), giving the heuristic effective curvature
    $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$.
 
 Substituting the second and third approximations into the $L_j R_j^2$ sum gives
@@ -2107,17 +2130,18 @@ inactive on the standardized design because
 $H_{0j} = \mu_0(1 - \mu_0)\sum_i X_{ij}^{\mathrm{std}} = 0$ exactly.
 
 The iterate-level diagnostic substitutes $H_{00}(\hat\eta)$, which is below
-$\mu_0(1 - \mu_0)n$ at moderate imbalance (active features pull predictions away
+$\mu_0(1 - \mu_0)$ at moderate imbalance (active features pull predictions away
 from the symmetric center, decreasing weights) and above it at extreme imbalance
 (active features pull some predictions away from the majority-class corner,
 increasing weights).
 
-Neither curve uniformly dominates: the cold-start curve is tighter for
-$\mu_0 \le 0.95$ and the iterate-level curve is tighter at $\mu_0 = 0.99$. The
-two bracket the empirical ratio at low-to-moderate imbalance and both sit above
-it as $\mu_0 \to 1$, where they approach the intercept-dominated limit
-$L_0/H_{00}$ of @eq-rate-gap-asymptotic at their respective evaluation points.
-@sec-imbalance-reg examines this discrepancy over a wider grid.
+Neither curve uniformly dominates: the cold-start curve is tighter at
+$\mu_0 = 0.5$ and the iterate-level curve is tighter from $\mu_0 = 0.7$ on. The
+two bracket the empirical ratio up to $\mu_0 = 0.9$, sit marginally below it at
+$\mu_0 = 0.95$, and both sit above it at $\mu_0 = 0.99$, where they approach the
+intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic at their
+respective evaluation points. @sec-imbalance-reg examines this discrepancy over
+a wider grid.
 
 The sweep in @fig-rate-gap varies $H_{00}/L_0$ through $\mu_0$ while keeping
 $\bar\rho^2$ close to zero in the standardized design. A second experiment holds
@@ -2159,9 +2183,10 @@ from an arbitrary start.
 #| label: fig-rho-centering
 #| fig-cap: Centering sweep at fixed $H_{00}/L_0$. The panels show empirical and
 #|   first-update-heuristic $T_{\mathrm{G}}/T_{\mathrm{N}}$ together with the
-#|   dashed $L_0/H_{00}$ reference as a centering fraction $\alpha$ moves the
-#|   weighted $\bar\rho^2$ from standardized to uncentered designs for $n =
-#|   500$, $p = 1000$, $s = 10$, and $\lambda = 0.05\lambda_{\max}$.
+#|   dashed $L_0/H_{00}$ reference as the centering fraction $\alpha$ of
+#|   @eq-centering-sweep moves the weighted $\bar\rho^2$ from standardized to
+#|   uncentered designs for $n = 500$, $p = 1000$, $s = 10$, $\lambda =
+#|   0.05\lambda_{\max}$, and permuted coordinate ordering.
 
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
 df = DataFrame(dd["records"])
@@ -2212,10 +2237,10 @@ $$
   .
 $$
 The collective coupling between the intercept and the active coefficient block
-is
+is $\kappa$, restating @eq-collective-coupling:
 $$
   \kappa = \frac{H_{0A}H_{AA}^{-1}H_{A0}}{H_{00}} \in [0, 1).
-$$ {#eq-collective-coupling}
+$$
 Unlike $\bar\rho^2$, which averages diagonal coordinate-wise correlations,
 $\kappa$ allows many individually small correlations to combine through
 $H_{AA}^{-1}$.
@@ -2228,7 +2253,9 @@ strategies contract the intercept error by
 $$
   r_{\mathrm{N}} = \kappa, \qquad r_{\mathrm{G}} = 1 - q(1 - \kappa),
 $$
-respectively. Their asymptotic pass-count ratio is
+respectively. When the intercept-error mode is the slowest mode of the
+pass---which requires $\kappa$ close to one---their asymptotic pass-count ratio
+is
 $$
 \begin{aligned}
   \frac{T_{\mathrm{G}}}{T_{\mathrm{N}}}
@@ -2237,6 +2264,9 @@ $$
   \quad \text{as } \kappa \to 1.
 \end{aligned}
 $$ {#eq-frozen-block-rate}
+Outside that regime the ratio formula is not informative: as $\kappa \to 0$ it
+diverges, while the true pass-count ratio stays finite because Newton removes
+the intercept error in a single pass and a coefficient mode becomes the slowest.
 :::
 
 To see this, let $a$ denote the intercept error. Conditional minimization gives
@@ -2272,9 +2302,9 @@ $4.69$ to $17.68$.
 #| fig-cap: Frozen-pass validation of the centering mechanism. Each point
 #|   compares the gradient/Newton ratio of the frozen random-product log rates
 #|   with the ratio of fitted late-stage log-suboptimality slopes from the
-#|   nonlinear solver. The cells cover both the weak-to-strong coupling
-#|   transition at $\rho = 0.6$ and a second $\rho = 0.2$ imbalance sweep. The
-#|   dashed line is equality.
+#|   nonlinear solver, both under permuted coordinate ordering. The cells cover
+#|   both the weak-to-strong coupling transition at $\rho = 0.6$ and a second
+#|   $\rho = 0.2$ imbalance sweep. The dashed line is equality.
 
 df_frozen = DataFrame(CSV.File(@projectroot("results", "rho-frozen-hessian.csv")))
 df_diagnostic = DataFrame(CSV.File(
@@ -2460,6 +2490,7 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
+df.strategy = strategy_label.(df.strategy)
 df.it = "seed " .* string.(df.it)
 
 spec = data(df) * mapping(:time, :relgaps, color = :strategy, col = :it)
@@ -2546,6 +2577,7 @@ corners = filter(
         r.amp_str in ("amp = 0.5", "amp = 2.0"),
     agg,
 )
+corners.strategy = strategy_label.(corners.strategy)
 
 spec = data(corners) *
     mapping(
@@ -2589,6 +2621,7 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
+df.strategy = strategy_label.(df.strategy)
 
 spec = data(df) *
     mapping(:time => "Time (s)", :relgaps => "Relative suboptimality", color = :strategy)
@@ -2626,6 +2659,7 @@ dd_sh = JLD2.load(@projectroot("results", "real-multinomial-shuttle.jld2"))
 df_sh = DataFrame(dd_sh["results"])
 df_sh = flatten(df_sh, [:time, :relgaps, :primals])
 df_sh.relgaps .= max.(df_sh.relgaps, 1.0e-10)
+df_sh.strategy = strategy_label.(df_sh.strategy)
 
 draw(
     visual(Lines) *
@@ -2644,7 +2678,7 @@ On Shuttle, the Newton and exact strategies bring the relative suboptimality
 bound below $10^{-4}$ in $25$ and $23$ passes respectively, while the gradient
 strategy fails to reach that threshold within $1000$ passes and stalls near
 $4.5 \times 10^{-3}$. The slowdown is more severe than Yeoh's
-$\approx 3.8 \times$ pass-count ratio because the rarest Shuttle classes (ten,
+$\approx 3.7 \times$ pass-count ratio because the rarest Shuttle classes (ten,
 thirteen, and fifty samples) are two orders of magnitude rarer than Yeoh's
 rarest. This is consistent with the smaller eigenmode correction factors in
 @eq-grad-residual-matrix; it is not a claim that a single Hessian diagonal
@@ -2694,6 +2728,7 @@ agg = combine(
     :relgaps => median => :relgaps,
 )
 
+agg.strategy = strategy_label.(agg.strategy)
 agg.p_K_str = [L"$\bar{p}_K = %$(v)$" for v in agg.p_K]
 agg.amp_str = "amp = " .* string.(agg.amplitude)
 
@@ -2714,7 +2749,7 @@ spec = data(agg) *
 draw(
     visual(Lines) * spec,
     axis = (yscale = log10,),
-    facet = (; linkxaxes = :none),
+    facet = (; linkxaxes = :all),
     figure = (; size = (800, 600)),
 )
 ```
@@ -2727,7 +2762,11 @@ bound remains above $0.57$. At an expected rare-class count of only 2.5 and
 strong signal, near-separation and coefficient convergence dominate the
 intercept update. The grid therefore supports the curvature comparison over its
 certified region and marks the point at which this experiment ceases to isolate
-that mechanism.
+that mechanism. Quantitatively, at the $10^{-6}$ threshold the median gradient
+curve needs $10$--$41$ times as many passes as Newton in the five cells where it
+reaches that bound within the $1\,000$-pass budget, and fails to reach it in
+nine further cells in which Newton needs at most $158$ passes; the remaining two
+cells are the saturated ones just discussed.
 
 ## S3. Experimental methods and reproducibility {#sec-s-methodology .unnumbered}
 
@@ -2743,6 +2782,12 @@ unless noted, and use AR(1) feature correlation $\rho = 0.6$ by default. Seeds
 are fixed per script. The heatmap of @sec-imbalance-reg averages three seeds per
 cell, @fig-irls-comparison shows three, and the safeguard experiments show five.
 The remaining single-trajectory figures use one fixed seed.
+
+Every coefficient update is accepted through a Tseng--Yun Armijo backtrack on
+the proximal model decrease, with slope constant $10^{-4}$, step-halving, and at
+most 30 trials; in the common case the first trial is accepted. The `cdsolver`
+defaults match the paper's defaults (cyclic ordering, Newton intercept
+strategy), and every experiment script passes its configuration explicitly.
 
 For scalar models, the exact strategy ordinarily returns when the normalized
 intercept gradient is at most $10^{-10}$. If it consumes all 50 safeguarded
@@ -2789,16 +2834,17 @@ strategy as soon as its primal reaches the corresponding shared-bound threshold.
 This changes neither its iterates nor its reported crossing; it only avoids
 running beyond the point used in the figure.
 
-Real-data experiments use pinned datasets from Zenodo and standardize them
-before fitting. The repository includes the code needed to retrieve these data
-and to generate the shared standardized problem used in the production-solver
-comparison. That comparison runs glmnet 4.1-10 (R), biglasso 1.6-1 (R), adelie
-1.0-8 (R), skglm 0.5 (Python), LIBLINEAR through scikit-learn's
-`solver="liblinear"` wrapper, and BlitzL1 at commit `aef8d02`. Given the cached
-inputs, the drivers are otherwise deterministic, so each solver is run once per
-tolerance setting while sweeping its native convergence parameter over a broad
-range. The exact commands, tolerance grids, and iterate caps are documented with
-the repository materials.
+Real-data experiments use pinned datasets from Zenodo (DOI:
+[10.5281/zenodo.20315625](https://doi.org/10.5281/zenodo.20315625)) and
+standardize them before fitting. The repository includes the code needed to
+retrieve these data and to generate the shared standardized problem used in the
+production-solver comparison. That comparison runs glmnet 4.1-10 (R), biglasso
+1.6-1 (R), adelie 1.0-8 (R), skglm 0.5 (Python), LIBLINEAR through
+scikit-learn's `solver="liblinear"` wrapper, and BlitzL1 at commit `aef8d02`.
+Given the cached inputs, the drivers are otherwise deterministic, so each solver
+is run once per tolerance setting while sweeping its native convergence
+parameter over a broad range. The exact commands, tolerance grids, and iterate
+caps are documented with the repository materials.
 
 The repository contains all outputs from the experiments. Most figures are
 therefore rendered from cached files, and regenerating a panel requires
@@ -2819,9 +2865,9 @@ ordering, but strict cyclic order deterministically pairs the intercept solve
 with the same first coordinate on every pass, which could compound the drift.
 
 It does not do so under the per-coordinate Armijo backtrack that cdsolver
-applies after every coordinate update (@sec-methodology): on the w1a benchmark
-of @fig-first-example, all three strategies converge under both orderings and
-the pass-count differences are within a factor of $1.9$
+applies after every coordinate update ([Supplement S3](#sec-s-methodology)): on
+the w1a benchmark of @fig-first-example, all three strategies converge under
+both orderings and the pass-count differences are within a factor of $1.9$
 (@fig-first-example-ordering). At the shared $10^{-8}$ threshold, cyclic and
 permuted ordering need 46 and 51 passes for Newton, 44 and 84 for exact, and 338
 and 339 for the gradient strategy. The qualitative ranking of the three
@@ -2839,6 +2885,7 @@ df = DataFrame(dd["results"])
 df = flatten(df, [:time, :relgaps, :gaps, :primals])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
+df.strategy = strategy_label.(df.strategy)
 
 spec = data(df) *
     mapping(
@@ -2908,6 +2955,7 @@ df = flatten(
 
 df.start_kind = ifelse.(df.warm_start, "warm", "cold")
 df.ordering = ifelse.(df.randomize, "permuted", "cyclic")
+df.strategy = strategy_label.(df.strategy)
 
 # In-text slice: cyclic ordering only (the paper's default; Supplement S4.1 shows
 # permuted differs by ≤1.4× and never changes the ranking). The full
@@ -2998,18 +3046,19 @@ a global bound on the work.
 We instrument the solver to record $k_0$ for every outer pass. We compare the
 resulting cost trajectories with the relative-suboptimality trajectories on the
 imbalanced simulated design of @fig-mu-extreme ($n = 500$, $p = 1000$, $s = 10$,
-cyclic CD, $\lambda / \lambda_{\max} = 0.05$). The solver runs to a local
-relative-duality-gap tolerance of $10^{-10}$, and we report progress to the
-shared $10^{-8}$ bound, sweeping $\mu_0 \in \{0.5,0.9,0.99\}$ to vary the
-cold-start magnitude of $|\partial_0 F|$.
+cyclic CD, $\lambda / \lambda_{\max} = 0.05$), drawn with an independent seed.
+The solver runs to a local relative-duality-gap tolerance of $10^{-10}$, and we
+report progress to the shared $10^{-8}$ bound (@eq-shared-suboptimality),
+sweeping $\mu_0 \in \{0.5,0.9,0.99\}$ to vary the cold-start magnitude of
+$|\partial_0 F|$.
 
 ```{julia}
 #| label: fig-per-pass-cost
 #| fig-cap: Per-pass inner work under the exact strategy. The panels show the
 #|   Newton-direction count, floored at one for the mandatory residual check,
-#|   versus outer-pass index for $\mu_0 \in \{0.5, 0.9, 0.99\}$ on the simulated
-#|   design of @fig-mu-extreme. The dashed line at $k_0 = 1$ marks the Newton
-#|   strategy.
+#|   versus outer-pass index for $\mu_0 \in \{0.5, 0.9, 0.99\}$ on an
+#|   independent draw of the simulated design of @fig-mu-extreme. The dashed
+#|   line at $k_0 = 1$ marks the Newton strategy.
 
 dd = JLD2.load(@projectroot("results", "sim-per-pass-cost.jld2"))
 df = DataFrame(dd["results"])
@@ -3036,6 +3085,8 @@ draw(spec_cost + spec_ref, facet = (; linkyaxes = :all), figure = (; size = (800
 #| fig-cap: Per-pass progress on the same runs. The panels show a relative
 #|   suboptimality bound after each outer pass for the Newton and exact
 #|   strategies on the experiments of @fig-per-pass-cost.
+
+df.strategy = strategy_label.(df.strategy)
 
 spec_prog = data(df) *
     mapping(
@@ -3117,6 +3168,7 @@ df = flatten(
 
 df.start_kind = ifelse.(df.warm_start, "warm", "cold")
 df.ordering = ifelse.(df.randomize, "permuted", "cyclic")
+df.strategy = strategy_label.(df.strategy)
 
 spec_passes = data(df) *
     mapping(
@@ -3206,7 +3258,8 @@ The status of each solver on this family is structural, not empirical:
 
 Three solvers based on local Newton curvature therefore remain: glmnet, adelie,
 and skglm `ProxNewton`. We run each in path mode on congress109 with
-$\lambda = 0.05\lambda_{\max}$, sweeping the solver-specific tolerance.
+$\lambda = 0.05\lambda_{\max}$, sweeping the solver-specific tolerance
+(@fig-real-poisson-production).
 
 ```{julia}
 #| label: fig-real-poisson-production

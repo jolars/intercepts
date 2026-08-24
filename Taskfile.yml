@@ -50,3 +50,29 @@ tasks:
     desc: Render the paper
     cmds:
       - quarto render intercepts.qmd
+
+  caches:
+    desc: Regenerate the synthetic Julia results caches (may take hours)
+    cmds:
+      - "{{.JULIA}} --project=. experiments/sim-mu-extreme.jl"
+      - "{{.JULIA}} --project=. experiments/sim-irls-comparison.jl"
+      - "{{.JULIA}} --project=. experiments/sim-cold-start.jl"
+      - "{{.JULIA}} --project=. experiments/sim-cold-start-poisson.jl"
+      - "{{.JULIA}} --project=. experiments/sim-mu-reg-heatmap.jl"
+      - "{{.JULIA}} --project=. experiments/sim-rate-gap.jl"
+      - "{{.JULIA}} --project=. experiments/sim-rho-centering.jl"
+      - "{{.JULIA}} --project=. experiments/sim-rho-centering-diagnostics.jl"
+      - "{{.JULIA}} --project=. experiments/sim-rho-frozen-hessian.jl"
+      - "{{.JULIA}} --project=. experiments/sim-multinomial-imbalance.jl"
+      - "{{.JULIA}} --project=. experiments/sim-multinomial-imbalance-sweep.jl"
+      - "{{.JULIA}} --project=. experiments/sim-per-pass-cost.jl"
+
+  caches-real:
+    desc: Regenerate the real-data Julia caches (requires the staged archive)
+    cmds:
+      - "{{.JULIA}} --project=. experiments/first-example.jl"
+      - "{{.JULIA}} --project=. experiments/sim-first-example-ordering.jl"
+      - "{{.JULIA}} --project=. experiments/sim-warmstart-path.jl"
+      - "{{.JULIA}} --project=. experiments/sim-real-logreg.jl"
+      - "{{.JULIA}} --project=. experiments/sim-real-multinomial-yeoh.jl"
+      - "{{.JULIA}} --project=. experiments/sim-real-multinomial-shuttle.jl"

@@ -158,6 +158,26 @@ inputs; "none" means that the producer generates its own synthetic data.
   | `@fig-real-poisson-production`                                                                           | `glmnet.csv`, `adelie.csv`, and `proxnewton.csv` under `results/real-solvers-poisson/congress109/`; `results/production-references.csv` | `Rscript experiments/sim-real-poisson-problem.R`;<br>`Rscript experiments/sim-real-poisson-glmnet.R`;<br>`Rscript experiments/sim-real-poisson-adelie.R`;<br>`python experiments/sim-real-poisson-proxnewton.py`;<br>`julia --project=. experiments/production-reference.jl`                                                                     | Julia, R, and Python | Archive    |
   | `@tbl-cold-start-diag`                                                                                   | `results/real-solvers/cold-start-diag.csv`                                                                                              | `Rscript experiments/sim-cold-start-real.R`                                                                                                                                                                                                                                                                                                      | R                    | Archive    |
 
+The CSV files under `results/figure-tables/` are not experiment inputs: they are
+per-figure summary tables exported from the committed caches by `dev/figure.jl`
+(`task fig -- <label>` or `task fig-all`), tracked so that regenerated results
+can be diffed at the figure level.
+
+#### Runtimes and hardware
+
+The synthetic Julia cache producers in the table can be regenerated in one go
+with `task caches`, and the real-data ones (after staging the archive) with
+`task caches-real`. On a laptop-class machine (see the hardware note in
+Supplement S3 of the manuscript), the single-$\lambda$ synthetic scripts
+(`sim-mu-extreme`, `sim-irls-comparison`, `sim-rate-gap`, `sim-cold-start`,
+`sim-cold-start-poisson`, `sim-per-pass-cost`, `first-example`, and the
+multinomial scripts) each finish in roughly one to five minutes, including Julia
+startup. The larger sweeps---`sim-mu-reg-heatmap`, `sim-warmstart-path`, and
+especially the `sim-rho-*` rate diagnostics, which run to pass budgets of
+40,000--120,000---take substantially longer, up to a few hours in total. The
+real-data scripts additionally require the staged archive and, for the
+production-solver comparisons, the pinned R and Python environments.
+
 ### Render the Quarto document
 
 To render the Quarto document, you can run the following command in the root

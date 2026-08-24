@@ -61,7 +61,7 @@ function irlssolver(
         max_outer::Int = 200,
         max_inner::Int = 50,
         maxtime::Real = Inf,
-        randomize::Bool = true,
+        randomize::Bool = false,
         normalization::Symbol = :standardize,
         save_history::Bool = false,
     )

@@ -1,6 +1,6 @@
 # How to Train Your Intercept
 
-Johan Larsson, Frederik Fabricius Bjerre 2026-08-21
+Johan Larsson, Frederik Fabricius Bjerre 2026-08-24
 
 *How the intercept is updated inside coordinate descent for regularized
 generalized linear models, and why the choice matters under response imbalance.*
@@ -18,26 +18,22 @@ License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommo
 ### Abstract
 
 Coordinate descent solvers for regularized generalized linear models (GLMs)
-differ in how they update the intercept, and this choice can substantially
-affect convergence under response imbalance. For direct coordinate descent on
-the original GLM loss, we compare three strategies: one step using a global
-curvature bound, one Armijo-safeguarded Newton step using local curvature, and
-repeated Newton steps that solve the intercept subproblem. Our analysis shows
-that the global-bound strategy removes only a fraction $H_{00}/L_0$ of the
-intercept–coefficient coupling. In logistic regression, this fraction can become
-small as the response grows more imbalanced, producing a corresponding slowdown
-when a coupled mode controls convergence. A single Newton step avoids this
-attenuation and, in our experiments, follows nearly the same outer convergence
-trajectory as exact minimization while requiring fewer inner steps. The same
-mechanism distinguishes global-majorant IRLS from local-weight IRLS and
-proximal-Newton methods, whose quadratic surrogates already supply local
-curvature. Experiments with simulated and real data, including comparisons
-across six production solvers, weight-scheme comparisons within glmnet and
-biglasso, and an intercept-only intervention within skglm, support these
-predictions. A multinomial extension shows how rare classes create low-curvature
-intercept directions. We therefore recommend a safeguarded Newton update for
-direct coordinate descent and full intercept optimization within frozen local
-quadratic surrogates.
+differ in how they update the intercept. This seemingly routine choice can
+substantially affect convergence when the response is imbalanced. For direct
+coordinate descent on the original GLM loss, we compare a conservative step
+based on worst-case curvature, a safeguarded Newton step based on current
+curvature, and repeated Newton steps that solve the intercept subproblem. The
+conservative update can leave much of the interaction between the intercept and
+the coefficients unresolved, producing a slowdown when that interaction controls
+convergence. A single Newton step avoids this attenuation and, in our
+experiments, follows nearly the same outer trajectory as exact minimization
+while requiring fewer inner steps. Simulated and real-data experiments,
+including comparisons across six production solvers and a controlled
+intervention within skglm, support this explanation. We also show how the same
+mechanism appears in quadratic-approximation methods and extends to multinomial
+models with rare classes. We recommend a safeguarded Newton update for direct
+coordinate descent and full intercept optimization within frozen local quadratic
+surrogates.
 
 ## Project structure
 
@@ -176,6 +172,26 @@ inputs; “none” means that the producer generates its own synthetic data.
   | `@fig-per-pass-cost`, `@fig-per-pass-progress`                                                           | `results/sim-per-pass-cost.jld2`                                                                                                        | `julia --project=. experiments/sim-per-pass-cost.jl`                                                                                                                                                                                                                                                                                             | Julia                | None       |
   | `@fig-real-poisson-production`                                                                           | `glmnet.csv`, `adelie.csv`, and `proxnewton.csv` under `results/real-solvers-poisson/congress109/`; `results/production-references.csv` | `Rscript experiments/sim-real-poisson-problem.R`;<br>`Rscript experiments/sim-real-poisson-glmnet.R`;<br>`Rscript experiments/sim-real-poisson-adelie.R`;<br>`python experiments/sim-real-poisson-proxnewton.py`;<br>`julia --project=. experiments/production-reference.jl`                                                                     | Julia, R, and Python | Archive    |
   | `@tbl-cold-start-diag`                                                                                   | `results/real-solvers/cold-start-diag.csv`                                                                                              | `Rscript experiments/sim-cold-start-real.R`                                                                                                                                                                                                                                                                                                      | R                    | Archive    |
+
+The CSV files under `results/figure-tables/` are not experiment inputs: they are
+per-figure summary tables exported from the committed caches by `dev/figure.jl`
+(`task fig -- <label>` or `task fig-all`), tracked so that regenerated results
+can be diffed at the figure level.
+
+#### Runtimes and hardware
+
+The synthetic Julia cache producers in the table can be regenerated in one go
+with `task caches`, and the real-data ones (after staging the archive) with
+`task caches-real`. On a laptop-class machine (see the hardware note in
+Supplement S3 of the manuscript), the single-$\lambda$ synthetic scripts
+(`sim-mu-extreme`, `sim-irls-comparison`, `sim-rate-gap`, `sim-cold-start`,
+`sim-cold-start-poisson`, `sim-per-pass-cost`, `first-example`, and the
+multinomial scripts) each finish in roughly one to five minutes, including Julia
+startup. The larger sweeps—`sim-mu-reg-heatmap`, `sim-warmstart-path`, and
+especially the `sim-rho-*` rate diagnostics, which run to pass budgets of
+40,000–120,000—take substantially longer, up to a few hours in total. The
+real-data scripts additionally require the staged archive and, for the
+production-solver comparisons, the pinned R and Python environments.
 
 ### Render the Quarto document
 

@@ -114,3 +114,6 @@ devenv.local.yaml
 /results/figure-tables/png/
 /.agents/scheduled_tasks.lock
 /.agents/settings.local.json
+
+# Author-internal scratch, not part of the submission.
+/scratch/
