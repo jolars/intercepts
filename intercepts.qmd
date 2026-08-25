@@ -13,8 +13,18 @@ using LinearAlgebra
 using DataFrames
 using CSV
 using Statistics
+import QuartoNotebookWorker
 
-set_theme!(theme_latexfonts())
+output_format = QuartoNotebookWorker.notebook_options()["format"]["pandoc"]["to"]
+is_pdf = output_format == "latex"
+
+function output_size(size)
+    width, height = size
+    scale = min(580 / 800, 580 / width)
+    return is_pdf ? round.(Int, scale .* size) : size
+end
+
+set_theme!(theme_latexfonts(); fontsize = is_pdf ? 10 : 14, size = output_size((800, 450)))
 
 Random.seed!(14)
 
@@ -188,7 +198,7 @@ for (i, (b0, b)) in enumerate(grid)
     primal_values[i] = loss(LogisticLoss(), η, y) + λ * abs(b)
 end
 
-fig = Figure()
+fig = Figure(; size = output_size((440, 300)))
 ax = Axis(fig[1, 1], xlabel = L"Intercept ($\beta_0$)", ylabel = L"Coefficient ($\beta_1$)")
 
 levels = geomspace(minimum(primal_values), maximum(primal_values), 20)
@@ -230,7 +240,7 @@ layers = visual(Lines)
 draw(
     layers * spec,
     axis = (; yscale = log10, ylabel = "Relative suboptimality", xlabel = "Time (s)"),
-    figure = (; size = (500, 300)),
+    figure = (; size = output_size((430, 280))),
 )
 ```
 
@@ -965,7 +975,7 @@ draw(
         ),
     axis = (yscale = log10,),
     facet = (; linkxaxes = false),
-    figure = (; size = (750, 300)),
+    figure = (; size = output_size((800, 280))),
 )
 ```
 
@@ -1115,7 +1125,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10, ylabel = "Relative suboptimality", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250)),
+    figure = (; size = output_size((800, 250))),
 )
 ```
 
@@ -1204,7 +1214,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10, ylabel = "Relative suboptimality", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250)),
+    figure = (; size = output_size((800, 250))),
 )
 ```
 
@@ -1237,7 +1247,7 @@ draw(
     visual(Lines, alpha = 0.6) * spec,
     axis = (yscale = log10, ylabel = "Relative suboptimality", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250)),
+    figure = (; size = output_size((800, 250))),
 )
 ```
 
@@ -1300,7 +1310,7 @@ draw(
     visual(Lines, alpha = 0.6) * spec_p,
     axis = (yscale = log10, ylabel = "Relative suboptimality", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250)),
+    figure = (; size = output_size((800, 250))),
 )
 ```
 
@@ -1396,7 +1406,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10,),
     facet = (; linkxaxes = :none),
-    figure = (; size = (900, 500)),
+    figure = (; size = output_size((900, 500))),
 )
 ```
 
@@ -1455,7 +1465,11 @@ df.strategy = strategy_label.(df.strategy)
 
 spec = data(df) *
     mapping(:time => "Time (s)", :relgaps => "Relative suboptimality", color = :strategy)
-draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (600, 380)))
+draw(
+    visual(Lines) * spec,
+    axis = (yscale = log10,),
+    figure = (; size = output_size((430, 280))),
+)
 ```
 
 In @fig-real-poisson, the gradient strategy leaves the intercept unchanged
@@ -1525,7 +1539,7 @@ spec_grad = data(wide) *
         :gradient_ratio => log10 => L"$\log_{10}(T_{\mathrm{grad}}/T_{\mathrm{Newton}})$",
     )
 
-draw(spec_grad * visual(Heatmap), figure = (; size = (380, 230)))
+draw(spec_grad * visual(Heatmap), figure = (; size = output_size((380, 250))))
 ```
 
 ```{julia}
@@ -1550,7 +1564,7 @@ spec_exact = data(wide) *
 draw(
     spec_exact * visual(Heatmap),
     scales(Color = (; colormap = :RdBu, colorrange = (-0.1, 0.1))),
-    figure = (; size = (380, 230)),
+    figure = (; size = output_size((380, 250))),
 )
 ```
 
@@ -1699,7 +1713,7 @@ spec = data(df) *
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (yscale = log10, xlabel = "Inner CD passes", ylabel = "Suboptimality"),
-    figure = (; size = (800, 300)),
+    figure = (; size = output_size((800, 300))),
 )
 ```
 
@@ -1731,7 +1745,7 @@ spec = data(df) *
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (yscale = log10, xlabel = "Inner CD passes", ylabel = "Suboptimality"),
-    figure = (; size = (800, 300)),
+    figure = (; size = output_size((800, 300))),
 )
 ```
 
@@ -1763,7 +1777,7 @@ draw(
         xlabel = "AndersonCD outer iterations",
         ylabel = "Suboptimality",
     ),
-    figure = (; size = (700, 300)),
+    figure = (; size = output_size((700, 300))),
 )
 ```
 
@@ -1828,7 +1842,7 @@ spec_sk = data(wide_sk) *
         :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{pre}}/T_{\mathrm{post}})$",
     )
 
-draw(spec_sk * visual(Heatmap), figure = (; size = (380, 230)))
+draw(spec_sk * visual(Heatmap), figure = (; size = output_size((380, 250))))
 ```
 
 The prox-Newton solvers provide the complementary test. Resolving the intercept
@@ -1870,7 +1884,7 @@ spec = data(df) *
 draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (yscale = log10, xlabel = "Time (s)", ylabel = "Suboptimality"),
-    figure = (; size = (800, 300)),
+    figure = (; size = output_size((580, 300))),
     facet = (; linkxaxes = false),
 )
 ```
@@ -1923,7 +1937,7 @@ draw(
         xlabel = "Convergence tolerance (tol = irls_tol)",
         ylabel = "Suboptimality",
     ),
-    figure = (; size = (800, 300)),
+    figure = (; size = output_size((800, 300))),
 )
 ```
 
@@ -2140,7 +2154,7 @@ draw(
         xlabel = L"Response imbalance $\mu_0$",
         ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}",
     ),
-    figure = (; size = (420, 280)),
+    figure = (; size = output_size((480, 280))),
 )
 ```
 
@@ -2241,7 +2255,7 @@ spec_ref = data(df) *
 draw(
     (visual(Lines) + visual(Scatter)) * spec + spec_ref,
     axis = (xlabel = L"Weighted $\bar{\rho}^2$", ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}"),
-    figure = (; size = (700, 280)),
+    figure = (; size = output_size((700, 280))),
 )
 ```
 
@@ -2361,7 +2375,7 @@ draw(
         xlabel = "Frozen random-product rate ratio",
         ylabel = "Nonlinear late-stage slope ratio",
     ),
-    figure = (; size = (420, 280)),
+    figure = (; size = output_size((420, 280))),
 )
 ```
 
@@ -2522,7 +2536,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10, ylabel = "Relative suboptimality", xlabel = "Time (s)"),
     facet = (; linkxaxes = :none),
-    figure = (; size = (800, 250)),
+    figure = (; size = output_size((800, 250))),
 )
 ```
 
@@ -2622,7 +2636,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10,),
     facet = (; linkxaxes = :none),
-    figure = (; size = (560, 420)),
+    figure = (; size = output_size((560, 420))),
 )
 ```
 
@@ -2656,7 +2670,11 @@ df.strategy = strategy_label.(df.strategy)
 spec = data(df) *
     mapping(:time => "Time (s)", :relgaps => "Relative suboptimality", color = :strategy)
 
-draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (420, 260)))
+draw(
+    visual(Lines) * spec,
+    axis = (yscale = log10,),
+    figure = (; size = output_size((420, 260))),
+)
 ```
 
 On the $p > n$ Yeoh2002 gene-expression problem, the gradient strategy lags in
@@ -2700,7 +2718,7 @@ draw(
             color = :strategy,
         ),
     axis = (yscale = log10,),
-    figure = (; size = (420, 260)),
+    figure = (; size = output_size((420, 260))),
 )
 ```
 
@@ -2787,7 +2805,7 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10,),
     facet = (; linkxaxes = :all),
-    figure = (; size = (800, 600)),
+    figure = (; size = output_size((800, 600))),
 )
 ```
 
@@ -2932,7 +2950,11 @@ spec = data(df) *
         col = :ordering,
     )
 
-draw(visual(Lines) * spec, axis = (; yscale = log10), figure = (; size = (500, 240)))
+draw(
+    visual(Lines) * spec,
+    axis = (; yscale = log10),
+    figure = (; size = output_size((500, 240))),
+)
 ```
 
 ### S4.2 Warm-started path {#sec-warmstart-path .unnumbered}
@@ -3011,7 +3033,7 @@ spec_passes = data(df_cyclic) *
 draw(
     visual(Lines) * spec_passes,
     axis = (xscale = log10, yscale = log10),
-    figure = (; size = (800, 320)),
+    figure = (; size = output_size((800, 320))),
 )
 ```
 
@@ -3034,7 +3056,7 @@ spec_partial = data(df_cyclic) *
 draw(
     visual(Lines) * spec_partial,
     axis = (xscale = log10, yscale = log10),
-    figure = (; size = (800, 320)),
+    figure = (; size = output_size((800, 320))),
 )
 ```
 
@@ -3114,7 +3136,11 @@ spec_cost = data(df_exact) *
 
 spec_ref = mapping([1]) * visual(HLines, linestyle = :dash, color = :gray)
 
-draw(spec_cost + spec_ref, facet = (; linkyaxes = :all), figure = (; size = (800, 260)))
+draw(
+    spec_cost + spec_ref,
+    facet = (; linkyaxes = :all),
+    figure = (; size = output_size((800, 260))),
+)
 ```
 
 ```{julia}
@@ -3137,7 +3163,7 @@ draw(
     visual(Lines) * spec_prog,
     axis = (yscale = log10,),
     facet = (; linkyaxes = :all),
-    figure = (; size = (800, 260)),
+    figure = (; size = output_size((800, 260))),
 )
 ```
 
@@ -3220,7 +3246,7 @@ spec_passes = data(df) *
 draw(
     visual(Lines) * spec_passes,
     axis = (; xscale = log10, yscale = log10),
-    figure = (; size = (800, 500)),
+    figure = (; size = output_size((800, 500))),
 )
 ```
 
@@ -3258,7 +3284,7 @@ spec_partial = data(df) *
 draw(
     visual(Lines) * spec_partial,
     axis = (; xscale = log10, yscale = log10),
-    figure = (; size = (800, 500)),
+    figure = (; size = output_size((800, 500))),
 )
 ```
 
@@ -3325,7 +3351,7 @@ draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     legend = (; titlevisible = false),
     axis = (yscale = log10, xlabel = "Time (s)", ylabel = "Suboptimality"),
-    figure = (; size = (500, 280)),
+    figure = (; size = output_size((500, 280))),
 )
 ```
 
