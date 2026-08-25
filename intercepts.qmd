@@ -390,7 +390,7 @@ $$
   \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n x_{ij} f'(\eta_i; y_i).
 $$
 
-Our algorithm updates a coefficient or the intercept by taking a step in the
+The smooth part of a coefficient or intercept update takes a step in the
 negative partial-gradient direction,
 $$
   \beta_j^+ = \beta_j
@@ -431,6 +431,20 @@ Production solvers, however, realize three different intercept updates:
    the scalar convergence contract described below is met---the *exact
    strategy*.
 
+For a regular coefficient, this smooth step must also account for the penalty.
+By separability, write
+$G_\lambda(\beta) = \sum_{j = 1}^p g_{\lambda,j}(\beta_j)$ and define
+$$
+  \operatorname{prox}_{\gamma g}(v) = \argmin_{u \in \mathbb{R}} \left\{g(u) + \frac{1}{2\gamma}(u - v)^2\right\}.
+$$
+The coordinate update is therefore the proximal-gradient step
+$$
+  \beta_j^+ = \operatorname{prox}_{\gamma_j g_{\lambda,j}} \left(\beta_j - \gamma_j \frac{\partial}{\partial\beta_j}F(\beta_0,\beta)\right).
+$$
+For the lasso, $g_{\lambda,j}(u) = \lambda|u|$, this is soft-thresholding at
+$\gamma_j\lambda$. The intercept has no corresponding proximal step because it
+is unpenalized.
+
 The resulting coordinate-descent algorithm appears in @algo-cd.
 
 ```pseudocode
@@ -447,7 +461,7 @@ The resulting coordinate-descent algorithm appears in @algo-cd.
         \State \textbf{Input:} Data $(X, y)$, $\lambda > 0$, initial intercept and coefficients $(\beta_0, \beta)$
         \While{not converged}
             \For{$j$ in $\{1, 2, ..., p\}$}
-                \State $\beta_j \gets \operatorname{prox}\left( \beta_j - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) \right)$
+                \State $\beta_j \gets \operatorname{prox}_{\gamma_j g_{\lambda,j}}\left( \beta_j - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) \right)$
             \EndFor
 
             \If{intercept strategy is "Newton"}
