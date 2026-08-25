@@ -59,7 +59,8 @@ descent. The final class is the reference class, so `coef` has size
 `(p, K - 1)` and `intercept` has length `K - 1`. The result contains fitted
 values, primal-dual diagnostics, `λ`, `λmax`, and optional histories. Iteration
 stops at relative primal-dual gap `tol`, after `maxit` passes, or after
-`maxtime` seconds.
+`maxtime` seconds. `update_freq` is the requested number of intercept updates
+per pass, capped at one update per coordinate, and must be positive.
 """
 function multinomial_cdsolver(
         x::AbstractMatrix,
@@ -84,7 +85,8 @@ function multinomial_cdsolver(
     x, x_centers, x_scales = normalizefeatures(x, normalization)
 
     fit_intercept = !(intercept_strategy isa NoIntercept)
-    update_when = max(1, floor(Int, p / update_freq))
+    update_freq > 0 || throw(ArgumentError("update_freq must be positive"))
+    update_when = max(1, fld(p, update_freq))
 
     λmax = lambdamax_multinomial(lossfun, x, y)
     λ = reg * λmax

@@ -94,13 +94,12 @@ imbalanced---for example, when positive cases are rare in logistic regression.
     behavior is at issue.
 
 Gradient Strategy
-:   Takes a single gradient step before each pass over the coordinates.
+:   Takes a single gradient step once per pass over the coordinates.
 
 Newton Strategy
 :   Takes a single Newton step, wrapped in an Armijo backtracking line search,
-    before each pass over the coordinates. The line search usually accepts the
-    full step ($\alpha = 1$) and backtracks when the undamped step would
-    overshoot.
+    once per pass over the coordinates. The line search usually accepts the full
+    step ($\alpha = 1$) and backtracks when the undamped step would overshoot.
 
 Exact Strategy
 :   Iterates Armijo-safeguarded Newton steps on the intercept subproblem until
@@ -1386,7 +1385,7 @@ $4\,675$-feature bag-of-words text panel after dropping low-support vocabulary)
 reproduces a $10.2 \times$ ratio at $10^{-4}$ before hitting the $120\mathrm{s}$
 wall-time cap. Both empirical ratios differ from the leading-order $L_0/H_{00}$
 proxy in @fig-rate-gap by similar constant factors. Their agreement across
-designs shows that the gap comes from response imbalance rather than a
+designs is consistent with response imbalance driving the gap rather than a
 peculiarity of w1a.
 
 For the moderately imbalanced a4a and breast-cancer data, the gradient/Newton
@@ -1824,7 +1823,8 @@ intercept) and glmnet's `modified.Newton` (the constant-majorant alternative).
 #|   panels show a suboptimality bound versus wall-clock time for LIBLINEAR and
 #|   BlitzL1 on the same three problems as @fig-real-glmnet. LIBLINEAR runs that
 #|   hit its internal `max_iter` cap without further progress are omitted. Both
-#|   solvers use the common feasible dual reference $D^\star$ for each problem.
+#|   solvers use the common feasible dual reference $D^\star$ for each problem;
+#|   timings are indicative single-run trajectories, not benchmark rankings.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "proxnewton.csv"))),

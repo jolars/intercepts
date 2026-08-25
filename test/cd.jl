@@ -2,6 +2,22 @@ using Test
 using Intercepts
 using GLM
 
+@testset "Intercept update frequency" begin
+    X = [1.0 0.0; 0.0 1.0; 1.0 1.0; -1.0 -1.0]
+    y = [0.0, 0.0, 0.0, 1.0]
+
+    res = cdsolver(X, y; lossfun = LogisticLoss(), update_freq = 3, maxit = 2)
+
+    @test all(isfinite, res.primals)
+    @test res.intercept != 0.0
+    @test_throws ArgumentError cdsolver(
+        X,
+        y;
+        lossfun = LogisticLoss(),
+        update_freq = 0,
+    )
+end
+
 @testset "Dual certificates respect conjugate domains" begin
     y_logistic = [1.0, 1.0, 1.0, 0.0]
     p_logistic = [0.99, 0.01, 0.01, 0.01]

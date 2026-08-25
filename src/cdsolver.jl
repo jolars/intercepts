@@ -9,6 +9,8 @@ Fit an L1-regularized generalized linear model by proximal coordinate descent.
 Features are normalized according to `normalization`, while returned
 coefficients and the intercept are on the original scale. `reg` is the
 regularization strength as a fraction of `lambdamax(lossfun, x, y)`.
+`update_freq` is the requested number of intercept updates per pass, capped at
+one update per coordinate, and must be positive.
 
 Iteration stops at relative primal-dual gap `tol`, after `maxit` passes, or
 when `maxtime` is reached. Experiments with an independently computed feasible
@@ -49,7 +51,8 @@ function cdsolver(
 
     fit_intercept = !(intercept_strategy isa NoIntercept)
 
-    update_when = floor(size(x, 2) / update_freq)
+    update_freq > 0 || throw(ArgumentError("update_freq must be positive"))
+    update_when = max(1, fld(p, update_freq))
 
     λmax = lambdamax(lossfun, x, y)
     λ = reg * λmax
