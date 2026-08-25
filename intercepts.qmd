@@ -2140,7 +2140,7 @@ draw(
         xlabel = L"Response imbalance $\mu_0$",
         ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}",
     ),
-    figure = (; size = (550, 300)),
+    figure = (; size = (420, 280)),
 )
 ```
 
@@ -2700,7 +2700,7 @@ draw(
             color = :strategy,
         ),
     axis = (yscale = log10,),
-    figure = (; size = (550, 300)),
+    figure = (; size = (420, 260)),
 )
 ```
 
@@ -2932,7 +2932,7 @@ spec = data(df) *
         col = :ordering,
     )
 
-draw(visual(Lines) * spec, axis = (; yscale = log10), figure = (; size = (500, 500)))
+draw(visual(Lines) * spec, axis = (; yscale = log10), figure = (; size = (500, 240)))
 ```
 
 ### S4.2 Warm-started path {#sec-warmstart-path .unnumbered}
