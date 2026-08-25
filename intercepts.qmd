@@ -26,6 +26,15 @@ strategy_labels = Dict(
     :unguarded_newton => "Bare Newton",
 )
 strategy_label(strategy) = get(strategy_labels, Symbol(strategy), string(strategy))
+
+# A run that terminates early must retain its converged state in passwise
+# summaries; otherwise the seed cohort changes as runs finish.
+function carry_forward(values, length_out)
+    isempty(values) && throw(ArgumentError("cannot carry forward an empty trajectory"))
+    length(values) <= length_out ||
+        throw(ArgumentError("output length is shorter than input"))
+    return vcat(values, fill(last(values), length_out - length(values)))
+end
 ```
 
 ::: {.content-hidden when-format="latex"}
@@ -1516,7 +1525,7 @@ spec_grad = data(wide) *
         :gradient_ratio => log10 => L"$\log_{10}(T_{\mathrm{grad}}/T_{\mathrm{Newton}})$",
     )
 
-draw(spec_grad * visual(Heatmap), figure = (; size = (560, 320)))
+draw(spec_grad * visual(Heatmap), figure = (; size = (380, 230)))
 ```
 
 ```{julia}
@@ -1541,7 +1550,7 @@ spec_exact = data(wide) *
 draw(
     spec_exact * visual(Heatmap),
     scales(Color = (; colormap = :RdBu, colorrange = (-0.1, 0.1))),
-    figure = (; size = (560, 320)),
+    figure = (; size = (380, 230)),
 )
 ```
 
@@ -1819,7 +1828,7 @@ spec_sk = data(wide_sk) *
         :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{pre}}/T_{\mathrm{post}})$",
     )
 
-draw(spec_sk * visual(Heatmap), figure = (; size = (560, 320)))
+draw(spec_sk * visual(Heatmap), figure = (; size = (380, 230)))
 ```
 
 The prox-Newton solvers provide the complementary test. Resolving the intercept
@@ -2352,7 +2361,7 @@ draw(
         xlabel = "Frozen random-product rate ratio",
         ylabel = "Nonlinear late-stage slope ratio",
     ),
-    figure = (; size = (520, 390)),
+    figure = (; size = (420, 280)),
 )
 ```
 
@@ -2568,10 +2577,17 @@ not isolate the intercept update and therefore do not support the comparison.
 #|   rarest-class marginal $\bar p_K \in \{0.05, 0.005\}$ and feature-amplitude
 #|   $\in \{0.5, 2.0\}$ grid on the same $K = 5$, $n = 500$, $p = 200$, $s = 5$,
 #|   $\lambda = 0.05\lambda_{\max}$, $\rho = 0.3$ design as
-#|   @fig-multinomial-imbalance; curves are medians over three seeds.
+#|   @fig-multinomial-imbalance; curves are medians over three seeds, with
+#|   early-terminated trajectories carried forward at their terminal values.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
 df = DataFrame(dd["results"])
+
+n_passes = maximum(length, df.relgaps)
+for column in (:time, :relgaps, :gaps, :primals)
+    df[!, column] = carry_forward.(df[!, column], n_passes)
+end
+df.pass = [collect(1:n_passes) for _ in 1:nrow(df)]
 df = flatten(df, [:time, :relgaps, :gaps, :primals, :pass])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)
@@ -2640,7 +2656,7 @@ df.strategy = strategy_label.(df.strategy)
 spec = data(df) *
     mapping(:time => "Time (s)", :relgaps => "Relative suboptimality", color = :strategy)
 
-draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (550, 300)))
+draw(visual(Lines) * spec, axis = (yscale = log10,), figure = (; size = (420, 260)))
 ```
 
 On the $p > n$ Yeoh2002 gene-expression problem, the gradient strategy lags in
@@ -2729,10 +2745,17 @@ median relative suboptimality bound over three seeds.
 #|   grid of rarest-class marginal $\bar p_K \in \{0.05, 0.02, 0.01, 0.005\}$
 #|   and feature amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$. Curves are medians over
 #|   three seeds for $K = 5$, $n = 500$, $p = 200$, $s = 5$, $\rho = 0.3$, and
-#|   $\lambda = 0.05\lambda_{\max}$.
+#|   $\lambda = 0.05\lambda_{\max}$; early-terminated trajectories are carried
+#|   forward at their terminal values.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
 df = DataFrame(dd["results"])
+
+n_passes = maximum(length, df.relgaps)
+for column in (:time, :relgaps, :gaps, :primals)
+    df[!, column] = carry_forward.(df[!, column], n_passes)
+end
+df.pass = [collect(1:n_passes) for _ in 1:nrow(df)]
 df = flatten(df, [:time, :relgaps, :gaps, :primals, :pass])
 
 df.relgaps .= max.(df.relgaps, 1.0e-10)

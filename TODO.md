@@ -44,32 +44,3 @@ Gaps in the current draft of `intercepts.qmd`, in rough priority order.
   there. - Done already: removed three orphan artifacts the notebook never
   loaded (`sim-logreg-mu`, `sim-logreg-reg`, `sim-h00-heatmap`, scripts +
   `.jld2`).
-
-## Referee-pass follow-ups (2026-05-20)
-
-From a fresh Computo-referee read of the current draft. The previous
-referee-pass items are all addressed and have been cleared. Major items first,
-then minor fixes. Items tagged `(verified)` were checked against the working
-tree; the rest are analysis or presentation judgments to weigh.
-
-### Reproducibility (major --- the necessary condition)
-
-- [ ] Publish the Zenodo deposit. `experiments/fetch-data.sh:21` and
-  `README.qmd:74` pin DOI `10.5281/zenodo.20315625`, but it is a *reserved*
-  DOI --- the record 404s, so a referee following the README cannot fetch
-  `intercepts-data-v1.tar.gz` (gitignored, not committed). The committed
-  caches under `results/` let the notebook render, but Computo's
-  reproducibility condition covers re-running, and "all necessary data (e.g.
-  via Zenodo)" must resolve. Build the archive (`build-data-archive.jl`),
-  publish the deposit, and confirm `data/MANIFEST.sha256` verifies against
-  it. Until then, document the `INTERCEPTS_DATA_ARCHIVE=...` local override
-  as the working path. (verified: DOI reserved, archive gitignored)
-
-- [ ] Determine whether the frozen-Hessian result extends to a general theorem
-  for randomly permuted coordinate sweeps. @prp-frozen-block-rate proves the
-  exact coefficient-block result, while @fig-rho-frozen verifies the full
-  permuted-sweep operator through estimated random-product rates. A theorem
-  would need to characterize the relevant Lyapunov exponents and recover the
-  $L_0/H_{00}$ limit under explicit coupling conditions. This extension
-  would strengthen the analysis, but it is not needed to explain the
-  observed centering plateau.
