@@ -10,13 +10,13 @@ github-user >}}/{{< meta repo >}}/actions/workflows/build.yml/badge.svg)](https:
 [![Creative Commons
 License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommons.org/licenses/by/4.0/)
 
-### Authors
+## Authors
 
 - [{{< meta by-author.1.name.literal >}}]({{< meta by-author.1.url >}})
   ({{< meta by-affiliation.1.name >}})
 - {{< meta by-author.2.name.literal >}} ({{< meta by-affiliation.1.name >}})
 
-### Abstract
+## Abstract
 
 {{< meta abstract >}}
 
