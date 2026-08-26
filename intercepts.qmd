@@ -69,7 +69,7 @@ direct coordinate descent, a single safeguarded Newton step per pass fixes the
 problem in our experiments.
 
 The disagreement follows a deeper split among implementations. Some solvers,
-including skglm 0.5[^1]\ [@bertrand2022], run coordinate descent directly on the
+including skglm[^1]\ [@bertrand2022], run coordinate descent directly on the
 original GLM loss. Others repeatedly replace that loss with a quadratic
 approximation and solve the approximation by coordinate descent. A local
 quadratic already contains the current intercept curvature, so the update
@@ -87,7 +87,7 @@ large coefficients while leaving the intercept unpenalized. Throughout the
 paper, we assume that $G_\lambda$ is a proper, closed, convex, separable penalty
 and that $F$ is the per-observation-averaged loss
 $$
-  F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i),
+  F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i).
 $$
 where $f$ is smooth, twice differentiable, and convex. Averaging by $n$ keeps
 the global Lipschitz constant for the intercept, $L_0 = \sup f''$, independent
@@ -125,11 +125,12 @@ Exact Strategy
     it meets a tight numerical convergence criterion. It raises an error rather
     than return an iterate outside its documented residual bounds.
 
-The analysis uses *exact* for the ideal conditional minimizer. The empirical
-strategy is its numerical realization. [Supplement S3](#sec-s-methodology)
-documents its tolerances, iteration cap, and scalar floating-point margin; a
-completed experiment therefore distinguishes a numerically certified conditional
-solve from an uncontrolled capped approximation.
+In the analysis, *exact* means setting the intercept to its conditional
+minimizer. In the experiments, the Exact Strategy computes this minimizer
+numerically. [Supplement S3](#sec-s-methodology) documents its tolerances,
+iteration cap, and scalar floating-point margin; a completed experiment
+therefore distinguishes a numerically certified conditional solve from an
+uncontrolled capped approximation.
 
 The three paths in @fig-parametric trace the strategies across the level sets of
 @eq-primal-problem for a toy problem with one feature and an intercept. The
@@ -253,7 +254,8 @@ We make four contributions:
   slows the gradient strategy when $H_{00} \ll L_0$. Once a coupled
   intercept--coefficient mode controls local convergence, a frozen-Hessian
   analysis gives a gradient/Newton rate ratio that approaches $L_0/H_{00}$. For
-  binary logistic regression, this ratio diverges as $\mu_0 \to 1$.
+  binary logistic regression, this ratio diverges as the positive-class marginal
+  $\mu_0$ approaches one.
 - We classify CD-based GLM solvers as direct CD, local-IRLS, MM-IRLS, or
   prox-Newton, and identify the intercept strategy used by each family. Tests on
   simulated and real data include six production solvers. Comparisons within
@@ -355,31 +357,28 @@ problems (@sec-irls, @fig-multinomial-sweep).
 
 # Theory {#sec-theory}
 
-The gradient, Newton, and exact strategies update the intercept differently for
-logistic and related GLM losses. On imbalanced data, this difference can
-determine convergence speed. A gradient step uses the global per-coordinate
-Lipschitz constant $L_0$, which does not adapt to the current intercept
-curvature $H_{00}$. Under response imbalance, the ratio $L_0/H_{00}$ diverges.
-The gradient strategy can inherit this scaling in its local rate when the
-intercept or a coupled intercept--coefficient mode controls convergence. The
-Newton and exact strategies instead track $H_{00}$ directly. In the analysis
-below, we distinguish the local result that we prove from a bound-based
-heuristic and from the regimes that we observe in the experiments.
+The three strategies differ in how they respond to intercept curvature. The
+gradient strategy uses the global bound $L_0$, Newton uses the local curvature
+$H_{00}$, and exact minimizes the intercept subproblem. On imbalanced data,
+$H_{00}$ can be much smaller than $L_0$. When the intercept---or a direction
+coupling the intercept and a coefficient---controls convergence, this mismatch
+can make the gradient strategy slower than Newton by a factor proportional to
+$L_0/H_{00}$. Below, we distinguish the local result that we prove from a
+bound-based heuristic and the behavior that we observe experimentally.
 
 Throughout this section, we work with the per-observation-averaged,
 canonical-link GLM loss
 $$
   F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
-which covers the GLMs considered here. The scalar derivations apply directly to
-the Gaussian, binomial, and Poisson models; the vector-intercept extension below
-treats multinomial logistic regression. We write
-$\eta_i = x_i^\intercal \beta + \beta_0$ for the linear predictor of observation
-$i$ and let $\ilink$ denote the inverse link, so the exponential-family mean
-takes the form $\E(y_i \mid \eta_i) = \ilink(\eta_i)$. The per-observation loss
-$f$ is the negative log-likelihood, with the mean parameterized as
-$\ilink(\eta_i)$. Because we use each exponential-family model's canonical link,
-its derivative with respect to $\eta$ collapses to the *generalized residual*,
+We first derive the scalar-intercept results for the Gaussian, binomial, and
+Poisson models. A later section extends them to multinomial logistic regression,
+whose intercept is a vector. For observation $i$, let
+$\eta_i = x_i^\intercal \beta + \beta_0$ denote the linear predictor, and let
+$\ilink$ denote the inverse link. The conditional mean is then
+$\E(y_i \mid \eta_i) = \ilink(\eta_i)$. For the canonical-link models considered
+here, the derivative of the negative log-likelihood simplifies to the
+*generalized residual*,
 $$
   f'(\eta_i; y_i) = \ilink(\eta_i) - y_i = r_i.
 $$
@@ -512,7 +511,7 @@ The resulting coordinate-descent algorithm appears in @algo-cd.
 
 In the implementation, every coefficient update in @algo-cd is additionally
 wrapped in a Tseng--Yun Armijo backtrack on the proximal model decrease, so each
-pass is descent by construction; the pseudocode suppresses this guard for
+pass is descent by construction; the pseudocode omits this guard for
 readability, and [Supplement S3](#sec-s-methodology) states its constants. The
 Newton branch of @algo-cd wraps the same Newton direction in an Armijo
 backtracking line search. In the common case it accepts the full step
@@ -530,7 +529,7 @@ gives the complete numerical policy.
 Four properties distinguish the intercept $\beta_0$ from a regular coefficient
 $\beta_j$:
 
-1. **The intercept's design column is $\mathbf{1}_n$.** Treating $\beta_0$ as a
+1. The intercept's design column is $\mathbf{1}_n$. Treating $\beta_0$ as a
    coordinate is equivalent to augmenting $X$ with a constant column of ones.
    This single observation unifies several quantities that would otherwise look
    unrelated: $H_{00} = (1/n)\sum_i w_i$ is a mean of weights rather than a
@@ -541,20 +540,20 @@ $\beta_j$:
    intercept couples to *every* slope through a single scalar rather than
    explicitly through pairwise feature correlations.
 
-2. **The intercept is unpenalized.** The regularizer $G_\lambda$ acts only on
+2. The intercept is unpenalized. The regularizer $G_\lambda$ acts only on
    $\beta$, so $\beta_0$ is the only coordinate whose update is smooth---no
    proximal operator, no soft-thresholding, no non-differentiable optimality
    condition. Hence, the strategies in @algo-cd can update $\beta_0$ directly.
 
-3. **The intercept is never inactive.** State-of-the-art CD solvers use
-   screening rules and working sets to limit the number of coordinates touched
-   each pass. In high-dimensional settings, most $\beta_j$ are touched in only a
-   fraction of passes, and their average per-pass cost is correspondingly small.
-   The intercept is in the active set of every pass by construction, so its
-   per-pass treatment dominates the overall intercept-update cost, unlike that
-   of any single slope.
+3. The intercept is never inactive. State-of-the-art CD solvers use screening
+   rules and working sets to limit the number of coordinates touched each pass.
+   In high-dimensional settings, most $\beta_j$ are touched in only a fraction
+   of passes, and their average per-pass cost is correspondingly small. The
+   intercept is in the active set of every pass by construction, so its per-pass
+   treatment dominates the overall intercept-update cost, unlike that of any
+   single slope.
 
-4. **In IRLS-CD, the intercept update is a re-centering step.** For the original
+4. In IRLS-CD, the intercept update is a re-centering step. For the original
    canonical-link loss, the generalized residual defined above gives
    $\partial_0 F = (1/n)\sum_i r_i$. Within the IRLS surrogate, define the
    working residual $e_i = \eta_i - z_i = r_i/w_i$. Its intercept gradient is
