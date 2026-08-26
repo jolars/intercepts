@@ -428,3 +428,5 @@ TSWLatexianTemp*
 # arXiv packaging output
 /.arxiv/
 /intercepts-arxiv.tar.gz
+
+/.agents/
