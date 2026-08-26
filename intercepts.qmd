@@ -476,7 +476,7 @@ The resulting coordinate-descent algorithm appears in @algo-cd.
 \begin{algorithm}
     \caption{Cyclic coordinate descent.}
     \begin{algorithmic}
-        \State \textbf{Input:} Data $(X, y)$, $\lambda > 0$, initial intercept and coefficients $(\beta_0, \beta)$
+        \State \emph{Input:} Data $(X, y)$, $\lambda > 0$, initial intercept and coefficients $(\beta_0, \beta)$
         \While{not converged}
             \For{$j$ in $\{1, 2, ..., p\}$}
                 \State $\beta_j \gets \operatorname{prox}_{\gamma_j g_{\lambda,j}}\left( \beta_j - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) \right)$
@@ -504,7 +504,7 @@ The resulting coordinate-descent algorithm appears in @algo-cd.
                 \EndIf
             \EndIf
         \EndWhile
-        \State \textbf{Output:} $(\beta_0, \beta)$
+        \State \emph{Output:} $(\beta_0, \beta)$
     \end{algorithmic}
 \end{algorithm}
 ```
@@ -673,8 +673,8 @@ profiled gradient, and its diagonal curvature gives a conservative step relative
 to the profiled local quadratic model. More precisely:
 
 ::: {.proposition #prp-profile-equiv}
-**(First-update profile equivalence.)** Let $F$ be twice continuously
-differentiable and strictly convex in $\beta_0$ for every $\beta$, and let
+(First-update profile equivalence.) Let $F$ be twice continuously differentiable
+and strictly convex in $\beta_0$ for every $\beta$, and let
 $\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$. Suppose the exact strategy
 has driven $\beta_0$ to the conditional minimizer
 $\beta_0^{(t)} = \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$, and suppose
@@ -2039,7 +2039,7 @@ intercept: the gradient strategy uses the global $L_0 = \sup f''$, whereas the
 heuristic for Newton and exact substitutes the iterate-level $H_{00}$.
 
 ::: {.remark}
-**(Rate-gap heuristic, with a large-imbalance reduction.)** Let
+*(Rate-gap heuristic, with a large-imbalance reduction.)* Let
 $R_j^2 = (\beta_j^{(0)} - \beta_j^\star)^2$ denote the squared cold-start
 distance to the optimum along coordinate $j$, with the intercept as coordinate
 $0$. Let $B_{\mathrm{G}}$ and $B_{\mathrm{N}}$ denote the resulting bound-based
@@ -2076,17 +2076,17 @@ bound grows with $\sum_j L_j R_j^2$ and leads to @eq-rate-gap. Three
 substitutions enter the derivation, each of which departs from the bound's
 assumptions; we retain only the predicted scaling:
 
-1. **Schedule.** The strategies fix the intercept update at every pass rather
-   than drawing it with the uniform coordinate probability the bound assumes. We
+1. *Schedule.* The strategies fix the intercept update at every pass rather than
+   drawing it with the uniform coordinate probability the bound assumes. We
    treat the coordinate sum as a per-coordinate-cost surrogate.
 
-2. **Intercept curvature.** For the Newton and exact strategies, we plug in the
+2. *Intercept curvature.* For the Newton and exact strategies, we plug in the
    iterate-level entry $H_{00}$ rather than the fixed coordinate Lipschitz
    constant used by the CD bound. This substitution delivers the
    $H_{00}(\hat\eta) \to 0$ scaling that the figures track. The gradient
    strategy keeps the global $L_0 = \sup f''$, as the bound prescribes.
 
-3. **Schur reduction on the coefficients.** The exact-strategy identity in
+3. *Schur reduction on the coefficients.* The exact-strategy identity in
    @prp-profile-equiv, together with the Newton strategy's leading-order
    approximation in @eq-newton-coupling, motivates using the profiled gradient
    at the *first* coefficient update of each pass. The corresponding local
@@ -2281,7 +2281,7 @@ $\kappa$ allows many individually small correlations to combine through
 $H_{AA}^{-1}$.
 
 ::: {.proposition #prp-frozen-block-rate}
-**(Frozen two-block rate.)** Let $q = H_{00}/L_0$. On the frozen quadratic,
+*(Frozen two-block rate.)* Let $q = H_{00}/L_0$. On the frozen quadratic,
 suppose $H$ is positive definite and each pass first minimizes over the active
 coefficient block and then updates the intercept. The Newton and gradient
 strategies contract the intercept error by
@@ -3305,17 +3305,17 @@ majorant of glmnet `modified.Newton` and biglasso `MM` nor the
 constant-Lipschitz coordinate step of skglm `AndersonCD` has a Poisson analog.
 The status of each solver on this family is structural, not empirical:
 
-- **glmnet** supports `family = "poisson"` with a single fitting mode
-  (local-IRLS); no `type.poisson` switch exists.
-- **biglasso** does not implement `family = "poisson"` at all; its signature is
+- glmnet supports `family = "poisson"` with a single fitting mode (local-IRLS);
+  no `type.poisson` switch exists.
+- biglasso does not implement `family = "poisson"` at all; its signature is
   restricted to `gaussian`, `binomial`, `cox`, and `mgaussian`.
-- **skglm** `AndersonCD` requires `datafit.get_lipschitz()`, which the `Poisson`
+- skglm `AndersonCD` requires `datafit.get_lipschitz()`, which the `Poisson`
   datafit declines to implement
   (`AttributeError: Poisson is not   compatible with solver AndersonCD`). The
   `AndersonCD` solver therefore cannot fit a Poisson model.
-- **skglm** `ProxNewton` pairs with the `Poisson` datafit through local
-  prox-Newton subproblems and represents skglm in the panel.
-- **adelie** supports `glm.poisson(y)` through the same direct-Newton /
+- skglm `ProxNewton` pairs with the `Poisson` datafit through local prox-Newton
+  subproblems and represents skglm in the panel.
+- adelie supports `glm.poisson(y)` through the same direct-Newton /
   weighted-centered-features parameterization as the logistic case.
 
 Three solvers based on local Newton curvature therefore remain: glmnet, adelie,
