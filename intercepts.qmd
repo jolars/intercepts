@@ -388,12 +388,12 @@ from its derivative. The identity does not hold for arbitrary noncanonical
 links. The loss, link, and inverse link for the four models we study---Gaussian,
 binomial, Poisson, and multinomial---appear in @tbl-glm.
 
-  | Model       | $f(\eta; y)$                                                                             | $\link(\mu)$                                                    | $\ilink(\eta)$                                           |
-  | :---------- | :--------------------------------------------------------------------------------------- | :-------------------------------------------------------------- | :------------------------------------------------------- |
-  | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                | $\mu$                                                           | $\eta$                                                   |
-  | Binomial    | $\log(1 + e^\eta) - \eta y$                                                              | $\log\left(\frac{\mu}{1 - \mu}\right)$                          | $\frac{e^\eta}{1 + e^\eta}$                              |
-  | Poisson     | $e^\eta - \eta y$                                                                        | $\log(\mu)$                                                     | $e^\eta$                                                 |
-  | Multinomial | $\log\left(1 + \sum_{j = 1}^{m - 1} e^{\eta_j}\right) - \sum_{k = 1}^{m - 1} y_k \eta_k$ | $\log\!\left(\frac{\mu}{1 - \sum_{j = 1}^{m - 1} \mu_j}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j = 1}^{m - 1} e^{\eta_j}}$ |
+  | Model       | $f(\eta; y)$                                                                               | $\link(\mu)$                                                    | $\ilink(\eta)$                                           |
+  | :---------- | :----------------------------------------------------------------------------------------- | :-------------------------------------------------------------- | :------------------------------------------------------- |
+  | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                  | $\mu$                                                           | $\eta$                                                   |
+  | Binomial    | $\log(1 + e^\eta) - \eta y$                                                                | $\log\left( \frac{\mu}{1 - \mu} \right)$                        | $\frac{e^\eta}{1 + e^\eta}$                              |
+  | Poisson     | $e^\eta - \eta y$                                                                          | $\log(\mu)$                                                     | $e^\eta$                                                 |
+  | Multinomial | $\log\left( 1 + \sum_{j = 1}^{m - 1} e^{\eta_j} \right) - \sum_{k = 1}^{m - 1} y_k \eta_k$ | $\log\!\left(\frac{\mu}{1 - \sum_{j = 1}^{m - 1} \mu_j}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j = 1}^{m - 1} e^{\eta_j}}$ |
 
   : Loss, link, and inverse-link functions for the GLM families studied. The
     multinomial row uses the reference-class parameterization with class $m$ as
