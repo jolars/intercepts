@@ -51,6 +51,11 @@ tasks:
     cmds:
       - quarto render intercepts.qmd
 
+  arxiv:
+    desc: Build the arXiv source tarball (renders first if the TeX is stale)
+    cmds:
+      - bash dev/make-arxiv.sh
+
   caches:
     desc: Regenerate the synthetic Julia results caches (may take hours)
     cmds:
