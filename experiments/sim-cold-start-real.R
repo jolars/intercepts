@@ -1,5 +1,5 @@
 ## Single-lambda cold-start diagnostic on real imbalanced logistic problems
-## (w1a and news20-3pct). Mirrors the diagnostic in TODO.md: tests whether the
+## (w1a and news20-3pct). Tests whether the
 ## unguarded-Newton intercept overshoot that affects biglasso in path mode at
 ## the cold-start step also bites at single-lambda with a loose eps, and
 ## whether it reproduces across both datasets (matched on ybar = 0.03, very
