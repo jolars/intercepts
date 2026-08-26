@@ -1,6 +1,6 @@
 # How to Train Your Intercept
 
-Johan Larsson, Frederik Fabricius Bjerre 2026-08-24
+Johan Larsson, Frederik Fabricius Bjerre 2026-08-26
 
 *How the intercept is updated inside coordinate descent for regularized
 generalized linear models, and why the choice matters under response imbalance.*
@@ -60,10 +60,11 @@ results, you need to follow these steps.
 
 You need [quarto](https://quarto.org/) installed on your computer, as well as
 the [Computo extension](https://github.com/computorg/computo-quarto-extension)
-to prepare your document. The latter can be installed as follows:
+to prepare your document. Computo’s build installs the latest release, so we do
+not pin a version here:
 
 ```.bash
-quarto add computorg/computo-quarto-extension@v0.2.6
+quarto add computorg/computo-quarto-extension
 ```
 
 ### Install Julia

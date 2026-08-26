@@ -55,9 +55,14 @@ keywords: [intercepts, coordinate descent, optimization, regularization]
 bibliography: references.bib
 github-user: jolars
 repo: "intercepts"
-
-draft: true
-published: false
+citation:
+  type: article-journal
+  container-title: "Computo"
+  issn: "2824-7795"
+  # 10.5072 is the official DOI test prefix; replace once assigned.
+  doi: "10.5072/computo.0000"
+status: submitted
+license: CC-BY-4.0
 
 format:
   computo-html: default
