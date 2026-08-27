@@ -31,6 +31,12 @@ tasks:
       - rm -rf /run/user/1000/julia/Project.toml
       - quarto preview intercepts.qmd
 
+  paper-preview-pdf:
+    desc: Preview the paper as PDF
+    cmds:
+      - rm -rf /run/user/1000/julia/Project.toml
+      - quarto preview intercepts.qmd --to computo-pdf
+
   readme:
     desc: Render the README
     cmds:
@@ -50,6 +56,11 @@ tasks:
     desc: Render the paper
     cmds:
       - quarto render intercepts.qmd
+
+  paper-render-pdf:
+    desc: Render the paper
+    cmds:
+      - quarto render intercepts.qmd --to computo-pdf
 
   arxiv:
     desc: Build the arXiv source tarball (renders first if the TeX is stale)
