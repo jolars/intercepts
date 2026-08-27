@@ -934,11 +934,10 @@ S2.1](#sec-vector-intercepts).
 The pattern appears on two real datasets with opposite shapes
 (@fig-multinomial-summary). Yeoh2002 has $n = 248$, $p = 12\,625$, and six
 classes, while StatLog Shuttle has $n = 58\,000$, $p = 9$, and seven classes. On
-Yeoh2002, the gradient strategy needs about $3.7$ times as many passes as Newton
-to bring the relative suboptimality bound below $10^{-4}$. On Shuttle, whose
-rarest classes contain only ten and thirteen observations, it fails to reach
-$10^{-4}$ within 1000 passes; Newton and exact reach that threshold in about 25
-passes.
+Yeoh2002, the gradient strategy needs about 4 times as many passes as Newton to
+bring the relative suboptimality bound below $10^{-4}$. On Shuttle, whose rarest
+classes contain only ten and thirteen observations, it fails to reach $10^{-4}$
+within 1000 passes; Newton and exact reach that threshold in about 25 passes.
 
 ```{julia}
 #| label: fig-multinomial-summary
@@ -1319,14 +1318,15 @@ draw(
 )
 ```
 
-At $\mu_0 = 300$, the bare Newton intercept step at cold start lands near
-$\bar{y} - 1 \approx 299$ while the exact optimum is
-$\log(\bar{y}) \approx 5.7$, an $\approx 50 \times$ overshoot that evaluates the
-loss at $e^{299}$. This overshoot shows why the Newton step needs a safeguard
-(@fig-cold-start-poisson). The primal records the transient: after the first
-pass, the unguarded runs sit between $+2 \times 10^6$ and $+5 \times 10^6$
-across the five seeds, whereas the guarded ones are already near
-$-2 \times 10^5$.
+At $\mu_0 = 300$, the first bare Newton step moves the cold-start intercept from
+zero to $\bar{y} - 1 \approx 300$, although the intercept-only optimum is only
+$\log(\bar{y}) \approx 6$. Because the log link exponentiates the intercept,
+this step implies a fitted rate near $e^{300}$ and makes the loss astronomical
+at that intermediate iterate. The safeguard prevents this overshoot
+(@fig-cold-start-poisson). The objective values after the first pass show this
+temporary excursion: the unguarded runs sit between $+2 \times 10^6$ and
+$+5 \times 10^6$ across the five seeds, whereas the guarded ones are already
+near $-2 \times 10^5$.
 
 The overshoot is nonetheless recoverable. The outer CD loop's own per-coordinate
 Armijo guard absorbs it over the next few passes, and the final primals agree to
