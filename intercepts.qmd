@@ -743,8 +743,8 @@ count scales as $O(\log\log(1/\varepsilon))$. This local result does not bound
 the steps needed to reach that neighborhood, nor does it show that every
 outer-pass subproblem begins there.
 
-Across the experimental imbalance sweep, $k_0 \in [1, 5]$, and each step costs
-$O(n)$ work (@fig-per-pass-cost).
+Across the imbalance levels considered in our experiments, $k_0 \in [1, 5]$,
+and each step costs $O(n)$ work (@fig-per-pass-cost).
 
 The conditional optimum that these $k_0$ steps establish survives exactly one
 coefficient update of the next pass (@eq-intercept-drift); by the second update,
@@ -927,9 +927,9 @@ class creates a low-curvature common-shift direction. A global Böhning majorant
 therefore attenuates the intercept correction in precisely the modes associated
 with rare classes. A single Armijo-guarded Newton block step adapts to those
 modes, while the exact strategy adds inner iterations without a visible
-improvement in the outer trajectory. We give the full block derivation, the
-relevant Rayleigh quotients, and the synthetic sweeps in [Supplement
-S2.1](#sec-vector-intercepts).
+improvement in the outer trajectory. [Supplement S2.1](#sec-vector-intercepts)
+derives the block update, identifies the relevant Rayleigh quotients, and tests
+this prediction on a grid of synthetic problems.
 
 The pattern appears on two real datasets with opposite shapes
 (@fig-multinomial-summary). Yeoh2002 has $n = 248$, $p = 12\,625$, and six
@@ -1163,11 +1163,12 @@ $\rho = 0.6$. We score comparable trajectories against the strongest feasible
 dual value found for their shared problem instance, so the displayed
 suboptimality bound does not depend on which strategy produced the primal
 iterate. We use pinned datasets in the real-data experiments and follow the same
-shared-reference principle in the production comparison. Cached outputs support
-the expensive sweeps; the toy example in @fig-parametric runs live when the
-notebook renders. We pin the Julia, R, and Python environments in the repository
-and give the complete construction, tolerances, budgets, data preparation,
-hardware, and reproduction protocol in [Supplement S3](#sec-s-methodology).
+shared-reference principle in the production comparison. We load cached outputs
+for computationally expensive experiments. The toy example in @fig-parametric
+instead runs live when the notebook renders. We pin the Julia, R, and Python
+environments in the repository and give the complete construction, tolerances,
+budgets, data preparation, hardware, and reproduction protocol in [Supplement
+S3](#sec-s-methodology).
 
 ## Simulated data
 
