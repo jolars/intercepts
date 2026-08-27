@@ -75,8 +75,8 @@ approximation and solve the approximation by coordinate descent. A local
 quadratic already contains the current intercept curvature, so the update
 strategies coincide within it. A quadratic built from a worst-case curvature
 bound retains the same problem as the conservative direct update. The six
-production solvers in @sec-production-solvers instantiate these designs;
-@sec-theory and @sec-irls explain when the distinction matters.
+production solvers in @sec-production-solvers instantiate these designs; we
+explain in @sec-theory and @sec-irls when the distinction matters.
 
 We study the optimization problem
 $$
@@ -87,7 +87,7 @@ large coefficients while leaving the intercept unpenalized. Throughout the
 paper, we assume that $G_\lambda$ is a proper, closed, convex, separable penalty
 and that $F$ is the per-observation-averaged loss
 $$
-  F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i).
+  F(\beta_0, \beta) = \frac{1}{n}\sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i).
 $$
 where $f$ is smooth, twice differentiable, and convex. Averaging by $n$ keeps
 the global Lipschitz constant for the intercept, $L_0 = \sup f''$, independent
@@ -127,10 +127,10 @@ Exact Strategy
 
 In the analysis, *exact* means setting the intercept to its conditional
 minimizer. In the experiments, the Exact Strategy computes this minimizer
-numerically. [Supplement S3](#sec-s-methodology) documents its tolerances,
-iteration cap, and scalar floating-point margin; a completed experiment
-therefore distinguishes a numerically certified conditional solve from an
-uncontrolled capped approximation.
+numerically. We document its tolerances, iteration cap, and scalar
+floating-point margin in [Supplement S3](#sec-s-methodology); a completed
+experiment therefore distinguishes a numerically certified conditional solve
+from an uncontrolled capped approximation.
 
 The three paths in @fig-parametric trace the strategies across the level sets of
 @eq-primal-problem for a toy problem with one feature and an intercept. The
@@ -369,11 +369,11 @@ bound-based heuristic and the behavior that we observe experimentally.
 Throughout this section, we work with the per-observation-averaged,
 canonical-link GLM loss
 $$
-  F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n f(x_i^\intercal \beta + \beta_0; y_i),
+  F(\beta_0, \beta) = \frac{1}{n}\sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
 $$
 We first derive the scalar-intercept results for the Gaussian, binomial, and
-Poisson models. A later section extends them to multinomial logistic regression,
-whose intercept is a vector. For observation $i$, let
+Poisson models. We later extend them to multinomial logistic regression, whose
+intercept is a vector. For observation $i$, let
 $\eta_i = x_i^\intercal \beta + \beta_0$ denote the linear predictor, and let
 $\ilink$ denote the inverse link. The conditional mean is then
 $\E(y_i \mid \eta_i) = \ilink(\eta_i)$. For the canonical-link models considered
@@ -387,12 +387,12 @@ from its derivative. The identity does not hold for arbitrary noncanonical
 links. The loss, link, and inverse link for the four models we study---Gaussian,
 binomial, Poisson, and multinomial---appear in @tbl-glm.
 
-  | Model       | $f(\eta; y)$                                                                               | $\link(\mu)$                                                    | $\ilink(\eta)$                                           |
-  | :---------- | :----------------------------------------------------------------------------------------- | :-------------------------------------------------------------- | :------------------------------------------------------- |
-  | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                                  | $\mu$                                                           | $\eta$                                                   |
-  | Binomial    | $\log(1 + e^\eta) - \eta y$                                                                | $\log\left( \frac{\mu}{1 - \mu} \right)$                        | $\frac{e^\eta}{1 + e^\eta}$                              |
-  | Poisson     | $e^\eta - \eta y$                                                                          | $\log(\mu)$                                                     | $e^\eta$                                                 |
-  | Multinomial | $\log\left( 1 + \sum_{j = 1}^{m - 1} e^{\eta_j} \right) - \sum_{k = 1}^{m - 1} y_k \eta_k$ | $\log\!\left(\frac{\mu}{1 - \sum_{j = 1}^{m - 1} \mu_j}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j = 1}^{m - 1} e^{\eta_j}}$ |
+  | Model       | $f(\eta; y)$                                                                       | $\link(\mu)$                                                    | $\ilink(\eta)$                                       |
+  | :---------- | :--------------------------------------------------------------------------------- | :-------------------------------------------------------------- | :--------------------------------------------------- |
+  | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                          | $\mu$                                                           | $\eta$                                               |
+  | Binomial    | $\log(1 + e^\eta) - \eta y$                                                        | $\log\left( \frac{\mu}{1 - \mu} \right)$                        | $\frac{e^\eta}{1 + e^\eta}$                          |
+  | Poisson     | $e^\eta - \eta y$                                                                  | $\log(\mu)$                                                     | $e^\eta$                                             |
+  | Multinomial | $\log\left( 1 + \sum_{j=1}^{m-1} e^{\eta_j} \right) - \sum_{k=1}^{m-1} y_k \eta_k$ | $\log\!\left(\frac{\mu}{1 - \sum_{j = 1}^{m - 1} \mu_j}\right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
 
   : Loss, link, and inverse-link functions for the GLM families studied. The
     multinomial row uses the reference-class parameterization with class $m$ as
@@ -405,7 +405,7 @@ binomial, Poisson, and multinomial---appear in @tbl-glm.
 Coordinate descent updates one coordinate at a time while holding the others
 fixed. For coefficient $\beta_j$, the chain rule gives
 $$
-  \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) = \frac{1}{n}\sum_{i = 1}^n x_{ij} f'(\eta_i; y_i).
+  \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) = \frac{1}{n}\sum_{i=1}^n x_{ij} f'(\eta_i; y_i).
 $$
 
 The smooth part of a coefficient or intercept update takes a step in the
@@ -418,26 +418,26 @@ where $\gamma_j$ is the step size. The usual CD choice is a Newton step, based
 on the second derivative
 $$
   H_{jj} = \frac{\partial^2}{\partial \beta_j^2} F(\beta_0, \beta)
-         = \frac{1}{n}\sum_{i = 1}^n x_{ij}^2 f''(\eta_i; y_i).
+         = \frac{1}{n}\sum_{i=1}^n x_{ij}^2 f''(\eta_i; y_i).
 $$
 
 Letting $w_i = f''(\eta_i; y_i)$ be the *weights*, we can rewrite the Hessian
 diagonal as
 $$
-  H_{jj} = \frac{1}{n}\sum_{i = 1}^n x_{ij}^2 w_i.
+  H_{jj} = \frac{1}{n}\sum_{i=1}^n x_{ij}^2 w_i.
 $$
 
 This yields the step size
 $$
   \gamma_j = H_{jj}^{-1}
-           = \left( \frac{1}{n}\sum_{i = 1}^n x_{ij}^2 w_i \right)^{-1}.
+           = \left( \frac{1}{n}\sum_{i=1}^n x_{ij}^2 w_i \right)^{-1}.
 $$
 
 Applying the same logic to the intercept suggests
 $$
   \gamma_0 = H_{00}^{-1}
            = \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1}
-           = \left( \frac{1}{n}\sum_{i = 1}^n f''(\eta_i; y_i) \right)^{-1}.
+           = \left( \frac{1}{n}\sum_{i=1}^n f''(\eta_i; y_i) \right)^{-1}.
 $$
 Production solvers, however, realize three different intercept updates:
 
@@ -450,14 +450,14 @@ Production solvers, however, realize three different intercept updates:
    strategy*.
 
 For a regular coefficient, this smooth step must also account for the penalty.
-By separability, write
-$G_\lambda(\beta) = \sum_{j = 1}^p g_{\lambda,j}(\beta_j)$ and define
+By separability, write $G_\lambda(\beta) = \sum_{j=1}^p g_{\lambda,j}(\beta_j)$
+and define
 $$
-  \operatorname{prox}_{\gamma g}(v) = \argmin_{u \in \mathbb{R}} \left\{g(u) + \frac{1}{2\gamma}(u - v)^2\right\}.
+  \operatorname{prox}_{\gamma g}(v) = \argmin_{u \in \mathbb{R}} \left\{ g(u) + \frac{1}{2\gamma}(u - v)^2 \right\}.
 $$
 The coordinate update is therefore the proximal-gradient step
 $$
-  \beta_j^+ = \operatorname{prox}_{\gamma_j g_{\lambda,j}} \left(\beta_j - \gamma_j \frac{\partial}{\partial\beta_j}F(\beta_0,\beta)\right).
+  \beta_j^+ = \operatorname{prox}_{\gamma_j g_{\lambda,j}} \left( \beta_j - \gamma_j \frac{\partial}{\partial\beta_j}F(\beta_0,\beta) \right).
 $$
 For the lasso, $g_{\lambda,j}(u) = \lambda|u|$, this is soft-thresholding at
 $\gamma_j\lambda$. The intercept has no corresponding proximal step because it
@@ -512,8 +512,8 @@ The resulting coordinate-descent algorithm appears in @algo-cd.
 In the implementation, every coefficient update in @algo-cd is additionally
 wrapped in a Tseng--Yun Armijo backtrack on the proximal model decrease, so each
 pass is descent by construction; the pseudocode omits this guard for
-readability, and [Supplement S3](#sec-s-methodology) states its constants. The
-Newton branch of @algo-cd wraps the same Newton direction in an Armijo
+readability, and we state its constants in [Supplement S3](#sec-s-methodology).
+The Newton branch of @algo-cd wraps the same Newton direction in an Armijo
 backtracking line search. In the common case it accepts the full step
 immediately, shrinking $\alpha$ only when the step overshoots. The
 slope-tolerance constant $c \in (0, 1)$ controls the sufficient-decrease
@@ -576,12 +576,12 @@ how the intercept couples to each coefficient. Letting $w_i = f''(\eta_i; y_i)$,
 we have
 $$
   H_{jk} = \frac{\partial^2}{\partial \beta_j \partial \beta_k} F(\beta_0, \beta)
-         = \frac{1}{n}\sum_{i = 1}^n x_{ij} x_{ik} w_i
+         = \frac{1}{n}\sum_{i=1}^n x_{ij} x_{ik} w_i
 $$
 for the coefficient--coefficient block and
 $$
   H_{0j} = \frac{\partial^2}{\partial \beta_0 \partial \beta_j} F(\beta_0, \beta)
-         = \frac{1}{n}\sum_{i = 1}^n x_{ij} w_i
+         = \frac{1}{n}\sum_{i=1}^n x_{ij} w_i
 $$
 for the intercept--coefficient block. The coefficients couple to each other
 *pairwise* through the weighted covariance structure of the features. Correlated
@@ -894,9 +894,9 @@ does.
 
 This is a local explanation, not a global iteration-complexity theorem. The
 complete calculation, its frozen-random-product validation, and a deliberately
-non-sharp randomized-CD heuristic appear in [Supplement S1.1](#sec-s-rate). That
-supplement also shows why the heuristic predicts the imbalance scaling but not
-the transition to the late-stage plateau.
+non-sharp randomized-CD heuristic appear in [Supplement S1.1](#sec-s-rate).
+There we also show why the heuristic predicts the imbalance scaling but not the
+transition to the late-stage plateau.
 
 ### A safe Newton variant
 
@@ -908,10 +908,10 @@ $-\partial_0 F / H_{00}$ in an Armijo backtracking line search: accept the full
 step ($\alpha = 1$) if it decreases $F$ enough, otherwise halve $\alpha$ until
 it does. Our Newton strategy includes this safeguard. When it accepts the full
 step, the safeguard adds constant work; when the linear model is inadequate, the
-number of backtracking trials grows logarithmically. The isolated-guard
-diagnostic in @fig-cold-start and @fig-cold-start-poisson compares the guarded
-variant directly against a bare Newton step and shows when the guard changes the
-result.
+number of backtracking trials grows logarithmically. In the isolated-guard
+diagnostic in @fig-cold-start and @fig-cold-start-poisson, we compare the
+guarded variant directly against a bare Newton step and show when the guard
+changes the result.
 
 ### Extension to vector intercepts {#sec-multinomial-main}
 
@@ -919,16 +919,16 @@ The same mechanism extends to multinomial logistic regression. Under a
 reference-class parameterization, the intercept becomes a $(K - 1)$-vector, and
 its Hessian is
 $$
-  H_{00} = \frac{1}{n}\sum_{i = 1}^n \left\{\operatorname{diag}(p_{i,1:K - 1}) - p_{i,1:K - 1}p_{i,1:K - 1}^{\intercal}\right\}.
+  H_{00} = \frac{1}{n}\sum_{i=1}^n \left\{ \operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1}p_{i,1:K-1}^{\intercal} \right\}.
 $$
 Rare free classes create low-curvature coordinate directions; a rare reference
 class creates a low-curvature common-shift direction. A global Böhning majorant
 therefore attenuates the intercept correction in precisely the modes associated
 with rare classes. A single Armijo-guarded Newton block step adapts to those
 modes, while the exact strategy adds inner iterations without a visible
-improvement in the outer trajectory. [Supplement S2.1](#sec-vector-intercepts)
-gives the full block derivation, the relevant Rayleigh quotients, and the
-synthetic sweeps.
+improvement in the outer trajectory. We give the full block derivation, the
+relevant Rayleigh quotients, and the synthetic sweeps in [Supplement
+S2.1](#sec-vector-intercepts).
 
 The pattern appears on two real datasets with opposite shapes
 (@fig-multinomial-summary). Yeoh2002 has $n = 248$, $p = 12\,625$, and six
@@ -987,7 +987,7 @@ reweighted least squares (IRLS)\ [@mccullagh1989]. At the current iterate
 $(\beta_0^{(t)}, \beta^{(t)})$, IRLS forms the weighted least squares quadratic
 surrogate
 $$
-  \tilde F^{(t)}(\beta_0, \beta) = \frac{1}{2n} \sum_{i = 1}^n w_i^{(t)} \bigl( z_i^{(t)} - \beta_0 - x_i^\intercal \beta \bigr)^2,
+  \tilde F^{(t)}(\beta_0, \beta) = \frac{1}{2n} \sum_{i=1}^n w_i^{(t)} \bigl( z_i^{(t)} - \beta_0 - x_i^\intercal \beta \bigr)^2,
 $$
 with working response $z_i^{(t)} = \eta_i^{(t)} - r_i^{(t)} / w_i^{(t)}$, run
 inner CD on $\tilde F^{(t)}$, then re-linearize. Two weight choices are used in
@@ -1009,7 +1009,7 @@ The strategies no longer coincide under MM majorization. Replacing $w_i^{(t)}$
 by the constant majorant $1/4$ in the logistic case, the closed-form inner
 intercept update on $\tilde F^{(t)}$ is
 $$
-  \beta_0 \gets \beta_0 + \frac{4}{n} \sum_{i = 1}^n (y_i - p_i)
+  \beta_0 \gets \beta_0 + \frac{4}{n} \sum_{i=1}^n (y_i - p_i)
                 = \beta_0 - \frac{1}{L_0} \partial_0 F, \qquad L_0
                 = 1/4,
 $$
@@ -1061,8 +1061,8 @@ weights and residuals around an inner CD solve
 The mode switches within glmnet (`Newton` versus `modified.Newton`) and biglasso
 (`Newton` versus `MM`) isolate the weight scheme in @eq-grad-residual.
 
-The table excludes two related implementations. Scikit-learn's L1-logistic path
-either delegates to LIBLINEAR or uses SAGA, a variance-reduced
+We exclude two related implementations from the table. Scikit-learn's
+L1-logistic path either delegates to LIBLINEAR or uses SAGA, a variance-reduced
 stochastic-gradient method outside the CD framework analyzed here. celer's
 L1-logistic estimator does not support an intercept in version 0.7.4, and its
 documentation redirects users with logistic needs to skglm.
@@ -1162,12 +1162,12 @@ cyclic ordering, fixed seeds, standardized features, and an AR(1) correlation of
 $\rho = 0.6$. We score comparable trajectories against the strongest feasible
 dual value found for their shared problem instance, so the displayed
 suboptimality bound does not depend on which strategy produced the primal
-iterate. Real-data experiments use pinned datasets, and the production
-comparison follows the same shared-reference principle. Cached outputs support
+iterate. We use pinned datasets in the real-data experiments and follow the same
+shared-reference principle in the production comparison. Cached outputs support
 the expensive sweeps; the toy example in @fig-parametric runs live when the
-notebook renders. The repository pins the Julia, R, and Python environments.
-[Supplement S3](#sec-s-methodology) gives the complete construction, tolerances,
-budgets, data preparation, hardware, and reproduction protocol.
+notebook renders. We pin the Julia, R, and Python environments in the repository
+and give the complete construction, tolerances, budgets, data preparation,
+hardware, and reproduction protocol in [Supplement S3](#sec-s-methodology).
 
 ## Simulated data
 
@@ -1632,7 +1632,7 @@ in 50 geometric steps);[^cold-start-footnote] for each solver we sweep its
 convergence tolerance and plot a suboptimality bound against its available
 measure of work (CD passes, outer iterations, or wall-clock time).
 
-Every panel evaluates the common objective
+For every panel, we evaluate the common objective
 $n^{-1}\sum_i \ell_i + \lambda\lVert\beta\rVert_1$ at the same final $\lambda$.
 For each problem, a separate high-accuracy run of our guarded-Newton CD solver
 defines the shared reference primal $F^\star$ and feasible dual lower bound
@@ -1657,7 +1657,7 @@ because they solve prox-Newton quadratics; only BlitzL1 additionally realizes
 the exact strategy on the original loss at the subproblem boundary.
 Within-package switches in glmnet and biglasso isolate the weight scheme, skglm
 0.5 supplies the direct-CD gradient case, and @fig-skglm-controlled isolates
-skglm's upstream Newton fix. The LIBLINEAR/BlitzL1 and adelie panels test
+skglm's upstream Newton fix. With LIBLINEAR, BlitzL1, and adelie, we test
 whether solvers that use local curvature converge quickly.
 
 ```{julia}
@@ -1796,10 +1796,10 @@ Across @fig-real-glmnet--@fig-real-skglm, the fixed-problem comparisons are
 consistent with slow convergence under global curvature and fast convergence
 under local curvature. The glmnet and biglasso switches change the full IRLS
 weight scheme, however, and the cross-package panels also reflect implementation
-differences. To isolate the intercept update, @fig-skglm-controlled compares two
-skglm commits that differ only in that update: `b03644fe`, the last pre-fix
-commit and behaviorally identical to the released 0.5, and `8f9cbd77`, the
-merged Newton fix. Running the same `AndersonCD` driver on both yields a
+differences. To isolate the intercept update, we compare two skglm commits in
+@fig-skglm-controlled that differ only in that update: `b03644fe`, the last
+pre-fix commit and behaviorally identical to the released 0.5, and `8f9cbd77`,
+the merged Newton fix. Running the same `AndersonCD` driver on both yields a
 controlled 30-cell comparison.
 
 As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
@@ -1887,17 +1887,17 @@ draw(
 )
 ```
 
-adelie tests the same prediction with a different implementation. It builds the
-same weighted Gaussian surrogate as glmnet `Newton`, but it realizes the
-intercept implicitly: rather than updating $\beta_0$ as a coordinate inside the
-inner CD pass, it weighted-centers the features at the start of each surrogate
-and tracks the residual mean, reconstructing
+We test the same prediction with a different implementation using adelie. It
+builds the same weighted Gaussian surrogate as glmnet `Newton`, but it realizes
+the intercept implicitly: rather than updating $\beta_0$ as a coordinate inside
+the inner CD pass, it weighted-centers the features at the start of each
+surrogate and tracks the residual mean, reconstructing
 $\beta_0 = \bar{y} + \overline{\mathrm{resid}}$ at the end of the inner solve.
 By construction, the intercept therefore sits at the surrogate optimum on every
 outer pass, with no separate update step.
 
-That places adelie in the same class as glmnet `Newton` and biglasso `Newton`,
-and @fig-real-adelie sweeps its convergence tolerance across the same three
+That places adelie in the same class as glmnet `Newton` and biglasso `Newton`.
+In @fig-real-adelie, we sweep its convergence tolerance across the same three
 problems used above. The curves are flat above `tol` around $10^{-4}$: path mode
 warm-starts each of the 50 lambdas from its predecessor, and those warm starts
 alone land within $10^{-5}$ of the optimum, so the tolerance has nothing left to
@@ -2052,7 +2052,7 @@ numerator and denominator of @eq-rate-gap. In any sequence of problems for which
 $$
 \begin{aligned}
   \frac{L_0 R_0^2}{S_{\mathrm{G}}}    & \to \infty,
-  \\
+                                      \\
   \frac{H_{00} R_0^2}{S_{\mathrm{N}}} & \to \infty.
 \end{aligned}
 $$
@@ -2102,9 +2102,9 @@ Substituting the second and third approximations into the $L_j R_j^2$ sum gives
 @eq-rate-gap. Retaining only the $R_0^2$ term under the two curvature-weighted
 dominance conditions stated above gives @eq-rate-gap-asymptotic.
 
-The heuristic proxy diverges as $H_{00}/L_0 \to 0$. @fig-rate-gap tests whether
-the empirical pass-count ratio follows this scaling; it does not test or imply
-an iteration-complexity theorem.
+The heuristic proxy diverges as $H_{00}/L_0 \to 0$. In @fig-rate-gap, we test
+whether the empirical pass-count ratio follows this scaling; we do not test or
+imply an iteration-complexity theorem.
 
 The approximation has two regimes. In strongly coupled designs
 ($\bar\rho^2 \to 1$, e.g. uncentered designs where the intercept absorbs the
@@ -2175,13 +2175,13 @@ $\mu_0 = 0.5$ and the iterate-level curve is tighter from $\mu_0 = 0.7$ on. The
 two bracket the empirical ratio up to $\mu_0 = 0.9$, sit marginally below it at
 $\mu_0 = 0.95$, and both sit above it at $\mu_0 = 0.99$, where they approach the
 intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic at their
-respective evaluation points. @sec-imbalance-reg examines this discrepancy over
-a wider grid.
+respective evaluation points. We examine this discrepancy over a wider grid in
+@sec-imbalance-reg.
 
 The sweep in @fig-rate-gap varies $H_{00}/L_0$ through $\mu_0$ while keeping
-$\bar\rho^2$ close to zero in the standardized design. A second experiment holds
-$\mu_0$ fixed and varies $\bar\rho^2$ directly. This is a stronger test: rather
-than asking whether the heuristic tracks imbalance, it asks whether its
+$\bar\rho^2$ close to zero in the standardized design. In a second experiment,
+we hold $\mu_0$ fixed and vary $\bar\rho^2$ directly. This is a stronger test:
+rather than asking whether the heuristic tracks imbalance, it asks whether its
 first-update coupling correction predicts the long-run rate. On the same problem
 family with `means = :random` (so each column carries an $O(1)$ mean), a
 centering fraction $\alpha$ interpolates between the standardized and uncentered
@@ -2264,12 +2264,10 @@ coefficients to the active set $A$, and translate the optimum to zero. Once the
 active signs are fixed, the penalty is locally affine and the quadratic error
 has Hessian
 $$
-  H =
-\begin{bmatrix}
-  H_{00} & H_{0A} \\
-  H_{A0} & H_{AA}
-\end{bmatrix}
-  .
+  H = \begin{bmatrix}
+        H_{00} & H_{0A} \\
+        H_{A0} & H_{AA}
+      \end{bmatrix}.
 $$
 The collective coupling between the intercept and the active coefficient block
 is $\kappa$, restating @eq-collective-coupling:
@@ -2311,18 +2309,18 @@ gradient strategy leaves $[1 - q(1 - \kappa)]a$. Taking logarithms gives
 @eq-frozen-block-rate; expanding both logarithms at $\kappa = 1$ gives the
 limit. This route contains no cold-start distance $R_0$.
 
-The proposition solves the coefficient block exactly, while the algorithm uses
-one permuted coordinate sweep. For that algorithm, let $C_\pi$ be the frozen
-linear map for a coefficient sweep in order $\pi$, and let
+The proposition assumes exact minimization of the coefficient block, while the
+algorithm uses one permuted coordinate sweep. For that algorithm, let $C_\pi$ be
+the frozen linear map for a coefficient sweep in order $\pi$, and let
 $$
   E_{\mathrm{N}} = I - \frac{1}{H_{00}}e_0e_0^\top H, \qquad E_{\mathrm{G}}
                  = I - \frac{1}{L_0}e_0e_0^\top H
                  = (1 - q)I + qE_{\mathrm{N}}.
 $$
 One frozen pass is $P_{\mathrm{N},\pi} = E_{\mathrm{N}}C_\pi$ or
-$P_{\mathrm{G},\pi} = E_{\mathrm{G}}C_\pi$. Because the experiment draws a new
-$\pi$ each pass, its local rate is governed by products of these random
-matrices, not by the spectral radius of one cyclic pass.
+$P_{\mathrm{G},\pi} = E_{\mathrm{G}}C_\pi$. Because we draw a new $\pi$ each
+pass, the local rate is governed by products of these random matrices, not by
+the spectral radius of one cyclic pass.
 
 We compare the top random-product rates with the late-stage slopes of the
 nonlinear solver in @fig-rho-frozen. We fit each nonlinear
@@ -2432,13 +2430,13 @@ line search on the intercept alone.
 
 We can extend the argument to multinomial logistic regression with $K$ classes,
 where the scalar curvature ratio becomes a matrix operator. The intercept is a
-vector $\beta_0 \in \mathbb{R}^{K - 1}$ under the reference-class
-parameterization $\eta_{iK} = 0$. Writing
-$\eta_{ik} = x_i^\intercal \beta_k + \beta_{0k}$ for $k = 1, \dots, K - 1$ and
-$p_{ik} = e^{\eta_{ik}}/\bigl(1 + \sum_{l < K} e^{\eta_{il}}\bigr)$, the
+vector $\beta_0 \in \mathbb{R}^{K-1}$ under the reference-class parameterization
+$\eta_{iK} = 0$. Writing $\eta_{ik} = x_i^\intercal \beta_k + \beta_{0k}$ for
+$k = 1, \dots, K - 1$ and
+$p_{ik} = e^{\eta_{ik}}/\bigl(1 + \sum_{l<K} e^{\eta_{il}}\bigr)$, the
 per-observation Hessian block has diagonal $p_{ik}(1 - p_{ik})$ and off-diagonal
 $-p_{ik} p_{il}$. The intercept Hessian
-$H_{00} = (1/n)\sum_i \bigl(\operatorname{diag}(p_{i,1:K - 1}) - p_{i,1:K - 1} p_{i,1:K - 1}^\intercal\bigr)$
+$H_{00} = (1/n)\sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\intercal\bigr)$
 is a $(K - 1) \times (K - 1)$ matrix.
 
 The Newton strategy therefore becomes a small block solve
@@ -2571,14 +2569,14 @@ eigenmodes that the gradient strategy attenuates, while the Armijo guard absorbs
 any residual cold-start transient that the Newton-coupling bias
 (@eq-newton-coupling) identifies in the scalar setting.
 
-A two-dimensional grid extends the test, shrinking the rarest class probability
-$\bar p_K$ down to $0.005$ and growing the feature amplitude to four times the
-baseline value. The four corners appear in @fig-multinomial-sweep; across the
-full sweep (@fig-multinomial-sweep-full), the Newton and exact trajectories
-overlap in every one of the sixteen cells. In fourteen cells, their median
-suboptimality bounds reach at most $1.3 \times 10^{-7}$, while the gradient
-strategy generally slows as $\bar p_K$ shrinks and amplitude grows. In the two
-most extreme cells ($\bar p_K = 0.005$ and amplitude at least $1.5$), no
+We extend the test to a two-dimensional grid by shrinking the rarest class
+probability $\bar p_K$ to $0.005$ and increasing the feature amplitude to four
+times the baseline value. The four corners appear in @fig-multinomial-sweep;
+across the full sweep (@fig-multinomial-sweep-full), the Newton and exact
+trajectories overlap in every one of the sixteen cells. In fourteen cells, their
+median suboptimality bounds reach at most $1.3 \times 10^{-7}$, while the
+gradient strategy generally slows as $\bar p_K$ shrinks and amplitude grows. In
+the two most extreme cells ($\bar p_K = 0.005$ and amplitude at least $1.5$), no
 strategy obtains a useful median certificate within 1,000 passes. Those cells do
 not isolate the intercept update and therefore do not support the comparison.
 
@@ -2830,11 +2828,12 @@ intercept update. Unless noted, "passes to tolerance" means the number of
 completed passes needed to bring the shared relative suboptimality bound below
 $10^{-8}$. Pass budgets (`maxit`) are 1000 for the single-$\lambda$ figures and
 5000 for the heatmap of @sec-imbalance-reg; cells that miss tolerance are shown
-at the cap. Synthetic designs are standardized, use cyclic coordinate ordering
-unless noted, and use AR(1) feature correlation $\rho = 0.6$ by default. Seeds
-are fixed per script. The heatmap of @sec-imbalance-reg averages three seeds per
-cell, @fig-irls-comparison shows three, and the safeguard experiments show five.
-The remaining single-trajectory figures use one fixed seed.
+at the cap. We standardize the synthetic designs, use cyclic coordinate ordering
+unless noted, and set the default AR(1) feature correlation to $\rho = 0.6$. We
+fix the seeds per script. We average three seeds per cell in the heatmap of
+@sec-imbalance-reg, show three seeds in @fig-irls-comparison, and show five in
+the safeguard experiments. We use one fixed seed for the remaining
+single-trajectory figures.
 
 Every coefficient update is accepted through a Tseng--Yun Armijo backtrack on
 the proximal model decrease, with slope constant $10^{-4}$, step-halving, and at
@@ -2887,27 +2886,26 @@ strategy as soon as its primal reaches the corresponding shared-bound threshold.
 This changes neither its iterates nor its reported crossing; it only avoids
 running beyond the point used in the figure.
 
-Real-data experiments use pinned datasets from Zenodo (DOI:
+For the real-data experiments, we use pinned datasets from Zenodo (DOI:
 [10.5281/zenodo.20315625](https://doi.org/10.5281/zenodo.20315625)) and
-standardize them before fitting. The repository includes the code needed to
-retrieve these data and to generate the shared standardized problem used in the
-production-solver comparison. That comparison runs glmnet 4.1-10 (R), biglasso
-1.6-1 (R), adelie 1.0-8 (R), skglm 0.5 (Python), LIBLINEAR through
+standardize them before fitting. We include in the repository the code needed to
+retrieve these data and generate the shared standardized problem used in the
+production-solver comparison. In that comparison, we run glmnet 4.1-10 (R),
+biglasso 1.6-1 (R), adelie 1.0-8 (R), skglm 0.5 (Python), LIBLINEAR through
 scikit-learn's `solver="liblinear"` wrapper, and BlitzL1 at commit `aef8d02`.
-Given the cached inputs, the drivers are otherwise deterministic, so each solver
-is run once per tolerance setting while sweeping its native convergence
-parameter over a broad range. The exact commands, tolerance grids, and iterate
-caps are documented with the repository materials.
+Given the cached inputs, the drivers are otherwise deterministic, so we run each
+solver once per tolerance setting while sweeping its native convergence
+parameter over a broad range. We document the exact commands, tolerance grids,
+and iterate caps with the repository materials.
 
-The repository contains all outputs from the experiments. Most figures are
-therefore rendered from cached files, and regenerating a panel requires
-rerunning the corresponding experiment. By contrast, the illustrative
-@fig-parametric runs at render time as a small reproducible example. The
-repository pins the Julia, R, and Python toolchains, which use their default
-OpenBLAS builds without thread pinning. We ran the experiments on a single
-x86_64 Linux workstation with an AMD Ryzen 9 7900 (12 cores, 24 threads) and 64
-GB of RAM. The wall-clock measurements are therefore indicative rather than
-benchmark-grade.
+We store all experimental outputs in the repository. We therefore render most
+figures from cached files, and regenerating a panel requires rerunning the
+corresponding experiment. By contrast, the illustrative @fig-parametric runs at
+render time as a small reproducible example. We pin the Julia, R, and Python
+toolchains in the repository; they use their default OpenBLAS builds without
+thread pinning. We ran the experiments on a single x86_64 Linux workstation with
+an AMD Ryzen 9 7900 (12 cores, 24 threads) and 64 GB of RAM. The wall-clock
+measurements are therefore indicative rather than benchmark-grade.
 
 ## S4. Robustness analyses {#sec-s-robustness .unnumbered}
 
@@ -2957,8 +2955,8 @@ draw(
 
 ### S4.2 Warm-started path {#sec-warmstart-path .unnumbered}
 
-The single-$\lambda$ experiments above use the most difficult regime: a cold
-start with a large $|\partial_0 F|$ at the zero iterate. The drift in
+In the single-$\lambda$ experiments above, we use the most difficult regime: a
+cold start with a large $|\partial_0 F|$ at the zero iterate. The drift in
 @eq-intercept-drift and the small correction in @eq-grad-residual have their
 largest effects there.
 
@@ -3196,8 +3194,8 @@ avoids that window.
 ### S4.4 Full warm-start grids {.unnumbered}
 
 The cyclic-CD panels in [Supplement S4.2](#sec-warmstart-path) show the ordering
-used throughout most of the article. This section restores the permuted-CD runs
-to display the complete experiment. We solve a $K = 20$ regularization path from
+used throughout most of the article. Here we restore the permuted-CD runs to
+display the complete experiment. We solve a $K = 20$ regularization path from
 $\lambda_{\max}$ to $5 \cdot 10^{-3}\lambda_{\max}$ on two problems: the
 simulated design with $n = 500$, $p = 1000$, $s = 10$, $\mu_0 = 0.9$, and
 $\rho = 0.6$, and the w1a benchmark. Each subproblem starts either from zero or
