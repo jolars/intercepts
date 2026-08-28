@@ -107,6 +107,13 @@ the current iterate, and exact minimization of the intercept subproblem. They
 can converge at substantially different rates when the response is
 imbalanced---for example, when positive cases are rare in logistic regression.
 
+For the lasso experiments, $\lambda_{\max}$ is the smallest penalty for which
+all fitted slopes are zero. In the synthetic experiments, $\mu_0$ denotes the
+baseline mean response at $x = 0$---a positive-class probability for binomial
+models and a rate for Poisson models---and $s$ is the number of nonzero slopes
+in each generated coefficient vector. Once the slopes enter the linear
+predictor, $\mu_0$ need not equal the empirical response mean.
+
 [^1]: Among the surveyed solvers, only skglm's intercept update is
     version-dependent: version 0.5 and earlier take the gradient step described
     here, while a later patch replaces it with a Newton step
@@ -1019,13 +1026,13 @@ re-linearization is nevertheless governed by the same attenuation, so the
 Schur-coupling residual (@eq-grad-residual) applies directly to glmnet's
 `modified.Newton` mode: under response imbalance, the per-iteration correction
 fraction $H_{00} / L_0$ shrinks to leading order and the intercept update slows,
-approaching a true stall only in the limit $\mu_0 \to 1$. There is a historical
-irony here---MM majorization was introduced for numerical stability of the
-working response $z_i$ when $w_i \to 0$, which is the same imbalance regime
-where the resulting update converges slowly. For Poisson loss no global upper
-bound on $f''$ exists, so the MM construction is not directly available; glmnet
-uses local-weight IRLS for Poisson, where the three strategies coincide as
-described above.
+approaching a true stall only as fitted probabilities reach the boundary. There
+is a historical irony here---MM majorization was introduced for numerical
+stability of the working response $z_i$ when $w_i \to 0$, which is the same
+imbalance regime where the resulting update converges slowly. For Poisson loss
+no global upper bound on $f''$ exists, so the MM construction is not directly
+available; glmnet uses local-weight IRLS for Poisson, where the three strategies
+coincide as described above.
 
 Changing from local weights to the constant majorant also changes every
 coefficient's curvature and cross-curvature in the surrogate. A within-package
@@ -1339,7 +1346,7 @@ than enter the cache.
 We next examine whether the same scaling appears on real problems. We run the
 three strategies on six LIBSVM benchmark problems at
 $\lambda = 0.05\lambda_{\max}$, listed in @tbl-real-logreg-problems and ordered
-by the predicted slowdown $L_0/H_{00} = 1 / (4 \mu_0 (1 - \mu_0))$ (the table
+by the predicted slowdown $L_0/H_{00} = 1 / (4 \pi_+ (1 - \pi_+))$ (the table
 lists its reciprocal $H_{00}/L_0$). The set spans a $9 \times$ range in
 $L_0/H_{00}$ and five distinct design families: the Webb web-pages binary w1a, a
 subsampled news20.binary bag-of-words text design (news20-3pct, 60 positives and
@@ -1349,11 +1356,11 @@ microarray ($n \ll p$, penalty-dominated), the small-$p$ Wisconsin breast cancer
 panel, and dense balanced gisette.
 
 The two most imbalanced problems, w1a and news20-3pct, are especially useful.
-They sit at nearly the same $\mu_0$ on very different designs---a $300$-feature
+They sit at nearly the same $\pi_+$ on very different designs---a $300$-feature
 sparse web indicator panel versus a $1.3\mathrm{M}$-vocabulary text
 bag-of-words. Agreement between them would rule out a quirk specific to w1a.
 
-  | dataset       | $n$   | $p$   | density | $\mu_0$ | $H_{00}/L_0$ |
+  | dataset       | $n$   | $p$   | density | $\pi_+$ | $H_{00}/L_0$ |
   | :------------ | ----: | ----: | :------ | ------: | -----------: |
   | w1a           | 2,477 |   300 | sparse  |   0.029 |        0.113 |
   | news20-3pct   | 2,000 | 4,675 | sparse  |   0.030 |        0.116 |
@@ -1362,8 +1369,8 @@ bag-of-words. Agreement between them would rule out a quirk specific to w1a.
   | breast-cancer |   683 |    10 | dense   |   0.350 |        0.910 |
   | gisette       | 6,000 | 5,000 | dense   |   0.500 |        1.000 |
 
-  : LIBSVM problems used in @fig-real-logreg. $\mu_0$ is the positive-class
-    marginal, and $H_{00}/L_0 = 4\mu_0(1-\mu_0)$. news20-3pct is a deterministic
+  : LIBSVM problems used in @fig-real-logreg. $\pi_+$ is the positive-class
+    marginal, and $H_{00}/L_0 = 4\pi_+(1-\pi_+)$. news20-3pct is a deterministic
     60/1\,940 subsample of `news20.binary`; after subsampling, features with
     fewer than 20 nonzeros are dropped. {#tbl-real-logreg-problems}
 
