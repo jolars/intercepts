@@ -16,8 +16,8 @@
 # The Computo extension regenerates intercepts.tex on every render, so step 3
 # edits the staged copy only --- never the working tree.
 #
-# Requires: quarto, lualatex. Uses pdftotext for the watermark check when
-# available.
+# Requires: quarto, latexmk, lualatex. Uses pdftotext for the watermark check
+# when available.
 
 set -euo pipefail
 
@@ -113,19 +113,18 @@ if [[ "${ARXIV_SKIP_VERIFY:-0}" == 1 ]]; then
     log "skipping verification build (ARXIV_SKIP_VERIFY=1)"
 else
     command -v "$ENGINE" >/dev/null || die "$ENGINE not found; set ARXIV_SKIP_VERIFY=1 to package anyway"
+    command -v latexmk >/dev/null || die "latexmk not found; set ARXIV_SKIP_VERIFY=1 to package anyway"
     log "test-compiling the staged source with $ENGINE"
     (
         cd "$STAGE"
-        for pass in 1 2 3; do
-            "$ENGINE" -interaction=nonstopmode "$PAPER.tex" >"pass$pass.log" 2>&1 ||
-                { tail -40 "pass$pass.log" >&2; die "$ENGINE failed on pass $pass"; }
-        done
+        latexmk -lualatex -interaction=nonstopmode -halt-on-error "$PAPER.tex" >build.log 2>&1 ||
+            { tail -40 build.log >&2; die "latexmk failed"; }
 
-        errors=$(grep -cE '^! ' pass3.log || true)
-        [[ "$errors" -eq 0 ]] || { grep -E '^! ' pass3.log >&2; die "$errors LaTeX error(s)"; }
+        errors=$(grep -cE '^! ' "$PAPER.log" || true)
+        [[ "$errors" -eq 0 ]] || { grep -E '^! ' "$PAPER.log" >&2; die "$errors LaTeX error(s)"; }
 
-        ! grep -q 'There were undefined references' pass3.log ||
-            die "undefined references remain after three passes"
+        ! grep -q 'There were undefined references' "$PAPER.log" ||
+            die "undefined references remain after latexmk"
 
         if command -v pdftotext >/dev/null; then
             stamped=$(pdftotext "$PAPER.pdf" - 2>/dev/null | grep -ci submitted || true)
@@ -137,7 +136,14 @@ else
         fi
     )
     # Build products are not part of the submission.
-    rm -f "$STAGE"/*.log "$STAGE"/*.aux "$STAGE"/*.out "$STAGE"/*.toc "$STAGE/$PAPER.pdf"
+    rm -f \
+        "$STAGE"/*.log \
+        "$STAGE"/*.aux \
+        "$STAGE"/*.out \
+        "$STAGE"/*.toc \
+        "$STAGE"/*.fls \
+        "$STAGE"/*.fdb_latexmk \
+        "$STAGE/$PAPER.pdf"
 fi
 
 # 5. Package.
