@@ -250,6 +250,7 @@ We make four contributions:
 
 - We formalize three intercept-update strategies---gradient, Newton, and
   exact---that span the choices used by current CD solvers for regularized GLMs.
+
 - We use the Schur complement to isolate the curvature ratio $H_{00}/L_0$ that
   governs the slowdown. The analysis explains why a conservative Lipschitz bound
   slows the gradient strategy when $H_{00} \ll L_0$. Once a coupled
@@ -257,6 +258,7 @@ We make four contributions:
   analysis gives a gradient/Newton rate ratio that approaches $L_0/H_{00}$. For
   binary logistic regression, this ratio diverges as the positive-class marginal
   $\mu_0$ approaches one.
+
 - We classify CD-based GLM solvers as direct CD, local-IRLS, MM-IRLS, or
   prox-Newton, and identify the intercept strategy used by each family. Tests on
   simulated and real data include six production solvers. Comparisons within
@@ -264,6 +266,7 @@ We make four contributions:
   scheme for the entire IRLS surrogate; a controlled comparison of two skglm
   versions isolates the effect of replacing the intercept's gradient update with
   Newton.
+
 - We extend the analysis to vector intercepts in multinomial logistic
   regression, where rare classes make the slowdown common rather than
   exceptional. We test the result on the Yeoh2002 gene-expression panel and the
