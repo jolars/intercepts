@@ -129,9 +129,9 @@ Exact Strategy
 In the analysis, *exact* means setting the intercept to its conditional
 minimizer. In the experiments, the Exact Strategy computes this minimizer
 numerically. We document its tolerances, iteration cap, and scalar
-floating-point margin in [Supplement S3](#sec-s-methodology); a completed
-experiment therefore distinguishes a numerically certified conditional solve
-from an uncontrolled capped approximation.
+floating-point margin in [Supplement S3](#sec-s-methodology). Every Exact
+Strategy result reported in our experiments therefore met the specified
+conditional-solve criterion; none is an uncontrolled capped approximation.
 
 The three paths in @fig-parametric trace the strategies across the level sets of
 @eq-primal-problem for a toy problem with one feature and an intercept. The
@@ -252,9 +252,9 @@ We make four contributions:
   Newton, and exact minimization.
 
 - Using a Schur-complement analysis, we show that the mismatch between local
-  intercept curvature $H_{00}$ and the global bound $L_0$ explains the gradient
-  strategy's slowdown. In strongly coupled problems, the predicted
-  gradient-to-Newton rate ratio approaches $L_0/H_{00}$.
+  intercept curvature and a global bound explains the gradient strategy's
+  slowdown. In strongly coupled problems, the predicted gradient-to-Newton rate
+  ratio approaches the ratio of global to local curvature.
 
 - We classify CD-based GLM solvers by their treatment of curvature and the
   intercept, and we evaluate six production solvers using controlled comparisons
@@ -268,13 +268,14 @@ We make four contributions:
 # Related work {#sec-related-work}
 
 The question of how to update the intercept touches three strands of the
-literature, but none has analyzed it as a separate problem. CD-based GLM solvers
-have generally treated the intercept as a routine implementation choice. The
-original glmnet paper\ [@friedman2010] and its all-GLM extension\ [@tay2023]
-expose two weight schemes for the logistic IRLS inner solver: local weights and
-a global 1/4 upper bound, exposed via the arguments `type.logistic = "Newton"`
-and `"modified.Newton"`, which the glmnet documentation describes as a speed
-trade-off rather than as an intercept-strategy choice.
+literature, none of which has analyzed it as a separate problem. The first
+concerns how CD-based GLM solvers incorporate the intercept. Existing work
+generally treats this as a routine implementation choice. The glmnet
+literature\ [@friedman2010; @tay2023], for example, describes two weight schemes
+for the logistic IRLS inner solver: local weights and a global 1/4 upper bound.
+The software exposes them through `type.logistic = "Newton"` and
+`"modified.Newton"`, which the documentation presents as a speed trade-off
+rather than as a choice of intercept strategy.
 
 LIBLINEAR's newGLMNET solver\ [@fan2008; @yuan2012] treats the intercept as the
 unregularized last coordinate of each prox-Newton subproblem. Coordinate descent
@@ -300,22 +301,21 @@ make varied choices, but previous work has not directly analyzed the response
 distributions for which those choices matter.
 
 A second thread is the partialling-out/Frisch--Waugh--Lovell tradition. In
-linear regression, the intercept can be sidestepped: centering the features sets
-the cross-Hessian terms $H_{0j}$ to zero and yields $\hat\beta_0 = \bar y$ at
-the unregularized optimum, so the slope subproblem decouples from the
-intercept\ [@lovell1963]. glmnet leaves the intercept unpenalized on
-translation-invariance grounds---penalizing $\beta_0$ would make the path depend
-on the arbitrary location of $y$---and this decoupling is what makes that choice
-essentially free on the Gaussian path. After solving for the slopes, the
+linear regression, the intercept can be sidestepped: centering the features
+decouples it from the slopes and, when the intercept is left unpenalized, gives
+$\hat\beta_0 = \bar y$\ [@lovell1963]. glmnet leaves the intercept unpenalized
+on translation-invariance grounds---penalizing $\beta_0$ would make the path
+depend on the arbitrary location of $y$---and this decoupling makes that choice
+essentially free for the Gaussian loss case. After solving for the slopes, the
 intercept is recovered as $\hat\beta_0 = \bar y - \bar x^\top \hat\beta$.
 
-For non-Gaussian GLMs, the decoupling fails. The inverse link sits between
-$\beta_0$ and $y$, so the cross-Hessian acquires weights
-$w_i = f''(\eta_i; y_i)$ that do not cancel under feature centering alone, and
-the closed form for $\hat\beta_0$ disappears. adelie\ [@yang2024] provides the
-GLM analogue: at each linearization, its proximal quasi-Newton method builds a
-weighted Gaussian surrogate and absorbs the intercept implicitly through that
-surrogate rather than as a separate CD coordinate.^[Source:
+For non-Gaussian GLMs, the decoupling fails because curvature varies across
+observations. Ordinary feature centering no longer removes the interaction
+between the intercept and the slopes, and the closed form for $\hat\beta_0$
+disappears. Yet, adelie\ [@yang2024] provides a solution for this: at each
+linearization, its proximal quasi-Newton method builds a weighted Gaussian
+surrogate and absorbs the intercept implicitly through that surrogate rather
+than as a separate CD coordinate.^[Source:
 <https://github.com/JamesYang007/adelie/blob/d6a1229/adelie/src/include/adelie_core/solver/solver_gaussian_pin_naive.hpp>.
 The inner Gaussian solver uses IRLS-weighted column means in its gradient update
 (`solver_gaussian_pin_naive.hpp:87, 120`) and recovers the intercept at the end
@@ -325,40 +325,37 @@ are built with the IRLS weights in the outer GLM solver
 (`solver_glm_naive.hpp:366`).]
 
 For Gaussian data, the framework in @sec-theory reduces to the familiar result:
-the decoupling is complete, $L_0 = H_{00}$, and the gradient and Newton
-strategies coincide on the intercept.
+the loss has constant curvature, so the gradient and Newton strategies coincide
+on the intercept.
 
-The third thread is majorization--minimization\ (MM). The constant $L_0 = 1/4$
-that governs the gradient strategy in @eq-grad-residual, and which skglm uses as
-its global per-coordinate Lipschitz step (in its unaveraged form $n/4$), is the
-binary specialization of the quadratic Hessian majorant used by @bohning1992 to
-build an MM algorithm for multinomial logistic regression. @hunter2004 give the
+The third thread is majorization--minimization\ (MM). The constant $L_0 = 1/4$,
+which skglm uses as its global per-coordinate Lipschitz step, is the binary
+specialization of the quadratic Hessian majorant used by @bohning1992 to build
+an MM algorithm for multinomial logistic regression. @hunter2004 give the
 canonical exposition of MM. @krishnapuram2005 apply Böhning's bound to
 L1-penalized multinomial logistic regression, a direct precedent for our
 multinomial extension.
 
 In regularized logistic regression, the same construction lives on as the
 `modified.Newton` mode of glmnet and the `MM` mode of biglasso\ [@zeng2017]
-(@tbl-classification). In binary logistic regression, the scalar Schur-coupling
-residual quantifies the cost: when the response is imbalanced, $H_{00}/L_0$
-shrinks to zero, the MM intercept step shrinks in direct proportion to the local
-Newton step, and its effect on the next coefficient gradient is attenuated to
-first order (@eq-grad-residual). Its multinomial analogue replaces that scalar
-ratio with the eigenvalues of $H_{00}/L_0$ (@eq-grad-residual-matrix). The MM
-literature treats this as loose majorization. We show that the bound is
-routinely loose for imbalanced binary logistic and rare-class multinomial
-problems (@sec-irls, @fig-multinomial-sweep).
+(@tbl-classification). Because the global majorant does not adapt to local
+curvature, it can produce a much smaller intercept correction than a Newton step
+when the response is imbalanced. In multinomial regression, the same mismatch
+appears along directions associated with rare classes. The MM literature treats
+this as loose majorization; we quantify the resulting slowdown for imbalanced
+binary and rare-class multinomial problems (@sec-irls, @fig-multinomial-sweep).
 
 # Theory {#sec-theory}
 
 The three strategies differ in how they respond to intercept curvature. The
-gradient strategy uses the global bound $L_0$, Newton uses the local curvature
-$H_{00}$, and exact minimizes the intercept subproblem. On imbalanced data,
-$H_{00}$ can be much smaller than $L_0$. When the intercept---or a direction
-coupling the intercept and a coefficient---controls convergence, this mismatch
-can make the gradient strategy slower than Newton by a factor proportional to
-$L_0/H_{00}$. Below, we distinguish the local result that we prove from a
-bound-based heuristic and the behavior that we observe experimentally.
+gradient strategy uses a global upper bound, Newton uses the curvature at the
+current iterate, and the exact strategy minimizes the intercept subproblem. On
+imbalanced data, the local curvature can be much smaller than the global bound.
+When the intercept---or a direction coupling it with a coefficient---controls
+convergence, this mismatch can make the gradient strategy slower by a factor
+proportional to the ratio between the two. Below, we distinguish the local
+result that we prove from a bound-based heuristic and the behavior that we
+observe experimentally.
 
 Throughout this section, we work with the per-observation-averaged,
 canonical-link GLM loss
@@ -428,13 +425,13 @@ $$
            = \left( \frac{1}{n}\sum_{i=1}^n x_{ij}^2 w_i \right)^{-1}.
 $$
 
-Applying the same logic to the intercept suggests
+Applying the same logic to the intercept, define its local curvature as
 $$
-  \gamma_0 = H_{00}^{-1}
-           = \left( \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta) \right)^{-1}
-           = \left( \frac{1}{n}\sum_{i=1}^n f''(\eta_i; y_i) \right)^{-1}.
+  H_{00} = \frac{\partial^2}{\partial \beta_0^2} F(\beta_0, \beta)
+         = \frac{1}{n}\sum_{i=1}^n f''(\eta_i; y_i).
 $$
-Production solvers, however, realize three different intercept updates:
+The corresponding Newton step size is $\gamma_0 = H_{00}^{-1}$. Production
+solvers, however, realize three different intercept updates:
 
 1. A Newton step, setting $\gamma_0$ as above.
 2. A gradient descent step, setting $\gamma_0$ to the reciprocal of the global
