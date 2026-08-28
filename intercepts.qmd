@@ -220,8 +220,8 @@ fig
 In @fig-first-example, we compare how quickly the three strategies converge on
 $\ell_1$-regularized logistic regression on the w1a dataset\ [@platt1998]. The
 Newton and exact strategies bring the relative suboptimality bound below
-$10^{-8}$ in 46 and 44 passes, respectively, while the gradient strategy needs
-338 passes.
+$10^{-8}$ after roughly 45 passes, while the gradient strategy takes more than
+seven times as many.
 
 ```{julia}
 #| label: fig-first-example
@@ -941,10 +941,11 @@ this prediction on a grid of synthetic problems.
 The pattern appears on two real datasets with opposite shapes
 (@fig-multinomial-summary). Yeoh2002 has $n = 248$, $p = 12\,625$, and six
 classes, while StatLog Shuttle has $n = 58\,000$, $p = 9$, and seven classes. On
-Yeoh2002, the gradient strategy needs about 4 times as many passes as Newton to
-bring the relative suboptimality bound below $10^{-4}$. On Shuttle, whose rarest
-classes contain only ten and thirteen observations, it fails to reach $10^{-4}$
-within 1000 passes; Newton and exact reach that threshold in about 25 passes.
+Yeoh2002, the gradient strategy needs roughly four times as many passes as
+Newton to bring the relative suboptimality bound below $10^{-4}$. On Shuttle,
+whose rarest classes contain only ten and thirteen observations, it fails to
+reach $10^{-4}$ within 1,000 passes; Newton and exact reach that threshold in
+about 25 passes.
 
 ```{julia}
 #| label: fig-multinomial-summary
@@ -1135,12 +1136,11 @@ draw(
 )
 ```
 
-Local-IRLS converges fastest under $\mu_0 = 0.99$, bringing the bound below
-$10^{-8}$ in 24--26 passes across the three seeds (@fig-irls-comparison).
-Direct-CD with Newton needs 49--60 passes, and Direct-CD with the gradient
-strategy needs 340--407. MM-IRLS does not reach even $10^{-4}$ in 200 passes;
-its final bounds range from $3.1 \times 10^{-4}$ to $6.7 \times 10^{-4}$. Within
-Local-IRLS, the three strategies coincide exactly: once
+Local-IRLS converges fastest under $\mu_0 = 0.99$, crossing the $10^{-8}$ bound
+in about 25 passes across the three seeds (@fig-irls-comparison). Direct-CD with
+Newton takes roughly twice as many passes, while Direct-CD with the gradient
+strategy takes several hundred. MM-IRLS remains above $10^{-4}$ after 200
+passes. Within Local-IRLS, the three strategies coincide exactly: once
 $L_0^{\text{inner}} = H_{00}$, they share the single inner update
 $-\partial_0 \tilde F^{(t)} / H_{00}$ and so produce bit-identical iterates; the
 figure therefore plots only one of them. The unit tests assert this directly:
@@ -1188,12 +1188,12 @@ On the standardized binary-logistic design used throughout the simulated
 experiments below ($n = 500$, $p = 1000$, $s = 10$, $\rho = 0.6$,
 $\lambda = 0.05\lambda_{\max}$), the gradient strategy is competitive at
 $\mu_0 = 0.5$ and slows visibly past $\mu_0 = 0.9$. At $\mu_0 = 0.99$, it needs
-731 passes to bring the relative suboptimality bound below $10^{-8}$, compared
-with 50 passes for Newton and 52 for exact. The latter two lie almost directly
-on top of each other across the full sweep (@fig-mu-extreme). This agreement
-supports the prediction that exact profiling will add little outer progress over
-one Newton step (@eq-intercept-drift). The two methods still differ in their
-inner work, measured directly in [Supplement S4.3](#sec-per-pass-cost).
+more than an order of magnitude as many passes as Newton or exact. The latter
+two lie almost directly on top of each other across the full sweep
+(@fig-mu-extreme). This agreement supports the prediction that exact profiling
+will add little outer progress over one Newton step (@eq-intercept-drift). The
+two methods still differ in their inner work, measured directly in [Supplement
+S4.3](#sec-per-pass-cost).
 
 ### Synthetic trajectories and safeguards
 
@@ -1265,12 +1265,11 @@ the intercept unstable. To test this prediction directly, we run bare Newton
 strategy in @fig-cold-start.
 
 For logistic regression, the three trajectories are indistinguishable, even in
-the most imbalanced case at $\mu_0 = 0.99$. The Armijo guard rarely fires:
-twelve of the twenty runs (five seeds at each of the four $\mu_0$ levels) are
-bit-identical to the bare Newton step, and the eight that diverge do so late in
-the solve---at pass $78$ or beyond, never at cold start. Every guarded and bare
+the most imbalanced case at $\mu_0 = 0.99$. The Armijo guard rarely fires: most
+runs are bit-identical to the bare Newton step, and the remaining pairs begin to
+differ only late in the solve, never at cold start. Every guarded and bare
 Newton pair crosses the shared $10^{-8}$ bound on the same pass; exact differs
-from them by at most five passes.
+from them by only a handful of passes.
 
 Thus, the Armijo safeguard does not improve the logistic cold starts tested
 here: the full Newton step is accepted at the initial iterate, and the few later
@@ -1331,19 +1330,13 @@ zero to $\bar{y} - 1 \approx 300$, although the intercept-only optimum is only
 $\log(\bar{y}) \approx 6$. Because the log link exponentiates the intercept,
 this step implies a fitted rate near $e^{300}$ and makes the loss astronomical
 at that intermediate iterate. The safeguard prevents this overshoot
-(@fig-cold-start-poisson). The objective values after the first pass show this
-temporary excursion: the unguarded runs sit between $+2 \times 10^6$ and
-$+5 \times 10^6$ across the five seeds, whereas the guarded ones are already
-near $-2 \times 10^5$.
+(@fig-cold-start-poisson): the unguarded bound jumps several-fold after the
+first pass, while the guarded bound falls immediately.
 
 The overshoot is nonetheless recoverable. The outer CD loop's own per-coordinate
 Armijo guard absorbs it over the next few passes, and the final primals agree to
-every digit we report. Because the shared relative bound uses a fixed scale, the
-figure now exposes the excursion: at $\mu_0 = 300$, the unguarded bound rises
-from about one at initialization to between $3.8$ and $8.0$ after the first
-pass, while the guarded bound falls to between $0.75$ and $0.81$. The three
-strategies nevertheless return to nearly the same trajectory within a few
-passes.
+numerical precision. The three strategies return to nearly the same trajectory
+within a few passes.
 
 The guard therefore keeps the iterates numerically reasonable but provides no
 visible improvement in the convergence rate here. The exact strategy is
@@ -1424,23 +1417,20 @@ draw(
 ```
 
 The two severely imbalanced datasets reproduce both predicted patterns on very
-different sparse designs: w1a ($\mu_0 = 0.029$, a $300$-feature web indicator
-panel) needs $6.4 \times$ more gradient passes than Newton to bring the relative
-suboptimality bound below $10^{-6}$, and news20-3pct ($\mu_0 = 0.030$, a
-$4\,675$-feature bag-of-words text panel after dropping low-support vocabulary)
-reproduces a $10.2 \times$ ratio at $10^{-4}$ before hitting the $120\mathrm{s}$
-wall-time cap. Both empirical ratios differ from the leading-order $L_0/H_{00}$
-proxy in @fig-rate-gap by similar constant factors. Their agreement across
-designs is consistent with response imbalance driving the gap rather than a
-peculiarity of w1a.
+different sparse designs. The gradient strategy takes about six times as many
+passes as Newton to reach $10^{-6}$ on w1a and about ten times as many to reach
+$10^{-4}$ on news20-3pct, before the latter reaches its wall-time cap. Both
+empirical ratios differ from the leading-order $L_0/H_{00}$ proxy in
+@fig-rate-gap by similar constant factors. Their agreement across designs is
+consistent with response imbalance driving the gap rather than a peculiarity of
+w1a.
 
 For the moderately imbalanced a4a and breast-cancer data, the gradient/Newton
-ratios lie between $1.3$ and $2.6$, consistent with
-$H_{00}/L_0 \in [0.75,0.91]$. Leukemia ($n \ll p$, penalty-dominated) and
-gisette (dense, balanced, $\mu_0 = 0.5$, $H_{00}/L_0 = 1$) serve as negative
-controls: leukemia shows only a $1.2 \times$ ratio, and the gisette pass counts
-are identical. The exact strategy tracks Newton on every panel, consistent with
-@eq-intercept-drift at this tolerance.
+gap is modest---less than threefold---consistent with their larger $H_{00}/L_0$
+values. Leukemia ($n \ll p$, penalty-dominated) and gisette (dense and balanced)
+serve as negative controls: leukemia shows little separation, and the gisette
+pass counts are identical. The exact strategy tracks Newton on every panel,
+consistent with @eq-intercept-drift at this tolerance.
 
 Poisson data offer a sharper version of the same test. PoissonLoss has no global
 upper bound on $f''(\eta) = e^\eta$, so $L_0 = \infty$ and the gradient-strategy
@@ -1497,15 +1487,15 @@ every baseline rate we ran (@fig-cold-start-poisson).
 ## Robustness and computational cost {#sec-robustness}
 
 The strategy ranking does not depend on the default cyclic ordering. On w1a,
-permuting the coordinates changes pass counts by at most a factor of $1.9$;
+permuting the coordinates changes pass counts by less than a factor of two;
 Newton and exact remain fast, and gradient remains slow ([Supplement
 S4.1](#sec-ordering)). Warm-starting a regularization path makes Newton and
 exact still harder to distinguish, but it does not rescue the gradient strategy
 on severely imbalanced w1a ([Supplement S4.2](#sec-warmstart-path)).
 
 Instrumenting the intercept solve explains the remaining difference between
-Newton and exact. Across $\mu_0 \in \{0.5, 0.9, 0.99\}$, exact uses
-$1.44 \times$--$1.85 \times$ as many inner work units before reaching the shared
+Newton and exact. Across $\mu_0 \in \{0.5, 0.9, 0.99\}$, exact uses roughly
+one-and-a-half to twice as many inner work units before reaching the shared
 $10^{-8}$ bound while finishing in essentially the same number of outer passes.
 Most of that overhead occurs in the first cold-start passes; warm starts largely
 avoid it ([Supplement S4.3](#sec-per-pass-cost)). The full ordering, path, and
@@ -1581,41 +1571,38 @@ draw(
 
 Greater imbalance generally makes the gradient strategy slower relative to
 Newton (@fig-mu-reg-gradient), although the strongest-penalty column is not
-strictly monotone. The largest informative average ratio is $17.3$ at
+strictly monotone. The largest informative average ratio is roughly $17$ at
 $\mu_0 = 0.99$ and $\lambda = 0.02\lambda_{\max}$. The $\mu_0 = 0.99$,
 $\lambda = 0.01\lambda_{\max}$ corner is the only cell in which any run
-saturates the 5000-pass budget. In one of its three seeds, all three strategies
-hit the cap, and the shared certificate width remains $1.8 \times 10^{-7}$. Its
-displayed average ratio of $1.8$ is therefore uninformative rather than small;
-we return to it below.
+saturates the 5000-pass budget. In one seed, all three strategies hit the cap
+without reaching the reporting threshold. The displayed average ratio in that
+cell is therefore uninformative rather than small; we return to it below.
 
 At $\lambda = 0.05\lambda_{\max}$, the regime most relevant to the production
-path experiments, the empirical ratios across the five $\mu_0$ values are
-$\{1.1, 1.2, 2.0, 3.7, 8.5\}$. The corresponding iterate-level
-$L_0/H_{00}(\hat\eta)$ values at the Newton-converged solution are
-$\{3.2, 3.3, 4.4, 5.7, 12.3\}$ (mean over three seeds). The theory therefore
-gets the ordering and the growth right, but it overstates the magnitude by a
-factor that narrows from about $3 \times$ at $\mu_0 = 0.5$ to about $1.5 \times$
-at $\mu_0 = 0.99$.
+path experiments, the empirical ratio grows from nearly one under balance to
+about eight at $\mu_0 = 0.99$. The corresponding iterate-level
+$L_0/H_{00}(\hat\eta)$ proxy rises from about three to twelve. The theory
+therefore gets the ordering and the growth right, but it overstates the
+magnitude, with the discrepancy narrowing as imbalance increases.
 
-The cold-start proxy
-$L_0/H_{00}(0) = 1/(4\mu_0(1 - \mu_0)) = \{1.00, 1.19, 2.78, 5.26, 25.25\}$ is
-looser still at high imbalance because active features pull $H_{00}$ above its
-intercept-only value $\mu_0(1 - \mu_0)$ at this $\lambda$.
+The cold-start proxy $L_0/H_{00}(0) = 1/(4\mu_0(1 - \mu_0))$ is looser still at
+high imbalance, reaching about $25$ at $\mu_0 = 0.99$, because active features
+pull $H_{00}$ above its intercept-only value $\mu_0(1 - \mu_0)$ at this
+$\lambda$.
 
 As $\lambda$ shrinks, the active set widens, $H_{00}$ falls toward and beyond
 $\mu_0(1 - \mu_0)$, and the empirical ratio grows with it. At
-$\lambda = 0.01\lambda_{\max}$, for example, the empirical row for
-$\mu_0 \in \{0.5, 0.7, 0.9, 0.95\}$ is $\{1.9, 2.3, 6.1, 10.3\}$; we omit the
-$\mu_0 = 0.99$ corner because its seed-level cap makes the average
-uninformative.
+$\lambda = 0.01\lambda_{\max}$, for example, the ratio rises from about two
+under balance to about ten at $\mu_0 = 0.95$; we omit the $\mu_0 = 0.99$ corner
+because its seed-level cap makes the average uninformative.
 
 By contrast, @fig-mu-reg-exact stays nearly flat at zero: the exact/Newton ratio
 is approximately one across the plane, and no cell departs from unity by more
-than $11\%$. This agrees with @eq-intercept-drift. When both methods converge,
-the exact strategy needs essentially the same number of outer passes as Newton.
-Its price is therefore a modest inner-solve overhead that grows with imbalance,
-not an outer-pass improvement, as [Supplement S4.3](#sec-per-pass-cost) shows.
+than about $10\%$. This agrees with @eq-intercept-drift. When both methods
+converge, the exact strategy needs essentially the same number of outer passes
+as Newton. Its price is therefore a modest inner-solve overhead that grows with
+imbalance, not an outer-pass improvement, as [Supplement
+S4.3](#sec-per-pass-cost) shows.
 
 The two heatmaps show that the curvature ratio remains useful outside the
 tightly coupled plateau. It captures scaling and monotonicity well: the
@@ -1826,15 +1813,15 @@ controlled 30-cell comparison.
 
 As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
 $1/\lambda$, although it is not monotone in every cell. The pre-fix commit needs
-$30 \times$ the iterations of the post-fix one already at $\mu_0 = 0.5$,
-$\lambda = 0.5\lambda_{\max}$, and up to $417 \times$ at $\mu_0 = 0.99$,
-$\lambda = 0.01\lambda_{\max}$.
+about $30$ times the iterations of the post-fix one even in the least separated
+cell, and more than $400$ times as many in the most imbalanced, weakly
+regularized corner.
 
 Even the smallest ratio is large because `AndersonCD` reaches its tolerance in
-$1$ to $18$ outer iterations once the intercept takes a Newton step, so any
-residual intercept climb dominates the count; the $20$ of $90$ pre-fix runs that
-hit the 5000-iteration cap provide lower bounds rather than exact ratios for
-their cells.
+fewer than 20 outer iterations once the intercept takes a Newton step, so any
+residual intercept climb dominates the count. Many pre-fix runs hit the
+5000-iteration cap, making the largest displayed ratios lower bounds rather than
+exact comparisons.
 
 ```{julia}
 #| label: fig-skglm-controlled
@@ -1929,10 +1916,9 @@ problems used above. The curves are flat above `tol` around $10^{-4}$: path mode
 warm-starts each of the 50 lambdas from its predecessor, and those warm starts
 alone land within $10^{-5}$ of the optimum, so the tolerance has nothing left to
 do. Below that plateau, adelie's final objectives lie within the shared
-reference certificate: the suboptimality bounds reach approximately
-$5 \times 10^{-12}$ to $1.2 \times 10^{-11}$ and then become
-certificate-limited. Each fit takes at most $0.35$ seconds, and adelie shows no
-stall or failed solve.
+reference certificate: the suboptimality bounds are on the order of $10^{-11}$
+and then become certificate-limited. Each fit completes well under a second, and
+adelie shows no stall or failed solve.
 
 ```{julia}
 #| label: fig-real-adelie
@@ -2198,13 +2184,12 @@ from the symmetric center, decreasing weights) and above it at extreme imbalance
 (active features pull some predictions away from the majority-class corner,
 increasing weights).
 
-Neither curve uniformly dominates: the cold-start curve is tighter at
-$\mu_0 = 0.5$ and the iterate-level curve is tighter from $\mu_0 = 0.7$ on. The
-two bracket the empirical ratio up to $\mu_0 = 0.9$, sit marginally below it at
-$\mu_0 = 0.95$, and both sit above it at $\mu_0 = 0.99$, where they approach the
-intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic at their
-respective evaluation points. We examine this discrepancy over a wider grid in
-@sec-imbalance-reg.
+Neither curve uniformly dominates. The cold-start proxy is tighter near balance,
+while the iterate-level proxy becomes tighter as imbalance grows. Together they
+bracket the empirical ratio over much of the sweep, but both overstate the
+slowdown at the most imbalanced endpoint as they approach the
+intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic. We examine
+this discrepancy over a wider grid in @sec-imbalance-reg.
 
 The sweep in @fig-rate-gap varies $H_{00}/L_0$ through $\mu_0$ while keeping
 $\bar\rho^2$ close to zero in the standardized design. In a second experiment,
@@ -2221,23 +2206,22 @@ $$ {#eq-centering-sweep}
 with the column scales $s$ held fixed. Shifting a column by a constant is
 absorbed exactly by the unpenalized intercept, so $\beta^\star$, $\hat\eta$,
 $H_{00}$, and $\lambda_{\max}$ are all invariant along the sweep: $H_{00}/L_0$
-holds at $0.304$ ($\mu_0 = 0.5$) and $0.170$ ($\mu_0 = 0.9$) to four digits
-while $\bar\rho^2$ increases from $2 \times 10^{-3}$ to $0.51$. Thus, the sweep
+remains about $0.30$ when $\mu_0 = 0.5$ and $0.17$ when $\mu_0 = 0.9$, even as
+$\bar\rho^2$ increases from nearly zero to roughly $0.5$. Thus, the sweep
 changes the coupling without changing the curvature ratio.
 
 The observed pass counts do not follow the shape suggested by the first-update
 bound heuristic (@fig-rho-centering). The empirical
-$T_{\mathrm{G}}/T_{\mathrm{N}}$ rises steeply until $\bar\rho^2 \approx 0.04$
-and then remains within $11\%$ of the asymptotic limit $L_0/H_{00}$. By
-contrast, the leading-order ratio
+$T_{\mathrm{G}}/T_{\mathrm{N}}$ rises sharply at weak coupling and then settles
+near the asymptotic limit $L_0/H_{00}$. By contrast, the leading-order ratio
 $(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ is nearly flat where the
 empirical curve is steep and remains well below it. The heuristic predicts the
 direction of the first-update effect but not the long-run shape or magnitude.
 
 The sweep rules out intercept distance as an explanation for this plateau.
-Uncentering changes $|\beta_0^\star| / \|\beta^\star\|$ non-monotonically from
-$0.045$ to $1.06$ across the saturated cells without changing the ratio.
-Instead, coupling determines which convergence mode is slowest, while
+Uncentering changes $|\beta_0^\star| / \|\beta^\star\|$ non-monotonically by
+more than an order of magnitude across the saturated cells without changing the
+ratio. Instead, coupling determines which convergence mode is slowest, while
 $H_{00}/L_0$ determines the relative rate once the coupled mode dominates. This
 interpretation concerns late-stage local rates, not global iteration complexity
 from an arbitrary start.
@@ -2355,7 +2339,7 @@ $\log(\text{relative suboptimality})$ curve between $10^{-4}$ and $10^{-8}$,
 freeze $H$ at the converged Newton solution, and propagate the corresponding
 random pass matrices for 20,000 passes. The twelve cells include the transition
 at $\rho = 0.6$ and a second $\rho = 0.2$ sweep that moves $L_0/H_{00}$ from
-$4.69$ to $17.68$.
+roughly $5$ to $18$.
 
 ```{julia}
 #| label: fig-rho-frozen
@@ -2402,14 +2386,12 @@ draw(
 )
 ```
 
-The frozen and nonlinear rates track each other across the transition. At
-$\mu_0 = 0.5$, $\kappa$ moves from $0.41$ to $0.81$, $0.94$, and $0.97$ as
-$\alpha$ moves from $0$ to $0.3$; the frozen gradient/Newton rate ratio moves
-from $1.00$ to $1.81$, $3.29$, and $3.32$, alongside nonlinear ratios $1.01$,
-$1.99$, $3.34$, and $3.44$. Across the second design, the frozen ratios $4.72$,
-$5.75$, $8.81$, and $17.96$ likewise track nonlinear ratios $4.73$, $5.72$,
-$8.85$, and $18.03$. Newton accepts the full intercept step on every late-stage
-pass in these cells, so its safeguard does not create the difference.
+The frozen and nonlinear rates track each other across the transition. In the
+$\rho = 0.6$ sweep, $\kappa$ rises from about $0.4$ to almost one, while the
+frozen and nonlinear rate ratios both rise from about one to a little above
+three. In the $\rho = 0.2$ sweep, the two ratios again agree closely and reach
+roughly $18$. Newton accepts the full intercept step on every late-stage pass in
+these cells, so its safeguard does not create the difference.
 
 The rates change in two stages. Under weak coupling, an ordinary coefficient
 mode controls both strategies, and their rate ratio stays near one. As
@@ -2423,8 +2405,8 @@ The local-rate argument connects directly to @sec-production-solvers. glmnet's
 `modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
 at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
 $L_0/H_{00}$ is therefore the strongly coupled limit suggested by the frozen
-local model. At $\mu_0 = 0.99$, this is consistent with the empirical ≈5× and
-≈10× slowdowns reported in @fig-real-glmnet and @fig-real-biglasso. skglm
+local model. At $\mu_0 = 0.99$, this is consistent with the roughly fivefold and
+tenfold slowdowns reported in @fig-real-glmnet and @fig-real-biglasso. skglm
 (version 0.5), the direct-CD solver, exhibits the same scaling on a continuous
 trajectory in @fig-real-skglm: the slow convergence from suboptimality
 $\approx 10^{-1}$ to $\approx 10^{-5}$ is the intercept's slow climb toward its
@@ -2584,9 +2566,9 @@ eigenmode, although neither coordinate direction need be an eigenvector
 (@eq-grad-residual-matrix).
 
 The strategy reaches the same optimum but takes roughly an order of magnitude
-longer: the Newton and exact strategies converge in $47$ to $107$ passes across
-the three seeds, while the gradient strategy needs $451$ to the full
-thousand-pass budget.
+longer. Across the three seeds, Newton and exact converge within roughly
+$50$--$100$ passes, while the gradient strategy takes several hundred and, in
+the slowest run, exhausts the thousand-pass budget.
 
 The Newton and exact strategies follow the same visible curve. The
 $(K - 1)$-block Newton solve uses the full inverse in
@@ -2600,12 +2582,12 @@ We extend the test to a two-dimensional grid by shrinking the rarest class
 probability $\bar p_K$ to $0.005$ and increasing the feature amplitude to four
 times the baseline value. The four corners appear in @fig-multinomial-sweep;
 across the full sweep (@fig-multinomial-sweep-full), the Newton and exact
-trajectories overlap in every one of the sixteen cells. In fourteen cells, their
-median suboptimality bounds reach at most $1.3 \times 10^{-7}$, while the
-gradient strategy generally slows as $\bar p_K$ shrinks and amplitude grows. In
-the two most extreme cells ($\bar p_K = 0.005$ and amplitude at least $1.5$), no
-strategy obtains a useful median certificate within 1,000 passes. Those cells do
-not isolate the intercept update and therefore do not support the comparison.
+trajectories overlap throughout. They reach tight certificates in all but the
+two most extreme cells, while the gradient strategy generally slows as
+$\bar p_K$ shrinks and amplitude grows. In those two extreme cells
+($\bar p_K = 0.005$ and amplitude at least $1.5$), no strategy obtains a useful
+median certificate within 1,000 passes. Those cells do not isolate the intercept
+update and therefore do not support the comparison.
 
 ```{julia}
 #| label: fig-multinomial-sweep
@@ -2703,8 +2685,8 @@ draw(
 On the $p > n$ Yeoh2002 gene-expression problem, the gradient strategy lags in
 the low-curvature modes associated with rare classes, while Newton and exact
 follow the same curve (@fig-real-multinomial). This reproduces the synthetic
-pattern. The slowdown ratio ($\approx 3.7 \times$ at a relative suboptimality
-bound $10^{-4}$) is milder than the order-of-magnitude slowdown of
+pattern. The roughly fourfold slowdown at a relative suboptimality bound of
+$10^{-4}$ is milder than the order-of-magnitude slowdown of
 @fig-multinomial-imbalance because Yeoh2002's rarest class is at $6\%$ rather
 than the $5\%$ floor of the synthetic design, and the penalty contribution at
 $n \ll p$ damps the absolute scale of the per-pass intercept correction.
@@ -2712,12 +2694,11 @@ $n \ll p$ damps the absolute scale of the per-pass intercept correction.
 The same separation appears when the dimensions are reversed. The StatLog
 Shuttle dataset\ [@michie1994] is a $K = 7$ sensor-data classification with
 $n = 58\,000$ observations and $p = 9$ features---the opposite shape to
-Yeoh2002---and class frequencies that span four orders of magnitude ($78.6\%$,
-$0.09\%$, $0.30\%$, $15.4\%$, $5.6\%$, $0.02\%$, $0.02\%$). The three rarest
-classes have ten, thirteen, and fifty samples. Here the reference class is
-itself among the rarest, so the Rayleigh quotients fall much further below $L_0$
-than in Yeoh2002
-(@eq-multinomial-free-rayleigh--@eq-multinomial-reference-rayleigh).
+Yeoh2002---and class frequencies that span four orders of magnitude. The largest
+class contains nearly $80\%$ of the observations, while the three rarest have
+only ten, thirteen, and fifty samples. Here the reference class is itself among
+the rarest, so the Rayleigh quotients fall much further below $L_0$ than in
+Yeoh2002 (@eq-multinomial-free-rayleigh--@eq-multinomial-reference-rayleigh).
 
 ```{julia}
 #| label: fig-real-multinomial-shuttle
@@ -2746,16 +2727,14 @@ draw(
 ```
 
 On Shuttle, the Newton and exact strategies bring the relative suboptimality
-bound below $10^{-4}$ in $25$ and $23$ passes respectively, while the gradient
-strategy fails to reach that threshold within $1000$ passes and stalls near
-$4.5 \times 10^{-3}$. The slowdown is more severe than Yeoh's
-$\approx 3.7 \times$ pass-count ratio because the rarest Shuttle classes (ten,
-thirteen, and fifty samples) are two orders of magnitude rarer than Yeoh's
-rarest. This is consistent with the smaller eigenmode correction factors in
-@eq-grad-residual-matrix; it is not a claim that a single Hessian diagonal
-controls the block solve. The rare-class slowdown therefore appears both when
-$p \gg n$ in the gene-expression data and when $n \gg p$ in the sensor data
-(@fig-real-multinomial-shuttle).
+bound below $10^{-4}$ in about 25 passes, while the gradient strategy remains
+well above that threshold after the full thousand-pass budget. The slowdown is
+far more severe than the roughly fourfold gap on Yeoh because the rarest Shuttle
+classes are two orders of magnitude rarer. This is consistent with the smaller
+eigenmode correction factors in @eq-grad-residual-matrix; it is not a claim that
+a single Hessian diagonal controls the block solve. The rare-class slowdown
+therefore appears both when $p \gg n$ in the gene-expression data and when
+$n \gg p$ in the sensor data (@fig-real-multinomial-shuttle).
 
 The class-by-class scheme of glmnet's symmetric-multinomial path leads to a
 parallel conclusion. Holding all $\eta_{il}$ for $l \neq k$ fixed, the marginal
@@ -2832,19 +2811,18 @@ draw(
 )
 ```
 
-Across the first fourteen cells, the gradient strategy generally stalls more
-severely as the rarest class becomes rarer and as feature amplitude grows;
-Newton and exact remain nearly indistinguishable. In the two cells with
-$\bar p_K = 0.005$ and amplitude at least $1.5$, however, their shared median
-bound remains above $0.57$. At an expected rare-class count of only 2.5 and
-strong signal, near-separation and coefficient convergence dominate the
-intercept update. The grid therefore supports the curvature comparison over its
-certified region and marks the point at which this experiment ceases to isolate
-that mechanism. Quantitatively, at the $10^{-6}$ threshold the median gradient
-curve needs $10$--$41$ times as many passes as Newton in the five cells where it
-reaches that bound within the $1\,000$-pass budget, and fails to reach it in
-nine further cells in which Newton needs at most $158$ passes; the remaining two
-cells are the saturated ones just discussed.
+Across the grid, the gradient strategy generally stalls more severely as the
+rarest class becomes rarer and as feature amplitude grows; Newton and exact
+remain nearly indistinguishable. In the two cells with $\bar p_K = 0.005$ and
+amplitude at least $1.5$, however, their shared median bound remains far from
+zero. At an expected rare-class count of only 2.5 and strong signal,
+near-separation and coefficient convergence dominate the intercept update. The
+grid therefore supports the curvature comparison over its certified region and
+marks the point at which this experiment ceases to isolate that mechanism. Where
+the gradient strategy reaches the $10^{-6}$ threshold, it generally needs at
+least an order of magnitude more passes than Newton. In most of the remaining
+certified cells, it misses that threshold within the $1\,000$-pass budget even
+though Newton reaches it.
 
 ## S3. Experimental methods and reproducibility {#sec-s-methodology .unnumbered}
 
@@ -2946,11 +2924,10 @@ It does not do so under the per-coordinate Armijo backtracking used by our
 coordinate-descent solver, `cdsolver`, after every coordinate update
 ([Supplement S3](#sec-s-methodology)). On the w1a benchmark of
 @fig-first-example, all three strategies converge under both orderings and the
-pass-count differences are within a factor of $1.9$
-(@fig-first-example-ordering). At the shared $10^{-8}$ threshold, cyclic and
-permuted ordering need 46 and 51 passes for Newton, 44 and 84 for exact, and 338
-and 339 for the gradient strategy. The qualitative ranking of the three
-strategies---Newton and exact fast, gradient slow---is the same under both, and
+pass-count differences are less than a factor of two
+(@fig-first-example-ordering). Newton and exact remain below 100 passes under
+either ordering, whereas the gradient strategy takes about 340 under both. The
+qualitative ranking---Newton and exact fast, gradient slow---is unchanged, and
 we use cyclic CD as the default elsewhere in the paper.
 
 ```{julia}
@@ -3091,21 +3068,19 @@ every $\lambda$, so $|\partial_0 F|$ is the marginal class imbalance---roughly
 $0.20$ on the simulated problem and $0.47$ on w1a, identical across strategies.
 
 The pass-count reduction is modest and uneven (@fig-warm-start). Averaged over
-the simulated path, warm-starting reduces pass counts by about $8\%$ for the
-gradient strategy, by $10\%$ for cyclic Newton and exact, and by $14\%$ for
-their permuted counterparts. On w1a, the reduction is about $9\%$ for gradient,
-$23\%$--$38\%$ for Newton, and $16\%$--$33\%$ for exact. The number of
+the simulated path, warm-starting saves about $10\%$ of the passes for all three
+strategies. On w1a, it again helps the gradient strategy only modestly, while
+Newton and exact often improve by roughly $20\%$--$40\%$. The number of
 budget-capped subproblems does not fall uniformly, but Newton and exact remain
 close under every configuration. This is what @eq-intercept-drift suggests: once
 $|\partial_0 F|$ is already small, the $k_0 - 1$ per-pass penalty of the exact
 strategy largely disappears.
 
 Warm-starting does not rescue the gradient strategy. At the smallest $\lambda$
-under cyclic ordering, its relative bound falls from $1.5 \times 10^{-3}$ to
-$2.3 \times 10^{-5}$ on the simulated problem and from $0.092$ to $0.0030$ on
-w1a, but remains far above the corresponding warm-start Newton and exact bounds
-($3.2 \times 10^{-7}$ and $1.2 \times 10^{-6}$). Thus, a better initial point
-helps without compensating for the small $H_{00}/L_0$ correction.
+under cyclic ordering, its relative bound improves by roughly two orders of
+magnitude on the simulated problem and by more than one order on w1a. It still
+remains well above the corresponding Newton and exact bounds. Thus, a better
+initial point helps without compensating for the small $H_{00}/L_0$ correction.
 
 Warm-starting therefore narrows the gap between Newton and exact: a single
 Newton step and the exact strategy become hard to distinguish in practice. It
@@ -3193,17 +3168,15 @@ draw(
 ```
 
 The two figures show the overhead directly. In @fig-per-pass-cost, the inner
-work peaks on the cold-start pass at 5, 4, and 2 units for
-$\mu_0 = 0.99, 0.9, 0.5$ respectively, then decays to one as the iterate
-approaches the joint optimum. Summed through the first pass at which each method
-reaches the shared $10^{-8}$ bound, the exact-to-Newton work ratios are $1.44$,
-$1.64$, and $1.85$ for $\mu_0 = 0.5, 0.9, 0.99$, respectively. The trend is
-monotone in the imbalance that drives $|\partial_0 F|$ at cold start.
+work peaks between two and five units on the cold-start pass, with larger peaks
+under greater imbalance, then decays to one as the iterate approaches the joint
+optimum. Summed through the shared $10^{-8}$ bound, exact uses roughly
+one-and-a-half to twice the work of Newton, again increasing with imbalance.
 
 The extra work is hard to justify: the Newton and exact strategies trace almost
 the same relative-suboptimality curve and reach $10^{-8}$ in comparable pass
-counts (Newton: 41/42/53; exact: 41/42/52). The exact strategy spends more inner
-work as imbalance grows without improving outer-pass progress
+counts that differ by at most one in these runs. The exact strategy spends more
+inner work as imbalance grows without improving outer-pass progress
 (@fig-per-pass-progress).
 
 The penalty is modest in these runs: $k_0$ remains well below the inner-loop cap
