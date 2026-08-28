@@ -1593,7 +1593,7 @@ $\lambda$.
 As $\lambda$ shrinks, the active set widens, $H_{00}$ falls toward and beyond
 $\mu_0(1 - \mu_0)$, and the empirical ratio grows with it. At
 $\lambda = 0.01\lambda_{\max}$, for example, the ratio rises from about two
-under balance to about ten at $\mu_0 = 0.95$; we omit the $\mu_0 = 0.99$ corner
+under balance to about ten at $\mu_0 = 0.95$. We omit the $\mu_0 = 0.99$ corner
 because its seed-level cap makes the average uninformative.
 
 By contrast, @fig-mu-reg-exact stays nearly flat at zero: the exact/Newton ratio
