@@ -89,7 +89,7 @@ paper, we assume that $G_\lambda$ is a proper, closed, convex, separable penalty
 and that $F$ is the per-observation-averaged loss
 $$
   F(\beta_0, \beta)
-  = \frac{1}{n}\sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i).
+  = \frac{1}{n}\sum_{i=1}^n f(x_i^\top \beta + \beta_0; y_i).
 $$
 where $f$ is smooth, twice differentiable, and convex. Averaging by $n$ keeps
 the global Lipschitz constant for the intercept, $L_0 = \sup f''$, independent
@@ -372,12 +372,12 @@ Throughout this section, we work with the per-observation-averaged,
 canonical-link GLM loss
 $$
   F(\beta_0, \beta)
-  = \frac{1}{n}\sum_{i=1}^n f(x_i^\intercal \beta + \beta_0; y_i),
+  = \frac{1}{n}\sum_{i=1}^n f(x_i^\top \beta + \beta_0; y_i),
 $$
 We first derive the scalar-intercept results for the Gaussian, binomial, and
 Poisson models. We later extend them to multinomial logistic regression, whose
 intercept is a vector. For observation $i$, let
-$\eta_i = x_i^\intercal \beta + \beta_0$ denote the linear predictor, and let
+$\eta_i = x_i^\top \beta + \beta_0$ denote the linear predictor, and let
 $\ilink$ denote the inverse link. The conditional mean is then
 $\E(y_i \mid \eta_i) = \ilink(\eta_i)$. For the canonical-link models considered
 here, the derivative of the negative log-likelihood simplifies to the
@@ -927,7 +927,7 @@ reference-class parameterization, the intercept becomes a $(K - 1)$-vector, and
 its Hessian is
 $$
   H_{00}
-  = \frac{1}{n}\sum_{i=1}^n \left\{ \operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1}p_{i,1:K-1}^{\intercal} \right\}.
+  = \frac{1}{n}\sum_{i=1}^n \left\{ \operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1}p_{i,1:K-1}^{\top} \right\}.
 $$
 Rare free classes create low-curvature coordinate directions; a rare reference
 class creates a low-curvature common-shift direction. A global Böhning majorant
@@ -996,7 +996,7 @@ $(\beta_0^{(t)}, \beta^{(t)})$, IRLS forms the weighted least squares quadratic
 surrogate
 $$
   \tilde F^{(t)}(\beta_0, \beta)
-  = \frac{1}{2n} \sum_{i=1}^n w_i^{(t)} \bigl( z_i^{(t)} - \beta_0 - x_i^\intercal \beta \bigr)^2,
+  = \frac{1}{2n} \sum_{i=1}^n w_i^{(t)} \bigl( z_i^{(t)} - \beta_0 - x_i^\top \beta \bigr)^2,
 $$
 with working response $z_i^{(t)} = \eta_i^{(t)} - r_i^{(t)} / w_i^{(t)}$, run
 inner CD on $\tilde F^{(t)}$, then re-linearize. Two weight choices are used in
@@ -2440,12 +2440,12 @@ line search on the intercept alone.
 We can extend the argument to multinomial logistic regression with $K$ classes,
 where the scalar curvature ratio becomes a matrix operator. The intercept is a
 vector $\beta_0 \in \mathbb{R}^{K-1}$ under the reference-class parameterization
-$\eta_{iK} = 0$. Writing $\eta_{ik} = x_i^\intercal \beta_k + \beta_{0k}$ for
+$\eta_{iK} = 0$. Writing $\eta_{ik} = x_i^\top \beta_k + \beta_{0k}$ for
 $k = 1, \dots, K - 1$ and
 $p_{ik} = e^{\eta_{ik}}/\bigl(1 + \sum_{l<K} e^{\eta_{il}}\bigr)$, the
 per-observation Hessian block has diagonal $p_{ik}(1 - p_{ik})$ and off-diagonal
 $-p_{ik} p_{il}$. The intercept Hessian
-$H_{00} = (1/n)\sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\intercal\bigr)$
+$H_{00} = (1/n)\sum_i \bigl(\operatorname{diag}(p_{i,1:K-1}) - p_{i,1:K-1} p_{i,1:K-1}^\top\bigr)$
 is a $(K - 1) \times (K - 1)$ matrix.
 
 The Newton strategy therefore becomes a small block solve
@@ -2478,7 +2478,7 @@ $$ {#eq-grad-residual-matrix}
 Thus $Q$, rather than the individual ratios $H_{00,kk}/L_0$, is the matrix
 analogue of the scalar correction fraction. Because the multinomial majorant
 satisfies $0 \preceq H_{00} \preceq L_0 I$, write
-$H_{00} = U\operatorname{diag}(\lambda_r)U^\intercal$. The gradient strategy
+$H_{00} = U\operatorname{diag}(\lambda_r)U^\top$. The gradient strategy
 then retains the fraction $\lambda_r/L_0 \in [0,1]$ of Newton's correction in
 eigenmode $u_r$. The cross block $H_{\beta0}$ subsequently maps that attenuated
 correction into the coefficient gradients. A diagonal entry alone does not
@@ -2487,24 +2487,24 @@ describe this coupled block solve.
 Rare classes nevertheless force small eigenvalues. Put $q = K - 1$. For a
 nonreference class $k < K$, the Rayleigh quotient in its coordinate direction is
 $$
-  e_k^\intercal H_{00} e_k = \frac{1}{n}\sum_i p_{ik}(1 - p_{ik})
+  e_k^\top H_{00} e_k = \frac{1}{n}\sum_i p_{ik}(1 - p_{ik})
                            \leq \bar p_k(1 - \bar p_k).
 $$ {#eq-multinomial-free-rayleigh}
 Here $\bar p_k = n^{-1}\sum_i p_{ik}$; at intercept stationarity, it equals the
 empirical class prevalence. For the reference class, the corresponding direction
 changes all free-class log odds together. With $v = \mathbf{1}_q/\sqrt q$,
 $$
-  v^\intercal H_{00}v = \frac{1}{qn}\sum_i p_{iK}(1 - p_{iK})
+  v^\top H_{00}v = \frac{1}{qn}\sum_i p_{iK}(1 - p_{iK})
                       \leq \frac{\bar p_K(1 - \bar p_K)}{q}.
 $$ {#eq-multinomial-reference-rayleigh}
 In either case, the smallest eigenvalue is no larger than the displayed Rayleigh
 quotient and therefore vanishes with the rare-class prevalence. When the
 probabilities are constant across observations, this structure is especially
 explicit. If $D = \operatorname{diag}(\bar p_1, \ldots, \bar p_q)$ and
-$\bar p = (\bar p_1, \ldots, \bar p_q)^\intercal$, then
+$\bar p = (\bar p_1, \ldots, \bar p_q)^\top$, then
 $$
-  H_{00} = D - \bar p\bar p^\intercal, \qquad H_{00}^{-1}
-         = D^{-1} + \frac{1}{\bar p_K}\mathbf{1}_q\mathbf{1}_q^\intercal.
+  H_{00} = D - \bar p\bar p^\top, \qquad H_{00}^{-1}
+         = D^{-1} + \frac{1}{\bar p_K}\mathbf{1}_q\mathbf{1}_q^\top.
 $$ {#eq-multinomial-intercept-inverse}
 The first term adapts to a rare free class, while the second adapts the common
 shift to a rare reference class. The global-Lipschitz gradient step does not
@@ -2549,7 +2549,7 @@ We report a relative suboptimality bound (@fig-multinomial-imbalance). The
 multinomial CD solver constructs a feasible dual point by blending the centered
 residual with the intercept-only feasible point until every implied probability
 lies in the simplex, then rescaling onto the $\ell_\infty$ ball
-$\lVert X^\intercal \Theta \rVert_\infty \le \lambda$. Within each problem, we
+$\lVert X^\top \Theta \rVert_\infty \le \lambda$. Within each problem, we
 score every run against the largest dual value attained by any strategy. A
 stalling run is therefore assessed against a shared lower bound, and the curves
 cannot fall below the resolution of that certificate.
@@ -2863,7 +2863,7 @@ residual with the intercept-only feasible residual, taking the largest blend
 whose implied binomial probability, Poisson intensity, or multinomial
 probability vector remains in its conjugate domain. Both endpoints satisfy
 intercept stationarity. We then rescale the result toward zero to enforce
-$\lVert X^\intercal \Theta \rVert_\infty \le \lambda$; this second step
+$\lVert X^\top \Theta \rVert_\infty \le \lambda$; this second step
 preserves the domain because it moves the implied mean toward the observed
 response. This feature-feasibility rescaling is the standard dual-scaling step
 used by Gap Safe rules\ [@fercoq2015; @ndiaye2017]; the preceding anchor blend
