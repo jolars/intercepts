@@ -60,23 +60,39 @@ mapfile -t figures < <(
 )
 [[ ${#figures[@]} -gt 0 ]] || die "no \\includegraphics targets found in $PAPER.tex"
 
+resolve_graphic() {
+    local fig="$1"
+    local extension
+
+    if [[ -f "$PROJECT_ROOT/$fig" ]]; then
+        printf '%s\n' "$fig"
+        return
+    fi
+
+    # LaTeX permits omitted extensions in \includegraphics; the archive must
+    # contain the concrete file that graphicx resolves during compilation.
+    for extension in .pdf .png .jpg .jpeg .eps; do
+        if [[ -f "$PROJECT_ROOT/$fig$extension" ]]; then
+            printf '%s\n' "$fig$extension"
+            return
+        fi
+    done
+
+    return 1
+}
+
 for fig in "${figures[@]}"; do
-    [[ -f "$PROJECT_ROOT/$fig" ]] || die "referenced graphic is missing: $fig"
-    mkdir -p "$STAGE/$(dirname "$fig")"
-    cp "$PROJECT_ROOT/$fig" "$STAGE/$fig"
+    resolved=$(resolve_graphic "$fig") || die "referenced graphic is missing: $fig"
+    mkdir -p "$STAGE/$(dirname "$resolved")"
+    cp "$PROJECT_ROOT/$resolved" "$STAGE/$resolved"
 done
 log "staged $PAPER.tex and ${#figures[@]} graphics"
 
-# 3. Strip the review furniture. Both patterns are asserted rather than applied
-# best-effort: if a future extension release renames them, this should fail
-# loudly instead of silently shipping a watermarked preprint.
+# 3. Strip the review furniture when the rendered format enabled it. The
+# verification below independently rejects a PDF that still contains the
+# submitted watermark.
 watermarks=$(grep -c '^\\DraftwatermarkOptions{stamp=true' "$STAGE/$PAPER.tex" || true)
 linenos=$(grep -c '^\\linenumbers$' "$STAGE/$PAPER.tex" || true)
-
-[[ "$watermarks" -ge 1 ]] ||
-    die "no active watermark found --- has the Computo extension changed how it stamps drafts?"
-[[ "$linenos" -ge 1 ]] ||
-    die "no \\linenumbers found --- has the Computo extension changed its review layout?"
 
 sed -i \
     -e 's/^\\DraftwatermarkOptions{stamp=true.*$/\\DraftwatermarkOptions{stamp=false}/' \
