@@ -72,5 +72,27 @@ format:
       - text: |
           \usepackage{mathtools}
           \DeclareMathOperator*{\argmin}{\arg\,\min}
+          \usepackage{etoolbox}
+          \makeatletter
+          % Longtable 4.24 uses infinite shrink in its output routine, which
+          % triggers a spurious LuaTeX page-mark diagnostic. Patch only the
+          % affected release; version 4.25 contains the upstream correction.
+          \@ifpackagelater{longtable}{2025/10/12}{%
+            \@ifpackagelater{longtable}{2025/12/22}{}{%
+              \patchcmd{\LT@output}
+                {\copy\LT@foot\vss}
+                {\copy\LT@foot\vskip\z@\@plus1fil\@minus\normalbaselineskip}
+                {}{%
+                  \PackageWarning{intercepts}{Could not patch longtable output glue}%
+                }%
+              \patchcmd{\LT@output}
+                {\copy\LT@foot\vss}
+                {\copy\LT@foot\vskip\z@\@plus1fil\@minus\normalbaselineskip}
+                {}{%
+                  \PackageWarning{intercepts}{Could not patch longtable output glue}%
+                }%
+            }%
+          }{}%
+          \makeatother
 
 engines: ["julia"]
