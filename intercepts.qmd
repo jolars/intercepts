@@ -88,8 +88,7 @@ large coefficients while leaving the intercept unpenalized. Throughout the
 paper, we assume that $G_\lambda$ is a proper, closed, convex, separable penalty
 and that $F$ is the per-observation-averaged loss
 $$
-  F(\beta_0, \beta)
-  = \frac{1}{n}\sum_{i=1}^n f(x_i^\top \beta + \beta_0; y_i).
+  F(\beta_0, \beta) = \frac{1}{n}\sum_{i=1}^n f(x_i^\top \beta + \beta_0; y_i).
 $$
 where $f$ is smooth, twice differentiable, and convex. Averaging by $n$ keeps
 the global Lipschitz constant for the intercept, $L_0 = \sup f''$, independent
@@ -371,8 +370,7 @@ bound-based heuristic and the behavior that we observe experimentally.
 Throughout this section, we work with the per-observation-averaged,
 canonical-link GLM loss
 $$
-  F(\beta_0, \beta)
-  = \frac{1}{n}\sum_{i=1}^n f(x_i^\top \beta + \beta_0; y_i),
+  F(\beta_0, \beta) = \frac{1}{n}\sum_{i=1}^n f(x_i^\top \beta + \beta_0; y_i),
 $$
 We first derive the scalar-intercept results for the Gaussian, binomial, and
 Poisson models. We later extend them to multinomial logistic regression, whose
@@ -390,12 +388,12 @@ from its derivative. The identity does not hold for arbitrary noncanonical
 links. The loss, link, and inverse link for the four models we study---Gaussian,
 binomial, Poisson, and multinomial---appear in @tbl-glm.
 
-  | Model       | $f(\eta; y)$                                                                       | $\link(\mu)$                                                  | $\ilink(\eta)$                                       |
-  | :---------- | :--------------------------------------------------------------------------------- | :------------------------------------------------------------ | :--------------------------------------------------- |
-  | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                          | $\mu$                                                         | $\eta$                                               |
-  | Binomial    | $\log(1 + e^\eta) - \eta y$                                                        | $\log\left( \frac{\mu}{1 - \mu} \right)$                      | $\frac{e^\eta}{1 + e^\eta}$                          |
-  | Poisson     | $e^\eta - \eta y$                                                                  | $\log(\mu)$                                                   | $e^\eta$                                             |
-  | Multinomial | $\log\left( 1 + \sum_{j=1}^{m-1} e^{\eta_j} \right) - \sum_{k=1}^{m-1} y_k \eta_k$ | $\log\!\left( \frac{\mu}{1 - \sum_{j=1}^{m-1} \mu_j} \right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
+  | Model       | $f(\eta; y)$                                                                       | $\link(\mu)$                                                | $\ilink(\eta)$                                       |
+  | :---------- | :--------------------------------------------------------------------------------- | :---------------------------------------------------------- | :--------------------------------------------------- |
+  | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                          | $\mu$                                                       | $\eta$                                               |
+  | Binomial    | $\log(1 + e^\eta) - \eta y$                                                        | $\log\left( \frac{\mu}{1 - \mu} \right)$                    | $\frac{e^\eta}{1 + e^\eta}$                          |
+  | Poisson     | $e^\eta - \eta y$                                                                  | $\log(\mu)$                                                 | $e^\eta$                                             |
+  | Multinomial | $\log\left( 1 + \sum_{j=1}^{m-1} e^{\eta_j} \right) - \sum_{k=1}^{m-1} y_k \eta_k$ | $\log\left( \frac{\mu}{1 - \sum_{j=1}^{m-1} \mu_j} \right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
 
   : Loss, link, and inverse-link functions for the GLM families studied. The
     multinomial row uses the reference-class parameterization with class $m$ as
@@ -2302,12 +2300,11 @@ respectively. When the intercept-error mode is the slowest mode of the
 pass---which requires $\kappa$ close to one---their asymptotic pass-count ratio
 is
 $$
-\begin{aligned}
   \frac{T_{\mathrm{G}}}{T_{\mathrm{N}}}
-   & \approx \frac{\log \kappa}{\log\!\bigl(1 - q(1 - \kappa)\bigr)} \\
-   & \longrightarrow \frac{1}{q} = \frac{L_0}{H_{00}}
-  \quad \text{as } \kappa \to 1.
-\end{aligned}
+  \approx \frac{\log \kappa}{\log \left( 1 - q(1 - \kappa) \right)}
+                                        \longrightarrow \frac{1}{q}
+                                        = \frac{L_0}{H_{00}} \quad \text{as } \kappa
+                                        \to 1.
 $$ {#eq-frozen-block-rate}
 Outside that regime the ratio formula is not informative: as $\kappa \to 0$ it
 diverges, while the true pass-count ratio stays finite because Newton removes
@@ -2460,7 +2457,7 @@ collect the coefficient gradients in $g_\beta$, and let $H_{\beta 0}$ be the
 coefficient--intercept cross block. For an intercept step
 $\beta_0 \mapsto \beta_0 - A g_0$, a Taylor expansion gives
 $$
-  g_\beta^+ = g_\beta - H_{\beta 0} A g_0 + O\bigl(\lVert A g_0\rVert^2\bigr).
+  g_\beta^+ = g_\beta - H_{\beta 0} A g_0 + O \big(\lVert A g_0\rVert^2\big).
 $$
 Newton uses $A = H_{00}^{-1}$, while the gradient strategy uses $A = L_0^{-1}I$.
 Dropping the common second-order remainder gives
@@ -2478,8 +2475,8 @@ $$ {#eq-grad-residual-matrix}
 Thus $Q$, rather than the individual ratios $H_{00,kk}/L_0$, is the matrix
 analogue of the scalar correction fraction. Because the multinomial majorant
 satisfies $0 \preceq H_{00} \preceq L_0 I$, write
-$H_{00} = U\operatorname{diag}(\lambda_r)U^\top$. The gradient strategy
-then retains the fraction $\lambda_r/L_0 \in [0,1]$ of Newton's correction in
+$H_{00} = U\operatorname{diag}(\lambda_r)U^\top$. The gradient strategy then
+retains the fraction $\lambda_r/L_0 \in [0,1]$ of Newton's correction in
 eigenmode $u_r$. The cross block $H_{\beta0}$ subsequently maps that attenuated
 correction into the coefficient gradients. A diagonal entry alone does not
 describe this coupled block solve.
@@ -2488,14 +2485,14 @@ Rare classes nevertheless force small eigenvalues. Put $q = K - 1$. For a
 nonreference class $k < K$, the Rayleigh quotient in its coordinate direction is
 $$
   e_k^\top H_{00} e_k = \frac{1}{n}\sum_i p_{ik}(1 - p_{ik})
-                           \leq \bar p_k(1 - \bar p_k).
+                      \leq \bar p_k(1 - \bar p_k).
 $$ {#eq-multinomial-free-rayleigh}
 Here $\bar p_k = n^{-1}\sum_i p_{ik}$; at intercept stationarity, it equals the
 empirical class prevalence. For the reference class, the corresponding direction
 changes all free-class log odds together. With $v = \mathbf{1}_q/\sqrt q$,
 $$
   v^\top H_{00}v = \frac{1}{qn}\sum_i p_{iK}(1 - p_{iK})
-                      \leq \frac{\bar p_K(1 - \bar p_K)}{q}.
+                 \leq \frac{\bar p_K(1 - \bar p_K)}{q}.
 $$ {#eq-multinomial-reference-rayleigh}
 In either case, the smallest eigenvalue is no larger than the displayed Rayleigh
 quotient and therefore vanishes with the rare-class prevalence. When the
@@ -2549,10 +2546,10 @@ We report a relative suboptimality bound (@fig-multinomial-imbalance). The
 multinomial CD solver constructs a feasible dual point by blending the centered
 residual with the intercept-only feasible point until every implied probability
 lies in the simplex, then rescaling onto the $\ell_\infty$ ball
-$\lVert X^\top \Theta \rVert_\infty \le \lambda$. Within each problem, we
-score every run against the largest dual value attained by any strategy. A
-stalling run is therefore assessed against a shared lower bound, and the curves
-cannot fall below the resolution of that certificate.
+$\lVert X^\top \Theta \rVert_\infty \le \lambda$. Within each problem, we score
+every run against the largest dual value attained by any strategy. A stalling
+run is therefore assessed against a shared lower bound, and the curves cannot
+fall below the resolution of that certificate.
 
 The gradient strategy stalls, as expected. Here class 4 is a free rare class,
 while class 5 is the rare reference class. Using the nominal prevalence $0.05$,
@@ -2863,13 +2860,13 @@ residual with the intercept-only feasible residual, taking the largest blend
 whose implied binomial probability, Poisson intensity, or multinomial
 probability vector remains in its conjugate domain. Both endpoints satisfy
 intercept stationarity. We then rescale the result toward zero to enforce
-$\lVert X^\top \Theta \rVert_\infty \le \lambda$; this second step
-preserves the domain because it moves the implied mean toward the observed
-response. This feature-feasibility rescaling is the standard dual-scaling step
-used by Gap Safe rules\ [@fercoq2015; @ndiaye2017]; the preceding anchor blend
-adds the conjugate-domain and unpenalized-intercept constraints needed here. The
-solver evaluates the conjugate only after checking domain membership and stops
-when its run-local relative duality gap reaches the stated tolerance.
+$\lVert X^\top \Theta \rVert_\infty \le \lambda$; this second step preserves the
+domain because it moves the implied mean toward the observed response. This
+feature-feasibility rescaling is the standard dual-scaling step used by Gap Safe
+rules\ [@fercoq2015; @ndiaye2017]; the preceding anchor blend adds the
+conjugate-domain and unpenalized-intercept constraints needed here. The solver
+evaluates the conjugate only after checking domain membership and stops when its
+run-local relative duality gap reaches the stated tolerance.
 
 For reporting, we put all strategies for the same problem instance on one
 reference. If $D_{s,t}$ is the feasible dual value from strategy $s$ at
