@@ -61,6 +61,7 @@ citation:
   issn: "2824-7795"
   # 10.5072 is the official DOI test prefix; replace once assigned.
   doi: "10.5072/computo.0000"
+  google-scholar: true
 status: submitted
 license: CC-BY-4.0
 
