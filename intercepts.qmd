@@ -248,32 +248,22 @@ draw(
 
 We make four contributions:
 
-- We formalize three intercept-update strategies---gradient, Newton, and
-  exact---that span the choices used by current CD solvers for regularized GLMs.
+- We formalize three strategies for updating an unpenalized intercept: gradient,
+  Newton, and exact minimization.
 
-- We use the Schur complement to isolate the curvature ratio $H_{00}/L_0$ that
-  governs the slowdown. The analysis explains why a conservative Lipschitz bound
-  slows the gradient strategy when $H_{00} \ll L_0$. Once a coupled
-  intercept--coefficient mode controls local convergence, a frozen-Hessian
-  analysis gives a gradient/Newton rate ratio that approaches $L_0/H_{00}$. For
-  binary logistic regression, this ratio diverges as the positive-class marginal
-  $\mu_0$ approaches one.
+- Using a Schur-complement analysis, we show that the mismatch between local
+  intercept curvature $H_{00}$ and the global bound $L_0$ explains the gradient
+  strategy's slowdown. In strongly coupled problems, the predicted
+  gradient-to-Newton rate ratio approaches $L_0/H_{00}$.
 
-- We classify CD-based GLM solvers as direct CD, local-IRLS, MM-IRLS, or
-  prox-Newton, and identify the intercept strategy used by each family. Tests on
-  simulated and real data include six production solvers. Comparisons within
-  glmnet and biglasso hold the implementation fixed while changing the weight
-  scheme for the entire IRLS surrogate; a controlled comparison of two skglm
-  versions isolates the effect of replacing the intercept's gradient update with
-  Newton.
+- We classify CD-based GLM solvers by their treatment of curvature and the
+  intercept, and we evaluate six production solvers using controlled comparisons
+  where possible.
 
-- We extend the analysis to vector intercepts in multinomial logistic
-  regression, where rare classes make the slowdown common rather than
-  exceptional. We test the result on the Yeoh2002 gene-expression panel and the
-  StatLog Shuttle sensor dataset, which occupy opposite dimensional regimes
-  (@fig-multinomial-summary). On both, the gradient strategy stalls in
-  low-curvature modes associated with rare classes, while the Newton and exact
-  strategies follow nearly the same trajectory.
+- We extend the analysis to multinomial logistic regression, where rare classes
+  create low-curvature directions. Experiments on synthetic and real data show
+  that Newton updates closely match exact minimization and can be much faster
+  than gradient updates.
 
 # Related work {#sec-related-work}
 
