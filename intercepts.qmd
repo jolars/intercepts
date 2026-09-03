@@ -590,6 +590,18 @@ entirely. For other losses the weights depend on the linear predictor and the
 response, so $H_{0j}$ is a $w_i$-weighted mean of $x_{ij}$, which is generally
 nonzero even after centering.
 
+Centering is therefore the natural remedy, and on a dense design it costs
+nothing. It is not free on the large sparse designs that motivate $\ell_1$
+solvers: subtracting a column mean fills in every zero, and the resulting dense
+matrix is often the reason the fit was tractable in the first place. Practical
+implementations therefore either skip the centering---the usual choice for
+indicator features---or apply it implicitly, as `adelie` does by folding it into
+a weighted-centered parameterization of the inner Gaussian problem
+(@sec-irls). That choice is not neutral with respect to the intercept update:
+@sec-location shows that leaving the columns uncentered drives $\kappa$ close to
+one and puts the gradient strategy at its full $L_0/H_{00}$ plateau, while the
+implicit centering keeps the coupling low at no cost in density.
+
 ### A normalized measure of intercept--coefficient coupling
 
 To quantify how strongly the intercept and the $j$th coefficient are coupled,
@@ -919,6 +931,17 @@ improvement in the outer trajectory. [Supplement S2.1](#sec-vector-intercepts)
 derives the block update, identifies the relevant Rayleigh quotients, and tests
 this prediction on a grid of synthetic problems.
 
+Nothing in this block argument is specific to a multinomial intercept. A design
+with several unpenalized columns---stratum indicators, a treatment term, a
+parametric adjustment carried alongside a penalized feature set---has the same
+structure with $H_{00}$ the unpenalized block's Hessian and $H_{0A}$ its
+coupling to the penalized coefficients. @eq-collective-coupling and
+@prp-frozen-block-rate apply unchanged, so the recommendation generalizes: solve
+the whole unpenalized block with one guarded Newton step rather than taking a
+global-majorant step in each of its coordinates. The block is small in the cases
+we have in mind, so its solve is negligible beside a pass over the penalized
+coefficients.
+
 The pattern appears on two real datasets with opposite shapes
 (@fig-multinomial-summary). Yeoh2002 has $n = 248$, $p = 12\,625$, and six
 classes, while StatLog Shuttle has $n = 58\,000$, $p = 9$, and seven classes. On
@@ -1150,7 +1173,11 @@ use local Newton curvature rather than a global Lipschitz bound.
 We run the internal experiments using our Julia implementations of the solvers
 and report outer passes as the primary measure of work. Unless noted, synthetic
 designs use cyclic ordering, fixed seeds, standardized features, and an AR(1)
-correlation of $\rho = 0.6$. We score comparable trajectories against the
+correlation of $\rho = 0.6$. Standardization is a consequential default rather
+than a neutral one: it is the setting in which the intercept--coefficient
+coupling is smallest, so the pass-count gaps reported below understate what a
+user of an uncentered design sees. @sec-location quantifies the difference and
+gives the conditions under which it appears. We score comparable trajectories against the
 strongest feasible dual value found for their shared problem instance, so the
 displayed suboptimality bound does not depend on which strategy produced the
 primal iterate. We use pinned datasets in the real-data experiments and follow
@@ -1594,6 +1621,150 @@ The centering sweep of @fig-rho-centering separates the first-update bound
 heuristic from the local rate. The heuristic gets the direction right but not
 the shape or scale. The collective coupling and frozen-pass calculation of
 @fig-rho-frozen recover the transition and the $L_0/H_{00}$ plateau instead.
+@sec-location takes the same axis as a preprocessing question rather than a
+diagnostic one, and reports what the choice costs on designs where centering is
+routinely skipped.
+
+## Feature location and normalization {#sec-location}
+
+Every design used so far is standardized (@sec-methodology). That is a
+preprocessing choice, not a property of the problem: because the intercept is
+unpenalized, shifting a feature column by a constant is absorbed exactly by
+$\beta_0$, leaving $\beta^\star$, $\hat\eta$, $H_{00}$, and $\lambda_{\max}$
+unchanged. Two designs that differ only in their column means therefore pose the
+same optimization problem with the same solution, and any difference in pass
+counts is attributable to the algorithm alone. @sec-s-rate uses this invariance
+to sweep $\bar\rho^2$ at fixed $H_{00}/L_0$. Here we use it to ask the
+preprocessing question directly: when a solver is handed an uncentered design,
+does the intercept strategy still matter?
+
+The case of interest is binary features. Indicator columns are the common
+setting in which centering is skipped deliberately, because subtracting the
+column mean destroys the sparsity that makes the problem tractable. A binary
+column of density $q$, divided by its standard deviation and left uncentered,
+has mean $\sqrt{q/(1-q)}$, so the location-to-scale ratio is set by the density
+and grows with it. We generate sparse binary designs with $n = 500$,
+$p = 1000$, $s = 10$, and $\lambda = 0.05\lambda_{\max}$, scale every column by
+its standard deviation, and solve each design twice---once with the columns
+centered and once without. Each cell records the realized discrepancy in
+$\beta^\star$ and $\lambda_{\max}$ between the two arms; across the grid these
+are at most $5 \times 10^{-12}$ and $2 \times 10^{-15}$, so the invariance holds
+numerically and the comparison is controlled rather than merely argued.
+
+```{julia}
+#| label: fig-location-binary
+#| fig-cap: Centering and the intercept strategy on binary designs. The panels
+#|   show the pass-count ratio $T_{\mathrm{G}}/T_{\mathrm{N}}$ to the relative
+#|   suboptimality bound $10^{-6}$ against binary feature density, for designs
+#|   scaled with and without centering, at $n = 500$, $p = 1000$, $s = 10$, and
+#|   $\lambda = 0.05\lambda_{\max}$. The dashed line marks the $L_0/H_{00}$
+#|   plateau, which is identical across the two arms.
+
+dd = JLD2.load(@projectroot("results", "location-normalization.jld2"))
+df_loc = DataFrame(dd["records"])
+
+df_bin = df_loc[df_loc.family .== "binary", :]
+sort!(df_bin, [:μ0, :density])
+df_bin.μ0_label = [L"$\mu_0 = %$(v)$" for v in df_bin.μ0]
+df_bin.arm = [c ? L"centered${}$" : L"uncentered${}$" for c in df_bin.centered]
+
+spec_loc = data(df_bin) *
+    mapping(:density, :empirical_ratio, color = :arm, col = :μ0_label)
+
+# Dashed per-panel reference at the L_0/H_00 plateau. Both arms share it, so one
+# curve per panel suffices; as in @fig-rho-centering the layer carries no axis
+# labels of its own.
+spec_loc_ref = data(unique(df_bin[:, [:density, :asymptotic_ratio, :μ0_label]])) *
+    mapping(:density, :asymptotic_ratio, col = :μ0_label) *
+    visual(Lines, linestyle = :dash, color = :gray)
+
+draw(
+    (visual(Lines) + visual(Scatter)) * spec_loc + spec_loc_ref,
+    axis = (
+        xscale = log10,
+        yscale = log10,
+        xlabel = L"Binary feature density $q$",
+        ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}",
+    ),
+    figure = (; size = output_size((700, 280))),
+)
+```
+
+Centering decides whether the intercept update matters (@fig-location-binary).
+On the centered designs at $\mu_0 = 0.5$ the gradient and Newton strategies are
+indistinguishable, with ratios between $0.93$ and $1.15$ across the density
+grid; the choice of intercept update is free. The same designs left uncentered
+put the gradient strategy at $94$--$100\,\%$ of its $L_0/H_{00}$ plateau. Under
+imbalance the switch is partial rather than total: at $\mu_0 = 0.9$ the centered
+ratios rise to between $1.24$ and $2.20$, roughly half the plateau, and the
+uncentered ratios again sit on it. Centering does not eliminate the gap, then,
+but it is what determines whether the full penalty is paid.
+
+The collective coupling accounts for this. Across the same cells, $\kappa$ moves
+from $0.29$--$0.65$ on the centered designs to $0.94$--$1.00$ on the uncentered
+ones. This is the regime @prp-frozen-block-rate describes: with $\kappa$ close to
+one the intercept error is the slowest mode of the pass, and the ratio of pass
+counts approaches $L_0/H_{00}$. The standardized designs used elsewhere in this
+article sit at the opposite end of that range, which is why the gaps reported in
+@sec-imbalance-reg are conservative for uncentered data.
+
+```{julia}
+#| label: fig-location-shift
+#| fig-cap: Cost of an uncentered dense design. The panels show passes to the
+#|   relative suboptimality bound $10^{-6}$ against a location shift of $c$
+#|   standard deviations applied to every column, either coherently ($+c$ on
+#|   each column) or with mixed signs ($\pm c$), at $\mu_0 = 0.9$, $n = 500$,
+#|   $p = 1000$, $s = 10$, $\rho = 0.6$, and $\lambda = 0.05\lambda_{\max}$.
+
+df_sh = df_loc[(df_loc.family .== "gaussian") .& .!df_loc.centered, :]
+sort!(df_sh, [:coherence, :shift])
+df_sh.coh_label = [
+    c == "positive" ? L"coherent $+c$" : L"signed $\pm c$" for c in df_sh.coherence
+]
+
+df_sh_long = stack(
+    df_sh,
+    [:T_gradient, :T_newton];
+    variable_name = :strategy,
+    value_name = :passes,
+)
+df_sh_long.strategy = map(df_sh_long.strategy) do v
+    v == "T_gradient" ? L"Gradient${}$" : L"Newton${}$"
+end
+
+draw(
+    (visual(Lines) + visual(Scatter)) * data(df_sh_long) *
+        mapping(:shift, :passes, color = :strategy, col = :coh_label),
+    axis = (
+        yscale = log10,
+        xlabel = L"Location shift $c$",
+        ylabel = L"Passes to $10^{-6}$",
+    ),
+    figure = (; size = output_size((700, 280))),
+)
+```
+
+Two further points follow from a dense Gaussian design shifted off center by a
+controlled amount (@fig-location-shift). First, the sign pattern of the offsets
+is irrelevant. Shifting every column by $+c$ and shifting them by $\pm c$ with
+random signs give indistinguishable results---$\kappa = 0.963$ against $0.966$
+at $c = 0.25$, and matching pass counts throughout---because $\kappa$ is a
+quadratic form in $H_{A0}$ and cancellation between columns would require the
+sign pattern to align with the eigenstructure of $H_{AA}$. It is the magnitude
+of the offsets relative to the column scale that matters, not their coherence.
+
+Second, the strategy ratio and the absolute cost separate. The ratio reaches the
+plateau by $c = 0.25$ and is flat thereafter, but both strategies keep slowing:
+Newton alone goes from $41$ passes on the centered design to $7\,668$ at
+$c = 2$, and the binary designs show the same pattern more mildly ($28$--$34$
+passes centered against $95$--$1065$ uncentered). Off-center columns share a
+large common component, which degrades the conditioning of the penalized block
+irrespective of how the intercept is updated. Skipping the centering therefore
+carries two distinct costs: it moves the intercept strategy from irrelevant to
+worth a factor of $L_0/H_{00}$, and it makes the underlying problem harder for
+every strategy. The first is recoverable by choosing the Newton update; the
+second is not. `experiments/sim-location-normalization.jl` reproduces both
+figures.
 
 ## Production solvers {#sec-production-solvers}
 
@@ -1976,6 +2147,22 @@ The Armijo guard completes the recommendation. It adds little work when the full
 Newton step is acceptable and prevents the Poisson cold-start overshoot in
 @fig-cold-start-poisson. Using it by default avoids relying on a loss-specific
 global descent claim.
+
+The guard should be paired with a floor on the curvature itself. A line search
+rescales a direction but does not repair one computed from an $H_{00}$ that has
+collapsed: as fitted probabilities approach the boundary, $H_{00} \to 0$ and the
+Newton direction $-\partial_0 F / H_{00}$ grows without bound before any
+backtracking begins. This is not hypothetical---it is the failure recorded in
+[Supplement S5.2](#sec-cold-start-diag), where an unguarded local-curvature
+intercept update returns $\beta_0 = -723$ and oscillates to its iteration cap on
+w1a. The observation there, that the global majorant $L_0$ acts as an
+$X$-free safeguard determined by two scalars, suggests the remedy: clip the
+intercept step at the majorant step by using $\max(H_{00}, L_0\varepsilon)$ in
+place of $H_{00}$, which bounds the displacement by $\varepsilon^{-1}$ times the
+gradient step while leaving the update untouched wherever $H_{00}/L_0$ is not
+extreme. This costs one comparison per pass and removes the only regime in which
+the local-curvature update is worse behaved than the global-majorant one it
+replaces.
 
 For multinomial problems, rare nonreference classes and rare reference classes
 create low-curvature intercept directions of different forms
