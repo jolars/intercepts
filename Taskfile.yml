@@ -79,6 +79,8 @@ tasks:
       - "{{.JULIA}} --project=. experiments/sim-rho-centering.jl"
       - "{{.JULIA}} --project=. experiments/sim-rho-centering-diagnostics.jl"
       - "{{.JULIA}} --project=. experiments/sim-rho-frozen-hessian.jl"
+      - "{{.JULIA}} --project=. experiments/sim-location-normalization.jl"
+      - "{{.JULIA}} --project=. experiments/sim-kappa-offset.jl"
       - "{{.JULIA}} --project=. experiments/sim-multinomial-imbalance.jl"
       - "{{.JULIA}} --project=. experiments/sim-multinomial-imbalance-sweep.jl"
       - "{{.JULIA}} --project=. experiments/sim-per-pass-cost.jl"

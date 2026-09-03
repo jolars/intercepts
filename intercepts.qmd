@@ -892,6 +892,38 @@ Thus, coupling determines when the intercept mode controls convergence, and the
 curvature ratio determines how much slower the gradient strategy becomes once it
 does.
 
+What makes $\kappa$ large is the location of the features. Write each active
+column as $x_j = z_j + m\mathbf{1}$, splitting it into a centered part $z_j$ and
+a common offset $m$ measured in units of the column scale. Collect the centered
+active columns in $Z$, write $W = \operatorname{diag}(w)$ for the weights,
+$a = |A|$, $G = Z^\top W Z$ for the active block of the centered design, and
+$g = Z^\top W \mathbf{1}$ for the weighted means of the centered columns. The
+blocks become
+$$
+  H_{A0} = g + m H_{00}\mathbf{1}_a, \qquad
+  H_{AA} = G + m\bigl(g\mathbf{1}_a^\top + \mathbf{1}_a g^\top\bigr)
+             + m^2 H_{00}\mathbf{1}_a\mathbf{1}_a^\top.
+$$
+The term $g$ vanishes for constant weights and is small otherwise. Dropping it
+leaves a rank-one update, and the Sherman--Morrison identity gives
+$$
+  \kappa = \frac{\theta}{1 + \theta}, \qquad
+  \theta = m^2 H_{00}\,\mathbf{1}_a^\top G^{-1}\mathbf{1}_a.
+$$ {#eq-kappa-offset}
+
+The coupling therefore saturates in $\theta$ rather than growing with it:
+$\kappa$ passes one half as soon as $\theta \ge 1$ and approaches one like
+$1 - 1/\theta$. When the active columns are near-orthogonal under the weights,
+$\mathbf{1}_a^\top G^{-1}\mathbf{1}_a \approx a/H_{00}$ and
+$\theta \approx m^2 a$, so the offset needed to saturate the coupling falls
+like $1/\sqrt{a}$. With a few hundred active coordinates, an offset of a
+fraction of a column standard deviation suffices. This is why the transition in
+@sec-location is a cliff rather than a slope. @eq-kappa-offset reproduces the
+measured $\kappa$ to within $0.003$ on every design reported there, whereas the
+near-orthogonal reading $\theta \approx m^2 a$ errs by up to $0.11$ and should
+be used only to judge whether the coupling is saturated;
+`experiments/sim-kappa-offset.jl` runs the comparison.
+
 This is a local explanation, not a global iteration-complexity theorem. The
 complete calculation, its frozen-random-product validation, and a deliberately
 non-sharp randomized-CD heuristic appear in [Supplement S1.1](#sec-s-rate).
