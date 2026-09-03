@@ -86,6 +86,13 @@ devenv.local.yaml
 # Per-cell checkpoints for the frozen-Hessian follow-up.
 /results/rho-frozen-hessian/cells/
 
+# Per-cell checkpoints for the feature-location / normalization sweep; the
+# uncentered cells run tens of thousands of passes, so
+# sim-location-normalization.jl resumes from these. The assembled JLD2 and CSV
+# summaries remain tracked.
+/results/location-normalization/cells/
+/results/location-normalization-smoke*
+
 # Heavy design matrices for the production-solver problems; reproducible
 # from experiments/sim-real-problem.jl. y.csv and meta.json are small
 # enough to keep tracked for documentation of the (n, p, lambda, mu0) cells.
