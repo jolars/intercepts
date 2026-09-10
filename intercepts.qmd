@@ -567,13 +567,13 @@ we have
 $$
   H_{jk}
   = \frac{\partial^2}{\partial \beta_j \partial \beta_k} F(\beta_0, \beta)
-         = \frac{1}{n}\sum_{i=1}^n x_{ij} x_{ik} w_i
+  = \frac{1}{n}\sum_{i=1}^n x_{ij} x_{ik} w_i
 $$
 for the coefficient--coefficient block and
 $$
   H_{0j}
   = \frac{\partial^2}{\partial \beta_0 \partial \beta_j} F(\beta_0, \beta)
-         = \frac{1}{n}\sum_{i=1}^n x_{ij} w_i
+  = \frac{1}{n}\sum_{i=1}^n x_{ij} w_i
 $$
 for the intercept--coefficient block. The coefficients couple to each other
 *pairwise* through the weighted Gram matrix of the features. Correlated features
@@ -645,8 +645,8 @@ take the step $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, twice continuous
 differentiability gives
 $$
   \partial_j F(\beta_0 - \alpha\partial_0 F, \beta)
-  = \partial_j F(\beta_0, \beta) - \alpha H_{j0} \partial_0 F(\beta_0, \beta)
-                                                      + r_j(\alpha),
+  = \partial_j F(\beta_0, \beta)
+    - \alpha H_{j0} \partial_0 F(\beta_0, \beta) + r_j(\alpha),
 $$ {#eq-gradient-response}
 where $r_j(\alpha) = o(|d_0|)$ as the intercept displacement
 $d_0 = -\alpha \partial_0 F$ tends to zero. If $H_{j0}$ is locally Lipschitz,
@@ -689,9 +689,10 @@ that $\tilde F(\beta) = F(\beta_0^\star(\beta), \beta)$. Differentiating through
 $\beta_0^\star$ and using the stationarity condition
 $\partial_0 F(\beta_0^\star(\beta), \beta) = 0$,
 $$
-  \partial_j \tilde F(\beta) = \partial_j F(\beta_0^\star(\beta), \beta)
-                               + \partial_0 F(\beta_0^\star(\beta), \beta)\partial_j \beta_0^\star(\beta)
-                             = \partial_j F(\beta_0^\star(\beta), \beta).
+  \partial_j \tilde F(\beta)
+  = \partial_j F(\beta_0^\star(\beta), \beta)
+    + \partial_0 F(\beta_0^\star(\beta), \beta)\partial_j \beta_0^\star(\beta)
+  = \partial_j F(\beta_0^\star(\beta), \beta).
 $$
 This is the envelope identity: stationarity sets the indirect term through
 $\beta_0^\star$ to zero. Evaluating at
@@ -774,7 +775,8 @@ $H_{00} = g'(\beta_0)$. Taylor-expanding $g(\beta_0^*)$ around the current
 iterate $\beta_0$ gives
 $$
   \partial_0 F(\beta_0, \beta)
-  = H_{00}(\beta_0 - \beta_0^*) - \tfrac{1}{2}\partial_{000} F(\xi)(\beta_0 - \beta_0^*)^2,
+  = H_{00}(\beta_0 - \beta_0^*)
+    - \tfrac{1}{2}\partial_{000} F(\xi)(\beta_0 - \beta_0^*)^2,
 $$ {#eq-intercept-taylor}
 for some $\xi$ between $\beta_0$ and $\beta_0^*(\beta)$. Dividing by $H_{00}$
 and recognizing $\beta_0^{\text{Newton}} = \beta_0 - \partial_0 F/H_{00}$ on the
@@ -839,7 +841,7 @@ $\alpha = 1/L_0$ into @eq-gradient-response gives
 $$
   \partial_j F^{\text{grad}}
   = \partial_j F - \frac{H_{00}}{L_0}\frac{H_{j0}}{H_{00}}\partial_0 F
-                               + r_j(1/L_0),
+    + r_j(1/L_0),
 $$ {#eq-grad-residual}
 so, to first order, the gradient strategy removes a fraction
 $H_{00}/L_0 \in (0, 1]$ of the coupling component $(H_{j0}/H_{00})\partial_0 F$
@@ -2042,11 +2044,11 @@ $$ {#eq-rate-gap}
 Let $S_{\mathrm{G}}$ and $S_{\mathrm{N}}$ denote the coefficient sums in the
 numerator and denominator of @eq-rate-gap. In any sequence of problems for which
 $$
-\begin{aligned}
-  \frac{L_0 R_0^2}{S_{\mathrm{G}}}    & \to \infty,
-                                      \\
-  \frac{H_{00} R_0^2}{S_{\mathrm{N}}} & \to \infty.
-\end{aligned}
+  \begin{aligned}
+    \frac{L_0 R_0^2}{S_{\mathrm{G}}}    & \to \infty,
+                                        \\
+    \frac{H_{00} R_0^2}{S_{\mathrm{N}}} & \to \infty.
+  \end{aligned}
 $$
 the intercept term dominates both sums, and @eq-rate-gap collapses to
 $$
@@ -2194,8 +2196,9 @@ family with `means = :random` (so each column carries an $O(1)$ mean), a
 centering fraction $\alpha$ interpolates between the standardized and uncentered
 designs,
 $$
-  X(\alpha) = \bigl(X - (1 - \alpha)\,\bar{x}^\top\bigr) / s, \qquad \alpha
-            \in [0, 1],
+  X(\alpha) = \bigl(X - (1 - \alpha)\,\bar{x}^\top\bigr) / s,
+  \qquad
+  \alpha \in [0, 1],
 $$ {#eq-centering-sweep}
 with the column scales $s$ held fixed. Shifting a column by a constant is
 absorbed exactly by the unpenalized intercept, so $\beta^\star$, $\hat\eta$,
@@ -2299,9 +2302,8 @@ is
 $$
   \frac{T_{\mathrm{G}}}{T_{\mathrm{N}}}
   \approx \frac{\log \kappa}{\log \left( 1 - q(1 - \kappa) \right)}
-                                        \longrightarrow \frac{1}{q}
-                                        = \frac{L_0}{H_{00}} \quad \text{as } \kappa
-                                        \to 1.
+  \longrightarrow \frac{1}{q}
+  = \frac{L_0}{H_{00}} \quad \text{as } \kappa \to 1.
 $$ {#eq-frozen-block-rate}
 Outside that regime the ratio formula is not informative: as $\kappa \to 0$ it
 diverges, while the true pass-count ratio stays finite because Newton removes
@@ -2319,8 +2321,9 @@ The proposition assumes exact minimization of the coefficient block, while the
 algorithm uses one permuted coordinate sweep. For that algorithm, let $C_\pi$ be
 the frozen linear map for a coefficient sweep in order $\pi$, and let
 $$
-  E_{\mathrm{N}} = I - \frac{1}{H_{00}}e_0e_0^\top H, \qquad E_{\mathrm{G}}
-                 = I - \frac{1}{L_0}e_0e_0^\top H = (1 - q)I + qE_{\mathrm{N}}.
+  E_{\mathrm{N}} = I - \frac{1}{H_{00}}e_0e_0^\top H,
+  \qquad
+  E_{\mathrm{G}} = I - \frac{1}{L_0}e_0e_0^\top H = (1 - q)I + qE_{\mathrm{N}}.
 $$
 One frozen pass is $P_{\mathrm{N},\pi} = E_{\mathrm{N}}C_\pi$ or
 $P_{\mathrm{G},\pi} = E_{\mathrm{G}}C_\pi$. Because we draw a new $\pi$ each
@@ -2459,15 +2462,15 @@ $$
 Newton uses $A = H_{00}^{-1}$, while the gradient strategy uses $A = L_0^{-1}I$.
 Dropping the common second-order remainder gives
 $$
-\begin{aligned}
-  g_\beta^{\mathrm{grad}}
-   & = g_\beta - H_{\beta 0}H_{00}^{-1}Q g_0,
-   & Q                                        & = \frac{H_{00}}{L_0}, \\
-  g_\beta^{\mathrm{grad}} - g_\beta^{\mathrm{prof}}
-   & = H_{\beta 0}H_{00}^{-1}(I - Q)g_0,
-   & g_\beta^{\mathrm{prof}}
-   & = g_\beta - H_{\beta 0}H_{00}^{-1}g_0.
-\end{aligned}
+  \begin{aligned}
+    g_\beta^{\mathrm{grad}}
+     & = g_\beta - H_{\beta 0}H_{00}^{-1}Q g_0,
+     & Q                                        & = \frac{H_{00}}{L_0}, \\
+    g_\beta^{\mathrm{grad}} - g_\beta^{\mathrm{prof}}
+     & = H_{\beta 0}H_{00}^{-1}(I - Q)g_0,
+     & g_\beta^{\mathrm{prof}}
+     & = g_\beta - H_{\beta 0}H_{00}^{-1}g_0.
+  \end{aligned}
 $$ {#eq-grad-residual-matrix}
 Thus $Q$, rather than the individual ratios $H_{00,kk}/L_0$, is the matrix
 analogue of the scalar correction fraction. Because the multinomial majorant
@@ -2497,8 +2500,9 @@ probabilities are constant across observations, this structure is especially
 explicit. If $D = \operatorname{diag}(\bar p_1, \ldots, \bar p_q)$ and
 $\bar p = (\bar p_1, \ldots, \bar p_q)^\top$, then
 $$
-  H_{00} = D - \bar p\bar p^\top, \qquad H_{00}^{-1}
-         = D^{-1} + \frac{1}{\bar p_K}\mathbf{1}_q\mathbf{1}_q^\top.
+  H_{00} = D - \bar p\bar p^\top,
+  \qquad
+  H_{00}^{-1} = D^{-1} + \frac{1}{\bar p_K}\mathbf{1}_q\mathbf{1}_q^\top.
 $$ {#eq-multinomial-intercept-inverse}
 The first term adapts to a rare free class, while the second adapts the common
 shift to a rare reference class. The global-Lipschitz gradient step does not
@@ -2869,9 +2873,9 @@ For reporting, we put all strategies for the same problem instance on one
 reference. If $D_{s,t}$ is the feasible dual value from strategy $s$ at
 diagnostic $t$, we set
 $$
-  \underline D = \max_{s,t} D_{s,t}, \qquad \overline P
-               = \min_{s,t} P_{s,t}, \qquad B_{s,t}
-               = \frac{P_{s,t} - \underline D}{|\overline P|}.
+  \underline D = \max_{s,t} D_{s,t}, \qquad \overline P = \min_{s,t} P_{s,t},
+  \qquad
+  B_{s,t} = \frac{P_{s,t} - \underline D}{|\overline P|}.
 $$ {#eq-shared-suboptimality}
 We use a floor of $10^{-15}$ for the denominator in code. Weak duality gives
 $P_{s,t} - P^\star \le P_{s,t} - \underline D$, so $B_{s,t}$ is a relative
