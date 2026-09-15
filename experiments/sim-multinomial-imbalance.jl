@@ -42,6 +42,7 @@ for (i, d) in enumerate(params)
         reg = reg,
         ρ = 0.3,
         amplitude = 0.5,
+        means = :random,
         randomize = false,
         maxit = 1000,
     )

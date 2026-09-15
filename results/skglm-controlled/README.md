@@ -11,4 +11,7 @@ Cached outputs of the within-skglm controlled comparison driven by
   the pre-fix (`b03644fe`) and post-fix (`8f9cbd77`) commits of
   `/home/jola/projects/skglm`.
 
-The per-cell scratch under `cells/` is `.gitignore`d.
+The per-cell scratch under `cells/` is `.gitignore`d. The wrapper checks every
+indexed cell for nonempty `X.csv`, `y.csv`, and `meta.json` files and regenerates
+the problem family if any are missing or empty. It checks the generated inputs
+before replacing `results.csv`.

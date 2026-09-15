@@ -810,26 +810,51 @@ $$
   \partial_j F\bigl(\beta_0^{\text{Newton}}, \beta\bigr)
   = \partial_j \tilde F(\beta) + H_{j0}^*r_0 + O(r_0^2),
 $$ {#eq-newton-coupling}
-i.e. the profiled gradient plus a bias of order $H_{j0}^*r_0$. The Newton
-strategy is therefore as good as the exact strategy on a coordinate $j$ whenever
+i.e. the profiled gradient plus a bias $b_j = H_{j0}^*r_0 + O(r_0^2)$. To assess
+its effect on the penalized update, compare both coordinate steps at the same
+positive curvature $h_j$. Write
+$G_\lambda(\beta) = \sum_j G_{\lambda,j}(\beta_j)$ and define the profiled step
 $$
-  |H_{j0}^*| \cdot |r_0| \ll \bigl|\partial_j \tilde F(\beta)\bigr|.
+  d_j^{\mathrm{prof}}
+  = \operatorname{prox}_{G_{\lambda,j}/h_j} \left( \beta_j - \frac{\partial_j\tilde F(\beta)}{h_j} \right)
+    - \beta_j.
+$$
+The step $d_j^{\mathrm{N}}$ after the Newton intercept update replaces
+$\partial_j\tilde F$ by $\partial_j\tilde F + b_j$. Nonexpansiveness of the
+proximal map gives
+$$
+  |d_j^{\mathrm{N}} - d_j^{\mathrm{prof}}| \leq \frac{|b_j|}{h_j},
+  \qquad
+  |b_j| \ll h_j |d_j^{\mathrm{prof}}|
 $$ {#eq-newton-good-enough}
-Under the same local conditions as @eq-newton-error, this bias is
-$O\bigl(|H_{j0}^*|\,|\partial_0 F|^2\bigr)$, so the coupling conclusion still
-holds with the explicit Newton-residual bound.
+as an absolute perturbation bound and a sufficient criterion for a small
+relative step error, respectively. The relevant comparison is with the composite
+coordinate residual $h_j d_j^{\mathrm{prof}}$. At an active lasso optimum,
+$\partial_j\tilde F = -\lambda\operatorname{sign}(\beta_j)$, so the smooth
+gradient itself generally does not vanish.
 
-This criterion (@eq-newton-good-enough) behaves differently in two regimes. Near
-the optimum, $|r_0| = O((\partial_0 F)^2)$ shrinks quadratically while
-$\|\partial_j \tilde F\|$ shrinks only linearly with the iterate's distance from
-the optimum, so the bias becomes negligible. Far from the optimum, the
-inequality can fail when the third derivative is large, the intercept curvature
-approaches zero along the step, and $|\partial_0 F|$ is large at the same time.
-This is the cold-start regime, particularly for losses where $f'''$ grows with
-$\eta$, such as Poisson ($f''' = e^\eta$). There the linear model implicit in a
-single Newton step becomes a poor approximation, and a safeguard such as
-backtracking the Newton step until the loss decreases recovers the leading-order
-accuracy of the coupling correction (@eq-newton-coupling).
+Under the local conditions of @eq-newton-error, $b_j$ is $O(|\partial_0 F|^2)$
+when the cross derivatives remain bounded. If $h_j$ stays bounded away from
+zero, the profiled coordinate step remains first order in the iterate error, and
+$\partial_0 F$ vanishes at least linearly, the Newton perturbation is second
+order and becomes negligible relative to that step. This is a conditional local
+comparison: when the profiled step is zero or vanishes faster, the absolute
+bound in @eq-newton-good-enough still applies, but it supplies no relative
+guarantee.
+
+Far from the optimum, the full-step approximation can fail when the third
+derivative is large, the intercept curvature approaches zero, or the intercept
+gradient is large. Poisson regression, where $f''' = e^\eta$, can exhibit this
+cold-start behavior. Armijo backtracking safeguards descent, but its accuracy
+must be distinguished from that of a full Newton step. With
+$e_0 = \beta_0 - \beta_0^*(\beta)$ and accepted step fraction
+$\alpha \in (0,1]$, the damped intercept error is
+$$
+  \beta_0^+ - \beta_0^*(\beta) = (1 - \alpha)e_0 + \alpha r_0.
+$$ {#eq-damped-newton-error}
+The quadratic error bound applies when the full step is accepted. For
+$\alpha < 1$, sufficient decrease alone does not remove the first-order term
+$(1 - \alpha)e_0$.
 
 The error bound and coupling correction describe a single Newton step at the
 current iterate (@eq-newton-error--@eq-newton-coupling). The experiments in
@@ -2269,10 +2294,11 @@ draw(
 
 This failure ends the role of @eq-rate-gap as a rate model: it supplies a useful
 imbalance scaling, but not the long-run shape. The plateau instead follows from
-the local iteration. Freeze the Hessian at the optimum, restrict the
-coefficients to the active set $A$, and translate the optimum to zero. Once the
-active signs are fixed, the penalty is locally affine and the quadratic error
-has Hessian
+the local iteration. Here we specialize to the $\ell_1$ penalty used in the
+experiments. Freeze the Hessian at the optimum, restrict the coefficients to the
+active set $A$, and translate the optimum to zero. Once the active signs are
+fixed, the $\ell_1$ penalty is locally affine and the quadratic error has
+Hessian
 $$
   H = \begin{bmatrix}
         H_{00} & H_{0A} \\
@@ -2289,25 +2315,30 @@ $\kappa$ allows many individually small correlations to combine through
 $H_{AA}^{-1}$.
 
 ::: {.proposition #prp-frozen-block-rate}
-*(Frozen two-block rate.)* Let $q = H_{00}/L_0$. On the frozen quadratic,
-suppose $H$ is positive definite and each pass first minimizes over the active
-coefficient block and then updates the intercept. The Newton and gradient
-strategies contract the intercept error by
+*(Frozen two-block rate.)* Let $q = H_{00}/L_0 \in (0,1]$. On the frozen
+quadratic, suppose $H$ is positive definite and each pass first minimizes over
+the active coefficient block and then updates the intercept. The Newton and
+gradient strategies contract the intercept error by
 $$
   r_{\mathrm{N}} = \kappa, \qquad r_{\mathrm{G}} = 1 - q(1 - \kappa),
 $$
-respectively. When the intercept-error mode is the slowest mode of the
-pass---which requires $\kappa$ close to one---their asymptotic pass-count ratio
-is
+respectively. Exact coefficient-block minimization erases the incoming
+coefficient error, so the only potentially nonzero eigenvalue of each pass is
+its intercept contraction factor. For fixed $0 < \kappa < 1$ and nonzero initial
+intercept error, let $T_{\mathrm{G}}(\varepsilon)$ and
+$T_{\mathrm{N}}(\varepsilon)$ count passes to reduce its magnitude by a factor
+$\varepsilon$. Then
 $$
-  \frac{T_{\mathrm{G}}}{T_{\mathrm{N}}}
-  \approx \frac{\log \kappa}{\log \left( 1 - q(1 - \kappa) \right)}
+  \lim_{\varepsilon \to 0} \frac{T_{\mathrm{G}}(\varepsilon)}{T_{\mathrm{N}}(\varepsilon)}
+  = \frac{\log \kappa}{\log \left( 1 - q(1 - \kappa) \right)}
   \longrightarrow \frac{1}{q}
   = \frac{L_0}{H_{00}} \quad \text{as } \kappa \to 1.
 $$ {#eq-frozen-block-rate}
-Outside that regime the ratio formula is not informative: as $\kappa \to 0$ it
-diverges, while the true pass-count ratio stays finite because Newton removes
-the intercept error in a single pass and a coefficient mode becomes the slowest.
+For fixed $q < 1$, this asymptotic ratio diverges as $\kappa \to 0$. At a fixed
+tolerance, however, Newton needs only one pass once $\kappa \leq \varepsilon$,
+and the gradient pass count stays finite. These are different orders of limits.
+At $\kappa = 0$, Newton solves the decoupled quadratic in one pass. When
+$q = 1$, the two strategies coincide for every $\kappa$.
 :::
 
 To see this, let $a$ denote the intercept error. Conditional minimization gives
@@ -2317,9 +2348,10 @@ gradient strategy leaves $[1 - q(1 - \kappa)]a$. Taking logarithms gives
 @eq-frozen-block-rate; expanding both logarithms at $\kappa = 1$ gives the
 limit. This route contains no cold-start distance $R_0$.
 
-The proposition assumes exact minimization of the coefficient block, while the
-algorithm uses one permuted coordinate sweep. For that algorithm, let $C_\pi$ be
-the frozen linear map for a coefficient sweep in order $\pi$, and let
+The algorithm uses one permuted coordinate sweep, which retains coefficient
+error modes absent from the proposition's exact block solve. For that algorithm,
+let $C_\pi$ be the frozen linear map for a coefficient sweep in order $\pi$, and
+let
 $$
   E_{\mathrm{N}} = I - \frac{1}{H_{00}}e_0e_0^\top H,
   \qquad
@@ -2518,10 +2550,18 @@ alternative is to cycle through one class at a time while holding the others
 fixed, as in glmnet's symmetric-multinomial path. We return to that scheme after
 presenting the block-CD results.
 
+In the synthetic experiments, $\pi_k$ denotes the baseline probability used to
+set $\beta_{0k} = \log(\pi_k/\pi_K)$ in the data generator. The feature effects
+then change the probabilities through the softmax. Thus $\pi_k$ is the
+probability at zero feature contribution, not a marginal prevalence. The feature
+means are themselves seeded random draws. Both these means and the feature
+amplitude affect the realized class counts. We reserve $\bar p_k$ for the
+average fitted probability in the Rayleigh bounds above.
+
 ```{julia}
 #| label: fig-multinomial-imbalance
 #| fig-cap: Imbalanced multinomial logistic regression. The panels show a
-#|   relative suboptimality bound versus time for $K = 5$, class marginals
+#|   relative suboptimality bound versus time for $K = 5$, baseline probabilities
 #|   $(0.7, 0.1, 0.1, 0.05, 0.05)$, $n = 500$, $p = 200$, $\lambda =
 #|   0.05\lambda_{\max}$, cyclic CD, and three random seeds.
 
@@ -2552,46 +2592,62 @@ every run against the largest dual value attained by any strategy. A stalling
 run is therefore assessed against a shared lower bound, and the curves cannot
 fall below the resolution of that certificate.
 
-The gradient strategy slows sharply, as expected. Here class 4 is a free rare
-class, while class 5 is the rare reference class. Using the nominal prevalence
-$0.05$, the two relevant Rayleigh quotients near intercept stationarity are
-bounded by $0.05 \times 0.95 = 0.0475$ in the class-4 coordinate and
-$0.05 \times 0.95/4 \approx 0.0119$ in the common-shift direction
-(@eq-multinomial-free-rayleigh--@eq-multinomial-reference-rayleigh). Relative to
-the Böhning majorant $L_0 = 1/2$, these are at most $0.095$ and $0.024$. The
-gradient correction is therefore strongly attenuated in at least one intercept
-eigenmode, although neither coordinate direction need be an eigenvector
+The realized counts in @tbl-multinomial-counts differ substantially from the
+baseline probabilities. At intercept stationarity, $\bar p_k = n_k/n$, so the
+observed counts give the relevant bounds, reported here to three significant
+digits. For class 4, the upper bounds in @eq-multinomial-free-rayleigh are
+$0.0328$, $0.0475$, and $0.145$ across the three seeds. For the reference
+class, @eq-multinomial-reference-rayleigh gives $0.00394$, $0.0141$, and
+$0.0119$. Dividing the latter by the Böhning majorant $L_0 = 1/2$ bounds the
+smallest eigenvalue of $Q$ by $0.00787$, $0.0282$, and $0.0238$, respectively.
+These realized prevalences therefore still imply a strongly attenuated gradient
+correction in at least one intercept eigenmode near stationarity
 (@eq-grad-residual-matrix).
 
-The strategy reaches the same optimum but takes roughly an order of magnitude
-longer. Across the three seeds, Newton and exact converge within roughly
-$50$--$100$ passes, while the gradient strategy takes several hundred and, in
-the slowest run, exhausts the thousand-pass budget.
+  | Seed | Class 1 | Class 2 | Class 3 | Class 4 | Class 5 (reference) |
+  | ---: | ------: | ------: | ------: | ------: | ------------------: |
+  |    1 |     417 |      53 |       5 |      17 |                   8 |
+  |    2 |     374 |       7 |      64 |      25 |                  30 |
+  |    3 |     142 |     143 |     102 |      88 |                  25 |
+
+  : Realized class counts for @fig-multinomial-imbalance, with $n=500$ and
+    baseline probabilities $(0.7,0.1,0.1,0.05,0.05)$. The seeded input
+    reconstruction in `experiments/sim-multinomial-prevalence.jl` reports counts
+    for all sweep cells in `results/sim-multinomial-prevalence.csv`.
+    {#tbl-multinomial-counts}
+
+The gradient strategy reaches the same optimum but takes roughly an order of
+magnitude longer. Across the three seeds, Newton and exact converge within
+roughly $50$--$100$ passes, while the gradient strategy takes several hundred
+and, in the slowest run, exhausts the thousand-pass budget.
 
 The Newton and exact strategies follow the same visible curve. The
-$(K - 1)$-block Newton solve uses the full inverse in
-@eq-multinomial-intercept-inverse, including the off-diagonal coupling
-$H_{00,kl} = -(1/n)\sum_i p_{ik}p_{il}$. It therefore rescales the low-curvature
-eigenmodes that the gradient strategy attenuates, while the Armijo guard absorbs
-any residual cold-start transient that the Newton-coupling bias
-(@eq-newton-coupling) identifies in the scalar setting.
+$(K - 1)$-block Newton solve uses the inverse of the current intercept Hessian,
+including the off-diagonal coupling $H_{00,kl} = -(1/n)\sum_i p_{ik}p_{il}$. The
+explicit inverse in @eq-multinomial-intercept-inverse describes the special case
+of probabilities constant across observations. In the fitted model, the full
+Hessian solve likewise rescales the low-curvature eigenmodes that the gradient
+strategy attenuates. The Armijo guard supplies descent during the cold-start
+transient; full-step local accuracy applies when damping is inactive
+(@eq-damped-newton-error).
 
-We extend the test to a two-dimensional grid by shrinking the rarest class
-probability $\bar p_K$ to $0.005$ and increasing the feature amplitude to four
-times the baseline value. The four corners appear in @fig-multinomial-sweep;
-across the full sweep (@fig-multinomial-sweep-full), the Newton and exact
-trajectories overlap throughout. They reach tight certificates in all but the
-two most extreme cells, while the gradient strategy generally slows as
-$\bar p_K$ shrinks and amplitude grows. In those two extreme cells
-($\bar p_K = 0.005$ and amplitude at least $1.5$), no strategy obtains a useful
+We extend the test to a two-dimensional grid by shrinking the reference-class
+baseline probability $\pi_K$ to $0.005$ and increasing the feature amplitude to
+four times the baseline value. The four corners appear in
+@fig-multinomial-sweep; across the full sweep (@fig-multinomial-sweep-full), the
+Newton and exact trajectories overlap throughout. They reach tight certificates
+in all but the two most extreme cells, while the gradient strategy generally
+slows as $\pi_K$ shrinks and amplitude grows. In those two extreme cells
+($\pi_K = 0.005$ and amplitude at least $1.5$), no strategy obtains a useful
 median certificate within 1,000 passes. Those cells do not isolate the intercept
-update and therefore do not support the comparison.
+update and therefore do not support the comparison. Each has two seeds with no
+reference-class observations, as detailed in Supplement S2.2.
 
 ```{julia}
 #| label: fig-multinomial-sweep
 #| fig-cap: Multinomial imbalance-amplitude sweep. The panels show a relative
 #|   suboptimality bound versus outer-pass index for the four corners of the
-#|   rarest-class marginal $\bar p_K \in \{0.05, 0.005\}$ and feature-amplitude
+#|   reference-class baseline probability $\pi_K \in \{0.05, 0.005\}$ and amplitude
 #|   $\in \{0.5, 2.0\}$ grid on the same $K = 5$, $n = 500$, $p = 200$, $s = 5$,
 #|   $\lambda = 0.05\lambda_{\max}$, $\rho = 0.3$ design as
 #|   @fig-multinomial-imbalance; curves are medians over three seeds, with
@@ -2614,13 +2670,12 @@ agg = combine(
     :relgaps => median => :relgaps,
 )
 
-agg.p_K_str = [L"$\bar{p}_K = %$(v)$" for v in agg.p_K]
+agg.p_K_str = [L"$\pi_K = %$(v)$" for v in agg.p_K]
 agg.amp_str = "amp = " .* string.(agg.amplitude)
 
-# In-text slice: the four corners of the (p̄_K, amplitude) grid. The full 4×4
-# sweep is @fig-multinomial-sweep-full in the appendix.
+# The four corners show the endpoints; the full sweep appears in the appendix.
 corners = filter(
-    r -> r.p_K_str in (L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$") &&
+    r -> r.p_K_str in (L"$\pi_K = 0.05$", L"$\pi_K = 0.005$") &&
         r.amp_str in ("amp = 0.5", "amp = 2.0"),
     agg,
 )
@@ -2631,7 +2686,7 @@ spec = data(corners) *
         :pass => "Pass",
         :relgaps => "Relative suboptimality",
         color = :strategy,
-        row = :p_K_str => sorter(L"$\bar{p}_K = 0.05$", L"$\bar{p}_K = 0.005$"),
+        row = :p_K_str => sorter(L"$\pi_K = 0.05$", L"$\pi_K = 0.005$"),
         col = :amp_str => sorter("amp = 0.5", "amp = 2.0"),
     )
 
@@ -2752,16 +2807,19 @@ The four-corner view in @fig-multinomial-sweep shows the endpoints of the
 imbalance--amplitude experiment but hides the transition between them. Here we
 report all sixteen cells. We use the same $K = 5$ multinomial logistic design
 with $n = 500$, $p = 200$, $s = 5$, feature correlation $\rho = 0.3$, and
-$\lambda = 0.05\lambda_{\max}$. The rarest-class marginal ranges from $0.05$ to
-$0.005$, and the feature amplitude ranges from $0.5$ to $2.0$. Each curve is the
-median relative suboptimality bound over three seeds.
+$\lambda = 0.05\lambda_{\max}$. The reference-class baseline probability $\pi_K$
+ranges from $0.05$ to $0.005$, and the feature amplitude ranges from $0.5$ to
+$2.0$. Each curve is the median relative suboptimality bound over three seeds.
+This varies baseline log odds and signal amplitude; the realized prevalences
+also change with amplitude and seed.
 
 ```{julia}
 #| label: fig-multinomial-sweep-full
 #| fig-cap: Full multinomial imbalance-amplitude sweep. The panels show a
 #|   relative suboptimality bound versus outer-pass index over a $4 \times 4$
-#|   grid of rarest-class marginal $\bar p_K \in \{0.05, 0.02, 0.01, 0.005\}$
-#|   and feature amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$. Curves are medians over
+#|   grid of reference-class baseline probability
+#|   $\pi_K \in \{0.05, 0.02, 0.01, 0.005\}$ and feature amplitude
+#|   $\in \{0.5, 1.0, 1.5, 2.0\}$. Curves are medians over
 #|   three seeds for $K = 5$, $n = 500$, $p = 200$, $s = 5$, $\rho = 0.3$, and
 #|   $\lambda = 0.05\lambda_{\max}$; early-terminated trajectories are carried
 #|   forward at their terminal values.
@@ -2784,7 +2842,7 @@ agg = combine(
 )
 
 agg.strategy = strategy_label.(agg.strategy)
-agg.p_K_str = [L"$\bar{p}_K = %$(v)$" for v in agg.p_K]
+agg.p_K_str = [L"$\pi_K = %$(v)$" for v in agg.p_K]
 agg.amp_str = "amp = " .* string.(agg.amplitude)
 
 spec = data(agg) *
@@ -2793,10 +2851,10 @@ spec = data(agg) *
         :relgaps => "Relative suboptimality",
         color = :strategy,
         row = :p_K_str => sorter(
-            L"$\bar{p}_K = 0.05$",
-            L"$\bar{p}_K = 0.02$",
-            L"$\bar{p}_K = 0.01$",
-            L"$\bar{p}_K = 0.005$",
+            L"$\pi_K = 0.05$",
+            L"$\pi_K = 0.02$",
+            L"$\pi_K = 0.01$",
+            L"$\pi_K = 0.005$",
         ),
         col = :amp_str => sorter("amp = 0.5", "amp = 1.0", "amp = 1.5", "amp = 2.0"),
     )
@@ -2809,18 +2867,29 @@ draw(
 )
 ```
 
-Across the grid, the gradient strategy generally stalls more severely as the
-rarest class becomes rarer and as feature amplitude grows; Newton and exact
-remain nearly indistinguishable. In the two cells with $\bar p_K = 0.005$ and
-amplitude at least $1.5$, however, their shared median bound remains far from
-zero. At an expected rare-class count of only 2.5 and strong signal,
-near-separation and coefficient convergence dominate the intercept update. The
-grid therefore supports the curvature comparison over its certified region and
-marks the point at which this experiment ceases to isolate that mechanism. Where
-the gradient strategy reaches the $10^{-6}$ threshold, it generally needs at
-least an order of magnitude more passes than Newton. In most of the remaining
-certified cells, it misses that threshold within the $1\,000$-pass budget even
-though Newton reaches it.
+Across the grid, the gradient strategy generally stalls more severely as $\pi_K$
+decreases and feature amplitude grows; Newton and exact remain nearly
+indistinguishable. In the two cells with $\pi_K = 0.005$ and amplitude at least
+$1.5$, however, their shared median bound remains far from zero. The realized
+reference-class counts for seeds 1--3 are $(0,8,0)$ at amplitude $1.5$ and
+$(0,12,0)$ at amplitude $2.0$. When the reference class is absent, increasing
+all free-class intercepts together strictly decreases the loss at every finite
+iterate, without changing the penalty. There is therefore no finite intercept
+minimizer for those replicates, and the positive-curvature local analysis at a
+finite optimum does not apply. The failed median certificates in these cells
+cannot identify coefficient convergence or near-separation as the cause.
+
+The class-count cache also flags absent-class replicates elsewhere in the sweep.
+An objective certificate can still bound distance to the infimum in these
+boundary cases, but it does not imply convergence to finite intercepts. We
+retain their trajectories to show this limitation. The curvature analysis at a
+finite optimum applies to replicates with every class observed. The solvers use
+the same seeded data within each problem, although the grid does not hold
+marginal prevalence fixed as amplitude varies. Where the gradient
+strategy reaches the $10^{-6}$ threshold, it generally needs at least an order
+of magnitude more passes than Newton. In most of the remaining certified cells,
+it misses that threshold within the $1\,000$-pass budget even though Newton
+reaches it.
 
 ## S3. Experimental methods and reproducibility {#sec-s-methodology .unnumbered}
 

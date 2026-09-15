@@ -9,7 +9,10 @@ using GLM
 Generate a synthetic design matrix, response, and true coefficients for the
 Gaussian, logistic, Poisson, and multinomial experiments. Keyword arguments
 control the response family, feature distribution, correlation, sparsity,
-signal amplitude, and multinomial class probabilities.
+signal amplitude, and multinomial baseline probabilities. For multinomial
+responses, `class_probs` specifies the probabilities at zero feature
+contribution. Nonzero feature effects generally change the marginal class
+probabilities.
 """
 function generatedata(
     n::Int,
@@ -100,7 +103,7 @@ function generatedata(
 
         η = x * Bcoef # n × (K-1)
 
-        # Reference-class intercepts that target the marginal π.
+        # These intercepts recover π only at zero feature contribution.
         β0 = log.(π[1:(K - 1)] ./ π[K])
         η .+= β0'
 

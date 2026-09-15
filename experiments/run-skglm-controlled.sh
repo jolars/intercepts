@@ -29,12 +29,40 @@ for source_var in SKGLM_PRE_FIX_SOURCE SKGLM_POST_FIX_SOURCE; do
     fi
 done
 
-# 1. (re)generate the problem family if missing
-if [[ ! -f "$INDEX_CSV" ]]; then
+problem_family_complete() {
+    python - "$INDEX_CSV" <<'PY'
+import csv
+from pathlib import Path
+import sys
+
+index = Path(sys.argv[1])
+if not index.is_file():
+    sys.exit(1)
+with index.open(newline="") as stream:
+    reader = csv.DictReader(stream)
+    if not reader.fieldnames or "cell_name" not in reader.fieldnames:
+        sys.exit(1)
+    rows = list(reader)
+paths = [
+    index.parent / "cells" / row["cell_name"] / name
+    for row in rows
+    for name in ("X.csv", "y.csv", "meta.json")
+]
+sys.exit(0 if rows and all(p.is_file() and p.stat().st_size for p in paths) else 1)
+PY
+}
+
+# The committed index can survive a checkout without its ignored cell inputs.
+if ! problem_family_complete; then
     echo "Generating problem family ..."
     julia --project="$PROJECT_ROOT" "$PROJECT_ROOT/experiments/sim-skglm-controlled-problem.jl"
 else
     echo "Using existing problem family at $INDEX_CSV"
+fi
+
+if ! problem_family_complete; then
+    echo "error: problem generation left missing or empty cell inputs at $INDEX_CSV" >&2
+    exit 1
 fi
 
 # 2. start with a fresh results.csv so the run is reproducible

@@ -6,11 +6,9 @@ using JLD2
 
 Random.seed!(1234)
 
-# Sweep of class imbalance (p_K, the rarest-class marginal) × feature amplitude
-# for the K=5 multinomial logistic problem of sim-multinomial-imbalance.jl,
-# testing whether the collapse of {bare Newton, exact} observed at the
-# single anchor point persists across the steelman range (down to p_K = 0.005
-# and up to four-times the figure amplitude).
+# Sweep the reference-class baseline probability and feature amplitude to
+# assess the Newton/exact agreement beyond the baseline experiment. The
+# resulting marginal probabilities also depend on the feature effects.
 #
 # class_probs is built so the anchor cell (p_K = 0.05) reproduces the
 # single-config experiment exactly: [0.7 + (0.05 - p_K), 0.1, 0.1, 0.05, p_K].
@@ -60,6 +58,7 @@ for (i, d) in enumerate(params)
         reg = reg,
         ρ = 0.3,
         amplitude = amplitude,
+        means = :random,
         randomize = false,
         maxit = MAXIT,
     )

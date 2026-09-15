@@ -81,6 +81,7 @@ tasks:
       - "{{.JULIA}} --project=. experiments/sim-rho-frozen-hessian.jl"
       - "{{.JULIA}} --project=. experiments/sim-multinomial-imbalance.jl"
       - "{{.JULIA}} --project=. experiments/sim-multinomial-imbalance-sweep.jl"
+      - "{{.JULIA}} --project=. experiments/sim-multinomial-prevalence.jl"
       - "{{.JULIA}} --project=. experiments/sim-per-pass-cost.jl"
 
   caches-real:
