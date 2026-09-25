@@ -75,7 +75,6 @@ tasks:
       - "{{.JULIA}} --project=. experiments/sim-cold-start.jl"
       - "{{.JULIA}} --project=. experiments/sim-cold-start-poisson.jl"
       - "{{.JULIA}} --project=. experiments/sim-mu-reg-heatmap.jl"
-      - "{{.JULIA}} --project=. experiments/sim-rate-gap.jl"
       - "{{.JULIA}} --project=. experiments/sim-rho-centering.jl"
       - "{{.JULIA}} --project=. experiments/sim-rho-centering-diagnostics.jl"
       - "{{.JULIA}} --project=. experiments/sim-rho-frozen-hessian.jl"

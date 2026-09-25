@@ -125,8 +125,8 @@ In the analysis, *exact* means setting the intercept to its conditional
 minimizer. The experiments compute this minimizer numerically, with tolerances
 documented in [Supplement S3](#sec-s-methodology).
 
-These strategies can converge at substantially different rates when the
-response is imbalanced---for example, when positive cases are rare in logistic
+These strategies can converge at substantially different rates when the response
+is imbalanced---for example, when positive cases are rare in logistic
 regression. The three paths in @fig-parametric trace the strategies across the
 level sets of @eq-primal-problem for a toy problem with one feature and an
 intercept. The gradient strategy approaches the solution through many small
@@ -245,10 +245,10 @@ We make four contributions:
 - We formalize three strategies for updating an unpenalized intercept: gradient,
   Newton, and exact minimization.
 
-- Using a Schur-complement analysis, we show that the mismatch between local
-  intercept curvature and a global bound explains the gradient strategy's
-  slowdown. In strongly coupled problems, the predicted gradient-to-Newton rate
-  ratio approaches the ratio of global to local curvature.
+- We use a Schur complement to describe how an intercept update changes the
+  coefficient gradients. A frozen quadratic model then explains why, under
+  strong coupling, the gradient-to-Newton pass-count ratio approaches the ratio
+  of global to local intercept curvature.
 
 - We classify CD-based GLM solvers by their treatment of curvature and the
   intercept, and we evaluate six production solvers using controlled comparisons
@@ -347,9 +347,9 @@ current iterate, and the exact strategy minimizes the intercept subproblem. On
 imbalanced data, the local curvature can be much smaller than the global bound.
 When the intercept---or a direction coupling it with a coefficient---controls
 convergence, this mismatch can make the gradient strategy slower by a factor
-proportional to the ratio between the two. Below, we distinguish the local
-result that we prove from a bound-based heuristic and the behavior that we
-observe experimentally.
+proportional to the ratio between the two. We first analyze the effect of one
+intercept update, then follow its effect through repeated passes on a fixed
+quadratic model and compare the resulting local rates with experiments.
 
 Throughout this section, we work with the per-observation-averaged,
 canonical-link GLM loss
@@ -449,9 +449,7 @@ $$
 $$
 For the lasso, $g_{\lambda,j}(u) = \lambda|u|$, this is soft-thresholding at
 $\gamma_j\lambda$. The intercept has no corresponding proximal step because it
-is unpenalized.
-
-The resulting coordinate-descent algorithm appears in @algo-cd.
+is unpenalized. The resulting coordinate-descent algorithm appears in @algo-cd.
 
 ```pseudocode
 #| label: algo-cd
@@ -879,10 +877,11 @@ coefficient subproblem sees the full, uncorrected gradient.
 
 ### Local-rate interpretation
 
-@eq-grad-residual describes one coefficient update, not a convergence rate. A
-local quadratic calculation supplies the missing link. Freeze the Hessian at the
-optimum, restrict the coefficients to the active set $A$, and define the
-collective coupling
+To follow the correction in @eq-grad-residual through successive passes, we
+study a local quadratic model. For the lasso, freeze the Hessian at the optimum
+and restrict the coefficients to the active set $A$ with their signs fixed.
+Assume this restricted Hessian is positive definite and define the collective
+coupling
 $$
   \kappa = \frac{H_{0A}H_{AA}^{-1}H_{A0}}{H_{00}} \in [0, 1).
 $$ {#eq-collective-coupling}
@@ -894,11 +893,12 @@ Thus, coupling determines when the intercept mode controls convergence, and the
 curvature ratio determines how much slower the gradient strategy becomes once it
 does.
 
-This is a local explanation, not a global iteration-complexity theorem. The
-complete calculation, its frozen-random-product validation, and a deliberately
-non-sharp randomized-CD heuristic appear in [Supplement S1.1](#sec-s-rate).
-There we also show why the heuristic predicts the imbalance scaling but not the
-transition to the late-stage plateau.
+This is a local explanation, not a global iteration-complexity theorem. A
+coordinate sweep retains coefficient error modes that the exact block solve
+eliminates. [Supplement S1.1](#sec-s-rate) gives the block calculation and
+validates the full frozen coordinate-sweep model against nonlinear convergence
+rates. The centering experiment there varies coupling while holding the
+intercept curvature fixed, exposing the transition to the $L_0/H_{00}$ plateau.
 
 ### A safe Newton variant
 
@@ -935,9 +935,9 @@ this prediction on a grid of synthetic problems.
 
 The pattern appears on two real datasets with opposite shapes
 (@fig-multinomial-summary). Yeoh2002 has $n = 248$, $p = 12\,625$, and six
-classes, while StatLog Shuttle has $n = 58\,000$, $p = 9$, and seven classes.
-We set $\lambda = 0.05\lambda_{\max}$ in both problems, where $\lambda_{\max}$
-is the smallest penalty for which all fitted slopes are zero.
+classes, while StatLog Shuttle has $n = 58\,000$, $p = 9$, and seven classes. We
+set $\lambda = 0.05\lambda_{\max}$ in both problems, where $\lambda_{\max}$ is
+the smallest penalty for which all fitted slopes are zero.
 
 On Yeoh2002, the gradient strategy needs roughly four times as many passes as
 Newton to bring the relative suboptimality bound below $10^{-4}$. On Shuttle,
@@ -1114,9 +1114,9 @@ linearization boundary. The surveyed production solvers follow the first two
 recommendations; BlitzL1 also follows the third.
 
 In @fig-irls-comparison, we compare direct CD and IRLS on a synthetic logistic
-problem. Throughout the synthetic experiments, $\mu_0$ denotes the baseline
-mean response at $x = 0$---a positive-class probability for binomial models and
-a rate for Poisson models---and $s$ is the number of nonzero slopes in each
+problem. Throughout the synthetic experiments, $\mu_0$ denotes the baseline mean
+response at $x = 0$---a positive-class probability for binomial models and a
+rate for Poisson models---and $s$ is the number of nonzero slopes in each
 generated coefficient vector. Once the slopes enter the linear predictor,
 $\mu_0$ need not equal the empirical response mean.
 
@@ -1226,8 +1226,8 @@ draw(
 The Schur-coupling residual (@eq-grad-residual) leads to our first prediction.
 The gradient strategy scales the local Newton direction by $H_{00}/L_0$, which
 approaches zero as the response imbalance $\mu_0$ approaches one. At
-$\mu_0 = 0.99$, the gradient strategy therefore needs about fifteen times as
-many passes as Newton to reach $10^{-8}$, whereas the Newton and exact
+$\mu_0 = 0.99$, the gradient strategy needs about fifteen times as many passes
+as Newton to reach $10^{-8}$ in our experiment, whereas the Newton and exact
 strategies remain close across the sweep (@fig-mu-extreme). Their agreement
 supports the prediction that exact profiling adds little outer progress beyond
 one Newton step (@eq-intercept-drift); [Supplement S4.3](#sec-per-pass-cost)
@@ -1352,10 +1352,10 @@ than enter the cache.
 We next examine whether the same scaling appears on real problems. We run the
 three strategies on six LIBSVM benchmark problems at
 $\lambda = 0.05\lambda_{\max}$, listed in @tbl-real-logreg-problems and ordered
-by the intercept-only slowdown proxy $[4 \pi_+ (1 - \pi_+)]^{-1}$. The table
-lists its reciprocal, the intercept-only curvature fraction
-$4 \pi_+ (1 - \pi_+)$. The six problems span a ninefold range in predicted
-slowdown and include sparse and dense designs in both dimensional regimes.
+by the reciprocal intercept-only curvature fraction
+$[4 \pi_+ (1 - \pi_+)]^{-1}$. The table lists the curvature fraction itself,
+$4 \pi_+ (1 - \pi_+)$. The six problems span a ninefold range in this quantity
+and include sparse and dense designs in both dimensional regimes.
 
 The two most imbalanced problems, w1a and news20-3pct, are especially useful.
 They have nearly the same $\pi_+$ but very different sparse designs: w1a has 300
@@ -1420,10 +1420,9 @@ The two severely imbalanced datasets reproduce both predicted patterns on very
 different sparse designs. The gradient strategy takes about six times as many
 passes as Newton to reach $10^{-6}$ on w1a and about ten times as many to reach
 $10^{-4}$ on news20-3pct, before the latter reaches its wall-time cap. Both
-empirical ratios differ from the intercept-only slowdown proxy by similar
-constant factors; @fig-rate-gap compares that proxy with an iterate-level
-alternative. Their agreement across designs is consistent with response
-imbalance driving the gap rather than a peculiarity of w1a.
+datasets have small intercept-only curvature fractions. Their large slowdowns
+across different designs support the response-imbalance mechanism, although
+the fitted curvature and collective coupling determine the local rate.
 
 For the moderately imbalanced a4a and breast-cancer data, the gradient/Newton
 gap is modest---less than threefold---consistent with their larger
@@ -1511,8 +1510,8 @@ $\lambda/\lambda_{\max} \in \{0.5, 0.2, 0.1, 0.05, 0.02, 0.01\}$ on the
 standardized binary-logistic design of @fig-mu-extreme (3 seeds per cell),
 running each strategy until its local relative duality gap reaches $10^{-10}$ or
 a budget of 5000 outer passes. We report passes to the shared $10^{-8}$
-suboptimality bound rather than wall-clock to decouple the per-coordinate
-Lipschitz-mismatch prediction from BLAS and memory effects.
+suboptimality bound rather than wall-clock to separate the effect of curvature
+mismatch from BLAS and memory effects.
 
 ```{julia}
 #| label: fig-mu-reg-gradient
@@ -1580,15 +1579,10 @@ cell is therefore uninformative rather than small; we return to it below.
 
 At $\lambda = 0.05\lambda_{\max}$, the regime most relevant to the production
 path experiments, the empirical ratio grows from nearly one under balance to
-about eight at $\mu_0 = 0.99$. The corresponding iterate-level
-$L_0/H_{00}(\hat\eta)$ proxy rises from about three to twelve. The theory
-therefore gets the ordering and the growth right, but it overstates the
-magnitude, with the discrepancy narrowing as imbalance increases.
-
-The cold-start proxy $L_0/H_{00}(0) = 1/(4\mu_0(1 - \mu_0))$ is looser still at
-high imbalance, reaching about $25$ at $\mu_0 = 0.99$, because active features
-pull $H_{00}$ above its intercept-only value $\mu_0(1 - \mu_0)$ at this
-$\lambda$.
+about eight at $\mu_0 = 0.99$. The corresponding fitted curvature ratio
+$L_0/H_{00}(\hat\eta)$ rises from about three to twelve. This ratio gives the
+strong-coupling limit in @eq-frozen-block-rate; it need not equal the pass-count
+ratio at a finite tolerance when other convergence modes contribute.
 
 As $\lambda$ shrinks, the active set widens, $H_{00}$ falls to or below
 $\mu_0(1 - \mu_0)$, and the empirical ratio grows with it. At
@@ -1604,20 +1598,13 @@ as Newton. Its price is therefore a modest inner-solve overhead that grows with
 imbalance, not an outer-pass improvement, as [Supplement
 S4.3](#sec-per-pass-cost) shows.
 
-The two heatmaps show that the curvature ratio remains useful outside the
-tightly coupled plateau. It captures scaling and monotonicity well: the
-empirical ratio grows as the intercept update becomes more conservative
-($H_{00}/L_0 \to 0$), and it generally rises with $\mu_0$ and with $1/\lambda$.
-It does not predict the magnitude tightly: the iterate-level @eq-rate-gap proxy
-usually lies above the empirical ratio, but the discrepancy varies across the
-grid. This is what one would expect from a comparison built from upper bounds
-and heuristic substitutions rather than from a sharp iteration-complexity
-formula.
-
-The centering sweep of @fig-rho-centering separates the first-update bound
-heuristic from the local rate. The heuristic gets the direction right but not
-the shape or scale. The collective coupling and frozen-pass calculation of
-@fig-rho-frozen recover the transition and the $L_0/H_{00}$ plateau instead.
+The two heatmaps support the curvature-mismatch mechanism across penalties:
+the empirical ratio generally grows as the intercept update becomes more
+conservative ($H_{00}/L_0 \to 0$). Both curvature and coupling change across
+this grid. The centering sweep of @fig-rho-centering isolates coupling by
+holding $H_{00}/L_0$ fixed. The frozen coordinate-sweep model in
+@fig-rho-frozen accounts for the transition from similar rates to the
+$L_0/H_{00}$ plateau as the coupled mode becomes slowest.
 
 ## Production solvers {#sec-production-solvers}
 
@@ -2036,280 +2023,33 @@ supports.
 
 ## S1. Technical derivations and rate diagnostics {#sec-s-theory .unnumbered}
 
-### S1.1 Rate heuristic and local-rate validation {#sec-s-rate .unnumbered}
+### S1.1 Frozen quadratic rates and validation {#sec-s-rate .unnumbered}
 
-The $H_{00}/L_0$ ratio also appears in standard randomized-CD rate bounds. Our
-algorithm does not satisfy all assumptions of those bounds: it updates the
-intercept on a fixed schedule, Newton uses local curvature, and the Schur
-reduction below is exact for only the first coefficient update of each pass. We
-therefore use the bound only as a scaling heuristic, not as an
-iteration-complexity result.
-
-Standard sublinear bounds for randomized proximal
-CD\ [@wright2015; @nesterov2012; @richtarik2014] grow with a sum of terms
-$L_jR_j^2$, where $L_j$ is a coordinate-wise Lipschitz constant and $R_j$ is the
-cold-start distance to the optimum along coordinate $j$. The strategies enter
-this expression identically on coefficient coordinates but differently on the
-intercept: the gradient strategy uses the global $L_0 = \sup f''$, whereas the
-heuristic for Newton and exact substitutes the iterate-level $H_{00}$.
-
-::: {.remark}
-*(Rate-gap heuristic, with a large-imbalance reduction.)* Let
-$R_j^2 = (\beta_j^{(0)} - \beta_j^\star)^2$ denote the squared cold-start
-distance to the optimum along coordinate $j$, with the intercept as coordinate
-$0$. Let $B_{\mathrm{G}}$ and $B_{\mathrm{N}}$ denote the resulting bound-based
-proxies for gradient and Newton. The coordinate decomposition gives
-$$
-  \frac{B_{\mathrm{G}}}{B_{\mathrm{N}}}
-  = \frac{L_0R_0^2 + \sum_{j \ge 1} H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)R_j^2} {H_{00}R_0^2 + \sum_{j \ge 1} H_{jj}\bigl(1 - \rho_{0j}^2\bigr)R_j^2}.
-$$ {#eq-rate-gap}
-Let $S_{\mathrm{G}}$ and $S_{\mathrm{N}}$ denote the coefficient sums in the
-numerator and denominator of @eq-rate-gap. In any sequence of problems for which
-$$
-  \begin{aligned}
-    \frac{L_0 R_0^2}{S_{\mathrm{G}}}    & \to \infty,
-                                        \\
-    \frac{H_{00} R_0^2}{S_{\mathrm{N}}} & \to \infty.
-  \end{aligned}
-$$
-the intercept term dominates both sums, and @eq-rate-gap collapses to
-$$
-  \frac{B_{\mathrm{G}}}{B_{\mathrm{N}}} \approx \frac{L_0}{H_{00}(\hat\eta)}.
-$$ {#eq-rate-gap-asymptotic}
-For logistic regression, $L_0 = 1/4$ stays fixed while $H_{00}(\hat\eta) \to 0$
-as fitted probabilities approach the boundary, so the limit diverges whenever
-the two dominance conditions also hold. Response imbalance or a large
-$|\beta_0^\star|/\|\beta^\star\|$ ratio alone does not imply those conditions:
-the intercept score equation with active slopes generally does not give
-$\beta_0^\star = \mathrm{logit}(\mu_0)$. Outside the intercept-dominated regime,
-the full @eq-rate-gap is needed.
-:::
-
-The rate-gap heuristic starts from the standard sublinear bound for randomized
-proximal CD on a convex composite $F = f + \psi$ with $f$ having coordinate-wise
-Lipschitz constants $L_j$\ [@wright2015; @nesterov2012; @richtarik2014]. This
-bound grows with $\sum_j L_j R_j^2$ and leads to @eq-rate-gap. Three
-substitutions enter the derivation, each of which departs from the bound's
-assumptions; we retain only the predicted scaling:
-
-1. *Schedule.* The strategies fix the intercept update at every pass rather than
-   drawing it with the uniform coordinate probability the bound assumes. We
-   treat the coordinate sum as a per-coordinate-cost surrogate.
-
-2. *Intercept curvature.* For the Newton and exact strategies, we plug in the
-   iterate-level entry $H_{00}$ rather than the fixed coordinate Lipschitz
-   constant used by the CD bound. This substitution delivers the
-   $H_{00}(\hat\eta) \to 0$ scaling that the figures track. The gradient
-   strategy keeps the global $L_0 = \sup f''$, as the bound prescribes.
-
-3. *Schur reduction on the coefficients.* The exact-strategy identity in
-   @prp-profile-equiv, together with the Newton strategy's leading-order
-   approximation in @eq-newton-coupling, motivates using the profiled gradient
-   at the *first* coefficient update of each pass. The corresponding local
-   quadratic model has curvatures $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2)$ by
-   @eq-schur-diag, with $\rho_{0j}$ the normalized cross-curvature of @eq-rho.
-   As a heuristic, we extend this one-update model to the full pass and treat
-   the Schur curvature as the effective coefficient curvature. To leading order,
-   the gradient strategy removes only a fraction $H_{00}/L_0$ of the coupling
-   (@eq-grad-residual), giving the heuristic effective curvature
-   $H_{jj}\bigl(1 - (H_{00}/L_0)\rho_{0j}^2\bigr)$.
-
-Substituting the second and third approximations into the $L_j R_j^2$ sum gives
-@eq-rate-gap. Retaining only the $R_0^2$ term under the two curvature-weighted
-dominance conditions stated above gives @eq-rate-gap-asymptotic.
-
-The heuristic proxy diverges as $H_{00}/L_0 \to 0$. In @fig-rate-gap, we test
-whether the empirical pass-count ratio follows this scaling; we do not test or
-imply an iteration-complexity theorem.
-
-To summarize the coupling across slope coordinates, define the
-curvature-weighted mean
-$$
-  \bar\rho^2 = \frac{\sum_{j=1}^p H_{jj}\rho_{0j}^2}{\sum_{j=1}^p H_{jj}}.
-$$
-This diagnostic is near zero when most slope coordinates are locally decoupled
-from the intercept and approaches one when most of the slope curvature lies in
-strongly coupled coordinates.
-
-The approximation has two regimes. In strongly coupled designs
-($\bar\rho^2 \to 1$, e.g. uncentered designs where the intercept absorbs the
-column means), the denominator's Schur term collapses and the ratio gains an
-additional factor of order $1/(1 - \bar\rho^2)$. In standardized designs
-($\rho_{0j} \approx 0$), the Schur correction is inactive, but
-@eq-rate-gap-asymptotic still diverges through the intercept's $R_0^2$
-dominance. The per-coordinate Lipschitz mismatch on the intercept and the Schur
-coupling propagated to the coefficients are separate effects, although both
-become important as $H_{00}/L_0 \to 0$.
-
-```{julia}
-#| label: fig-rate-gap
-#| fig-cap: Rate-gap diagnostics on the standardized logistic design. The plot
-#|   shows empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$ together with the
-#|   cold-start and iterate-level evaluations of @eq-rate-gap, where
-#|   $T_{\mathrm{G}}/T_{\mathrm{N}}$ is the pass-count ratio to the relative
-#|   suboptimality bound $10^{-6}$, swept over $\mu_0$ for $n = 500$, $p =
-#|   1000$, $s = 10$, and $\lambda = 0.05\lambda_{\max}$.
-
-dd = JLD2.load(@projectroot("results", "rate-gap.jld2"))
-df = DataFrame(dd["records"])
-df_long = stack(
-    df,
-    [:empirical_ratio, :full_ratio, :cold_start_ratio];
-    variable_name = :quantity,
-    value_name = :ratio,
-)
-# Legend labels mix upright words with math. The words sit OUTSIDE the $...$ so
-# their hyphens stay hyphens---inside math mode (e.g. via \text{}) they render as
-# spaced minus signs. The empty ${}$ gives the pure-text labels a math span so
-# @L_str does not wrap the whole string in math mode.
-df_long.quantity = map(df_long.quantity) do q
-    q == "empirical_ratio" ?
-        L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
-        q == "cold_start_ratio" ? "Cold-start prediction" : L"Iterate-level diagnostic${}$"
-end
-
-spec = data(df_long) * mapping(:μ0, :ratio, color = :quantity)
-
-draw(
-    visual(Lines) * spec + visual(Scatter) * spec,
-    axis = (
-        yscale = log10,
-        xlabel = L"Response imbalance $\mu_0$",
-        ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}",
-    ),
-    figure = (; size = output_size((600, 280))),
-)
-```
-
-In @fig-rate-gap, we compare both evaluations of @eq-rate-gap with the empirical
-ratio. The cold-start proxy is evaluated at $\eta^{(0)} = \mathrm{logit}(\mu_0)$
-and is therefore computable before solving. On the standardized design, its
-constant weights give
-$H_{0j} = \mu_0(1 - \mu_0)\sum_i X_{ij}^{\mathrm{std}} = 0$ exactly, so the
-Schur correction vanishes. Consequently, @eq-rate-gap reduces to
-$$
-  \omega_0 \frac{L_0}{H_{00}(\eta^{(0)})} + (1 - \omega_0), \qquad \omega_0
-  = \frac{H_{00}(\eta^{(0)})R_0^2} {H_{00}(\eta^{(0)})R_0^2 + \sum_{j \ge 1} H_{jj}(\eta^{(0)})R_j^2}.
-$$
-It is a convex combination of one and the intercept-only slowdown
-$L_0/H_{00}(\eta^{(0)}) = 1/(4\mu_0(1 - \mu_0))$ from @sec-imbalance-reg, with
-weight determined by the intercept's share of the curvature-weighted cold-start
-distance.
-
-The iterate-level diagnostic substitutes $H_{00}(\hat\eta)$, which is below
-$\mu_0(1 - \mu_0)$ at moderate imbalance (active features pull predictions away
-from the symmetric center, decreasing weights) and above it at extreme imbalance
-(active features pull some predictions away from the majority-class corner,
-increasing weights).
-
-Neither curve uniformly dominates. The cold-start proxy is tighter near balance,
-while the iterate-level proxy becomes tighter as imbalance grows. Together they
-bracket the empirical ratio over much of the sweep, but both overstate the
-slowdown at the most imbalanced endpoint as they approach the
-intercept-dominated limit $L_0/H_{00}$ of @eq-rate-gap-asymptotic. We examine
-this discrepancy over a wider grid in @sec-imbalance-reg.
-
-The sweep in @fig-rate-gap varies $H_{00}/L_0$ through $\mu_0$ while keeping
-$\bar\rho^2$ close to zero in the standardized design. In a second experiment,
-we hold $\mu_0$ fixed and vary $\bar\rho^2$ directly. This is a stronger test:
-rather than asking whether the heuristic tracks imbalance, it asks whether its
-first-update coupling correction predicts the long-run rate. On the same problem
-family with `means = :random` (so each column carries an $O(1)$ mean), a
-centering fraction $\alpha$ interpolates between the standardized and uncentered
-designs,
-$$
-  X(\alpha) = \bigl(X - (1 - \alpha)\,\bar{x}^\top\bigr) / s,
-  \qquad
-  \alpha \in [0, 1],
-$$ {#eq-centering-sweep}
-with the column scales $s$ held fixed. Shifting a column by a constant is
-absorbed exactly by the unpenalized intercept, so $\beta^\star$, $\hat\eta$,
-$H_{00}$, and $\lambda_{\max}$ are all invariant along the sweep: $H_{00}/L_0$
-remains about $0.30$ when $\mu_0 = 0.5$ and $0.17$ when $\mu_0 = 0.9$, even as
-$\bar\rho^2$ increases from nearly zero to roughly $0.5$. Thus, the sweep
-changes the coupling without changing the curvature ratio.
-
-The observed pass counts do not follow the shape suggested by the first-update
-bound heuristic (@fig-rho-centering). The empirical
-$T_{\mathrm{G}}/T_{\mathrm{N}}$ rises sharply at weak coupling and then settles
-near the asymptotic limit $L_0/H_{00}$. By contrast, the leading-order ratio
-$(1 - (H_{00}/L_0)\bar\rho^2)/(1 - \bar\rho^2)$ is nearly flat where the
-empirical curve is steep and remains well below it. The heuristic predicts the
-direction of the first-update effect but not the long-run shape or magnitude.
-
-The sweep argues against intercept distance as the cause of this plateau. Across
-the high-coupling part of the sweep, uncentering changes
-$|\beta_0^\star| / \|\beta^\star\|$ non-monotonically by more than an order of
-magnitude while the pass-count ratio remains essentially unchanged. Instead,
-coupling determines which convergence mode is slowest, while $H_{00}/L_0$
-determines the relative rate once the coupled mode dominates. This
-interpretation concerns late-stage local rates, not global iteration complexity
-from an arbitrary start.
-
-```{julia}
-#| label: fig-rho-centering
-#| fig-cap: Centering sweep at fixed $H_{00}/L_0$. The panels compare empirical
-#|   and first-update-heuristic $T_{\mathrm{G}}/T_{\mathrm{N}}$; the dashed line
-#|   marks $L_0/H_{00}$. The centering fraction $\alpha$ in @eq-centering-sweep
-#|   moves the weighted $\bar\rho^2$ from standardized to uncentered designs.
-#|   Here $n = 500$, $p = 1000$, $s = 10$, $\lambda = 0.05\lambda_{\max}$, and
-#|   the coordinate ordering is permuted.
-
-dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
-df = DataFrame(dd["records"])
-sort!(df, [:μ0, :barρ2])
-df.μ0_label = [L"$\mu_0 = %$(v)$" for v in df.μ0]
-
-df_long = stack(
-    df,
-    [:empirical_ratio, :predicted_ratio];
-    variable_name = :quantity,
-    value_name = :ratio,
-)
-df_long.quantity = map(df_long.quantity) do q
-    q == "empirical_ratio" ?
-        L"Empirical $T_{\mathrm{G}}/T_{\mathrm{N}}$" :
-        L"First-update heuristic${}$"
-end
-
-spec = data(df_long) * mapping(:barρ2, :ratio, color = :quantity, col = :μ0_label)
-
-# Dashed per-panel reference at the eq-rate-gap-asymptotic limit L_0/H_00. It is
-# constant along the sweep because H_00 is. Axis labels are set on the axis
-# rather than in the mappings: this layer carries none, and an unlabeled layer
-# would otherwise blank them out.
-spec_ref = data(df) *
-    mapping(:barρ2, :asymptotic_ratio, col = :μ0_label) *
-    visual(Lines, linestyle = :dash, color = :gray)
-
-draw(
-    (visual(Lines) + visual(Scatter)) * spec + spec_ref,
-    axis = (xlabel = L"Weighted $\bar{\rho}^2$", ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}"),
-    figure = (; size = output_size((700, 280))),
-)
-```
-
-This failure ends the role of @eq-rate-gap as a rate model: it supplies a useful
-imbalance scaling, but not the long-run shape. The plateau instead follows from
-the local iteration. Here we specialize to the $\ell_1$ penalty used in the
-experiments. Freeze the Hessian at the optimum, restrict the coefficients to the
-active set $A$, and translate the optimum to zero. Once the active signs are
-fixed, the $\ell_1$ penalty is locally affine and the quadratic error has
-Hessian
+The Schur analysis describes how an intercept update changes the next
+coefficient gradient. To study convergence over repeated passes, we also need
+the order of the updates and the errors they leave behind. We specialize to the
+$\ell_1$ penalty used in the experiments, freeze the Hessian at the optimum,
+restrict the coefficients to the active set $A$, and translate the optimum to
+zero. Once the active signs are fixed, the penalty is locally affine and
+stationarity cancels the linear terms. For the intercept and active coefficient
+error vector $e$, the quadratic model is $Q(e) = \tfrac12 e^\top H e$, where
 $$
   H = \begin{bmatrix}
         H_{00} & H_{0A} \\
         H_{A0} & H_{AA}
       \end{bmatrix}.
 $$
-The collective coupling between the intercept and the active coefficient block
-is $\kappa$, restating @eq-collective-coupling:
+The iterates move while this Hessian stays fixed. Assume $H$ is positive
+definite. The collective coupling between the intercept and the active
+coefficient block is $\kappa$, restating @eq-collective-coupling:
 $$
   \kappa = \frac{H_{0A}H_{AA}^{-1}H_{A0}}{H_{00}} \in [0, 1).
 $$
-Unlike $\bar\rho^2$, which averages diagonal coordinate-wise correlations,
-$\kappa$ allows many individually small correlations to combine through
-$H_{AA}^{-1}$.
+The inverse coefficient Hessian accounts for joint coefficient adjustments, so
+many individually weak intercept--coefficient couplings can combine. Eliminating
+the coefficient block gives the Schur complement
+$H_{00} - H_{0A}H_{AA}^{-1}H_{A0} = H_{00}(1 - \kappa)$, the intercept
+curvature after the coefficients have adjusted.
 
 ::: {.proposition #prp-frozen-block-rate}
 *(Frozen two-block rate.)* Let $q = H_{00}/L_0 \in (0,1]$. On the frozen
@@ -2343,12 +2083,73 @@ $\beta_A^+ = -H_{AA}^{-1}H_{A0}a$, after which the intercept gradient is
 $H_{00}(1 - \kappa)a$. Newton therefore leaves error $\kappa a$, whereas the
 gradient strategy leaves $[1 - q(1 - \kappa)]a$. Taking logarithms gives
 @eq-frozen-block-rate; expanding both logarithms at $\kappa = 1$ gives the
-limit. This route contains no cold-start distance $R_0$.
+limit.
 
-The algorithm uses one permuted coordinate sweep, which retains coefficient
-error modes absent from the proposition's exact block solve. For that algorithm,
-let $C_\pi$ be the frozen linear map for a coefficient sweep in order $\pi$, and
-let
+We test the role of coupling by holding $\mu_0$ fixed and shifting the feature
+means. For the horizontal axis of @fig-rho-centering, we summarize the
+coordinate-wise couplings by their curvature-weighted mean,
+$$
+  \bar\rho^2 = \frac{\sum_{j=1}^p H_{jj}\rho_{0j}^2}{\sum_{j=1}^p H_{jj}}.
+$$
+This descriptive measure records coupling to individual coefficients;
+$\kappa$ also accounts for their joint adjustment through $H_{AA}^{-1}$.
+
+On the synthetic logistic design with `means = :random`, each column carries an
+$O(1)$ mean. A centering fraction $\alpha$ interpolates between the standardized
+and uncentered designs,
+$$
+  X(\alpha) = \bigl(X - (1 - \alpha)\,\bar{x}^\top\bigr) / s,
+  \qquad
+  \alpha \in [0, 1],
+$$ {#eq-centering-sweep}
+with the column scales $s$ held fixed. Shifting a column by a constant is
+absorbed exactly by the unpenalized intercept, so $\beta^\star$, $\hat\eta$,
+$H_{00}$, and $\lambda_{\max}$ are all invariant along the sweep: $H_{00}/L_0$
+remains about $0.30$ when $\mu_0 = 0.5$ and $0.17$ when $\mu_0 = 0.9$, even as
+$\bar\rho^2$ increases from nearly zero to roughly $0.5$. Thus, the sweep
+changes the coupling without changing the curvature ratio.
+
+In @fig-rho-centering, $T_{\mathrm{G}}$ and $T_{\mathrm{N}}$ count passes to
+the shared relative suboptimality bound $10^{-6}$. Their empirical ratio rises
+sharply as coupling increases from near zero and then settles near the
+strong-coupling limit $L_0/H_{00}$ in @eq-frozen-block-rate. To account for
+both the transition and the plateau, we retain the coefficient error modes of
+the actual coordinate sweep in the calculation below.
+
+```{julia}
+#| label: fig-rho-centering
+#| fig-cap: Centering sweep at fixed $H_{00}/L_0$. The panels show empirical
+#|   $T_{\mathrm{G}}/T_{\mathrm{N}}$ to the relative suboptimality bound
+#|   $10^{-6}$; the dashed line marks the strong-coupling limit $L_0/H_{00}$
+#|   from @eq-frozen-block-rate. The centering fraction $\alpha$ in
+#|   @eq-centering-sweep moves the weighted $\bar\rho^2$ from standardized to
+#|   uncentered designs. Here $n = 500$, $p = 1000$, $s = 10$,
+#|   $\lambda = 0.05\lambda_{\max}$, and the coordinate ordering is permuted.
+
+dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
+df = DataFrame(dd["records"])
+sort!(df, [:μ0, :barρ2])
+df.μ0_label = [L"$\mu_0 = %$(v)$" for v in df.μ0]
+
+spec = data(df) * mapping(:barρ2, :empirical_ratio, col = :μ0_label)
+
+# The limit is constant within each panel because centering preserves H_00.
+# Labels belong on the axis so the reference layer cannot replace them.
+spec_ref = data(df) *
+    mapping(:barρ2, :asymptotic_ratio, col = :μ0_label) *
+    visual(Lines, linestyle = :dash, color = :gray)
+
+draw(
+    (visual(Lines) + visual(Scatter)) * spec + spec_ref,
+    axis = (xlabel = L"Weighted $\bar{\rho}^2$", ylabel = L"T_{\mathrm{G}}/T_{\mathrm{N}}"),
+    figure = (; size = output_size((700, 280))),
+)
+```
+
+The centering experiment uses one permuted coordinate sweep per pass, which
+retains coefficient error modes absent from the proposition's exact block solve.
+Let $C_\pi$ be the frozen linear map for a coefficient sweep in order $\pi$,
+and let
 $$
   E_{\mathrm{N}} = I - \frac{1}{H_{00}}e_0e_0^\top H,
   \qquad
@@ -2427,16 +2228,16 @@ have proved the exact-block limit in @prp-frozen-block-rate and verified the
 full permuted-sweep operator numerically. A general Lyapunov-exponent theorem
 for the random matrix products is beyond our present analysis.
 
-The local-rate argument connects directly to @sec-production-solvers. glmnet's
-`modified.Newton` mode and biglasso's `MM` mode both apply the gradient strategy
-at the global $L_0 = 1/4$ to the intercept inside their IRLS inner solves;
-$L_0/H_{00}$ is therefore the strongly coupled limit suggested by the frozen
-local model. At $\mu_0 = 0.99$, this is consistent with the roughly fivefold and
-tenfold slowdowns reported in @fig-real-glmnet and @fig-real-biglasso. skglm
-(version 0.5), the direct-CD solver, exhibits the same scaling on a continuous
-trajectory in @fig-real-skglm: the slow convergence from suboptimality
-$\approx 10^{-1}$ to $\approx 10^{-5}$ is the intercept's slow climb toward its
-fitted value at step size $1/L_0$.
+The curvature mismatch also appears in @sec-production-solvers. In glmnet's
+`modified.Newton` mode and biglasso's `MM` mode, the first intercept correction
+at each linearization uses the global $L_0 = 1/4$ (@sec-irls). The roughly
+fivefold and tenfold slowdowns at $\mu_0 = 0.99$ in @fig-real-glmnet and
+@fig-real-biglasso are consistent with this conservative correction, although
+changing the weight scheme also changes the coefficient updates. skglm
+(version 0.5) applies the gradient strategy directly to the original loss. Its
+slow convergence from suboptimality $\approx 10^{-1}$ to $\approx 10^{-5}$ in
+@fig-real-skglm accompanies the intercept's slow climb toward its fitted value
+at step size $1/L_0$.
 
 An Armijo line search cannot rescue the gradient strategy when it starts from
 the global-Lipschitz step $-\partial_0 F / L_0$. It can only *shrink* the step,

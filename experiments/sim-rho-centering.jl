@@ -15,14 +15,12 @@ using Statistics
 # Column scales are fixed across α, so only the column offsets move. Shifting a
 # column by a constant is absorbed exactly by the unpenalized intercept, so the
 # lasso solution β* --- and hence η̂, H_00, and λ_max --- is invariant along the
-# sweep. That makes H_00/L_0 exactly constant and leaves ρ̄² as the only moving
-# quantity, which is what separates this experiment from the μ_0 sweep in
-# sim-rate-gap.jl. We record H_00/L_0 per cell so the invariance is checkable
-# rather than merely asserted.
+# sweep. That keeps H_00/L_0 constant while coupling changes. We record the
+# curvature fraction per cell so the invariance can be checked.
 #
-# The eq-rate-gap leading-order prediction is (1 - (H_00/L_0) ρ̄²) / (1 - ρ̄²);
-# we compare it to empirical pass counts T_G / T_N for the gradient and Newton
-# strategies at a fixed tolerance.
+# The paper compares empirical pass-count ratios T_G / T_N with the
+# strong-coupling limit L_0/H_00. Legacy diagnostic fields remain in the cache
+# so its schema stays compatible with earlier results.
 
 const N = 500
 const P = 1000
@@ -104,10 +102,8 @@ for μ0 in Μ0_GRID
 
         X = design(X_raw, α)
 
-        # Reference Newton run for η at convergence (used to evaluate H_jj, ρ²
-        # at the iterate-level Hessian, matching how sim-rate-gap.jl reports
-        # them). The solver sees exactly the matrix we measure ρ̄² on, so
-        # normalization is off here.
+        # Evaluate coupling at the converged Newton solution. Normalization is
+        # off so the solver sees the same matrix used to measure ρ̄².
         Random.seed!(1)
         newton_ref = cdsolver(
             X,
@@ -125,10 +121,8 @@ for μ0 in Μ0_GRID
         η_hat = X * newton_ref.coef .+ newton_ref.intercept
         q = rate_quantities(X, η_hat, lossfun)
 
-        # Cold-start intercept share |β_0^*| / ||β^*||, the quantity that drives
-        # the R_0^2-dominance route into eq-rate-gap-asymptotic. Recorded so the
-        # paper can check whether the asymptotic limit is reached *through* that
-        # route along this sweep, or for some other reason.
+        # Retain the retired distance and first-update diagnostics for cache
+        # compatibility; the paper no longer uses them to predict rates.
         intercept_share = abs(newton_ref.intercept) / norm(newton_ref.coef)
 
         predicted_ratio = (1 - (q.H00 / L0) * q.barρ2) / (1 - q.barρ2)

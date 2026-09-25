@@ -12,10 +12,9 @@
 
 const CURATORS = Dict{String, Function}(
 
-    # The paper's claims here are the saturation point, the plateau height
-    # against L_0/H_00, and the intercept share that rules out the
-    # R_0^2-dominance route --- so the table carries emp/asymptotic and the
-    # share next to the plotted series.
+    # The empirical-to-limit ratio shows where the pass counts approach the
+    # strong-coupling plateau; the curvature fraction checks that centering
+    # preserves the intercept curvature.
     "fig-rho-centering" => function (mod)
         df = sort(mod.df, [:μ0, :barρ2])
         return DataFrame(
@@ -23,10 +22,8 @@ const CURATORS = Dict{String, Function}(
             α = round.(df.α; digits = 2),
             barρ2 = round.(df.barρ2; digits = 4),
             empirical = round.(df.empirical_ratio; digits = 3),
-            predicted = round.(df.predicted_ratio; digits = 3),
             asymptotic = round.(df.asymptotic_ratio; digits = 3),
             emp_over_asymptotic = round.(df.empirical_ratio ./ df.asymptotic_ratio; digits = 3),
-            intercept_share = round.(df.intercept_share; digits = 3),
             H00_over_L0 = round.(df.H00_over_L0; digits = 4),
             T_gradient = df.T_gradient,
             T_newton = df.T_newton,
