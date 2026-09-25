@@ -316,11 +316,9 @@ The inner Gaussian solver uses IRLS-weighted column means in its gradient update
 of the inner solve as the weighted mean of the working response plus the
 residual mean (`solver_gaussian_pin_naive.hpp:392`); the column means themselves
 are built with the IRLS weights in the outer GLM solver
-(`solver_glm_naive.hpp:366`).]
-
-For Gaussian data, the framework in @sec-theory reduces to the familiar result:
-the loss has constant curvature, so the gradient and Newton strategies coincide
-on the intercept.
+(`solver_glm_naive.hpp:366`).] For Gaussian data, the framework in @sec-theory
+reduces to the familiar result: the loss has constant curvature, so the gradient
+and Newton strategies coincide on the intercept.
 
 The third thread is majorization--minimization\ (MM). The constant $L_0 = 1/4$,
 which skglm uses as its global per-coordinate Lipschitz step, is the binary
@@ -1421,8 +1419,8 @@ different sparse designs. The gradient strategy takes about six times as many
 passes as Newton to reach $10^{-6}$ on w1a and about ten times as many to reach
 $10^{-4}$ on news20-3pct, before the latter reaches its wall-time cap. Both
 datasets have small intercept-only curvature fractions. Their large slowdowns
-across different designs support the response-imbalance mechanism, although
-the fitted curvature and collective coupling determine the local rate.
+across different designs support the response-imbalance mechanism, although the
+fitted curvature and collective coupling determine the local rate.
 
 For the moderately imbalanced a4a and breast-cancer data, the gradient/Newton
 gap is modest---less than threefold---consistent with their larger
@@ -1598,13 +1596,13 @@ as Newton. Its price is therefore a modest inner-solve overhead that grows with
 imbalance, not an outer-pass improvement, as [Supplement
 S4.3](#sec-per-pass-cost) shows.
 
-The two heatmaps support the curvature-mismatch mechanism across penalties:
-the empirical ratio generally grows as the intercept update becomes more
+The two heatmaps support the curvature-mismatch mechanism across penalties: the
+empirical ratio generally grows as the intercept update becomes more
 conservative ($H_{00}/L_0 \to 0$). Both curvature and coupling change across
 this grid. The centering sweep of @fig-rho-centering isolates coupling by
-holding $H_{00}/L_0$ fixed. The frozen coordinate-sweep model in
-@fig-rho-frozen accounts for the transition from similar rates to the
-$L_0/H_{00}$ plateau as the coupled mode becomes slowest.
+holding $H_{00}/L_0$ fixed. The frozen coordinate-sweep model in @fig-rho-frozen
+accounts for the transition from similar rates to the $L_0/H_{00}$ plateau as
+the coupled mode becomes slowest.
 
 ## Production solvers {#sec-production-solvers}
 
@@ -2048,8 +2046,8 @@ $$
 The inverse coefficient Hessian accounts for joint coefficient adjustments, so
 many individually weak intercept--coefficient couplings can combine. Eliminating
 the coefficient block gives the Schur complement
-$H_{00} - H_{0A}H_{AA}^{-1}H_{A0} = H_{00}(1 - \kappa)$, the intercept
-curvature after the coefficients have adjusted.
+$H_{00} - H_{0A}H_{AA}^{-1}H_{A0} = H_{00}(1 - \kappa)$, the intercept curvature
+after the coefficients have adjusted.
 
 ::: {.proposition #prp-frozen-block-rate}
 *(Frozen two-block rate.)* Let $q = H_{00}/L_0 \in (0,1]$. On the frozen
@@ -2091,8 +2089,8 @@ coordinate-wise couplings by their curvature-weighted mean,
 $$
   \bar\rho^2 = \frac{\sum_{j=1}^p H_{jj}\rho_{0j}^2}{\sum_{j=1}^p H_{jj}}.
 $$
-This descriptive measure records coupling to individual coefficients;
-$\kappa$ also accounts for their joint adjustment through $H_{AA}^{-1}$.
+This descriptive measure records coupling to individual coefficients; $\kappa$
+also accounts for their joint adjustment through $H_{AA}^{-1}$.
 
 On the synthetic logistic design with `means = :random`, each column carries an
 $O(1)$ mean. A centering fraction $\alpha$ interpolates between the standardized
@@ -2109,12 +2107,12 @@ remains about $0.30$ when $\mu_0 = 0.5$ and $0.17$ when $\mu_0 = 0.9$, even as
 $\bar\rho^2$ increases from nearly zero to roughly $0.5$. Thus, the sweep
 changes the coupling without changing the curvature ratio.
 
-In @fig-rho-centering, $T_{\mathrm{G}}$ and $T_{\mathrm{N}}$ count passes to
-the shared relative suboptimality bound $10^{-6}$. Their empirical ratio rises
+In @fig-rho-centering, $T_{\mathrm{G}}$ and $T_{\mathrm{N}}$ count passes to the
+shared relative suboptimality bound $10^{-6}$. Their empirical ratio rises
 sharply as coupling increases from near zero and then settles near the
-strong-coupling limit $L_0/H_{00}$ in @eq-frozen-block-rate. To account for
-both the transition and the plateau, we retain the coefficient error modes of
-the actual coordinate sweep in the calculation below.
+strong-coupling limit $L_0/H_{00}$ in @eq-frozen-block-rate. To account for both
+the transition and the plateau, we retain the coefficient error modes of the
+actual coordinate sweep in the calculation below.
 
 ```{julia}
 #| label: fig-rho-centering
@@ -2123,8 +2121,8 @@ the actual coordinate sweep in the calculation below.
 #|   $10^{-6}$; the dashed line marks the strong-coupling limit $L_0/H_{00}$
 #|   from @eq-frozen-block-rate. The centering fraction $\alpha$ in
 #|   @eq-centering-sweep moves the weighted $\bar\rho^2$ from standardized to
-#|   uncentered designs. Here $n = 500$, $p = 1000$, $s = 10$,
-#|   $\lambda = 0.05\lambda_{\max}$, and the coordinate ordering is permuted.
+#|   uncentered designs. Here $n = 500$, $p = 1000$, $s = 10$, $\lambda =
+#|   0.05\lambda_{\max}$, and the coordinate ordering is permuted.
 
 dd = JLD2.load(@projectroot("results", "rho-centering.jld2"))
 df = DataFrame(dd["records"])
@@ -2148,8 +2146,8 @@ draw(
 
 The centering experiment uses one permuted coordinate sweep per pass, which
 retains coefficient error modes absent from the proposition's exact block solve.
-Let $C_\pi$ be the frozen linear map for a coefficient sweep in order $\pi$,
-and let
+Let $C_\pi$ be the frozen linear map for a coefficient sweep in order $\pi$, and
+let
 $$
   E_{\mathrm{N}} = I - \frac{1}{H_{00}}e_0e_0^\top H,
   \qquad
@@ -2233,9 +2231,9 @@ The curvature mismatch also appears in @sec-production-solvers. In glmnet's
 at each linearization uses the global $L_0 = 1/4$ (@sec-irls). The roughly
 fivefold and tenfold slowdowns at $\mu_0 = 0.99$ in @fig-real-glmnet and
 @fig-real-biglasso are consistent with this conservative correction, although
-changing the weight scheme also changes the coefficient updates. skglm
-(version 0.5) applies the gradient strategy directly to the original loss. Its
-slow convergence from suboptimality $\approx 10^{-1}$ to $\approx 10^{-5}$ in
+changing the weight scheme also changes the coefficient updates. skglm (version
+0.5) applies the gradient strategy directly to the original loss. Its slow
+convergence from suboptimality $\approx 10^{-1}$ to $\approx 10^{-5}$ in
 @fig-real-skglm accompanies the intercept's slow climb toward its fitted value
 at step size $1/L_0$.
 
