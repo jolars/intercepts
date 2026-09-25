@@ -65,9 +65,10 @@ constant shifts in the predictors without changing the fitted slopes. It is
 unpenalized and never drops out of the fitted model, yet solvers update it in
 different ways. Research on coordinate descent has examined acceleration,
 parallelization, and convergence rates, but has largely treated the intercept
-update as a routine implementation choice. That choice can dominate convergence
-speed when the response is imbalanced. For direct coordinate descent, a single
-safeguarded Newton step per pass removes this slowdown in our experiments.
+update as a routine implementation choice. But that choice can dominate
+convergence speed when the response is imbalanced. For direct coordinate
+descent, a single safeguarded Newton step per pass removes this slowdown in our
+experiments.
 
 The disagreement follows a deeper split among implementations. Some solvers,
 including skglm[^1]\ [@bertrand2022], run coordinate descent directly on the
@@ -78,6 +79,12 @@ strategies coincide within it. A quadratic built from a worst-case curvature
 bound retains the same problem as the conservative direct update. The six
 production solvers in @sec-production-solvers instantiate these designs; we
 explain in @sec-theory and @sec-irls when the distinction matters.
+
+[^1]: Among the surveyed solvers, only skglm's intercept update is
+    version-dependent: version 0.5 and earlier take the gradient step described
+    here, while a later patch replaces it with a Newton step
+    (@sec-production-solvers). We pin the version throughout wherever this
+    behavior is at issue.
 
 We study the optimization problem
 $$
@@ -101,49 +108,29 @@ Under these assumptions, $P$ is a convex composite objective. The assumptions
 cover every penalty and model in our analysis and experiments; we do not
 consider nonconvex penalties.
 
-Within this problem, we compare three ways to update the intercept: a gradient
-step based on a global curvature bound, a Newton step based on the curvature at
-the current iterate, and exact minimization of the intercept subproblem. They
-can converge at substantially different rates when the response is
-imbalanced---for example, when positive cases are rare in logistic regression.
-
-For the lasso experiments, $\lambda_{\max}$ is the smallest penalty for which
-all fitted slopes are zero. In the synthetic experiments, $\mu_0$ denotes the
-baseline mean response at $x = 0$---a positive-class probability for binomial
-models and a rate for Poisson models---and $s$ is the number of nonzero slopes
-in each generated coefficient vector. Once the slopes enter the linear
-predictor, $\mu_0$ need not equal the empirical response mean.
-
-[^1]: Among the surveyed solvers, only skglm's intercept update is
-    version-dependent: version 0.5 and earlier take the gradient step described
-    here, while a later patch replaces it with a Newton step
-    (@sec-production-solvers). We pin the version throughout wherever this
-    behavior is at issue.
+We compare three strategies for updating the intercept once per pass over the
+coefficient coordinates:
 
 Gradient Strategy
-:   Takes a single gradient step once per pass over the coordinates.
+:   Takes a single gradient step based on a global curvature bound.
 
 Newton Strategy
-:   Takes a single Newton step, wrapped in an Armijo backtracking line search,
-    once per pass over the coordinates. The line search usually accepts the full
-    step ($\alpha = 1$) and backtracks when the undamped step would overshoot.
+:   Takes a single Newton step based on the curvature at the current iterate,
+    with an Armijo backtracking line search to guard against overshooting.
 
 Exact Strategy
-:   Iterates Armijo-safeguarded Newton steps on the intercept subproblem until
-    it meets a tight numerical convergence criterion. It raises an error rather
-    than return an iterate outside its documented residual bounds.
+:   Minimizes the loss over the intercept while holding the coefficients fixed.
 
 In the analysis, *exact* means setting the intercept to its conditional
-minimizer. In the experiments, the Exact Strategy computes this minimizer
-numerically. We document its tolerances, iteration cap, and scalar
-floating-point margin in [Supplement S3](#sec-s-methodology). Every Exact
-Strategy result reported in our experiments therefore met the specified
-conditional-solve criterion; none is an uncontrolled capped approximation.
+minimizer. The experiments compute this minimizer numerically, with tolerances
+documented in [Supplement S3](#sec-s-methodology).
 
-The three paths in @fig-parametric trace the strategies across the level sets of
-@eq-primal-problem for a toy problem with one feature and an intercept. The
-gradient strategy approaches the solution through many small steps, whereas the
-Newton and exact strategies reach it in only a few.
+These strategies can converge at substantially different rates when the
+response is imbalanced---for example, when positive cases are rare in logistic
+regression. The three paths in @fig-parametric trace the strategies across the
+level sets of @eq-primal-problem for a toy problem with one feature and an
+intercept. The gradient strategy approaches the solution through many small
+steps, whereas the Newton and exact strategies reach it in only a few.
 
 ```{julia}
 #| label: fig-parametric
@@ -948,8 +935,11 @@ this prediction on a grid of synthetic problems.
 
 The pattern appears on two real datasets with opposite shapes
 (@fig-multinomial-summary). Yeoh2002 has $n = 248$, $p = 12\,625$, and six
-classes, while StatLog Shuttle has $n = 58\,000$, $p = 9$, and seven classes. On
-Yeoh2002, the gradient strategy needs roughly four times as many passes as
+classes, while StatLog Shuttle has $n = 58\,000$, $p = 9$, and seven classes.
+We set $\lambda = 0.05\lambda_{\max}$ in both problems, where $\lambda_{\max}$
+is the smallest penalty for which all fitted slopes are zero.
+
+On Yeoh2002, the gradient strategy needs roughly four times as many passes as
 Newton to bring the relative suboptimality bound below $10^{-4}$. On Shuttle,
 whose rarest classes contain only ten and thirteen observations, it fails to
 reach $10^{-4}$ within 1,000 passes; Newton and exact reach that threshold in
@@ -1122,6 +1112,13 @@ each IRLS or prox-Newton quadratic surrogate, we recommend optimizing the
 intercept fully, with an optional correction on the original loss at the
 linearization boundary. The surveyed production solvers follow the first two
 recommendations; BlitzL1 also follows the third.
+
+In @fig-irls-comparison, we compare direct CD and IRLS on a synthetic logistic
+problem. Throughout the synthetic experiments, $\mu_0$ denotes the baseline
+mean response at $x = 0$---a positive-class probability for binomial models and
+a rate for Poisson models---and $s$ is the number of nonzero slopes in each
+generated coefficient vector. Once the slopes enter the linear predictor,
+$\mu_0$ need not equal the empirical response mean.
 
 ```{julia}
 #| label: fig-irls-comparison
@@ -2561,9 +2558,9 @@ average fitted probability in the Rayleigh bounds above.
 ```{julia}
 #| label: fig-multinomial-imbalance
 #| fig-cap: Imbalanced multinomial logistic regression. The panels show a
-#|   relative suboptimality bound versus time for $K = 5$, baseline probabilities
-#|   $(0.7, 0.1, 0.1, 0.05, 0.05)$, $n = 500$, $p = 200$, $\lambda =
-#|   0.05\lambda_{\max}$, cyclic CD, and three random seeds.
+#|   relative suboptimality bound versus time for $K = 5$, baseline
+#|   probabilities $(0.7, 0.1, 0.1, 0.05, 0.05)$, $n = 500$, $p = 200$, $\lambda
+#|   = 0.05\lambda_{\max}$, cyclic CD, and three random seeds.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance.jld2"))
 df = DataFrame(dd["results"])
@@ -2596,11 +2593,11 @@ The realized counts in @tbl-multinomial-counts differ substantially from the
 baseline probabilities. At intercept stationarity, $\bar p_k = n_k/n$, so the
 observed counts give the relevant bounds, reported here to three significant
 digits. For class 4, the upper bounds in @eq-multinomial-free-rayleigh are
-$0.0328$, $0.0475$, and $0.145$ across the three seeds. For the reference
-class, @eq-multinomial-reference-rayleigh gives $0.00394$, $0.0141$, and
-$0.0119$. Dividing the latter by the Böhning majorant $L_0 = 1/2$ bounds the
-smallest eigenvalue of $Q$ by $0.00787$, $0.0282$, and $0.0238$, respectively.
-These realized prevalences therefore still imply a strongly attenuated gradient
+$0.0328$, $0.0475$, and $0.145$ across the three seeds. For the reference class,
+@eq-multinomial-reference-rayleigh gives $0.00394$, $0.0141$, and $0.0119$.
+Dividing the latter by the Böhning majorant $L_0 = 1/2$ bounds the smallest
+eigenvalue of $Q$ by $0.00787$, $0.0282$, and $0.0238$, respectively. These
+realized prevalences therefore still imply a strongly attenuated gradient
 correction in at least one intercept eigenmode near stationarity
 (@eq-grad-residual-matrix).
 
@@ -2647,9 +2644,9 @@ reference-class observations, as detailed in Supplement S2.2.
 #| label: fig-multinomial-sweep
 #| fig-cap: Multinomial imbalance-amplitude sweep. The panels show a relative
 #|   suboptimality bound versus outer-pass index for the four corners of the
-#|   reference-class baseline probability $\pi_K \in \{0.05, 0.005\}$ and amplitude
-#|   $\in \{0.5, 2.0\}$ grid on the same $K = 5$, $n = 500$, $p = 200$, $s = 5$,
-#|   $\lambda = 0.05\lambda_{\max}$, $\rho = 0.3$ design as
+#|   reference-class baseline probability $\pi_K \in \{0.05, 0.005\}$ and
+#|   amplitude $\in \{0.5, 2.0\}$ grid on the same $K = 5$, $n = 500$, $p =
+#|   200$, $s = 5$, $\lambda = 0.05\lambda_{\max}$, $\rho = 0.3$ design as
 #|   @fig-multinomial-imbalance; curves are medians over three seeds, with
 #|   early-terminated trajectories carried forward at their terminal values.
 
@@ -2817,12 +2814,11 @@ also change with amplitude and seed.
 #| label: fig-multinomial-sweep-full
 #| fig-cap: Full multinomial imbalance-amplitude sweep. The panels show a
 #|   relative suboptimality bound versus outer-pass index over a $4 \times 4$
-#|   grid of reference-class baseline probability
-#|   $\pi_K \in \{0.05, 0.02, 0.01, 0.005\}$ and feature amplitude
-#|   $\in \{0.5, 1.0, 1.5, 2.0\}$. Curves are medians over
-#|   three seeds for $K = 5$, $n = 500$, $p = 200$, $s = 5$, $\rho = 0.3$, and
-#|   $\lambda = 0.05\lambda_{\max}$; early-terminated trajectories are carried
-#|   forward at their terminal values.
+#|   grid of reference-class baseline probability $\pi_K \in \{0.05, 0.02, 0.01,
+#|   0.005\}$ and feature amplitude $\in \{0.5, 1.0, 1.5, 2.0\}$. Curves are
+#|   medians over three seeds for $K = 5$, $n = 500$, $p = 200$, $s = 5$, $\rho
+#|   = 0.3$, and $\lambda = 0.05\lambda_{\max}$; early-terminated trajectories
+#|   are carried forward at their terminal values.
 
 dd = JLD2.load(@projectroot("results", "sim-multinomial-imbalance-sweep.jld2"))
 df = DataFrame(dd["results"])
@@ -2885,11 +2881,11 @@ boundary cases, but it does not imply convergence to finite intercepts. We
 retain their trajectories to show this limitation. The curvature analysis at a
 finite optimum applies to replicates with every class observed. The solvers use
 the same seeded data within each problem, although the grid does not hold
-marginal prevalence fixed as amplitude varies. Where the gradient
-strategy reaches the $10^{-6}$ threshold, it generally needs at least an order
-of magnitude more passes than Newton. In most of the remaining certified cells,
-it misses that threshold within the $1\,000$-pass budget even though Newton
-reaches it.
+marginal prevalence fixed as amplitude varies. Where the gradient strategy
+reaches the $10^{-6}$ threshold, it generally needs at least an order of
+magnitude more passes than Newton. In most of the remaining certified cells, it
+misses that threshold within the $1\,000$-pass budget even though Newton reaches
+it.
 
 ## S3. Experimental methods and reproducibility {#sec-s-methodology .unnumbered}
 
@@ -2922,6 +2918,8 @@ boundary and remains twenty times smaller than the $10^{-8}$ reporting
 threshold. The multinomial implementation uses a strict $10^{-8}$ normalized
 block-gradient threshold and raises an error whenever it misses that target
 after 50 steps. Tests exercise both acceptance and rejection at the scalar cap.
+Every reported result for the exact strategy met the corresponding
+conditional-solve criterion.
 
 At each diagnostic point, the raw residual lies in the loss-conjugate domain but
 need not satisfy dual stationarity for the unpenalized intercept. Simply
