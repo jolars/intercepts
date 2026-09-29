@@ -133,14 +133,19 @@ intercept. The gradient strategy approaches the solution through many small
 steps, whereas the Newton and exact strategies reach it in only a few.
 
 ```{julia}
+#| label: setup
+#| include: false
+
+using Intercepts
+```
+
+```{julia}
 #| label: fig-parametric
 #| fig-cap: Intercept-update trajectories on a toy logistic problem. The paths
 #|   show the iterates of the gradient, Newton, and exact strategies over the
 #|   objective level sets for a one-feature model with an intercept.
 #| fig-show: true
 #| message: false
-
-using Intercepts
 
 Random.seed!(42)
 
