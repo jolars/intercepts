@@ -682,10 +682,10 @@ At the conditional minimizer, $\partial_0 F = 0$, so the intercept's dependence
 on $\beta$ contributes nothing to the derivative. Evaluating at
 $\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives the gradient equality. For
 the step size, $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$, so
-$1/H_{jj} \leq 1/\tilde H_{jj}$ (@eq-schur-diag). The realized step is therefore
-at most the minimizing step $1/\tilde H_{jj}$ in $\tilde F$'s local quadratic
-model along $e_j$. The inequality alone supplies no finite-step descent
-guarantee for $\tilde F$.
+$1/H_{jj} \leq 1/\tilde H_{jj}$\ (@eq-schur-diag). The realized step is
+therefore at most the minimizing step $1/\tilde H_{jj}$ in $\tilde F$'s local
+quadratic model along $e_j$. The inequality alone supplies no finite-step
+descent guarantee for $\tilde F$.
 :::
 
 At the start of each pass, the exact strategy therefore gives the first
