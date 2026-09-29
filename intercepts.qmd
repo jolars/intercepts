@@ -628,11 +628,10 @@ optimizing the intercept.
 
 We can now classify the three intercept-update strategies by how completely they
 remove the intercept--coefficient coupling in a local model. A quadratic example
-makes the comparison explicit. Write the intercept as $a$ and one coefficient
-as $b$, and consider the unpenalized objective
+makes the comparison explicit. Write the intercept as $a$ and one coefficient as
+$b$, and consider the unpenalized objective
 $$
-  Q(a, b) = \tfrac12 h(a + cb)^2 + \tfrac12 k b^2,
-  \qquad h, k > 0.
+  Q(a, b) = \tfrac12 h(a + cb)^2 + \tfrac12 k b^2, \qquad h, k > 0.
 $$ {#eq-quadratic-example}
 Here $h = H_{00}$. The conditional minimizer is $a^\star(b) = -cb$, so the
 profiled objective is $\tilde Q(b) = \tfrac12 k b^2$. If $e = a + cb$ denotes
@@ -649,11 +648,11 @@ Since $\partial_a Q = he$, the gradient step multiplies $e$ by $1 - h/L_0$,
 whereas a full Newton step and exact minimization both set $e$ to zero
 (@tbl-quadratic-updates).
 
-  | Intercept strategy | Intercept error after updating | Coefficient gradient afterward |
-  | :----------------- | :----------------------------- | :----------------------------- |
-  | Gradient           | $(1 - h/L_0)e$                 | $kb + hc(1 - h/L_0)e$           |
-  | Newton (full step)  | $0$                            | $kb$                           |
-  | Exact              | $0$                            | $kb$                           |
+  | Intercept strategy  | Intercept error after updating | Coefficient gradient afterward  |
+  | :-----------------  | :----------------------------- | :-----------------------------  |
+  | Gradient            | $(1 - h/L_0)e$                 | $kb + hc(1 - h/L_0)e$           |
+  | Newton (full step)  | $0$                            | $kb$                            |
+  | Exact               | $0$                            | $kb$                            |
 
   : Effect of one intercept update on @eq-quadratic-example, with the
     coefficient $b$ held fixed. {#tbl-quadratic-updates}
@@ -661,22 +660,22 @@ whereas a full Newton step and exact minimization both set $e$ to zero
 The fraction $h/L_0 = H_{00}/L_0$ therefore measures how much of the gradient
 error the gradient strategy removes. In @fig-schur-example, this fraction is
 $1/5$: the gradient update leaves most of the intercept error, while Newton and
-exact minimization reach the line $a = -cb$. Even after optimizing the intercept,
-changing $b$ by $\delta_b$ while holding $a$ fixed creates an intercept error
-$c\delta_b$. For a nonlinear loss, Newton and exact minimization generally
-differ; below, we bound the local error left by one Newton step.
+exact minimization reach the line $a = -cb$. Even after optimizing the
+intercept, changing $b$ by $\delta_b$ while holding $a$ fixed creates an
+intercept error $c\delta_b$. For a nonlinear loss, Newton and exact minimization
+generally differ; below, we bound the local error left by one Newton step.
 
 ```{julia}
 #| label: fig-schur-example
 #| fig-cap: >-
-#|   Intercept updates on the quadratic in @eq-quadratic-example, with
-#|   $h = 1$, $c = 0.8$, $k = 0.36$, and $L_0 = 5$. Both panels start at
-#|   $(a, b) = (1.2, 1)$. Gray curves are objective level sets; the dashed line
-#|   gives the optimal intercept for each coefficient. Left: one gradient step
-#|   removes one fifth of the intercept error. Right: a full Newton step and
-#|   exact minimization both reach the dashed line. The subsequent coefficient
-#|   step, $b^+ = b - \partial_b Q/H_{bb} = 0.64$, leaves that line while
-#|   decreasing the objective.
+#|   Intercept updates on the quadratic in @eq-quadratic-example, with $h = 1$,
+#|   $c = 0.8$, $k = 0.36$, and $L_0 = 5$. Both panels start at $(a, b) = (1.2,
+#|   1)$. Gray curves are objective level sets; the dashed line gives the
+#|   optimal intercept for each coefficient. Left: one gradient step removes one
+#|   fifth of the intercept error. Right: a full Newton step and exact
+#|   minimization both reach the dashed line. The subsequent coefficient step,
+#|   $b^+ = b - \partial_b Q/H_{bb} = 0.64$, leaves that line while decreasing
+#|   the objective.
 
 let h = 1.0, c = 0.8, k = 0.36, L0 = 5.0
     a_start, b_start = 1.2, 1.0
@@ -698,32 +697,113 @@ let h = 1.0, c = 0.8, k = 0.36, L0 = 5.0
             xgridvisible = false,
             ygridvisible = false,
         )
-        for (col, title) in enumerate(["Gradient intercept update", "Newton and exact intercept updates"])
+        for (col, title) in enumerate([
+            "Gradient intercept update",
+            "Newton and exact intercept updates",
+        ])
     ]
 
     for ax in axes
-        contour!(ax, a_grid, b_grid, values; levels = [0.05, 0.15, 0.3, 0.6, 1.0, 1.5, 2.2, 3.0], color = :gray80)
-        lines!(ax, -c .* b_grid, b_grid; color = :gray35, linestyle = :dash, linewidth = 1.5)
+        contour!(
+            ax,
+            a_grid,
+            b_grid,
+            values;
+            levels = [0.05, 0.15, 0.3, 0.6, 1.0, 1.5, 2.2, 3.0],
+            color = :gray80,
+        )
+        lines!(
+            ax,
+            -c .* b_grid,
+            b_grid;
+            color = :gray35,
+            linestyle = :dash,
+            linewidth = 1.5,
+        )
         scatter!(ax, [a_start], [b_start]; color = :black, markersize = 8)
-        text!(ax, a_start, b_start; text = "Start", offset = (0, 9), align = (:center, :bottom))
+        text!(
+            ax,
+            a_start,
+            b_start;
+            text = "Start",
+            offset = (0, 9),
+            align = (:center, :bottom),
+        )
         scatter!(ax, [0.0], [0.0]; color = :gray35, marker = :cross, markersize = 10)
         limits!(ax, extrema(a_grid), extrema(b_grid))
     end
 
-    arrows2d!(axes[1], [a_start], [b_start], [a_gradient - a_start], [0.0]; color = :steelblue, shaftwidth = 2, tiplength = 10, tipwidth = 10)
+    arrows2d!(
+        axes[1],
+        [a_start],
+        [b_start],
+        [a_gradient - a_start],
+        [0.0];
+        color = :steelblue,
+        shaftwidth = 2,
+        tiplength = 10,
+        tipwidth = 10,
+    )
     scatter!(axes[1], [a_gradient], [b_start]; color = :steelblue, markersize = 8)
-    text!(axes[1], a_gradient, b_start; text = "Gradient", color = :steelblue, offset = (-5, -13), align = (:right, :top))
+    text!(
+        axes[1],
+        a_gradient,
+        b_start;
+        text = "Gradient",
+        color = :steelblue,
+        offset = (-5, -13),
+        align = (:right, :top),
+    )
 
-    arrows2d!(axes[2], [a_start], [b_start], [a_exact - a_start], [0.0]; color = :darkorange, shaftwidth = 2, tiplength = 10, tipwidth = 10)
+    arrows2d!(
+        axes[2],
+        [a_start],
+        [b_start],
+        [a_exact - a_start],
+        [0.0];
+        color = :darkorange,
+        shaftwidth = 2,
+        tiplength = 10,
+        tipwidth = 10,
+    )
     scatter!(axes[2], [a_exact], [b_start]; color = :darkorange, markersize = 8)
-    text!(axes[2], a_exact, b_start; text = "Newton = exact", color = :darkorange, offset = (0, 10), align = (:center, :bottom))
-    arrows2d!(axes[2], [a_exact], [b_start], [0.0], [b_next - b_start]; color = :purple, shaftwidth = 2, tiplength = 10, tipwidth = 10)
+    text!(
+        axes[2],
+        a_exact,
+        b_start;
+        text = "Newton = exact",
+        color = :darkorange,
+        offset = (0, 10),
+        align = (:center, :bottom),
+    )
+    arrows2d!(
+        axes[2],
+        [a_exact],
+        [b_start],
+        [0.0],
+        [b_next - b_start];
+        color = :purple,
+        shaftwidth = 2,
+        tiplength = 10,
+        tipwidth = 10,
+    )
     scatter!(axes[2], [a_exact], [b_next]; color = :purple, markersize = 8)
-    text!(axes[2], a_exact, b_next; text = "After coefficient step", color = :purple, offset = (10, -8), align = (:left, :top))
+    text!(
+        axes[2],
+        a_exact,
+        b_next;
+        text = "After coefficient step",
+        color = :purple,
+        offset = (10, -8),
+        align = (:left, :top),
+    )
 
     Legend(
         fig[2, 1:2],
-        [LineElement(; color = :gray35, linestyle = :dash), MarkerElement(; color = :gray35, marker = :cross)],
+        [
+            LineElement(; color = :gray35, linestyle = :dash),
+            MarkerElement(; color = :gray35, marker = :cross),
+        ],
         [L"Optimal intercept: $a = -cb$", "Joint minimum"];
         orientation = :horizontal,
         framevisible = false,
@@ -1724,8 +1804,8 @@ $n > p$, and sparse text features with $n < p$). Each problem fixes
 $\lambda = 0.05 \cdot \lambda_{\max}$. All solvers run in their recommended path
 mode (warm-start from $\lambda_{\max}$ down to $\lambda$ in 50 geometric
 steps);[^cold-start-footnote] for each solver we sweep its convergence tolerance
-and plot a suboptimality bound against its available measure of work (CD passes,
-outer iterations, or wall-clock time).
+and plot a suboptimality bound against wall-clock time, outer iterations, or the
+solver's convergence tolerance.
 
 For every panel, we evaluate the common objective
 $n^{-1}\sum_i \ell_i + \lambda\lVert\beta\rVert_1$ at the same final $\lambda$.
@@ -1782,10 +1862,11 @@ end
 ```{julia}
 #| label: fig-real-glmnet
 #| fig-cap: glmnet mode comparison on three imbalanced logistic problems. The
-#|   panels show a suboptimality bound versus inner CD passes for `type.logistic
+#|   panels show a suboptimality bound versus wall-clock time for `type.logistic
 #|   = "Newton"` and `"modified.Newton"` in path mode on the shared synthetic
-#|   problem, w1a, and news20-3pct. All modes use the common feasible dual
-#|   reference $D^\star$ for each problem.
+#|   problem, w1a, and news20-3pct. Each point is one timed fit of the full
+#|   regularization path at a different tolerance. All modes use the common
+#|   feasible dual reference $D^\star$ for each problem.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "glmnet.csv"))),
@@ -1796,10 +1877,11 @@ df = vcat(
 )
 df = add_production_suboptimality(df, "logistic")
 df.mode = df.type
+sort!(df, [:problem, :mode, :runtime])
 
 spec = data(df) *
     mapping(
-        :npasses,
+        :runtime,
         :subopt,
         color = :mode,
         col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
@@ -1808,21 +1890,23 @@ draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
         yscale = log10,
-        xlabel = "Inner CD passes",
+        xlabel = "Time (s)",
         ylabel = "Suboptimality",
         xticklabelrotation = π / 4,
     ),
     figure = (; size = output_size((800, 320))),
+    facet = (; linkxaxes = false),
 )
 ```
 
 ```{julia}
 #| label: fig-real-biglasso
 #| fig-cap: biglasso mode comparison on three imbalanced logistic problems. The
-#|   panels show a suboptimality bound versus inner CD passes for `alg.logistic
+#|   panels show a suboptimality bound versus wall-clock time for `alg.logistic
 #|   = "Newton"` and `"MM"` in path mode on the same three problems as
-#|   @fig-real-glmnet. All modes use the common feasible dual reference
-#|   $D^\star$ for each problem.
+#|   @fig-real-glmnet. Each point is one timed fit of the full regularization
+#|   path at a different tolerance. All modes use the common feasible dual
+#|   reference $D^\star$ for each problem.
 
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "biglasso.csv"))),
@@ -1833,10 +1917,11 @@ df = vcat(
 )
 df = add_production_suboptimality(df, "logistic")
 df.mode = df.alg
+sort!(df, [:problem, :mode, :runtime])
 
 spec = data(df) *
     mapping(
-        :npasses,
+        :runtime,
         :subopt,
         color = :mode,
         col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
@@ -1845,11 +1930,12 @@ draw(
     visual(Lines) * spec + visual(Scatter) * spec,
     axis = (
         yscale = log10,
-        xlabel = "Inner CD passes",
+        xlabel = "Time (s)",
         ylabel = "Suboptimality",
         xticklabelrotation = π / 4,
     ),
     figure = (; size = output_size((800, 320))),
+    facet = (; linkxaxes = false),
 )
 ```
 
@@ -1885,28 +1971,25 @@ draw(
 )
 ```
 
-These three panels show the same division among the production solvers. In
-glmnet and biglasso, changing the weight scheme within the package produces the
-slowdown predicted for the constant-majorant update. In skglm 0.5---the only
-production solver in our survey whose intercept update is unambiguously the
-gradient strategy---the trajectory has the same slow convergence predicted by
-the Schur-coupling residual (@eq-grad-residual). That diagnosis motivated a pull
-request to skglm replacing the gradient update with a Newton step; the change
-was merged upstream as commit `8f9cbd77`.[^skglm-pr]
+In glmnet and biglasso, the local-Newton modes generally reach small
+suboptimality bounds in less wall-clock time than their constant-majorant
+counterparts. These times reflect both the number of passes and their cost. In
+skglm 0.5---the only production solver in our survey whose intercept update is
+unambiguously the gradient strategy---the trajectory has the same slow
+convergence predicted by the Schur-coupling residual (@eq-grad-residual). That
+diagnosis motivated a pull request to skglm replacing the gradient update with a
+Newton step; the change was merged upstream as commit `8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
     2026-05-13. skglm 0.6 is unreleased at the time of writing; the controlled
     comparison below pins the two relevant commits directly.
 
-Across @fig-real-glmnet--@fig-real-skglm, the fixed-problem comparisons are
-consistent with slow convergence under global curvature and fast convergence
-under local curvature. The glmnet and biglasso switches change the full IRLS
-weight scheme, however, and the cross-package panels also reflect implementation
-differences. To isolate the intercept update, we compare two skglm commits in
-@fig-skglm-controlled that differ only in that update: `b03644fe`, the last
-pre-fix commit and behaviorally identical to the released 0.5, and `8f9cbd77`,
-the merged Newton fix. Running the same `AndersonCD` driver on both yields a
-controlled 30-cell comparison.
+The glmnet and biglasso switches change the full IRLS weight scheme, and the
+cross-package panels also reflect implementation differences. To isolate the
+intercept update, we compare two skglm commits in @fig-skglm-controlled that
+differ only in that update: `b03644fe`, the last pre-fix commit and behaviorally
+identical to the released 0.5, and `8f9cbd77`, the merged Newton fix. Running
+the same `AndersonCD` driver on both yields a controlled 30-cell comparison.
 
 As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
 $1/\lambda$, although it is not monotone in every cell. The pre-fix commit needs
@@ -1955,8 +2038,8 @@ stall; an additional original-loss correction may improve the intercept at the
 subproblem boundary. LIBLINEAR\ (newGLMNET) implements the former, while BlitzL1
 implements both. We compare their wall-clock cost to approach the shared
 certificate across the same three problems in @fig-real-proxnewton,
-complementing the inner-pass curves for skglm 0.5 (gradient strategy on the
-intercept) and glmnet's `modified.Newton` (the constant-majorant alternative).
+complementing the iteration-count comparison for skglm 0.5 and the runtime
+comparison for glmnet's `modified.Newton`.
 
 ```{julia}
 #| label: fig-real-proxnewton
@@ -2338,14 +2421,13 @@ for the random matrix products is beyond our present analysis.
 
 The curvature mismatch also appears in @sec-production-solvers. In glmnet's
 `modified.Newton` mode and biglasso's `MM` mode, the first intercept correction
-at each linearization uses the global $L_0 = 1/4$ (@sec-irls). The roughly
-fivefold and tenfold slowdowns at $\mu_0 = 0.99$ in @fig-real-glmnet and
-@fig-real-biglasso are consistent with this conservative correction, although
-changing the weight scheme also changes the coefficient updates. skglm (version
-0.5) applies the gradient strategy directly to the original loss. Its slow
-convergence from suboptimality $\approx 10^{-1}$ to $\approx 10^{-5}$ in
-@fig-real-skglm accompanies the intercept's slow climb toward its fitted value
-at step size $1/L_0$.
+at each linearization uses the global $L_0 = 1/4$ (@sec-irls). The runtime
+comparisons in @fig-real-glmnet and @fig-real-biglasso show the practical effect
+of changing the weight scheme, which also changes the coefficient updates and
+the cost per pass. skglm (version 0.5) applies the gradient strategy directly to
+the original loss. Its slow convergence from suboptimality $\approx 10^{-1}$ to
+$\approx 10^{-5}$ in @fig-real-skglm accompanies the intercept's slow climb
+toward its fitted value at step size $1/L_0$.
 
 An Armijo line search cannot rescue the gradient strategy when it starts from
 the global-Lipschitz step $-\partial_0 F / L_0$. It can only *shrink* the step,
