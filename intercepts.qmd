@@ -563,9 +563,9 @@ for the intercept--coefficient block. The coefficients couple to each other
 produce large $|H_{jk}|$, which is the classical reason coordinate descent
 struggles on such designs. The intercept instead couples to each coefficient
 *globally* through the weighted mean of that feature, without an explicit
-pairwise-correlation term. This distinction is structural rather than
-probabilistic: outside squared loss, the weights depend on the full fitted
-predictor and therefore indirectly on the joint design.
+pairwise-correlation term. This distinction is structural: outside squared loss,
+the weights depend on the full fitted predictor and therefore indirectly on the
+joint design.
 
 For squared loss, $w_i = 1$ and $H_{0j} = (1/n)\sum_i x_{ij}$, so centering the
 features makes $H_{0j} = 0$ and the intercept decouples from the coefficients
