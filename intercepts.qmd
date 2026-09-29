@@ -678,8 +678,8 @@ $$
     + \partial_0 F\big(\beta_0^\star(\beta), \beta\big)\partial_j \beta_0^\star(\beta)
   = \partial_j F\big(\beta_0^\star(\beta), \beta\big).
 $$
-This is the envelope identity: stationarity sets the indirect term through
-$\beta_0^\star$ to zero. Evaluating at
+At the conditional minimizer, $\partial_0 F = 0$, so the intercept's dependence
+on $\beta$ contributes nothing to the derivative. Evaluating at
 $\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives the gradient equality. For
 the step size, $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$, so
 $1/H_{jj} \leq 1/\tilde H_{jj}$ (@eq-schur-diag). The realized step is therefore
