@@ -133,7 +133,7 @@ intercept. The gradient strategy approaches the solution through many small
 steps, whereas the Newton and exact strategies reach it in only a few.
 
 ```{julia}
-#| label: setup
+#| label: load-intercepts
 #| include: false
 
 using Intercepts
@@ -627,9 +627,114 @@ optimizing the intercept.
 ### Strategies as Schur approximations
 
 We can now classify the three intercept-update strategies by how completely they
-remove the intercept--coefficient coupling in a local model. We track the
-*gradient response* of the coefficient subproblem to an intercept step. If we
-take the step $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, twice continuous
+remove the intercept--coefficient coupling in a local model. A quadratic example
+makes the comparison explicit. Write the intercept as $a$ and one coefficient
+as $b$, and consider the unpenalized objective
+$$
+  Q(a, b) = \tfrac12 h(a + cb)^2 + \tfrac12 k b^2,
+  \qquad h, k > 0.
+$$ {#eq-quadratic-example}
+Here $h = H_{00}$. The conditional minimizer is $a^\star(b) = -cb$, so the
+profiled objective is $\tilde Q(b) = \tfrac12 k b^2$. If $e = a + cb$ denotes
+the intercept error, the coefficient gradient is
+$$
+  \partial_b Q(a, b) = kb + hc\,e.
+$$
+It consists of the profiled gradient $kb$ plus an error $hc\,e$ caused by the
+intercept. An intercept update changes this error while holding $b$ fixed.
+
+For the gradient strategy, take a curvature bound $L_0 \ge h$. Choosing
+$L_0 > h$ represents a conservative bound inherited from the original loss.
+Since $\partial_a Q = he$, the gradient step multiplies $e$ by $1 - h/L_0$,
+whereas a full Newton step and exact minimization both set $e$ to zero
+(@tbl-quadratic-updates).
+
+  | Intercept strategy | Intercept error after updating | Coefficient gradient afterward |
+  | :----------------- | :----------------------------- | :----------------------------- |
+  | Gradient           | $(1 - h/L_0)e$                 | $kb + hc(1 - h/L_0)e$           |
+  | Newton (full step)  | $0$                            | $kb$                           |
+  | Exact              | $0$                            | $kb$                           |
+
+  : Effect of one intercept update on @eq-quadratic-example, with the
+    coefficient $b$ held fixed. {#tbl-quadratic-updates}
+
+The fraction $h/L_0 = H_{00}/L_0$ therefore measures how much of the gradient
+error the gradient strategy removes. In @fig-schur-example, this fraction is
+$1/5$: the gradient update leaves most of the intercept error, while Newton and
+exact minimization reach the line $a = -cb$. Even after optimizing the intercept,
+changing $b$ by $\delta_b$ while holding $a$ fixed creates an intercept error
+$c\delta_b$. For a nonlinear loss, Newton and exact minimization generally
+differ; below, we bound the local error left by one Newton step.
+
+```{julia}
+#| label: fig-schur-example
+#| fig-cap: >-
+#|   Intercept updates on the quadratic in @eq-quadratic-example, with
+#|   $h = 1$, $c = 0.8$, $k = 0.36$, and $L_0 = 5$. Both panels start at
+#|   $(a, b) = (1.2, 1)$. Gray curves are objective level sets; the dashed line
+#|   gives the optimal intercept for each coefficient. Left: one gradient step
+#|   removes one fifth of the intercept error. Right: a full Newton step and
+#|   exact minimization both reach the dashed line. The subsequent coefficient
+#|   step, $b^+ = b - \partial_b Q/H_{bb} = 0.64$, leaves that line while
+#|   decreasing the objective.
+
+let h = 1.0, c = 0.8, k = 0.36, L0 = 5.0
+    a_start, b_start = 1.2, 1.0
+    e_start = a_start + c * b_start
+    a_gradient = a_start - h * e_start / L0
+    a_exact = -c * b_start
+    b_next = b_start - k * b_start / (h * c^2 + k)
+
+    a_grid = range(-1.6, 1.7; length = 180)
+    b_grid = range(-0.8, 1.5; length = 180)
+    values = [h * (a + c * b)^2 / 2 + k * b^2 / 2 for a in a_grid, b in b_grid]
+    fig = Figure(; size = output_size((800, 360)))
+    axes = [
+        Axis(
+            fig[1, col];
+            title = title,
+            xlabel = L"Intercept ($a$)",
+            ylabel = col == 1 ? L"Coefficient ($b$)" : "",
+            xgridvisible = false,
+            ygridvisible = false,
+        )
+        for (col, title) in enumerate(["Gradient intercept update", "Newton and exact intercept updates"])
+    ]
+
+    for ax in axes
+        contour!(ax, a_grid, b_grid, values; levels = [0.05, 0.15, 0.3, 0.6, 1.0, 1.5, 2.2, 3.0], color = :gray80)
+        lines!(ax, -c .* b_grid, b_grid; color = :gray35, linestyle = :dash, linewidth = 1.5)
+        scatter!(ax, [a_start], [b_start]; color = :black, markersize = 8)
+        text!(ax, a_start, b_start; text = "Start", offset = (0, 9), align = (:center, :bottom))
+        scatter!(ax, [0.0], [0.0]; color = :gray35, marker = :cross, markersize = 10)
+        limits!(ax, extrema(a_grid), extrema(b_grid))
+    end
+
+    arrows2d!(axes[1], [a_start], [b_start], [a_gradient - a_start], [0.0]; color = :steelblue, shaftwidth = 2, tiplength = 10, tipwidth = 10)
+    scatter!(axes[1], [a_gradient], [b_start]; color = :steelblue, markersize = 8)
+    text!(axes[1], a_gradient, b_start; text = "Gradient", color = :steelblue, offset = (-5, -13), align = (:right, :top))
+
+    arrows2d!(axes[2], [a_start], [b_start], [a_exact - a_start], [0.0]; color = :darkorange, shaftwidth = 2, tiplength = 10, tipwidth = 10)
+    scatter!(axes[2], [a_exact], [b_start]; color = :darkorange, markersize = 8)
+    text!(axes[2], a_exact, b_start; text = "Newton = exact", color = :darkorange, offset = (0, 10), align = (:center, :bottom))
+    arrows2d!(axes[2], [a_exact], [b_start], [0.0], [b_next - b_start]; color = :purple, shaftwidth = 2, tiplength = 10, tipwidth = 10)
+    scatter!(axes[2], [a_exact], [b_next]; color = :purple, markersize = 8)
+    text!(axes[2], a_exact, b_next; text = "After coefficient step", color = :purple, offset = (10, -8), align = (:left, :top))
+
+    Legend(
+        fig[2, 1:2],
+        [LineElement(; color = :gray35, linestyle = :dash), MarkerElement(; color = :gray35, marker = :cross)],
+        [L"Optimal intercept: $a = -cb$", "Joint minimum"];
+        orientation = :horizontal,
+        framevisible = false,
+    )
+    fig
+end
+```
+
+For the general loss $F$, we track the *gradient response* of the coefficient
+subproblem to an intercept step. If we take the step
+$\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, twice continuous
 differentiability gives
 $$
   \partial_j F(\beta_0 - \alpha\partial_0 F, \beta)
@@ -1182,11 +1287,11 @@ strongest feasible dual value found for their shared problem instance, so the
 displayed suboptimality bound does not depend on which strategy produced the
 primal iterate. We use pinned datasets in the real-data experiments and follow
 the same shared-reference principle in the production comparison. We load cached
-outputs for computationally expensive experiments. The toy example in
-@fig-parametric instead runs live when the notebook renders. We pin the Julia,
-R, and Python environments in the repository and give the complete construction,
-tolerances, budgets, data preparation, hardware, and reproduction protocol in
-[Supplement S3](#sec-s-methodology).
+outputs for computationally expensive experiments. The toy examples in
+@fig-parametric and @fig-schur-example run when the notebook renders. We pin the
+Julia, R, and Python environments in the repository and give the complete
+construction, tolerances, budgets, data preparation, hardware, and reproduction
+protocol in [Supplement S3](#sec-s-methodology).
 
 ## Simulated data
 
@@ -2774,8 +2879,8 @@ and iterate caps with the repository materials.
 
 We store all experimental outputs in the repository. We therefore render most
 figures from cached files, and regenerating a panel requires rerunning the
-corresponding experiment. By contrast, the illustrative @fig-parametric runs at
-render time as a small reproducible example. We pin the Julia, R, and Python
+corresponding experiment. The illustrative @fig-parametric and
+@fig-schur-example are computed at render time. We pin the Julia, R, and Python
 toolchains in the repository; they use their default OpenBLAS builds without
 thread pinning. We ran the experiments on a single x86_64 Linux workstation with
 an AMD Ryzen 9 7900 (12 cores, 24 threads) and 64 GB of RAM. The wall-clock
