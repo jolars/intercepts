@@ -1,0 +1,25 @@
+{
+    "n": 2000,
+    "p": 500,
+    "s": 10,
+    "correlation": 0.6,
+    "amplitude": 0.5,
+    "reg": 0.05,
+    "prevalences": [
+        0.5,
+        0.7,
+        0.9,
+        0.95,
+        0.99
+    ],
+    "seeds": [
+        1,
+        2,
+        3
+    ],
+    "response": "Bernoulli with calibrated marginal prevalence and common uniforms",
+    "lambda_convention": "mean logistic loss + lambda * norm(beta, 1)",
+    "reference": "Guarded-Newton CD, active-set Newton refinement, 128-bit primal-dual certification",
+    "reference_relative_gap_limit": 1.0e-8,
+    "julia_version": "1.11.9"
+}

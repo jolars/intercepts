@@ -52,6 +52,16 @@ tasks:
     cmds:
       - "{{.JULIA}} --project=. dev/figure.jl --all"
 
+  production-imbalance:
+    desc: Regenerate the controlled glmnet and biglasso imbalance sweep
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    cmds:
+      - "{{.JULIA}} --project=. experiments/sim-production-imbalance-problem.jl"
+      - Rscript experiments/sim-production-imbalance.R
+
   paper-render:
     desc: Render the paper
     cmds:

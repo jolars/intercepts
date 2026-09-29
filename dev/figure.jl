@@ -5,7 +5,7 @@
 #
 #   julia --project=. dev/figure.jl fig-rho-centering
 #   julia --project=. dev/figure.jl --all
-#   julia --project=. dev/figure.jl --full fig-real-glmnet   # uncapped table
+#   julia --project=. dev/figure.jl --full fig-production-imbalance-time
 #
 # Outputs, per label:
 #   results/figure-tables/<label>.csv       tracked --- diffing these after a

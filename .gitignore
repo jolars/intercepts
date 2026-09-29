@@ -70,6 +70,10 @@ devenv.local.yaml
 # from results/skglm-controlled/index.csv via sim-skglm-controlled-problem.jl.
 /results/skglm-controlled/cells/
 
+# Reproducible inputs and per-cell checkpoints for the production imbalance sweep.
+/results/production-imbalance/inputs/
+/results/production-imbalance/cells/
+
 # Per-cell checkpoints for the centering sweep; the large-alpha cells run tens
 # of thousands of passes, so sim-rho-centering.jl resumes from these instead of
 # recomputing. The assembled results/rho-centering.jld2 is the tracked artifact.

@@ -101,8 +101,16 @@ the <experiments/> directory. For example, to reproduce the results for the
 julia --project=. experiments/sim-mu-extreme.jl
 ```
 
-The production-solver comparison uses a two-stage workflow. First, Julia
-generates the shared standardized logistic problem consumed by every solver:
+The controlled glmnet and biglasso comparison varies response imbalance on
+synthetic designs. Generate its inputs, reference certificates, and repeated
+timings with:
+
+```bash
+task production-imbalance
+```
+
+The additional production-solver diagnostics use a two-stage workflow. First,
+Julia generates the shared standardized logistic problems:
 
 ```bash
 julia --project=. experiments/sim-real-problem.jl
@@ -111,8 +119,6 @@ julia --project=. experiments/sim-real-problem.jl
 Then the solver-specific drivers consume those cached inputs and write the CSV
 outputs used by the paper:
 
-- `Rscript experiments/sim-real-glmnet.R`
-- `Rscript experiments/sim-real-biglasso.R`
 - `Rscript experiments/sim-real-adelie.R`
 - `python experiments/sim-real-skglm.py`
 - `python experiments/sim-real-proxnewton.py`
@@ -146,7 +152,8 @@ inputs; "none" means that the producer generates its own synthetic data.
   | `@fig-real-logreg`                                                                                       | `results/real-logreg.jld2`                                                                                                              | `julia --project=. experiments/sim-real-logreg.jl`                                                                                                                                                                                                                                                                                               | Julia                | Archive    |
   | `@fig-real-poisson`                                                                                      | `results/real-poisson.jld2`                                                                                                             | `Rscript experiments/sim-real-poisson-problem.R`, then `julia --project=. experiments/sim-real-poisson.jl`                                                                                                                                                                                                                                       | R and Julia          | Archive    |
   | `@fig-mu-reg-gradient`, `@fig-mu-reg-exact`                                                              | `results/sim-mu-reg-heatmap.jld2`                                                                                                       | `julia --project=. experiments/sim-mu-reg-heatmap.jl`                                                                                                                                                                                                                                                                                            | Julia                | None       |
-  | `@fig-real-glmnet`, `@fig-real-biglasso`, `@fig-real-skglm`, `@fig-real-proxnewton`, `@fig-real-adelie`  | The five solver CSVs in each of `results/real-solvers/`, `w1a/`, and `news20-3pct/`; `results/production-references.csv`                | `julia --project=. experiments/sim-real-problem.jl`;<br>`Rscript experiments/sim-real-glmnet.R`;<br>`Rscript experiments/sim-real-biglasso.R`;<br>`Rscript experiments/sim-real-adelie.R`;<br>`python experiments/sim-real-skglm.py`;<br>`python experiments/sim-real-proxnewton.py`;<br>`julia --project=. experiments/production-reference.jl` | Julia, R, and Python | Archive    |
+  | `@fig-production-imbalance-time`, `@fig-production-imbalance-curvature` | `results/production-imbalance/{problems,ratios,timings,calibration,configurations}.csv` | `task production-imbalance` | Julia and R | None |
+  | `@fig-real-skglm`, `@fig-real-proxnewton`, `@fig-real-adelie`  | The skglm, proxnewton, and adelie CSVs in each of `results/real-solvers/`, `w1a/`, and `news20-3pct/`; `results/production-references.csv`                | `julia --project=. experiments/sim-real-problem.jl`;<br>`Rscript experiments/sim-real-adelie.R`;<br>`python experiments/sim-real-skglm.py`;<br>`python experiments/sim-real-proxnewton.py`;<br>`julia --project=. experiments/production-reference.jl` | Julia, R, and Python | Archive    |
   | `@fig-skglm-controlled`                                                                                  | `results/skglm-controlled/results.csv`                                                                                                  | `bash experiments/run-skglm-controlled.sh`                                                                                                                                                                                                                                                                                                       | Julia and Python     | None       |
   | `@fig-rho-centering`                                                                                     | `results/rho-centering.jld2`                                                                                                            | `julia --project=. experiments/sim-rho-centering.jl`                                                                                                                                                                                                                                                                                             | Julia                | None       |
   | `@fig-rho-frozen`                                                                                        | `results/rho-frozen-hessian.csv`, `results/rho-centering-diagnostics.csv`                                                               | `julia --project=. experiments/sim-rho-centering-diagnostics.jl`, then `julia --project=. experiments/sim-rho-frozen-hessian.jl`                                                                                                                                                                                                                 | Julia                | None       |
@@ -165,6 +172,28 @@ per-figure summary tables exported from the committed caches by `dev/figure.jl`
 can be diffed at the figure level.
 
 #### Runtimes and hardware
+
+`task production-imbalance` regenerates the glmnet and biglasso imbalance sweep.
+It holds the synthetic design and slope signal fixed within each of three seeds,
+calibrates five marginal response prevalences, and certifies the final objective
+before timing. It selects solver tolerances by accuracy, then records seven
+warmed repetitions of the same 50-point regularization path per mode and cell.
+The benchmark uses one BLAS/OpenMP thread and saves the individual timings,
+calibration results, configurations that miss the accuracy target, curvature
+diagnostics, and package versions. Runtime ratios require both modes to meet the
+target. Large generated inputs and per-cell checkpoints are ignored by Git; the
+small CSV summaries are committed and suffice to render the figures.
+
+If the R benchmark is interrupted, reuse completed timing cells with:
+
+```bash
+env OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  Rscript experiments/sim-production-imbalance.R --resume
+```
+
+The driver checks their inputs, package versions, and certified accuracy before
+reusing them. It logs each tolerance trial and saves intermediate calibration
+and timing results.
 
 The synthetic Julia cache producers in the table can be regenerated in one go
 with `task caches`, and the real-data ones (after staging the archive) with
