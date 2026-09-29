@@ -610,14 +610,14 @@ $$
 $$ {#eq-schur-diag}
 
 When $|\rho_{0j}|$ is close to $1$, the profiled curvature $\tilde H_{jj}$ is
-much smaller than $H_{jj}$ (@eq-schur-diag): most of the diagonal curvature seen
-in $H$ is borrowed through the intercept and disappears once we profile the
+much smaller than $H_{jj}$\ (@eq-schur-diag): most of the diagonal curvature
+seen in $H$ is borrowed through the intercept and disappears once we profile the
 intercept out. At the first coefficient update after re-optimizing the
 intercept, coordinate descent sees the gradient of $\tilde F$, although its
 diagonal step still uses $H_{jj}$. If the intercept remains stale, the update
-instead sees the partial gradient of $F$. In the local quadratic models, the
-factor $\rho_{0j}^2$ measures the gap between the profiled curvature
-$\tilde H_{jj}$ and the unprofiled curvature $H_{jj}$.
+instead sees the partial gradient of $F$. In the local quadratic model,
+$\rho_{0j}^2$ is the fraction of the unprofiled curvature $H_{jj}$ removed by
+optimizing the intercept.
 
 ### Strategies as Schur approximations
 
