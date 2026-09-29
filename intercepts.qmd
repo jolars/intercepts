@@ -717,8 +717,8 @@ neighborhood where the usual Newton conditions hold, its remaining iteration
 count scales as $O(\log\log(1/\varepsilon))$. This local result does not bound
 the steps needed to reach that neighborhood, nor does it show that every
 outer-pass subproblem begins there. Across the imbalance levels in our
-experiments, $k_0 \in [1, 5]$, and each step costs $O(n)$ work
-(@fig-per-pass-cost).
+experiments, $k_0 \in [1, 5]$, and each step costs $O(n)$
+work\ (@fig-per-pass-cost).
 
 Only the first coefficient update receives the full benefit of exact profiling;
 by the second, the intercept gradient has drifted by $H_{0j}\delta_j$
@@ -730,9 +730,8 @@ the exact strategy. The extra work should matter most when several $|H_{0j}|$
 are large, because the next coordinate sweep then perturbs $\partial_0 F$
 immediately.
 
-Three regimes make the extra intercept iterations easier to justify.
-
-First, along a warm-started $\lambda$ path, each subproblem begins with
+Three regimes make the extra intercept iterations easier to justify. First,
+along a warm-started $\lambda$ path, each subproblem begins with
 $|\partial_0 F|$ already small. Then $k_0$ drops to one or two inner Newton
 steps, the $k_0 - 1$ penalty shrinks to zero, and the Newton and exact
 strategies produce nearly identical updates.
