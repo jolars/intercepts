@@ -633,7 +633,8 @@ $$
 $$ {#eq-gradient-response}
 where $r_j(\alpha) = o(|d_0|)$ as the intercept displacement
 $d_0 = -\alpha \partial_0 F$ tends to zero. If $H_{j0}$ is locally Lipschitz,
-then $r_j(\alpha) = O(d_0^2)$. The remainder vanishes for a frozen quadratic.
+then $r_j(\alpha) = O(d_0^2)$. For a quadratic objective, the gradient is
+affine, so the remainder is zero.
 
 When $H_{00} > 0$, the local Schur correction
 $\partial_j F - (H_{j0}/H_{00})\partial_0 F$ is the gradient that a Newton
