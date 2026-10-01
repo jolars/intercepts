@@ -584,21 +584,31 @@ affect convergence.
 
 ### A normalized measure of intercept--coefficient coupling
 
-To quantify how strongly the intercept and the $j$th coefficient are coupled,
-suppose that $H_{00} > 0$ and $H_{jj} > 0$ and define the normalized
-cross-curvature
+The cross-curvature $H_{0j}$ measures how much a small intercept change affects
+the gradient for coefficient $j$. Its magnitude depends on the feature's units,
+so we normalize it by the curvature in each coordinate. For $H_{00} > 0$ and
+$H_{jj} > 0$, define
 $$
   \rho_{0j} = \frac{H_{0j}}{\sqrt{H_{00} H_{jj}}} \in [-1, 1],
 $$ {#eq-rho}
-which is invariant to rescaling of the features and the loss function. The
-Cauchy--Schwarz inequality bounds it in $[-1,1]$. A zero-curvature intercept
-direction does not admit a local Newton step, and the normalization is undefined
-when either diagonal curvature is zero. We exclude those directions when using
-$\rho_{0j}$. The two extremes are easy to interpret in the local quadratic
-model: $\rho_{0j} = 0$ means the coordinates are locally decoupled, while
-$|\rho_{0j}| \to 1$ means a change in $\beta_0$ is almost fully absorbed by an
-opposite change in $\beta_j$ (or vice versa), making the two coordinates nearly
-degenerate along that direction.
+where the bound follows from Cauchy--Schwarz. If $\rho_{0j} = 0$, changing the
+intercept leaves the coefficient's gradient unchanged to first order. In the
+local quadratic model, $|\rho_{0j}|$ close to one means that adjusting the
+intercept along with the coefficient can greatly reduce the curvature compared
+with holding the intercept fixed.
+
+For example, suppose that $x_{ij} = 2$ for every observation. Increasing
+$\beta_j$ by $0.1$ adds $0.2$ to every linear predictor. Decreasing $\beta_0$ by
+$0.2$ cancels this change exactly, so the loss stays unchanged. Here
+$\rho_{0j} = 1$: the intercept and coefficient have interchangeable effects on
+the loss. A similar local effect occurs when the feature is nearly constant at
+a nonzero value among observations with substantial curvature weights $w_i$,
+even if it varies across the full data set.
+
+Positive rescaling of the feature or loss leaves $\rho_{0j}$ unchanged, while
+reversing the feature's sign reverses $\rho_{0j}$. We use $\rho_{0j}$ only when
+both diagonal curvatures are positive; if $H_{00} = 0$, a local Newton step is
+also undefined.
 
 ### The profiled objective
 
