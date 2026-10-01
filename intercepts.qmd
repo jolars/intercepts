@@ -70,7 +70,7 @@ speed when the response is imbalanced. For direct coordinate descent, a single
 safeguarded Newton step per pass removes this slowdown in our experiments.
 
 The disagreement follows a deeper split among implementations. Some solvers,
-including skglm[^1]\ [@bertrand2022], run coordinate descent directly on the
+including **skglm**[^1]\ [@bertrand2022], run coordinate descent directly on the
 original GLM loss. Others repeatedly replace that loss with a quadratic
 approximation and solve the approximation by coordinate descent. A local
 quadratic already contains the current intercept curvature, so the update
@@ -79,7 +79,7 @@ bound retains the same problem as the conservative direct update. The six
 production solvers in @sec-production-solvers use these designs. We explain in
 @sec-theory and @sec-irls when the distinction matters.
 
-[^1]: Among the surveyed solvers, only skglm's intercept update is
+[^1]: Among the surveyed solvers, only **skglm**'s intercept update is
     version-dependent: version 0.5 and earlier take the gradient step described
     here, while a later patch replaces it with a Newton step
     (@sec-production-solvers). We pin the version wherever this behavior
@@ -268,14 +268,14 @@ We make four contributions:
 The choice of intercept update touches three strands of the literature, none of
 which has analyzed it as a separate problem. The first concerns how CD-based GLM
 solvers incorporate the intercept. Existing work generally treats this as a
-routine implementation choice. The glmnet literature\ [@friedman2010; @tay2023],
+routine implementation choice. The **glmnet** literature\ [@friedman2010; @tay2023],
 for example, describes two schemes for weighting the inner logistic solver in
 iteratively reweighted least squares (IRLS): local weights and a global 1/4
 upper bound. The software exposes them through `type.logistic = "Newton"` and
 `"modified.Newton"`, which the documentation presents as a speed trade-off
 rather than as a choice of intercept strategy.
 
-LIBLINEAR's newGLMNET solver\ [@fan2008; @yuan2012] treats the intercept as the
+**LIBLINEAR**'s newGLMNET solver\ [@fan2008; @yuan2012] treats the intercept as the
 unregularized last coordinate of each prox-Newton subproblem. Coordinate descent
 then optimizes the intercept along with the coefficients. By the end of the
 inner solve, the intercept has reached its conditional minimum for the
@@ -288,12 +288,12 @@ CD solve of the quadratic program, the intercept update is the pure Newton step
 `z = -G/H` (`linear.cpp:1972-1977`). The outer Newton loop ends without any
 separate intercept loop on the original loss.]
 
-BlitzL1\ [@johnson2015] does the same inside the prox-Newton inner CD solve.
+**BlitzL1**\ [@johnson2015] does the same inside the prox-Newton inner CD solve.
 After each subproblem, it also runs a capped one-dimensional Newton loop on the
 original loss to bring the intercept gradient within tolerance.^[Source:
 <https://github.com/tbjohns/BlitzL1/blob/aef8d02/src/solver.cpp#L27-L55>. The
 loop is called from `run_prox_newton_iteration` (`solver.cpp:262`) after the
-working-set CD pass and step-size backtracking.] celer\ [@massias2020] does not
+working-set CD pass and step-size backtracking.] **celer**\ [@massias2020] does not
 support intercepts for $\ell_1$-logistic regression. Implementations therefore
 make varied choices, but previous work has not directly analyzed the response
 distributions for which those choices matter.
@@ -301,7 +301,7 @@ distributions for which those choices matter.
 A second thread is the Frisch--Waugh--Lovell tradition of partialling out. In
 linear regression, the intercept can be handled separately: centering the
 features decouples it from the slopes and, when the intercept is left
-unpenalized, gives $\hat\beta_0 = \bar y$\ [@lovell1963]. glmnet leaves the
+unpenalized, gives $\hat\beta_0 = \bar y$\ [@lovell1963]. **glmnet** leaves the
 intercept unpenalized on translation-invariance grounds---penalizing $\beta_0$
 would make the path depend on the arbitrary location of $y$---and this
 decoupling makes that choice essentially free under Gaussian loss. After solving
@@ -311,7 +311,7 @@ $\hat\beta_0 = \bar y - \bar x^\top \hat\beta$.
 For non-Gaussian GLMs, the decoupling fails because curvature varies across
 observations. Ordinary feature centering no longer removes the interaction
 between the intercept and the slopes, and the closed form for $\hat\beta_0$
-disappears. adelie\ [@yang2024] handles this dependence through its proximal
+disappears. **adelie**\ [@yang2024] handles this dependence through its proximal
 quasi-Newton approximation. At each linearization, it builds a weighted Gaussian
 surrogate and absorbs the intercept into that surrogate rather than treating it
 as a separate CD coordinate.^[Source:
@@ -326,7 +326,7 @@ the loss has constant curvature, so the gradient and Newton strategies coincide
 on the intercept.
 
 The third thread is majorization--minimization\ (MM). The constant $L_0 = 1/4$,
-which skglm uses as its global per-coordinate Lipschitz step, is the binary
+which **skglm** uses as its global per-coordinate Lipschitz step, is the binary
 specialization of the quadratic Hessian majorant used by @bohning1992 to build
 an MM algorithm for multinomial logistic regression. @hunter2004 give the
 canonical exposition of MM. @krishnapuram2005 apply Böhning's bound to
@@ -334,7 +334,7 @@ L1-penalized multinomial logistic regression, a direct precedent for our
 multinomial extension.
 
 In regularized logistic regression, the same construction appears in the
-`modified.Newton` mode of glmnet and the `MM` mode of biglasso\ [@zeng2017]
+`modified.Newton` mode of **glmnet** and the `MM` mode of **biglasso**\ [@zeng2017]
 (@tbl-classification). Because the global majorant does not adapt to local
 curvature, it can produce a much smaller intercept correction than a Newton step
 when the response is imbalanced. In multinomial regression, the same mismatch
@@ -536,7 +536,7 @@ $\beta_j$:
 
 4. In IRLS-CD, optimizing the intercept re-centers the quadratic surrogate by
    setting the weighted mean of its residuals to zero. No individual slope
-   performs this role. adelie can therefore absorb the intercept into a
+   performs this role. **adelie** can therefore absorb the intercept into a
    parameterization of the inner Gaussian problem centered by weighted means
    rather than update it as a separate coordinate. @sec-irls derives this
    identity.
@@ -947,8 +947,8 @@ applies.
 
 Third, at a prox-Newton or IRLS linearization boundary, the solver recomputes
 the Hessian for the next subproblem, so the within-pass drift no longer matters.
-This case explains why LIBLINEAR fully resolves the intercept of its frozen
-quadratic and why BlitzL1 goes further, applying an exact-strategy loop to the
+This case explains why **LIBLINEAR** fully resolves the intercept of its frozen
+quadratic and why **BlitzL1** goes further, applying an exact-strategy loop to the
 original loss after the prox-Newton step (@sec-irls).
 
 In the first two regimes, the exact strategy on the original loss is defensible.
@@ -1192,7 +1192,7 @@ draw(
 
 So far, we have considered *direct* coordinate descent on $F$, which recomputes
 the weights $w_i = f''(\eta_i; y_i)$ after every coefficient update. A widely
-used alternative---and the one used by glmnet\ [@friedman2010]---is iteratively
+used alternative---and the one used by **glmnet**\ [@friedman2010]---is iteratively
 reweighted least squares (IRLS)\ [@mccullagh1989]. At the current iterate
 $(\beta_0^{(t)}, \beta^{(t)})$, IRLS forms the weighted least squares quadratic
 surrogate
@@ -1203,9 +1203,9 @@ $$
 with working response $z_i^{(t)} = \eta_i^{(t)} - r_i^{(t)} / w_i^{(t)}$. It
 then solves $\tilde F^{(t)}$ by inner CD and re-linearizes. In practice, solvers
 use two kinds of weights: *local* weights $w_i^{(t)} = f''(\eta_i^{(t)}; y_i)$
-(glmnet's `type.logistic = "Newton"`), and *MM-majorized* weights replacing
+(**glmnet**'s `type.logistic = "Newton"`), and *MM-majorized* weights replacing
 $w_i^{(t)}$ by a global upper bound on $f''$ (e.g., $w_i \equiv 1/4$ for
-logistic regression, as in glmnet's `type.logistic = "modified.Newton"`,
+logistic regression, as in **glmnet**'s `type.logistic = "modified.Newton"`,
 following the MM tradition of @hunter2004).
 
 Within an inner solve with local weights, $\tilde F^{(t)}$ is quadratic in
@@ -1214,7 +1214,7 @@ Lipschitz constant satisfies $L_0^{\text{inner}} = H_{00}$. The fraction in
 @eq-grad-residual is therefore $H_{00} / L_0^{\text{inner}} = 1$. Because a
 Newton step on a quadratic is exact, the gradient, Newton, and exact strategies
 all coincide on the inner subproblem. Thus, the distinction that we analyze is
-specific to direct-CD solvers, such as skglm, and does not arise within a
+specific to direct-CD solvers, such as **skglm**, and does not arise within a
 local-weight IRLS inner solve.
 
 The strategies no longer coincide under MM majorization. Replacing $w_i^{(t)}$
@@ -1233,7 +1233,7 @@ further $1/L_0$ steps on the original loss.
 
 The correction transmitted at each re-linearization is nevertheless governed by
 the same attenuation. The Schur-coupling residual (@eq-grad-residual) thus
-applies directly to glmnet's `modified.Newton` mode: under response imbalance,
+applies directly to **glmnet**'s `modified.Newton` mode: under response imbalance,
 the leading-order correction fraction $H_{00}/L_0$ shrinks and the intercept
 update slows, approaching a true stall only as fitted probabilities reach the
 boundary.
@@ -1241,7 +1241,7 @@ boundary.
 MM majorization was introduced to stabilize the working response $z_i$ when
 $w_i \to 0$---the same regime in which the resulting update converges slowly.
 For Poisson loss, no global upper bound on $f''$ exists, so this MM construction
-is unavailable. glmnet instead uses local-weight IRLS, where the three
+is unavailable. **glmnet** instead uses local-weight IRLS, where the three
 strategies coincide as described above.
 
 Changing from local weights to the constant majorant also changes every
@@ -1258,51 +1258,51 @@ within-pass drift of @eq-intercept-drift, which is specific to direct CD.
 
 The appropriate intercept strategy therefore depends on the solver family. The
 production solvers fall into the classes in @tbl-classification. Of the CD-based
-packages that we surveyed, only skglm 0.5 and earlier apply the gradient
-strategy directly to the original loss. The remaining solvers---glmnet,
-biglasso, adelie, LIBLINEAR, BlitzL1, Lasso.jl, and ncvreg\ [@breheny2011]---all
+packages that we surveyed, only **skglm** 0.5 and earlier apply the gradient
+strategy directly to the original loss. The remaining solvers---**glmnet**,
+**biglasso**, **adelie**, **LIBLINEAR**, **BlitzL1**, **Lasso.jl**, and **ncvreg**\ [@breheny2011]---all
 linearize before running CD, using either IRLS or proximal-Newton\ [@lee2014] on
 a quadratic upper bound.^[Sources for the two solvers not in
-@tbl-classification: ncvreg recomputes local weights
+@tbl-classification: **ncvreg** recomputes local weights
 `w[i] = fmax2(mu * (1 - mu), 0.0001)` at each linearization and updates the
 intercept as the weighted-least-squares conditional minimum of the surrogate
 (`b0[l] = xwr / xwx + a0`,
-<https://github.com/pbreheny/ncvreg/blob/77a3d83/src/glm.c#L198-L237>); Lasso.jl
-fits GLMs by glmnet-style IRLS, an outer re-linearization loop with working
+<https://github.com/pbreheny/ncvreg/blob/77a3d83/src/glm.c#L198-L237>); **Lasso.jl**
+fits GLMs by **glmnet**-style IRLS, an outer re-linearization loop with working
 weights and residuals around an inner CD solve
 (<https://github.com/JuliaStats/Lasso.jl/blob/cffedae/src/coordinate_descent.jl#L696-L704>).]
-The mode switches within glmnet (`Newton` versus `modified.Newton`) and biglasso
+The mode switches within **glmnet** (`Newton` versus `modified.Newton`) and **biglasso**
 (`Newton` versus `MM`) isolate the effect of the weight scheme analyzed in
 @eq-grad-residual.
 
-We exclude two related implementations from the table. Scikit-learn's
-L1-logistic path either delegates to LIBLINEAR or uses SAGA, a variance-reduced
-stochastic-gradient method outside the CD framework analyzed here. celer's
+We exclude two related implementations from the table. **Scikit-learn**'s
+L1-logistic path either delegates to **LIBLINEAR** or uses SAGA, a variance-reduced
+stochastic-gradient method outside the CD framework analyzed here. **celer**'s
 L1-logistic estimator does not support an intercept in version 0.7.4, and its
-documentation directs users to skglm for logistic regression.
+documentation directs users to **skglm** for logistic regression.
 
-  | Solver                                        | Family                | Intercept treatment                                    |
-  | :-------------------------------------------- | :-------------------- | :----------------------------------------------------- |
-  | skglm 0.5                                     | Constant-Lipschitz CD | Gradient on original loss ($L_0 = 1/4$)                |
-  | glmnet (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
-  | biglasso (`alg.logistic = "MM"`)              | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
-  | glmnet (`type.logistic = "Newton"`)           | Local-IRLS            | Conditional minimum of frozen local quadratic          |
-  | biglasso (`alg.logistic = "Newton"`, default) | Local-IRLS            | Conditional minimum of frozen local quadratic          |
-  | adelie                                        | Local-IRLS            | Conditional minimum of weighted, centered quadratic    |
-  | LIBLINEAR (newGLMNET, L1-LR)                  | Prox-Newton           | Conditional minimum of frozen quadratic; unregularized |
-  | BlitzL1                                       | Prox-Newton           | Post-step Newton convergence on original loss          |
+  | Solver                                            | Family                | Intercept treatment                                    |
+  | :--------------------------------------------     | :-------------------- | :----------------------------------------------------- |
+  | **skglm** 0.5                                     | Constant-Lipschitz CD | Gradient on original loss ($L_0 = 1/4$)                |
+  | **glmnet** (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
+  | **biglasso** (`alg.logistic = "MM"`)              | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
+  | **glmnet** (`type.logistic = "Newton"`)           | Local-IRLS            | Conditional minimum of frozen local quadratic          |
+  | **biglasso** (`alg.logistic = "Newton"`, default) | Local-IRLS            | Conditional minimum of frozen local quadratic          |
+  | **adelie**                                        | Local-IRLS            | Conditional minimum of weighted, centered quadratic    |
+  | **LIBLINEAR** (newGLMNET, L1-LR)                  | Prox-Newton           | Conditional minimum of frozen quadratic; unregularized |
+  | **BlitzL1**                                       | Prox-Newton           | Post-step Newton convergence on original loss          |
 
   : Classification of CD-based production solvers by algorithmic family and
     intercept treatment. IRLS and prox-Newton rows conditionally minimize a
-    frozen quadratic surrogate, not the original GLM loss; BlitzL1 alone
+    frozen quadratic surrogate, not the original GLM loss; **BlitzL1** alone
     additionally applies a post-step one-dimensional Newton loop on the original
     loss. {#tbl-classification}
 
-LIBLINEAR (newGLMNET) and BlitzL1 treat the intercept differently at the
-boundary of each prox-Newton step. LIBLINEAR leaves the intercept unregularized
+**LIBLINEAR** (newGLMNET) and **BlitzL1** treat the intercept differently at the
+boundary of each prox-Newton step. **LIBLINEAR** leaves the intercept unregularized
 inside the inner CD solve. As the quadratic program converges, the intercept
 reaches the conditional minimum of the frozen quadratic, which generally differs
-from that of the original loss. BlitzL1 additionally runs an explicit
+from that of the original loss. **BlitzL1** additionally runs an explicit
 one-dimensional Newton loop to convergence on the original loss after each
 subproblem and therefore applies the exact strategy at that boundary.
 
@@ -1315,7 +1315,7 @@ For direct CD, we therefore recommend a Newton update of the intercept. Within
 each IRLS or prox-Newton quadratic surrogate, we recommend optimizing the
 intercept fully, with an optional correction on the original loss at the
 linearization boundary. The surveyed production solvers follow the first two
-recommendations; BlitzL1 also follows the third.
+recommendations; **BlitzL1** also follows the third.
 
 In @fig-irls-comparison, we compare direct CD and IRLS on a synthetic logistic
 problem. Throughout the synthetic experiments, $\mu_0$ denotes the baseline mean
@@ -1570,12 +1570,12 @@ peculiar to w1a.
 
   | dataset       | $n$   | $p$   | density | $\pi_+$ | $4\pi_+(1 - \pi_+)$ |
   | :------------ | ----: | ----: | :------ | ------: | ------------------: |
-  | w1a           | 2,477 |   300 | sparse  |   0.029 |               0.113 |
-  | news20-3pct   | 2,000 | 4,675 | sparse  |   0.030 |               0.116 |
-  | a4a           | 4,781 |   123 | sparse  |   0.248 |               0.747 |
-  | leukemia      |    38 | 7,129 | dense   |   0.711 |               0.823 |
-  | breast-cancer |   683 |    10 | dense   |   0.350 |               0.910 |
-  | gisette       | 6,000 | 5,000 | dense   |   0.500 |               1.000 |
+  | w1a           | 2,477 | 300   | sparse  | 0.029   | 0.113               |
+  | news20-3pct   | 2,000 | 4,675 | sparse  | 0.030   | 0.116               |
+  | a4a           | 4,781 | 123   | sparse  | 0.248   | 0.747               |
+  | leukemia      | 38    | 7,129 | dense   | 0.711   | 0.823               |
+  | breast-cancer | 683   | 10    | dense   | 0.350   | 0.910               |
+  | gisette       | 6,000 | 5,000 | dense   | 0.500   | 1.000               |
 
   : LIBSVM problems used in @fig-real-logreg. $\pi_+$ is the positive-class
     marginal, and $4\pi_+(1 - \pi_+)$ is the intercept-only curvature fraction,
@@ -1815,9 +1815,9 @@ the coupled mode becomes slowest.
 ## Production solvers {#sec-production-solvers}
 
 The production experiments test two aspects of the curvature explanation. A
-controlled synthetic family tests how glmnet and biglasso respond to increasing
+controlled synthetic family tests how **glmnet** and **biglasso** respond to increasing
 response imbalance. Their mode switches change the full IRLS weight scheme. A
-separate comparison of two skglm versions isolates the intercept update itself.
+separate comparison of two **skglm** versions isolates the intercept update itself.
 Additional diagnostics examine the other production solvers on the shared
 synthetic problem, w1a, and news20-3pct.
 
@@ -1852,7 +1852,7 @@ function add_production_suboptimality(df, family)
 end
 ```
 
-### Response imbalance in glmnet and biglasso
+### Response imbalance in **glmnet** and **biglasso**
 
 We generate three standardized Gaussian designs with $n = 2000$, $p = 500$,
 AR(1) correlation $0.6$, and ten nonzero generating coefficients of size $0.5$.
@@ -1864,7 +1864,7 @@ sweep changes response imbalance without changing the feature matrix or slope
 signal. At the 1% target minority share, the realized share ranges from 0.55% to
 1.40% across seeds.
 
-We compare `Newton` with `modified.Newton` in glmnet and with `MM` in biglasso.
+We compare `Newton` with `modified.Newton` in **glmnet** and with `MM` in **biglasso**.
 For each problem, both modes receive the same explicit 50-point geometric path
 from $\lambda_{\max}$ to $0.05\lambda_{\max}$. This fixes the relative penalty;
 its absolute value and the fitted active set can change with the responses.
@@ -1877,14 +1877,14 @@ We then warm each selected fit once and time seven repetitions, interleaving the
 modes in a seeded random order. Each timed repetition must reach the same
 accuracy target. Timings cover the full regularization path and exclude input
 conversion, tolerance calibration, explicit warm-up, and certificate evaluation.
-We allow at most $10^6$ passes per path in glmnet and $10^4$ iterations per path
-point in biglasso. We compare medians within each problem and package only when
+We allow at most $10^6$ passes per path in **glmnet** and $10^4$ iterations per path
+point in **biglasso**. We compare medians within each problem and package only when
 both modes reach the accuracy target. The cached results also record every
 configuration that fails to reach it on the tolerance grid.
 
 ```{julia}
 #| label: fig-production-imbalance-time
-#| fig-cap: Runtime sensitivity to response imbalance in glmnet and biglasso.
+#| fig-cap: Runtime sensitivity to response imbalance in **glmnet** and **biglasso**.
 #|   Each curve follows one fixed design and slope signal as the generating
 #|   intercept changes. The vertical axis is the ratio of median full-path
 #|   runtimes for the majorization mode to the Newton mode, using seven warmed
@@ -1948,8 +1948,8 @@ imbalance_figure
 
 The ratio of majorization to Newton runtime rises with imbalance in every seed.
 The ratios are close to one under balance. At a 5% target minority share, they
-reach about $4.4$--$7.1$ in glmnet and $6.6$--$9.4$ in biglasso. At 1%, glmnet's
-ratio reaches $13.5$--$20.4$. Both biglasso modes miss the accuracy target on
+reach about $4.4$--$7.1$ in **glmnet** and $6.6$--$9.4$ in **biglasso**. At 1%, **glmnet**'s
+ratio reaches $13.5$--$20.4$. Both **biglasso** modes miss the accuracy target on
 all three 1% problems within the calibration grid and iteration budget. We
 therefore show no runtime ratio for those cells.
 
@@ -2010,29 +2010,29 @@ which the analysis predicts the largest difference between curvature schemes.
 
 The mode switches change coefficient curvatures as well as the intercept
 correction. This experiment tests the sensitivity of the whole curvature scheme
-to imbalance. The following skglm comparison supplies the intervention on the
+to imbalance. The following **skglm** comparison supplies the intervention on the
 intercept alone.
 
-### An intercept-only comparison in skglm
+### An intercept-only comparison in **skglm**
 
 The remaining solver diagnostics use the shared synthetic problem, w1a, and
 news20-3pct, with $\lambda = 0.05\lambda_{\max}$ in each case. These problems
 cover a dense Gaussian design, sparse binary features, and sparse text features.
-The skglm tolerance sweep fits the target $\lambda$ directly, while the
-LIBLINEAR, BlitzL1, and adelie comparisons use 50-point regularization
+The **skglm** tolerance sweep fits the target $\lambda$ directly, while the
+**LIBLINEAR**, **BlitzL1**, and **adelie** comparisons use 50-point regularization
 paths.[^cold-start-footnote] Each plotted point reports the endpoint of a fit at
 one tolerance, evaluated against the shared feasible dual reference $D^\star$
 for that problem.
 
 [^cold-start-footnote]: At the single-$\lambda$ configuration reported in
-    [Supplement S5.2](#sec-cold-start-diag), biglasso `alg.logistic = "Newton"`
+    [Supplement S5.2](#sec-cold-start-diag), **biglasso** `alg.logistic = "Newton"`
     returns inaccurate fits on both extreme-imbalance real datasets, while
-    adelie returns an empty state on w1a. These results use loose solver
+    **adelie** returns an empty state on w1a. These results use loose solver
     tolerances and do not describe either package's default configuration.
 
 ```{julia}
 #| label: fig-real-skglm
-#| fig-cap: skglm 0.5 on three imbalanced logistic problems. The panels show a
+#| fig-cap: **skglm** 0.5 on three imbalanced logistic problems. The panels show a
 #|   suboptimality bound versus `AndersonCD` outer iterations on the shared
 #|   synthetic problem, w1a, and news20-3pct, using the common feasible dual
 #|   reference $D^\star$ for each problem.
@@ -2062,19 +2062,19 @@ draw(
 )
 ```
 
-In skglm 0.5, the intercept update uses the gradient strategy directly on the
+In **skglm** 0.5, the intercept update uses the gradient strategy directly on the
 original loss. The tolerance sweep shows slow progress consistent with the
 Schur-coupling residual (@eq-grad-residual). That diagnosis motivated a pull
-request to skglm replacing the gradient update with a Newton step; the change
+request to **skglm** replacing the gradient update with a Newton step; the change
 was merged upstream as commit `8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
-    2026-05-13. skglm 0.6 is unreleased at the time of writing; the controlled
+    2026-05-13. **skglm** 0.6 is unreleased at the time of writing; the controlled
     comparison below pins the two relevant commits directly.
 
-The glmnet and biglasso switches change the full IRLS weight scheme, and the
+The **glmnet** and **biglasso** switches change the full IRLS weight scheme, and the
 cross-package panels also reflect implementation differences. To isolate the
-intercept update, we compare two skglm commits that differ only in that update
+intercept update, we compare two **skglm** commits that differ only in that update
 (@fig-skglm-controlled): `b03644fe`, the last pre-fix commit and behaviorally
 identical to the released 0.5, and `8f9cbd77`, the merged Newton fix. Running
 the same `AndersonCD` driver on both yields a controlled 30-cell comparison.
@@ -2093,7 +2093,7 @@ rather than exact comparisons.
 
 ```{julia}
 #| label: fig-skglm-controlled
-#| fig-cap: Within-skglm commit comparison. The heatmap shows
+#| fig-cap: Within-**skglm** commit comparison. The heatmap shows
 #|   $\log_{10}(T_{\mathtt{b03644fe}} / T_{\mathtt{8f9cbd77}})$ for `AndersonCD`
 #|   across the same $(\mu_0,\lambda/\lambda_{\max})$ grid as
 #|   @fig-mu-reg-gradient, averaged over three seeds; clipped cells mark runs
@@ -2125,17 +2125,17 @@ draw(spec_sk * visual(Heatmap), figure = (; size = output_size((400, 250))))
 The prox-Newton solvers provide a complementary test. Resolving the intercept
 with local curvature inside each quadratic should avoid the stall caused by a
 global majorant. An additional correction on the original loss may improve the
-intercept at the subproblem boundary. LIBLINEAR\ (newGLMNET) implements the
-former, while BlitzL1 implements both. We compare the time they take to approach
+intercept at the subproblem boundary. **LIBLINEAR**\ (newGLMNET) implements the
+former, while **BlitzL1** implements both. We compare the time they take to approach
 the shared certificate on the same three problems in @fig-real-proxnewton,
-complementing the skglm iteration-count comparison and the glmnet and biglasso
+complementing the **skglm** iteration-count comparison and the **glmnet** and **biglasso**
 imbalance sweep.
 
 ```{julia}
 #| label: fig-real-proxnewton
 #| fig-cap: Prox-Newton solvers on three imbalanced logistic problems. The
-#|   panels show a suboptimality bound versus wall-clock time for LIBLINEAR and
-#|   BlitzL1 on the shared synthetic problem, w1a, and news20-3pct. LIBLINEAR
+#|   panels show a suboptimality bound versus wall-clock time for **LIBLINEAR** and
+#|   **BlitzL1** on the shared synthetic problem, w1a, and news20-3pct. **LIBLINEAR**
 #|   runs that hit the internal `max_iter` cap without further progress are
 #|   omitted. Both solvers use the common feasible dual reference $D^\star$ for
 #|   each problem. Each point is an independent fit at one tolerance; the
@@ -2172,29 +2172,29 @@ draw(
 )
 ```
 
-We test the same prediction in adelie. It builds the same weighted Gaussian
-surrogate as glmnet `Newton`, but it handles the intercept implicitly: rather
+We test the same prediction in **adelie**. It builds the same weighted Gaussian
+surrogate as **glmnet** `Newton`, but it handles the intercept implicitly: rather
 than updating $\beta_0$ as a coordinate inside the inner CD pass, it centers the
 features using weighted means at the start of each surrogate and tracks the
 residual mean, reconstructing $\beta_0 = \bar{y} + \overline{\mathrm{resid}}$ at
 the end of the inner solve. By construction, the intercept therefore reaches the
 surrogate optimum on every outer pass, with no separate update step.
 
-That places adelie in the same class as glmnet `Newton` and biglasso `Newton`.
+That places **adelie** in the same class as **glmnet** `Newton` and **biglasso** `Newton`.
 In @fig-real-adelie, we sweep its convergence tolerance across the same three
 problems used above. The curves are flat for `tol` values above roughly
 $10^{-4}$: path mode warm-starts each of the 50 lambdas from its predecessor,
 and those warm starts alone land within $10^{-5}$ of the optimum, already
-meeting the tolerance. Below that plateau, adelie's final objectives lie within
+meeting the tolerance. Below that plateau, **adelie**'s final objectives lie within
 the shared reference certificate: the suboptimality bounds are on the order of
 $10^{-11}$ and then become limited by the certificate. Each fit completes in
-well under a second, and adelie shows no stall or failed solve.
+well under a second, and **adelie** shows no stall or failed solve.
 
 ```{julia}
 #| label: fig-real-adelie
-#| fig-cap: adelie on three imbalanced logistic problems. The panels show a
+#| fig-cap: **adelie** on three imbalanced logistic problems. The panels show a
 #|   suboptimality bound versus convergence tolerance on the same three problems
-#|   used for skglm, LIBLINEAR, and BlitzL1. The horizontal axis is the coupled
+#|   used for **skglm**, **LIBLINEAR**, and **BlitzL1**. The horizontal axis is the coupled
 #|   outer and inner tolerance (`tol = irls_tol`), and the bound uses the common
 #|   feasible dual reference $D^\star$ for each problem.
 
@@ -2232,7 +2232,7 @@ S5.1](#sec-production-poisson)).
 
 A separate single-$\lambda$ diagnostic probes the opposite risk: local Newton
 curvature can be unstable at a cold start when solver tolerances are
-deliberately loose. The observed biglasso and adelie failures depend on the
+deliberately loose. The observed **biglasso** and **adelie** failures depend on the
 dataset and do not describe their default path-mode calls. We therefore treat
 them as evidence for safeguarding the Newton direction, not as a package ranking
 ([Supplement S5.2](#sec-cold-start-diag)).
@@ -2256,10 +2256,10 @@ one-step mismatch becomes the late-stage $L_0/H_{00}$ rate plateau under strong
 collective coupling (@prp-frozen-block-rate, @fig-rho-frozen). This is a local
 explanation, not a global iteration-complexity theorem.
 
-The production comparisons test the rule outside our implementation. The glmnet
-and biglasso switches hold the package fixed but change the full IRLS weight
-scheme, while the before-and-after skglm comparison changes only the intercept
-update (@sec-production-solvers). The skglm intervention supplies direct causal
+The production comparisons test the rule outside our implementation. The **glmnet**
+and **biglasso** switches hold the package fixed but change the full IRLS weight
+scheme, while the before-and-after **skglm** comparison changes only the intercept
+update (@sec-production-solvers). The **skglm** intervention supplies direct causal
 evidence for the effect of the intercept update. The other comparisons support
 the broader prediction about global versus local curvature, but they do not
 isolate that update from the rest of the surrogate or implementation.
@@ -2288,9 +2288,9 @@ Second, the production-solver imbalance sweep fixes the design family and
 $\lambda/\lambda_{\max} = 0.05$. It includes three seeds at five prevalence
 levels, while the additional solver diagnostics use three benchmark problems.
 The heatmap in @sec-imbalance-reg reproduces the binary direct-CD predictions
-across a 30-cell grid, but the glmnet and biglasso comparison does not sweep the
+across a 30-cell grid, but the **glmnet** and **biglasso** comparison does not sweep the
 regularization axis. Future work should extend that comparison and check the
-multinomial predictions against glmnet's symmetric-multinomial path and adelie's
+multinomial predictions against **glmnet**'s symmetric-multinomial path and **adelie**'s
 multi-response solver.
 
 ```{=latex}
@@ -2511,14 +2511,14 @@ have proved the exact-block limit in @prp-frozen-block-rate and verified the
 full permuted-sweep operator numerically. A general Lyapunov-exponent theorem
 for the random matrix products is beyond our present analysis.
 
-The curvature mismatch also appears in @sec-production-solvers. In glmnet's
-`modified.Newton` mode and biglasso's `MM` mode, the first intercept correction
+The curvature mismatch also appears in @sec-production-solvers. In **glmnet**'s
+`modified.Newton` mode and **biglasso**'s `MM` mode, the first intercept correction
 at each linearization uses the global $L_0 = 1/4$ (@sec-irls). The runtime
 ratios in @fig-production-imbalance-time measure the practical effect of
 changing the weight scheme across imbalance levels. The diagnostics in
 @fig-production-imbalance-curvature track both the shrinking curvature fraction
 and the changing coupling; the mode switches also change the coefficient updates
-and the cost per pass. skglm (version 0.5) applies the gradient strategy
+and the cost per pass. **skglm** (version 0.5) applies the gradient strategy
 directly to the original loss. Its slow convergence from suboptimality
 $\approx 10^{-1}$ to $\approx 10^{-5}$ in @fig-real-skglm accompanies the
 intercept's slow climb toward its fitted value at step size $1/L_0$.
@@ -2535,11 +2535,11 @@ identically to the bare-Lipschitz version: the Lipschitz step satisfies the
 sufficient-decrease condition on the first attempt, and the line search never
 fires (@fig-mu-extreme).
 
-At the time of these experiments, skglm\ (version 0.5)\ [@bertrand2022] used
+At the time of these experiments, **skglm**\ (version 0.5)\ [@bertrand2022] used
 constant per-coordinate Lipschitz steps and, on its internal unaveraged loss, an
 intercept step of $4/n$. This is the gradient strategy defined above, with
 $L_0 = 1/4$ on the averaged loss, and it uses no line search. The other CD-based
-production packages we surveyed (glmnet, biglasso, LIBLINEAR, and BlitzL1) embed
+production packages we surveyed (**glmnet**, **biglasso**, **LIBLINEAR**, and **BlitzL1**) embed
 the intercept update inside an outer IRLS or proximal-Newton linearization
 (@sec-irls). None of the production CD solvers we surveyed use a growth-allowing
 line search on the intercept alone.
@@ -2629,7 +2629,7 @@ We implement block coordinate descent over classes. For each feature $j$, we
 cycle through the $K - 1$ class coefficients using elementwise $\ell_1$
 soft-thresholding, and we update the intercept vector once per pass. An
 alternative is to cycle through one class at a time while holding the others
-fixed, as in glmnet's symmetric-multinomial path. We return to that scheme after
+fixed, as in **glmnet**'s symmetric-multinomial path. We return to that scheme after
 presenting the block-CD results.
 
 In the synthetic experiments, $\pi_k$ denotes the baseline probability used to
@@ -2871,7 +2871,7 @@ a single Hessian diagonal controls the block solve. The rare-class slowdown
 therefore appears both when $p \gg n$ in the gene-expression data and when
 $n \gg p$ in the sensor data (@fig-real-multinomial-shuttle).
 
-The class-by-class scheme of glmnet's symmetric-multinomial path leads to a
+The class-by-class scheme of **glmnet**'s symmetric-multinomial path leads to a
 parallel conclusion. Holding all $\eta_{il}$ for $l \neq k$ fixed, the marginal
 subproblem in class $k$'s linear predictors $\eta_{ik}$ is, up to a
 per-observation offset $\log\bigl(1 + \sum_{l \neq k} e^{\eta_{il}}\bigr)$, a
@@ -2974,8 +2974,8 @@ it.
 
 ## S3. Experimental methods and reproducibility {#sec-s-methodology .unnumbered}
 
-We run all internal-solver experiments with the `Intercepts` Julia package on
-Julia 1.11 and the default OpenBLAS. Our primary measure of work is the number
+We run all internal-solver experiments with the **Intercepts** Julia package on
+Julia 1.11 and the default **OpenBLAS**. Our primary measure of work is the number
 of outer passes. One pass consists of a sweep through all $p$ coordinates and an
 intercept update. Unless noted, "passes to tolerance" means the number of
 completed passes needed to bring the shared relative suboptimality bound below
@@ -3045,11 +3045,11 @@ For the real-data experiments, we use pinned datasets from Zenodo\ (DOI:
 [10.5281/zenodo.20315625](https://doi.org/10.5281/zenodo.20315625)) and
 standardize them before fitting. We include in the repository the code needed to
 retrieve these data and generate the shared standardized problem used in the
-additional production-solver diagnostics. Those cached diagnostics use biglasso
-1.6-1 (R), adelie 1.0-8 (R), skglm 0.5 (Python), LIBLINEAR through
-scikit-learn's `solver="liblinear"` wrapper, and BlitzL1 at commit `aef8d02`.
+additional production-solver diagnostics. Those cached diagnostics use **biglasso**
+1.6-1 (R), **adelie** 1.0-8 (R), **skglm** 0.5 (Python), **LIBLINEAR** through
+**scikit-learn**'s `solver="liblinear"` wrapper, and **BlitzL1** at commit `aef8d02`.
 They record one fit per tolerance setting. The controlled imbalance sweep uses
-glmnet 5.0 and biglasso 1.6-1, with seven warmed timing repetitions per mode and
+**glmnet** 5.0 and **biglasso** 1.6-1, with seven warmed timing repetitions per mode and
 cell. It uses one BLAS/OpenMP thread and the same explicit regularization path
 for both modes. The benchmark stores every calibration result and timing, the
 reference certificates and curvature diagnostics, and the package versions in
@@ -3065,7 +3065,7 @@ figures from cached files, and regenerating a panel requires rerunning the
 corresponding experiment. The illustrative @fig-parametric and
 @fig-schur-example are computed at render time. We pin the Julia, R, and Python
 toolchains in the repository. Except for the controlled production imbalance
-sweep, they use their default OpenBLAS builds without thread limits. The earlier
+sweep, they use their default **OpenBLAS** builds without thread limits. The earlier
 experiments ran on an x86_64 Linux workstation with an AMD Ryzen 9 7900 (12
 cores, 24 threads) and 64 GB of RAM. The production imbalance sweep ran on an
 Intel Core Ultra 7 155U laptop with 32 GB of RAM. The wall-clock measurements
@@ -3455,32 +3455,32 @@ conditional intercept problem beyond one guarded Newton step adds little.
 Poisson loss rules out several production solvers before any trajectory is
 recorded. Because $f''(\eta) = e^\eta$ is unbounded on $\mathbb{R}$, no global
 Lipschitz upper bound exists. Consequently, neither the $w \equiv 1/4$ MM
-majorant of glmnet `modified.Newton` and biglasso `MM` nor the
-constant-Lipschitz coordinate step of skglm `AndersonCD` has a Poisson analog.
+majorant of **glmnet** `modified.Newton` and **biglasso** `MM` nor the
+constant-Lipschitz coordinate step of **skglm** `AndersonCD` has a Poisson analog.
 The status of each solver on this family is structural, not empirical:
 
-- glmnet supports `family = "poisson"` with a single fitting mode (local-IRLS);
+- **glmnet** supports `family = "poisson"` with a single fitting mode (local-IRLS);
   no `type.poisson` switch exists.
-- biglasso does not implement `family = "poisson"` at all; its signature is
+- **biglasso** does not implement `family = "poisson"` at all; its signature is
   restricted to `gaussian`, `binomial`, `cox`, and `mgaussian`.
-- skglm `AndersonCD` requires `datafit.get_lipschitz()`, which the `Poisson`
+- **skglm** `AndersonCD` requires `datafit.get_lipschitz()`, which the `Poisson`
   datafit declines to implement
   (`AttributeError: Poisson is not   compatible with solver AndersonCD`). The
   `AndersonCD` solver therefore cannot fit a Poisson model.
-- skglm `ProxNewton` pairs with the `Poisson` datafit through local prox-Newton
-  subproblems and represents skglm in the panel.
-- adelie supports `glm.poisson(y)` through the same direct-Newton /
+- **skglm** `ProxNewton` pairs with the `Poisson` datafit through local prox-Newton
+  subproblems and represents **skglm** in the panel.
+- **adelie** supports `glm.poisson(y)` through the same direct-Newton /
   weighted-centered-features parameterization as the logistic case.
 
-Three solvers based on local Newton curvature therefore remain: glmnet, adelie,
-and skglm `ProxNewton`. We run each in path mode on congress109 with
+Three solvers based on local Newton curvature therefore remain: **glmnet**, **adelie**,
+and **skglm** `ProxNewton`. We run each in path mode on congress109 with
 $\lambda = 0.05\lambda_{\max}$, sweeping the solver-specific tolerance
 (@fig-real-poisson-production).
 
 ```{julia}
 #| label: fig-real-poisson-production
 #| fig-cap: Production Poisson solvers on congress109. The plot shows a
-#|   suboptimality bound versus wall-clock time for glmnet, adelie, and skglm
+#|   suboptimality bound versus wall-clock time for **glmnet**, **adelie**, and **skglm**
 #|   `ProxNewton` in path mode at $n = 529$, $p = 999$, $\bar y = 11.83$, and
 #|   $\lambda = 0.05\lambda_{\max}$. Every solver uses the common certified
 #|   feasible dual reference $D^\star$.
@@ -3527,12 +3527,12 @@ stricter.
 
   | dataset     | solver                             | $\beta_0$                     | primal  | iterations             |
   | :---------- | :--------------------------------- | :---------------------------- | ------: | :--------------------- |
-  | w1a         | biglasso `alg.logistic = "Newton"` | $-723$ (range $[-1722,-291]$) | $16.19$ | $10^5$ cap, oscillates |
-  | w1a         | biglasso `alg.logistic = "MM"`     | $-3.51$                       | $0.088$ | $2$                    |
-  | w1a         | adelie                             | ---                           |     --- | empty state returned   |
-  | news20-3pct | biglasso `alg.logistic = "Newton"` | $-3.48$                       | $0.310$ | $2$ (premature stop)   |
-  | news20-3pct | biglasso `alg.logistic = "MM"`     | $-3.48$                       | $0.089$ | $2$                    |
-  | news20-3pct | adelie                             | $-5.22$                       | $0.052$ | converges              |
+  | w1a         | **biglasso** `alg.logistic = "Newton"` | $-723$ (range $[-1722,-291]$) | $16.19$ | $10^5$ cap, oscillates |
+  | w1a         | **biglasso** `alg.logistic = "MM"`     | $-3.51$                       | $0.088$ | $2$                    |
+  | w1a         | **adelie**                             | ---                           |     --- | empty state returned   |
+  | news20-3pct | **biglasso** `alg.logistic = "Newton"` | $-3.48$                       | $0.310$ | $2$ (premature stop)   |
+  | news20-3pct | **biglasso** `alg.logistic = "MM"`     | $-3.48$                       | $0.089$ | $2$                    |
+  | news20-3pct | **adelie**                             | $-5.22$                       | $0.052$ | converges              |
 
   : Single-$\lambda$ cold-start diagnostic on w1a and news20-3pct. Each row
     reports the intercept estimate, primal objective, and iteration count at
@@ -3547,7 +3547,7 @@ and that is enough to absorb the cold-start transient at trivial cost on the
 unpenalized coordinate. The analogous safeguard for a coefficient would require
 column-norm information.
 
-Under this specific configuration, biglasso's default Newton mode returns
+Under this specific configuration, **biglasso**'s default Newton mode returns
 inaccurate fits on both datasets: it reaches the iteration cap while oscillating
 on w1a and stops prematurely on news20-3pct. Adelie, whose only mode uses local
 Newton curvature, returns an empty state on w1a but converges on news20-3pct.
