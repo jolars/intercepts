@@ -552,9 +552,10 @@ surrogate.
 
 ## Cross-influence of intercept and coefficients
 
-The Hessian of $F$ with respect to the intercept and the coefficients shows how
-the intercept couples to each coefficient. Letting $w_i = f''(\eta_i; y_i)$, we
-have
+An intercept update can change the gradients used for the next coefficient
+updates. How much they change depends on the curvature shared by the intercept
+and each coefficient. To describe that interaction, let
+$w_i = f''(\eta_i; y_i)$. The Hessian blocks are
 $$
   H_{jk}
   = \frac{\partial^2}{\partial \beta_j \partial \beta_k} F(\beta_0, \beta)
