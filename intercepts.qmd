@@ -541,12 +541,14 @@ $\beta_j$:
    rather than update it as a separate coordinate. @sec-irls derives this
    identity.
 
-The first property explains why $L_0/H_{00}$ is unbounded under response
-imbalance: $L_0$ does not adapt to the curvature at the current iterate, while
-$H_{00}$ collapses with $(1/n)\sum_i w_i$ as the linear predictor saturates. The
-second and third explain why solvers can choose among several strategies and why
-the cost of that choice persists on every pass. The fourth explains why an IRLS
-solver can absorb the intercept into its quadratic surrogate.
+The ratio $L_0/H_{00}$ compares the Newton step size $1/H_{00}$ with the fixed
+gradient step size $1/L_0$. The first property explains why this ratio is
+unbounded under response imbalance: $L_0$ does not adapt to the curvature at the
+current iterate, while $H_{00}$ collapses with $(1/n)\sum_i w_i$ as the linear
+predictor saturates. The second and third explain why solvers can choose among
+several strategies and why the cost of that choice persists on every pass. The
+fourth explains why an IRLS solver can absorb the intercept into its quadratic
+surrogate.
 
 ## Cross-influence of intercept and coefficients
 
