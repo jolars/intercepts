@@ -578,7 +578,9 @@ For squared loss, $w_i = 1$ and $H_{0j} = (1/n)\sum_i x_{ij}$, so centering the
 features makes $H_{0j} = 0$ and the intercept decouples from the coefficients
 entirely. For other losses, the weights depend on the linear predictor and the
 response, so $H_{0j}$ is a $w_i$-weighted mean of $x_{ij}$, which is generally
-nonzero even after centering.
+nonzero even after centering. That is why the intercept and coefficients can be
+strongly coupled in GLMs, and why the choice of intercept-update strategy can
+affect convergence.
 
 ### A normalized measure of intercept--coefficient coupling
 
