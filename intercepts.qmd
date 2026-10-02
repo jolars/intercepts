@@ -555,9 +555,12 @@ surrogate.
 ## Cross-influence of intercept and coefficients
 
 An intercept update can change the gradients used for the next coefficient
-updates. How much they change depends on the curvature shared by the intercept
-and each coefficient. To describe that interaction, let
-$w_i = f''(\eta_i; y_i)$. The Hessian blocks are
+updates. If the intercept lags behind its conditional optimum, those gradients
+reflect the remaining intercept error, which can slow progress across passes.
+The update strategies differ in how much of this error they remove. To see how
+the error reaches the coefficients, we examine the curvature shared by the
+intercept and each coefficient. Let $w_i = f''(\eta_i; y_i)$. The Hessian blocks
+are
 $$
   H_{jk}
   = \frac{\partial^2}{\partial \beta_j \partial \beta_k} F(\beta_0, \beta)
@@ -607,15 +610,22 @@ the loss. A similar local effect occurs when the feature is nearly constant at a
 nonzero value among observations with substantial curvature weights $w_i$, even
 if it varies across the full data set.
 
+This coupling makes it important for the intercept to keep up with coefficient
+changes. A coefficient update can move the conditional optimum of the intercept,
+and if the next intercept update leaves much of that error unresolved, the error
+carries into subsequent coefficient gradients. The example therefore connects
+the choice of intercept update to the progress of the whole solver.
+
 Positive rescaling of the feature or loss leaves $\rho_{0j}$ unchanged, while
 reversing the feature's sign reverses $\rho_{0j}$. We use $\rho_{0j}$ only when
-both diagonal curvatures are positive; if $H_{00} = 0$, a local Newton step is
+both diagonal curvatures are positive---if $H_{00} = 0$, a local Newton step is
 also undefined.
 
 ### The profiled objective
 
-To see why $\rho_{0j}$ controls the effect of the intercept update strategy, we
-consider the *profiled* objective, obtained by minimizing over the intercept:
+As a reference for comparing the strategies, suppose that the intercept always
+reaches its conditional optimum. The coefficients then determine the *profiled*
+objective, obtained by minimizing over the intercept:
 $$
   \tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta).
 $$
