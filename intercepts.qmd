@@ -2035,10 +2035,12 @@ reference $D^\star$ for that problem.
 
 ```{julia}
 #| label: fig-real-skglm
-#| fig-cap: **skglm** 0.5 on three imbalanced logistic problems. The panels show a
+#| fig-cap: >-
+#|   **skglm** 0.5 on three imbalanced logistic problems. The panels show a
 #|   suboptimality bound versus `AndersonCD` outer iterations on the shared
 #|   synthetic problem, w1a, and news20-3pct, using the common feasible dual
 #|   reference $D^\star$ for each problem.
+
 df = vcat(
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
     DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
@@ -2196,11 +2198,13 @@ completes in well under a second, and **adelie** shows no stall or failed solve.
 
 ```{julia}
 #| label: fig-real-adelie
-#| fig-cap: **adelie** on three imbalanced logistic problems. The panels show a
+#| fig-cap: >-
+#|   **adelie** on three imbalanced logistic problems. The panels show a
 #|   suboptimality bound versus convergence tolerance on the same three problems
-#|   used for **skglm**, **LIBLINEAR**, and **BlitzL1**. The horizontal axis is the coupled
-#|   outer and inner tolerance (`tol = irls_tol`), and the bound uses the common
-#|   feasible dual reference $D^\star$ for each problem.
+#|   used for **skglm**, **LIBLINEAR**, and **BlitzL1**. The horizontal axis is
+#|   the coupled outer and inner tolerance (`tol = irls_tol`), and the bound
+#|   uses the common feasible dual reference $D^\star$ for each problem.
+
 solverroot = @projectroot("results", "real-solvers")
 df = reduce(
     vcat,
