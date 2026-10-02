@@ -613,8 +613,8 @@ if it varies across the full data set.
 This coupling makes it important for the intercept to keep up with coefficient
 changes. A coefficient update can move the conditional optimum of the intercept,
 and if the next intercept update leaves much of that error unresolved, the error
-carries into subsequent coefficient gradients. The example therefore connects
-the choice of intercept update to the progress of the whole solver.
+carries into subsequent coefficient gradients and risks hampering progress of
+the whole solver.
 
 Positive rescaling of the feature or loss leaves $\rho_{0j}$ unchanged, while
 reversing the feature's sign reverses $\rho_{0j}$. We use $\rho_{0j}$ only when
