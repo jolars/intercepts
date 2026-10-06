@@ -939,10 +939,9 @@ By the second, the intercept gradient has drifted by $H_{0j}\delta_j$
 (@eq-intercept-drift). This suggests that the $k_0 - 1$ additional inner Newton
 steps will produce little improvement in outer convergence over a single Newton
 step. The experiments in [Supplement S4.3](#sec-per-pass-cost) support this
-expectation on our test problems. We do not claim a global complexity bound for
-the exact strategy. The extra work should matter most when several $|H_{0j}|$
-are large, because the next coordinate sweep then perturbs $\partial_0 F$
-immediately.
+expectation on our test problems. The extra work should matter most when several
+$|H_{0j}|$ are large, because the next coordinate sweep then perturbs
+$\partial_0 F$ immediately.
 
 Three regimes make the extra intercept iterations easier to justify. First,
 along a warm-started $\lambda$ path, each subproblem begins with
