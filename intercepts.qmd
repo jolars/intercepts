@@ -954,16 +954,17 @@ Second, in strongly coupled designs, the agreement with the profiled gradient in
 the per-pass overhead, though the cyclic drift of @eq-intercept-drift still
 applies.
 
-Third, at a prox-Newton or IRLS linearization boundary, the solver recomputes
-the Hessian for the next subproblem, so the within-pass drift no longer matters.
-This case explains why **LIBLINEAR** fully resolves the intercept of its frozen
-quadratic and why **BlitzL1** goes further, applying an exact-strategy loop to
-the original loss after the prox-Newton step (@sec-irls).
+Third, between IRLS or prox-Newton subproblems, the solver recomputes the
+quadratic surrogate, so the within-pass drift no longer matters. This case
+explains why **LIBLINEAR** fully resolves the intercept of its frozen quadratic
+and why **BlitzL1** goes further, applying an exact-strategy loop to the
+original loss after the prox-Newton step (@sec-irls).
 
 In the first two regimes, the exact strategy on the original loss is defensible.
-At a linearization boundary, fully resolving the quadratic surrogate is the
-analogous choice. Our recommendation against extra intercept iterations applies
-only to the cold-start, direct-CD setting outside these three regimes.
+For an IRLS or prox-Newton quadratic surrogate, solving its intercept subproblem
+to convergence can also be worthwhile. Our recommendation against extra
+intercept iterations applies only to the cold-start, direct-CD setting outside
+these three regimes.
 
 A single Newton step on the intercept matches the conditional minimizer at
 leading order. Write $g(t) = \partial_0 F(t, \beta)$, let
