@@ -950,18 +950,15 @@ Three regimes make the extra intercept iterations easier to justify. First,
 along a warm-started $\lambda$ path, each subproblem begins with
 $|\partial_0 F|$ already small. Then $k_0$ drops to one or two inner Newton
 steps, the $k_0 - 1$ penalty shrinks to zero, and the Newton and exact
-strategies produce nearly identical updates.
-
-Second, in strongly coupled designs, the agreement with the profiled gradient in
-@prp-profile-equiv suggests a gain in the first update that can partially offset
-the per-pass overhead, though the cyclic drift of @eq-intercept-drift still
-applies.
-
-Third, between IRLS or prox-Newton subproblems, the solver recomputes the
-quadratic surrogate, so the within-pass drift no longer matters. This case
-explains why **LIBLINEAR** fully resolves the intercept of its frozen quadratic
-and why **BlitzL1** goes further, applying an exact-strategy loop to the
-original loss after the prox-Newton step (@sec-irls).
+strategies produce nearly identical updates. Second, in strongly coupled
+designs, the agreement with the profiled gradient in @prp-profile-equiv suggests
+a gain in the first update that can partially offset the per-pass overhead,
+though the cyclic drift of @eq-intercept-drift still applies. Third, between
+IRLS or prox-Newton subproblems, the solver recomputes the quadratic surrogate,
+so the within-pass drift no longer matters. This case explains why **LIBLINEAR**
+fully resolves the intercept of its frozen quadratic and why **BlitzL1** goes
+further, applying an exact-strategy loop to the original loss after the
+prox-Newton step (@sec-irls).
 
 In the first two regimes, the exact strategy on the original loss is defensible.
 For an IRLS or prox-Newton quadratic surrogate, solving its intercept subproblem
