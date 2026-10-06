@@ -640,15 +640,16 @@ $$
   \tilde H_{jj} = H_{jj} - \frac{H_{0j}^2}{H_{00}} = H_{jj}(1 - \rho_{0j}^2).
 $$ {#eq-schur-diag}
 
-When $|\rho_{0j}|$ is close to $1$, the profiled curvature $\tilde H_{jj}$ is
-much smaller than $H_{jj}$\ (@eq-schur-diag): most of the diagonal curvature
-seen in $H$ is borrowed through the intercept and disappears once we profile the
-intercept out. At the first coefficient update after re-optimizing the
-intercept, coordinate descent sees the gradient of $\tilde F$, although its
-diagonal step still uses $H_{jj}$. If the intercept remains stale, the update
-instead sees the partial gradient of $F$. In the local quadratic model,
-$\rho_{0j}^2$ is the fraction of the unprofiled curvature $H_{jj}$ removed by
-optimizing the intercept.
+When $|\rho_{0j}|$ is close to $1$, adjusting the intercept offsets much of a
+change in coefficient $j$. The resulting profiled curvature $\tilde H_{jj}$ is
+therefore much smaller than the fixed-intercept curvature $H_{jj}$:
+$\rho_{0j}^2$ is the fraction removed in the local quadratic model
+(@eq-schur-diag). This difference affects coordinate descent in two ways.
+Immediately after optimizing the intercept, the coefficient gradient equals that
+of $\tilde F$, but the step still uses $H_{jj}$ and can be conservative relative
+to the profiled curvature. After a coefficient update, the intercept may become
+stale. Until it is updated again, its error enters subsequent coefficient
+gradients through the cross-curvature $H_{0j}$ and can slow progress.
 
 ### Strategies as Schur approximations
 
