@@ -984,10 +984,9 @@ $$
   \bigl|\beta_0^{\text{Newton}} - \beta_0^*(\beta)\bigr|
   = \frac{|\partial_{000} F(\xi)|}{2 |H_{00}|}(\beta_0 - \beta_0^*)^2.
 $$ {#eq-newton-iterate}
-For a local bound, suppose that $0 < m \le g'(t) \le L$ and $|g''(t)| \le M$
-between $\beta_0$ and $\beta_0^*$. The mean-value theorem gives
-$m|\beta_0 - \beta_0^*| \le |g(\beta_0)| \le L|\beta_0 - \beta_0^*|$, so
-@eq-newton-iterate yields
+For a local bound, suppose that $g'(t) \ge m > 0$ and $|g''(t)| \le M$ between
+$\beta_0$ and $\beta_0^*$. The mean-value theorem gives
+$m|\beta_0 - \beta_0^*| \le |g(\beta_0)|$, so @eq-newton-iterate yields
 $$
   \bigl|\beta_0^{\text{Newton}} - \beta_0^*(\beta)\bigr|
   \le \frac{M}{2m^3} \bigl|\partial_0 F(\beta_0, \beta)\bigr|^2.
