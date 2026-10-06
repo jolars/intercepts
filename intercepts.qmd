@@ -653,10 +653,15 @@ gradients through the cross-curvature $H_{0j}$ and can slow progress.
 
 ### Strategies as Schur approximations
 
-We can now classify the three intercept-update strategies by how completely they
-remove the intercept--coefficient coupling in a local model, and make this
-explicit through a quadratic example. Write the intercept as $a$ and one
-coefficient as $b$, and consider the unpenalized objective
+An intercept error changes the gradients used to update the coefficients. We
+compare the three strategies by asking how much of this gradient error each
+removes. Exact minimization supplies the profiled gradient, one Newton step
+approximates it locally, and a gradient step can leave much of the error behind.
+We first illustrate this comparison with a quadratic, then establish the local
+bounds and consider whether extra intercept iterations justify their cost.
+
+Write the intercept as $a$ and one coefficient as $b$, and consider the
+unpenalized objective
 $$
   Q(a, b) = \tfrac12 h(a + cb)^2 + \tfrac12 k b^2, \qquad h, k > 0.
 $$ {#eq-quadratic-example}
@@ -839,8 +844,8 @@ let h = 1.0, c = 0.8, k = 0.36, L0 = 5.0
 end
 ```
 
-For the general loss $F$, we track the *gradient response* of the coefficient
-subproblem to an intercept step. If we take the step
+For a nonlinear loss, the same question is how an intercept step changes the
+coefficient gradients. If we take the step
 $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, twice continuous
 differentiability gives
 $$
@@ -861,9 +866,12 @@ for a nonlinear loss. Conditional minimization gives the true profiled gradient.
 The three strategies differ in how closely the gradient response in
 @eq-gradient-response approaches that target.
 
-At the intercept's conditional minimizer, the next coefficient update uses the
-profiled gradient, and its diagonal curvature gives a conservative step relative
-to the profiled local quadratic model. More precisely:
+#### What exact intercept optimization achieves
+
+Exact minimization provides the reference for comparing the strategies. It gives
+the next coefficient update the profiled gradient, but the update still uses the
+curvature with the intercept held fixed. The following proposition makes this
+distinction precise.
 
 ::: {.proposition #prp-profile-equiv}
 (First-update profile equivalence.) Let $F$ be twice continuously differentiable
@@ -905,72 +913,19 @@ local comparison alone does not guarantee descent of $\tilde F$ after a finite
 update.
 :::
 
-At the start of each pass, the exact strategy therefore gives the first
-coefficient update the gradient of $\tilde F$ and a step that is conservative
-relative to its local quadratic model. The gradient identity lasts for only one
-coefficient update. By the second update, $\beta_0^{(t)}$ is no longer the
-conditional minimizer, and the identity breaks.
+The proposition establishes a gradient identity at the current coefficients. It
+does not turn a whole coordinate sweep into optimization of $\tilde F$: the
+coefficient steps still use $H_{jj}$, and later updates can move the intercept
+away from its conditional optimum. Before examining that drift, we ask how
+closely one Newton step reproduces the benefit of an exact solve.
 
-To see how quickly it breaks, expand $\partial_0 F$ to first order in the
-$\beta_j$ direction at the conditional minimizer. With
-$\partial_{0j} F = H_{0j}$ and $\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$, a
-single coefficient update $\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$
-produces
-$$
-  \partial_0 F \big(\beta_0^{(t)}, \beta^{(t)} + \delta_j e_j \big)
-  = H_{0j}\delta_j + O(\delta_j^2).
-$$ {#eq-intercept-drift}
-After one coordinate update of pass $t + 1$, the intercept gradient is no longer
-zero, so the intercept no longer satisfies the conditional-minimizer assumption
-of @prp-profile-equiv.
+#### How closely one Newton step matches an exact solve
 
-The exact strategy spends extra work optimizing an intercept that the next
-coefficient update may immediately move away from its optimum. Let $k_0$ count
-the inner work units needed at the end of a pass to reach
-$|\partial_0 F| < \varepsilon$, including one residual check when the intercept
-already meets this tolerance. Across the imbalance levels in our experiments,
-$k_0$ ranged from one to five, with each unit costing $O(n)$
-work\ (@fig-per-pass-cost). With the coefficients held fixed, Newton's method
-converges rapidly near the intercept's conditional minimizer: under its usual
-local convergence conditions, reaching tolerance $\varepsilon$ requires
-$O(\log\log(1/\varepsilon))$ further iterations. This rate does not account for
-the work needed to enter that neighborhood, nor does it guarantee that the
-intercept starts there after each coefficient pass.
-
-Only the first coefficient update receives the full benefit of exact profiling.
-By the second, the intercept gradient has drifted by $H_{0j}\delta_j$
-(@eq-intercept-drift). This suggests that the $k_0 - 1$ additional inner Newton
-steps will produce little improvement in outer convergence over a single Newton
-step. The experiments in [Supplement S4.3](#sec-per-pass-cost) support this
-expectation on our test problems. The extra work should matter most when several
-$|H_{0j}|$ are large, because the next coordinate sweep then perturbs
-$\partial_0 F$ immediately.
-
-Three regimes make the extra intercept iterations easier to justify. First,
-along a warm-started $\lambda$ path, each subproblem begins with
-$|\partial_0 F|$ already small. Then $k_0$ drops to one or two inner Newton
-steps, the $k_0 - 1$ penalty shrinks to zero, and the Newton and exact
-strategies produce nearly identical updates. Second, in strongly coupled
-designs, the agreement with the profiled gradient in @prp-profile-equiv suggests
-a gain in the first update that can partially offset the per-pass overhead,
-though the cyclic drift of @eq-intercept-drift still applies. Third, between
-IRLS or prox-Newton subproblems, the solver recomputes the quadratic surrogate,
-so the within-pass drift no longer matters. This case explains why **LIBLINEAR**
-fully resolves the intercept of its frozen quadratic and why **BlitzL1** goes
-further, applying an exact-strategy loop to the original loss after the
-prox-Newton step (@sec-irls).
-
-In the first two regimes, the exact strategy on the original loss is defensible.
-For an IRLS or prox-Newton quadratic surrogate, solving its intercept subproblem
-to convergence can also be worthwhile. Our recommendation against extra
-intercept iterations applies only to the cold-start, direct-CD setting outside
-these three regimes.
-
-A single Newton step on the intercept matches the conditional minimizer at
-leading order. Write $g(t) = \partial_0 F(t, \beta)$, let
-$\beta_0^* = \beta_0^*(\beta)$ satisfy $g(\beta_0^*) = 0$, and set
-$H_{00} = g'(\beta_0)$. Taylor-expanding $g(\beta_0^*)$ around the current
-iterate $\beta_0$ gives
+A full Newton step leaves an intercept error that is quadratic in the current
+error, provided the curvature is positive and varies smoothly nearby. Write
+$g(t) = \partial_0 F(t, \beta)$, let $\beta_0^* = \beta_0^*(\beta)$ satisfy
+$g(\beta_0^*) = 0$, and set $H_{00} = g'(\beta_0)$. Taylor-expanding
+$g(\beta_0^*)$ around the current iterate $\beta_0$ gives
 $$
   \partial_0 F(\beta_0, \beta)
   = H_{00}(\beta_0 - \beta_0^*)
@@ -998,19 +953,21 @@ For logistic regression, $|f'''|$ is bounded by a small constant. Thus, wherever
 the intercept curvature stays bounded away from zero, the residual shrinks
 quadratically as the current intercept gradient vanishes.
 
-We next consider whether the Newton residual affects the first coefficient
-update. Let $r_0 = \beta_0^{\text{Newton}} - \beta_0^*(\beta)$ be the Newton
-residual, with $|r_0|$ bounded by @eq-newton-error. Taylor-expanding
-$\partial_j F$ in $\beta_0$ around the conditional minimizer $\beta_0^*(\beta)$,
-using $\partial_j F(\beta_0^*, \beta) = \partial_j \tilde F(\beta)$ and
+A small intercept error matters only through its effect on the coefficient
+update. We therefore carry this bound into the coefficient gradient. Let
+$r_0 = \beta_0^{\text{Newton}} - \beta_0^*(\beta)$ be the Newton residual, with
+$|r_0|$ bounded by @eq-newton-error. Taylor-expanding $\partial_j F$ in
+$\beta_0$ around the conditional minimizer $\beta_0^*(\beta)$, using
+$\partial_j F(\beta_0^*, \beta) = \partial_j \tilde F(\beta)$ and
 $H_{j0}^* = \partial_{0j} F(\beta_0^*, \beta)$, yields
 $$
   \partial_j F\bigl(\beta_0^{\text{Newton}}, \beta\bigr)
   = \partial_j \tilde F(\beta) + H_{j0}^*r_0 + O(r_0^2),
 $$ {#eq-newton-coupling}
-that is, the profiled gradient plus a bias $b_j = H_{j0}^*r_0 + O(r_0^2)$. To
-assess its effect on the penalized update, compare both coordinate steps at the
-same positive curvature $h_j$. Write
+The coefficient gradient differs from the profiled gradient by
+$b_j = H_{j0}^*r_0 + O(r_0^2)$. For a penalized problem, we also need to know
+how this difference changes the actual coordinate step. We isolate its effect by
+comparing both steps at the same positive curvature $h_j$. Write
 $G_\lambda(\beta) = \sum_j G_{\lambda,j}(\beta_j)$ and define the profiled step
 $$
   d_j^{\mathrm{prof}}
@@ -1058,9 +1015,12 @@ The error bound and coupling correction describe a single Newton step at the
 current iterate (@eq-newton-error--@eq-newton-coupling). The experiments in
 @sec-results show how those gains accumulate across an outer solve.
 
-The gradient strategy is the Schur-coupling correction with step size
-$\alpha = 1/L_0$ rather than $1/H_{00}$. When $H_{00} > 0$, substituting
-$\alpha = 1/L_0$ into @eq-gradient-response gives
+#### What a gradient step leaves behind
+
+The gradient strategy uses the curvature bound $L_0$ in place of the current
+intercept curvature $H_{00}$. Its step can therefore be much smaller than the
+Newton step. When $H_{00} > 0$, substituting $\alpha = 1/L_0$ into
+@eq-gradient-response gives
 $$
   \partial_j F^{\text{grad}}
   = \partial_j F - \frac{H_{00}}{L_0}\frac{H_{j0}}{H_{00}}\partial_0 F
@@ -1080,13 +1040,77 @@ that is, when the Lipschitz bound is tight at the current iterate. Whenever
 $H_{00}$ is appreciably below $L_0$---as happens for logistic regression once
 predictions become confident, or whenever the weights $w_i$ are concentrated on
 a small subset of observations---the gradient strategy leaves a fraction
-$1 - H_{00}/L_0$ of the leading-order coupling correction unapplied. Coordinate
-descent then continues on a worse-conditioned local model than necessary.
+$1 - H_{00}/L_0$ of the leading-order coupling correction unapplied. The
+remaining intercept error continues to affect the coefficient gradients and can
+slow subsequent passes.
 
-The Poisson loss is the limiting case: its intercept curvature has no finite
-global upper bound, so $L_0 = \infty$ and $H_{00}/L_0 = 0$ at every finite
-iterate. The gradient strategy then leaves the intercept unchanged, so the
-coefficient subproblem sees the full, uncorrected gradient.
+For Poisson loss, this strategy has no finite global curvature bound to use:
+$L_0 = \infty$ gives a zero intercept step at every finite iterate. The
+coefficient gradients then retain the full effect of the intercept error. This
+limitation concerns the strategy based on a global bound; a gradient method with
+an adaptive step size or line search need not leave the intercept fixed.
+
+#### Why extra intercept iterations may not pay off
+
+The comparisons above hold the coefficients fixed. During a coordinate sweep,
+however, each coefficient update can move the intercept's conditional optimum.
+Even an exact intercept solve therefore guarantees the profiled gradient only
+for the first coefficient update of the next pass.
+
+To measure this drift, expand $\partial_0 F$ in the $\beta_j$ direction at the
+conditional minimizer. With $\partial_{0j} F = H_{0j}$ and
+$\partial_0 F(\beta_0^{(t)}, \beta^{(t)}) = 0$, a single coefficient update
+$\beta_j^{(t)} \mapsto \beta_j^{(t)} + \delta_j$ gives, when the relevant
+Hessian entries are locally Lipschitz,
+$$
+  \partial_0 F \big(\beta_0^{(t)}, \beta^{(t)} + \delta_j e_j \big)
+  = H_{0j}\delta_j + O(\delta_j^2).
+$$ {#eq-intercept-drift}
+When this change is nonzero, the intercept is no longer conditionally optimal,
+and @prp-profile-equiv no longer guarantees the profiled gradient for the next
+coefficient update. The drift depends on both the coupling and the coefficient
+step; it need not occur after every update.
+
+The exact strategy spends extra work optimizing an intercept that the next
+coefficient update may immediately move away from its optimum. Let $k_0$ count
+the inner work units needed at the end of a pass to reach
+$|\partial_0 F| < \varepsilon$, including one residual check when the intercept
+already meets this tolerance. Across the imbalance levels in our experiments,
+$k_0$ ranged from one to five, with each unit costing $O(n)$
+work\ (@fig-per-pass-cost). With the coefficients held fixed, Newton's method
+converges rapidly near the intercept's conditional minimizer: under its usual
+local convergence conditions, reaching tolerance $\varepsilon$ requires
+$O(\log\log(1/\varepsilon))$ further iterations. This rate does not account for
+the work needed to enter that neighborhood, nor does it guarantee that the
+intercept starts there after each coefficient pass.
+
+Together, the Newton error bound and the drift calculation explain why one
+Newton step can be enough: locally, it leaves only a second-order intercept
+error, while the next coefficient update can introduce fresh error even after an
+exact solve. These calculations do not establish how much the extra inner
+iterations affect convergence over a full solve. The experiments in [Supplement
+S4.3](#sec-per-pass-cost) supply that comparison: on our test problems, the
+additional work produces little improvement in outer convergence.
+
+The tradeoff can differ in other settings. Along a warm-started $\lambda$ path,
+a small initial intercept gradient can reduce $k_0$ to one or two work units,
+leaving little overhead for the exact strategy. Strong coupling makes any
+remaining intercept error more consequential for the coefficient gradients
+(@eq-newton-coupling), but it also increases the drift caused by coefficient
+updates (@eq-intercept-drift). Coupling alone therefore does not determine
+whether extra intercept iterations are worthwhile.
+
+IRLS and prox-Newton methods also require a separate comparison because they
+update the coefficients through a quadratic surrogate. With the coefficients
+fixed, one full Newton step solves that surrogate's intercept subproblem
+exactly. Updating the coefficients can still move its optimal intercept, and
+rebuilding the surrogate does not by itself eliminate this drift. **LIBLINEAR**
+resolves the intercept within its frozen quadratic, whereas **BlitzL1** applies
+an exact-strategy loop to the original loss after the prox-Newton step
+(@sec-irls). The cost and benefit depend on where these solves occur in the
+outer algorithm. Our recommendation to avoid extra intercept iterations concerns
+the cold-start, direct-CD experiments studied here; it is not a general claim
+about these other settings.
 
 ### Local-rate interpretation
 
