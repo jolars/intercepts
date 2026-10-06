@@ -924,18 +924,18 @@ After one coordinate update of pass $t + 1$, the intercept gradient is no longer
 zero, so the intercept no longer satisfies the conditional-minimizer assumption
 of @prp-profile-equiv.
 
-This short-lived optimum limits the benefit of the exact strategy. Let $k_0$
-denote the number of inner work units used at the end of a pass to drive
-$|\partial_0 F| < \varepsilon$, counting the mandatory residual check as one
-unit when no Newton direction is needed. The intercept subproblem
-$\beta_0 \mapsto F(\beta_0, \beta)$ is a smooth, strongly convex one-dimensional
-problem near any minimizer with $H_{00} > 0$. Once an inner iterate enters a
-neighborhood where the usual Newton conditions hold, its remaining iteration
-count scales as $O(\log\log(1/\varepsilon))$. This local result does not bound
-the steps needed to reach that neighborhood, nor does it show that every
-outer-pass subproblem begins there. Across the imbalance levels in our
-experiments, $k_0 \in [1, 5]$, and each step costs $O(n)$
-work\ (@fig-per-pass-cost).
+The exact strategy spends extra work optimizing an intercept that the next
+coefficient update may immediately move away from its optimum. Let $k_0$ count
+the inner work units needed at the end of a pass to reach
+$|\partial_0 F| < \varepsilon$, including one residual check when the intercept
+already meets this tolerance. Across the imbalance levels in our experiments,
+$k_0$ ranged from one to five, with each unit costing $O(n)$
+work\ (@fig-per-pass-cost). With the coefficients held fixed, Newton's method
+converges rapidly near the intercept's conditional minimizer: under its usual
+local convergence conditions, reaching tolerance $\varepsilon$ requires
+$O(\log\log(1/\varepsilon))$ further iterations. This rate does not account for
+the work needed to enter that neighborhood, nor does it guarantee that the
+intercept starts there after each coefficient pass.
 
 Only the first coefficient update receives the full benefit of exact profiling.
 By the second, the intercept gradient has drifted by $H_{0j}\delta_j$
