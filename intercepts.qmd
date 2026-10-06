@@ -654,9 +654,9 @@ gradients through the cross-curvature $H_{0j}$ and can slow progress.
 ### Strategies as Schur approximations
 
 We can now classify the three intercept-update strategies by how completely they
-remove the intercept--coefficient coupling in a local model. A quadratic example
-makes the comparison explicit. Write the intercept as $a$ and one coefficient as
-$b$, and consider the unpenalized objective
+remove the intercept--coefficient coupling in a local model, and make this
+explicit through a quadratic example. Write the intercept as $a$ and one
+coefficient as $b$, and consider the unpenalized objective
 $$
   Q(a, b) = \tfrac12 h(a + cb)^2 + \tfrac12 k b^2, \qquad h, k > 0.
 $$ {#eq-quadratic-example}
@@ -878,9 +878,7 @@ so its update direction agrees with the corresponding coordinate direction for
 $\tilde F$ at $\beta^{(t)}$. Its diagonal step size remains $1/H_{jj}$. Because
 $\tilde H_{jj} \leq H_{jj}$ by @eq-schur-diag, this step is no larger than the
 step $1/\tilde H_{jj}$ that minimizes $\tilde F$'s local quadratic model along
-$e_j$. This comparison concerns the two quadratic models at the current point.
-Without a coordinate-curvature bound along the finite step, it does not imply
-descent of $\tilde F$ itself.
+$e_j$.
 :::
 
 ::: {.proof}
@@ -901,8 +899,7 @@ $\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives the gradient equality. For
 the step size, $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$, so
 $1/H_{jj} \leq 1/\tilde H_{jj}$\ (@eq-schur-diag). The realized step is
 therefore at most the minimizing step $1/\tilde H_{jj}$ in $\tilde F$'s local
-quadratic model along $e_j$. The inequality alone supplies no finite-step
-descent guarantee for $\tilde F$.
+quadratic model along $e_j$.
 :::
 
 At the start of each pass, the exact strategy therefore gives the first
