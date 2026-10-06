@@ -657,159 +657,157 @@ An intercept error changes the gradients used to update the coefficients. We
 compare the three strategies by asking how much of this gradient error each
 removes. Exact minimization supplies the profiled gradient, one Newton step
 approximates it locally, and a gradient step can leave much of the error behind.
-We first illustrate this comparison with a quadratic, then establish the local
-bounds and consider whether extra intercept iterations justify their cost.
+We first illustrate this comparison with logistic regression, then establish the
+local bounds and consider whether extra intercept iterations justify their cost.
 
-Write the intercept as $a$ and one coefficient as $b$, and consider the
-unpenalized objective
+Write the intercept as $a$ and one coefficient as $b$. Consider 30 observations,
+with ten at each feature value $x = 0, 1, 2$ and, respectively, one, one, and
+two positive responses. Their average logistic loss is
 $$
-  Q(a, b) = \tfrac12 h(a + cb)^2 + \tfrac12 k b^2, \qquad h, k > 0.
-$$ {#eq-quadratic-example}
-Here $h = H_{00}$. The conditional minimizer is $a^\star(b) = -cb$, so the
-profiled objective is $\tilde Q(b) = \tfrac12 k b^2$. If $e = a + cb$ denotes
-the intercept error, the coefficient gradient is
+  F(a, b)
+  = \frac{1}{30}\sum_{i=1}^{30} \left[ \log(1 + e^{a+bx_i}) - y_i(a + bx_i) \right].
+$$ {#eq-logistic-example}
+For fixed $b$, the optimal intercept $a^\star(b)$ makes the average fitted
+probability equal the observed proportion of positive responses, $4/30$. Unlike
+a quadratic intercept subproblem, this problem generally requires more than one
+Newton step to solve. The coefficient gradient is
 $$
-  \partial_b Q(a, b) = kb + hc\,e.
+  \partial_b F(a, b) = \frac{1}{30}\sum_{i=1}^{30} x_i[p_i(a,b) - y_i],
+  \qquad
+  p_i(a,b) = \frac{1}{1 + e^{-(a+bx_i)}}.
 $$
-It consists of the profiled gradient $kb$ plus an error $hc\,e$ caused by the
-intercept. An intercept update changes this error while holding $b$ fixed.
+Changing the intercept changes the fitted probabilities $p_i$ and therefore the
+coefficient gradient, even though $b$ stays fixed.
 
-For the gradient strategy, take a curvature bound $L_0 \ge h$. Choosing
-$L_0 > h$ represents a conservative bound inherited from the original loss.
-Since $\partial_a Q = he$, the gradient step multiplies $e$ by $1 - h/L_0$,
-whereas a full Newton step and exact minimization both set $e$ to zero
-(@tbl-quadratic-updates).
+Start at $(a, b) = (-2, 1)$ and hold $b$ fixed. The gradient strategy uses the
+global intercept curvature bound $L_0 = 1/4$, whereas Newton uses the current
+curvature $H_{00}$. Exact minimization solves $\partial_a F = 0$ numerically.
+All three updates decrease the loss at this starting point, and the full Newton
+step satisfies the Armijo condition used by our solver. Their effects on the
+coefficient gradient differ:
 
-  | Intercept strategy  | Intercept error after updating | Coefficient gradient afterward  |
-  | :-----------------  | :----------------------------- | :-----------------------------  |
-  | Gradient            | $(1 - h/L_0)e$                 | $kb + hc(1 - h/L_0)e$           |
-  | Newton (full step)  | $0$                            | $kb$                            |
-  | Exact               | $0$                            | $kb$                            |
+  | Intercept update | Intercept afterward | Coefficient gradient afterward |
+  | :--------------- | ------------------: | -----------------------------: |
+  | None             |            $-2.000$ |                        $0.256$ |
+  | Gradient         |            $-2.651$ |                        $0.116$ |
+  | Newton           |            $-2.885$ |                        $0.072$ |
+  | Exact            |            $-3.106$ |                        $0.035$ |
 
-  : Effect of one intercept update on @eq-quadratic-example, with the
-    coefficient $b$ held fixed. {#tbl-quadratic-updates}
+  : Intercept and coefficient gradient for @eq-logistic-example at $b = 1$.
+    Values are rounded to three decimal places. The exact row gives the profiled
+    gradient $\tilde F'(1)$. {#tbl-logistic-updates}
 
-The fraction $h/L_0 = H_{00}/L_0$ therefore measures how much of the gradient
-error the gradient strategy removes. In @fig-schur-example, this fraction is
-$1/5$: the gradient update leaves most of the intercept error, while Newton and
-exact minimization reach the line $a = -cb$. Even after optimizing the
-intercept, changing $b$ by $\delta_b$ while holding $a$ fixed creates an
-intercept error $c\delta_b$. For a nonlinear loss, Newton and exact minimization
-generally differ. Below, we bound the local error left by one Newton step.
+Here Newton brings the coefficient gradient closer to the profiled gradient than
+the gradient strategy does, but it does not reach it. This example illustrates
+the distinction; the local bounds below state when the remaining error becomes
+negligible. For a quadratic loss, one full Newton step instead solves the
+intercept subproblem exactly, so Newton and exact minimization coincide.
+
+@fig-schur-example shows both the intercept updates and what happens after an
+exact solve. The optimal intercept depends on $b$: changing the coefficient
+while holding the intercept fixed can move the iterate away from the curve
+$a = a^\star(b)$. Thus, even exact intercept optimization need not give later
+coefficient updates in the same pass the profiled gradient.
 
 ```{julia}
 #| label: fig-schur-example
 #| fig-cap: >-
-#|   Intercept updates on the quadratic in @eq-quadratic-example, with $h = 1$,
-#|   $c = 0.8$, $k = 0.36$, and $L_0 = 5$. Both panels start at $(a, b) = (1.2,
-#|   1)$. Gray curves are objective level sets. The dashed line gives the
-#|   optimal intercept for each coefficient. Left: one gradient step removes one
-#|   fifth of the intercept error. Right: a full Newton step and exact
-#|   minimization both reach the dashed line. The subsequent coefficient step,
-#|   $b^+ = b - \partial_b Q/H_{bb} = 0.64$, leaves that line while decreasing
-#|   the objective.
+#|   Intercept updates for the logistic example in @eq-logistic-example. Left:
+#|   the loss as a function of the intercept with $b = 1$, showing the starting
+#|   point and the three updated intercepts. Right: after exact intercept
+#|   optimization, a coefficient Newton step with the intercept held fixed moves
+#|   $b$ from $1$ to about $0.875$ and decreases the loss, but leaves the curve
+#|   of conditionally optimal intercepts. Gray curves are loss level sets. The
+#|   right panel enlarges the neighborhood of the exact update.
 
-let h = 1.0, c = 0.8, k = 0.36, L0 = 5.0
-    a_start, b_start = 1.2, 1.0
-    e_start = a_start + c * b_start
-    a_gradient = a_start - h * e_start / L0
-    a_exact = -c * b_start
-    b_next = b_start - k * b_start / (h * c^2 + k)
-
-    a_grid = range(-1.6, 1.7; length = 180)
-    b_grid = range(-0.8, 1.5; length = 180)
-    values = [h * (a + c * b)^2 / 2 + k * b^2 / 2 for a in a_grid, b in b_grid]
-    fig = Figure(; size = output_size((800, 360)))
-    axes = [
-        Axis(
-            fig[1, col];
-            title = title,
-            xlabel = L"Intercept ($a$)",
-            ylabel = col == 1 ? L"Coefficient ($b$)" : "",
-            xgridvisible = false,
-            ygridvisible = false,
-        )
-        for (col, title) in enumerate([
-            "Gradient intercept update",
-            "Newton and exact intercept updates",
-        ])
-    ]
-
-    for ax in axes
-        contour!(
-            ax,
-            a_grid,
-            b_grid,
-            values;
-            levels = [0.05, 0.15, 0.3, 0.6, 1.0, 1.5, 2.2, 3.0],
-            color = :gray80,
-        )
-        lines!(
-            ax,
-            -c .* b_grid,
-            b_grid;
-            color = :gray35,
-            linestyle = :dash,
-            linewidth = 1.5,
-        )
-        scatter!(ax, [a_start], [b_start]; color = :black, markersize = 8)
-        text!(
-            ax,
-            a_start,
-            b_start;
-            text = "Start",
-            offset = (0, 9),
-            align = (:center, :bottom),
-        )
-        scatter!(ax, [0.0], [0.0]; color = :gray35, marker = :cross, markersize = 10)
-        limits!(ax, extrema(a_grid), extrema(b_grid))
+let
+    x = repeat([0.0, 1.0, 2.0]; inner = 10)
+    y = zeros(30)
+    y[[1, 11, 21, 22]] .= 1.0
+    probability(a, b) = 1.0 ./ (1.0 .+ exp.(-(a .+ b .* x)))
+    function objective(a, b)
+        eta = a .+ b .* x
+        return mean(max.(eta, 0.0) .+ log1p.(exp.(-abs.(eta))) .- y .* eta)
+    end
+    function optimal_intercept(b)
+        # These endpoints bracket the root throughout the plotted range.
+        lower, upper = -20.0, 20.0
+        for _ in 1:60
+            midpoint = (lower + upper) / 2
+            if mean(probability(midpoint, b) .- y) > 0
+                upper = midpoint
+            else
+                lower = midpoint
+            end
+        end
+        return (lower + upper) / 2
     end
 
-    arrows2d!(
-        axes[1],
-        [a_start],
-        [b_start],
-        [a_gradient - a_start],
-        [0.0];
-        color = :steelblue,
-        shaftwidth = 2,
-        tiplength = 10,
-        tipwidth = 10,
-    )
-    scatter!(axes[1], [a_gradient], [b_start]; color = :steelblue, markersize = 8)
-    text!(
-        axes[1],
-        a_gradient,
-        b_start;
-        text = "Gradient",
-        color = :steelblue,
-        offset = (-5, -13),
-        align = (:right, :top),
-    )
+    a_start, b_start = -2.0, 1.0
+    p_start = probability(a_start, b_start)
+    g0 = mean(p_start .- y)
+    h00 = mean(p_start .* (1 .- p_start))
+    a_gradient = a_start - g0 / 0.25
+    a_newton = a_start - g0 / h00
+    a_exact = optimal_intercept(b_start)
+    p_exact = probability(a_exact, b_start)
+    gb = mean(x .* (p_exact .- y))
+    hbb = mean(x.^2 .* p_exact .* (1 .- p_exact))
+    b_next = b_start - gb / hbb
 
-    arrows2d!(
-        axes[2],
-        [a_start],
-        [b_start],
-        [a_exact - a_start],
-        [0.0];
-        color = :darkorange,
-        shaftwidth = 2,
-        tiplength = 10,
-        tipwidth = 10,
+    fig = Figure(; size = output_size((800, 360)))
+    ax_updates = Axis(
+        fig[1, 1];
+        title = "Intercept updates at b = 1",
+        xlabel = L"Intercept ($a$)",
+        ylabel = "Average logistic loss",
+        xgridvisible = false,
+        ygridvisible = false,
     )
-    scatter!(axes[2], [a_exact], [b_start]; color = :darkorange, markersize = 8)
-    text!(
-        axes[2],
-        a_exact,
-        b_start;
-        text = "Newton = exact",
-        color = :darkorange,
-        offset = (0, 10),
-        align = (:center, :bottom),
+    a_slice = range(-3.45, -1.9; length = 180)
+    lines!(ax_updates, a_slice, objective.(a_slice, b_start); color = :gray50)
+    for (a, label, color, offset, alignment) in [
+            (a_start, "Start", :black, (-6, 0), (:right, :center)),
+            (a_gradient, "Gradient", :steelblue, (5, 8), (:left, :bottom)),
+            (a_newton, "Newton", :darkorange, (0, 18), (:center, :bottom)),
+            (a_exact, "Exact", :seagreen, (-5, 8), (:right, :bottom)),
+        ]
+        scatter!(ax_updates, [a], [objective(a, b_start)]; color, markersize = 8)
+        text!(
+            ax_updates,
+            a,
+            objective(a, b_start);
+            text = label,
+            color,
+            offset,
+            align = alignment,
+        )
+    end
+
+    ax_drift = Axis(
+        fig[1, 2];
+        title = "After exact intercept optimization",
+        xlabel = L"Intercept ($a$)",
+        ylabel = L"Coefficient ($b$)",
+        xgridvisible = false,
+        ygridvisible = false,
     )
+    a_grid = range(-3.4, -2.7; length = 180)
+    b_grid = range(0.65, 1.2; length = 180)
+    values = [objective(a, b) for a in a_grid, b in b_grid]
+    contour!(ax_drift, a_grid, b_grid, values; levels = 9, color = :gray80)
+    lines!(
+        ax_drift,
+        optimal_intercept.(b_grid),
+        b_grid;
+        color = :gray35,
+        linestyle = :dash,
+        linewidth = 1.5,
+    )
+    scatter!(ax_drift, [a_exact], [b_start]; color = :seagreen, markersize = 8)
+    text!(ax_drift, a_exact, b_start; text = "Exact", color = :seagreen, offset = (8, 8))
     arrows2d!(
-        axes[2],
+        ax_drift,
         [a_exact],
         [b_start],
         [0.0],
@@ -819,24 +817,21 @@ let h = 1.0, c = 0.8, k = 0.36, L0 = 5.0
         tiplength = 10,
         tipwidth = 10,
     )
-    scatter!(axes[2], [a_exact], [b_next]; color = :purple, markersize = 8)
+    scatter!(ax_drift, [a_exact], [b_next]; color = :purple, markersize = 8)
     text!(
-        axes[2],
+        ax_drift,
         a_exact,
         b_next;
         text = "After coefficient step",
         color = :purple,
-        offset = (10, -8),
+        offset = (8, -8),
         align = (:left, :top),
     )
-
+    limits!(ax_drift, extrema(a_grid), extrema(b_grid))
     Legend(
         fig[2, 1:2],
-        [
-            LineElement(; color = :gray35, linestyle = :dash),
-            MarkerElement(; color = :gray35, marker = :cross),
-        ],
-        [L"Optimal intercept: $a = -cb$", "Joint minimum"];
+        [LineElement(; color = :gray35, linestyle = :dash)],
+        [L"Optimal intercept: $a = a^\star(b)$"];
         orientation = :horizontal,
         framevisible = false,
     )
@@ -844,8 +839,8 @@ let h = 1.0, c = 0.8, k = 0.36, L0 = 5.0
 end
 ```
 
-For a nonlinear loss, the same question is how an intercept step changes the
-coefficient gradients. If we take the step
+To explain these differences for a general smooth loss, we expand the
+coefficient gradient after an intercept step. If we take the step
 $\beta_0 \mapsto \beta_0 - \alpha \partial_0 F$, twice continuous
 differentiability gives
 $$
