@@ -876,16 +876,18 @@ of the next pass uses the gradient
 $\partial_j F(\beta_0^{(t)}, \beta^{(t)}) = \partial_j \tilde F(\beta^{(t)})$,
 so its update direction agrees with the corresponding coordinate direction for
 $\tilde F$ at $\beta^{(t)}$. Its diagonal step size remains $1/H_{jj}$. Because
-$\tilde H_{jj} \leq H_{jj}$ by @eq-schur-diag, this step is no larger than the
-step $1/\tilde H_{jj}$ that minimizes $\tilde F$'s local quadratic model along
+$\tilde H_{jj} \leq H_{jj}$ by @eq-schur-diag, this step size is no larger than
+$1/\tilde H_{jj}$, the step size for $\tilde F$'s local quadratic model along
 $e_j$.
 :::
 
 ::: {.proof}
-Let $\beta_0^\star(\beta) = \arg\min_{\beta_0} F(\beta_0, \beta)$, which is
-well-defined and differentiable because $F$ is strictly convex in $\beta_0$, so
-that $\tilde F(\beta) = F(\beta_0^\star(\beta), \beta)$. Differentiating through
-$\beta_0^\star$ and using the stationarity condition
+Let $\beta_0^\star(\beta)$ be the conditional minimizer near $\beta^{(t)}$. It
+exists at $\beta^{(t)}$ by assumption and is unique by strict convexity. Since
+$H_{00} > 0$ there, the implicit function theorem applied to $\partial_0 F = 0$
+makes $\beta_0^\star$ differentiable locally. Thus
+$\tilde F(\beta) = F(\beta_0^\star(\beta), \beta)$ near $\beta^{(t)}$.
+Differentiating through $\beta_0^\star$ and using the stationarity condition
 $\partial_0 F(\beta_0^\star(\beta), \beta) = 0$,
 $$
   \partial_j \tilde F(\beta)
@@ -897,9 +899,10 @@ At the conditional minimizer, $\partial_0 F = 0$, so the intercept's dependence
 on $\beta$ contributes nothing to the derivative. Evaluating at
 $\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives the gradient equality. For
 the step size, $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$, so
-$1/H_{jj} \leq 1/\tilde H_{jj}$\ (@eq-schur-diag). The realized step is
-therefore at most the minimizing step $1/\tilde H_{jj}$ in $\tilde F$'s local
-quadratic model along $e_j$.
+$1/H_{jj} \leq 1/\tilde H_{jj}$\ (@eq-schur-diag). The update therefore uses a
+step size no larger than the profiled local model's $1/\tilde H_{jj}$. This
+local comparison alone does not guarantee descent of $\tilde F$ after a finite
+update.
 :::
 
 At the start of each pass, the exact strategy therefore gives the first
