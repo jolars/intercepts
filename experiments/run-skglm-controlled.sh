@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Orchestrate the skglm pre-fix vs post-fix controlled comparison
-# (@fig-skglm-controlled in intercepts.qmd).
+# (@fig-skglm-controlled in main.qmd).
 #
 # Pipeline:
 #   1. (re)generate the problem family via sim-skglm-controlled-problem.jl

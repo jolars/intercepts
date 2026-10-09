@@ -29,6 +29,8 @@ _site/
 intercepts.html
 intercepts.pdf
 intercepts.tex
+main.html
+main.tex
 
 # Quarto extension files
 _extensions/

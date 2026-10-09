@@ -7,7 +7,7 @@ using JLD2
 # 2D sweep of class imbalance (μ₀) × regularization (λ/λ_max) for the three
 # intercept strategies, on a fixed standardized imbalanced logistic design.
 # Records pass counts to a fixed relative-suboptimality tolerance per configuration, so
-# downstream code in intercepts.qmd can build the pass-count-ratio heatmap
+# downstream code in main.qmd can build the pass-count-ratio heatmap
 # that tests the L₀/H₀₀ scaling prediction of @cor-rate-gap and
 # @lem-gradient-partial across the (μ₀, λ) plane.
 

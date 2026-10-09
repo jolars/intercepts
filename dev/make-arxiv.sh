@@ -2,8 +2,8 @@
 # Build an arXiv-ready source tarball from the rendered paper.
 #
 # Pipeline:
-#   1. (re)render intercepts.qmd to computo-pdf if intercepts.tex is stale,
-#      which also refreshes intercepts_files/figure-pdf/
+#   1. (re)render main.qmd to computo-pdf if main.tex is stale,
+#      which also refreshes main_files/figure-pdf/
 #   2. stage the .tex plus only the graphics it actually references
 #   3. strip the journal-review furniture from the staged copy: the "submitted"
 #      watermark and the line numbers. The watermark is a claim about the
@@ -13,7 +13,7 @@
 #      not build cleanly or that still carries the watermark
 #   5. tar it up
 #
-# The Computo extension regenerates intercepts.tex on every render, so step 3
+# The Computo extension regenerates main.tex on every render, so step 3
 # edits the staged copy only --- never the working tree.
 #
 # Requires: quarto, latexmk, lualatex. Uses pdftotext for the watermark check
@@ -23,14 +23,14 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &>/dev/null && pwd)"
 
-PAPER="intercepts"
+PAPER="main"
 # Declared in the staged source and used for the verification build, so the two
 # cannot drift apart.
 ENGINE="lualatex"
 SRC_TEX="$PROJECT_ROOT/$PAPER.tex"
 SRC_QMD="$PROJECT_ROOT/$PAPER.qmd"
 STAGE="$PROJECT_ROOT/.arxiv"
-TARBALL="$PROJECT_ROOT/$PAPER-arxiv.tar.gz"
+TARBALL="$PROJECT_ROOT/intercepts-arxiv.tar.gz"
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -41,7 +41,7 @@ if [[ "${ARXIV_SKIP_RENDER:-0}" == 1 ]]; then
     log "skipping render (ARXIV_SKIP_RENDER=1)"
 elif [[ ! -f "$SRC_TEX" || "$SRC_QMD" -nt "$SRC_TEX" ]]; then
     log "rendering $PAPER.qmd to computo-pdf"
-    (cd "$PROJECT_ROOT" && quarto render "$PAPER.qmd" --to computo-pdf)
+    (cd "$PROJECT_ROOT" && quarto render "$PAPER.qmd" --to computo-pdf -M keep-tex:true)
 else
     log "$PAPER.tex is up to date"
 fi

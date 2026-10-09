@@ -80,8 +80,8 @@ production solvers in @sec-production-solvers use these designs. We explain in
 @sec-theory and @sec-irls when the distinction matters.
 
 [^1]: Among the surveyed solvers, only **skglm**'s intercept update is
-    version-dependent: version 0.5 and earlier take a conservative gradient step,
-    while a later patch replaces it with a Newton step
+    version-dependent: version 0.5 and earlier take a conservative gradient
+    step, while a later patch replaces it with a Newton step
     (@sec-production-solvers). We pin the version wherever this behavior
     matters.
 
@@ -328,10 +328,10 @@ on the intercept.
 
 The third thread is majorization--minimization\ (MM). The binary logistic
 curvature bound $L_0 = 1/4$ is the binary specialization of the quadratic
-Hessian majorant used by @bohning1992 to build an MM algorithm for multinomial logistic regression. @hunter2004 give the
-canonical exposition of MM. @krishnapuram2005 apply Böhning's bound to
-L1-penalized multinomial logistic regression, a direct precedent for our
-multinomial extension.
+Hessian majorant used by @bohning1992 to build an MM algorithm for multinomial
+logistic regression. @hunter2004 give the canonical exposition of MM.
+@krishnapuram2005 apply Böhning's bound to L1-penalized multinomial logistic
+regression, a direct precedent for our multinomial extension.
 
 In regularized logistic regression, the same construction appears in the
 `modified.Newton` mode of **glmnet** and the `MM` mode of
@@ -377,12 +377,12 @@ follow from its derivative. The identity does not hold for arbitrary
 noncanonical links. The loss, link, and inverse link for the four models we
 study---Gaussian, binomial, Poisson, and multinomial---appear in @tbl-glm.
 
-  | Model       | $f(\eta; y)$                                                                       | $\link(\mu)$                                                | $\ilink(\eta)$                                       |
-  | :---------- | :--------------------------------------------------------------------------------- | :---------------------------------------------------------- | :--------------------------------------------------- |
-  | Gaussian    | $\frac{1}{2}(y - \eta)^2$                                                          | $\mu$                                                       | $\eta$                                               |
-  | Binomial    | $\log(1 + e^\eta) - \eta y$                                                        | $\log\left( \frac{\mu}{1 - \mu} \right)$                    | $\frac{e^\eta}{1 + e^\eta}$                          |
-  | Poisson     | $e^\eta - \eta y$                                                                  | $\log(\mu)$                                                 | $e^\eta$                                             |
-  | Multinomial | $\log\left( 1 + \sum_{j=1}^{m-1} e^{\eta_j} \right) - \sum_{k=1}^{m-1} y_k \eta_k$ | $\log\left( \frac{\mu}{1 - \sum_{j=1}^{m-1} \mu_j} \right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
+  | Model                       | $f(\eta; y)$                                                                       | $\link(\mu)$                                                | $\ilink(\eta)$                                       |
+  | :-------------------------- | :----------------------------------------------------------------------            | :-------------------------------                            | :-------------------------                           |
+  | Gaussian                    | $\frac{1}{2}(y - \eta)^2$                                                          | $\mu$                                                       | $\eta$                                               |
+  | Binomial                    | $\log(1 + e^\eta) - \eta y$                                                        | $\log\left( \frac{\mu}{1 - \mu} \right)$                    | $\frac{e^\eta}{1 + e^\eta}$                          |
+  | Poisson                     | $e^\eta - \eta y$                                                                  | $\log(\mu)$                                                 | $e^\eta$                                             |
+  | Multinomial                 | $\log\left( 1 + \sum_{j=1}^{m-1} e^{\eta_j} \right) - \sum_{k=1}^{m-1} y_k \eta_k$ | $\log\left( \frac{\mu}{1 - \sum_{j=1}^{m-1} \mu_j} \right)$ | $\frac{\exp(\eta)}{1 + \sum_{j=1}^{m-1} e^{\eta_j}}$ |
 
   : Loss, link, and inverse-link functions for the GLM families studied. The
     multinomial row uses the reference-class parameterization with class $m$ as
@@ -444,7 +444,7 @@ separability, write $G_\lambda(\beta) = \sum_{j=1}^p g_{\lambda,j}(\beta_j)$ and
 define
 $$
   \operatorname{prox}_{\gamma g}(v)
-  = \argmin_{u \in \mathbb{R}} \left\{ g(u) + \frac{1}{2\gamma}(u - v)^2 \right\}.
+  = \operatorname*{arg\,min}_{u \in \mathbb{R}} \left\{ g(u) + \frac{1}{2\gamma}(u - v)^2 \right\}.
 $$
 The coordinate update is therefore the proximal-gradient step
 $$
@@ -1286,14 +1286,14 @@ within-pass drift of @eq-intercept-drift, which is specific to direct CD.
 The appropriate intercept strategy therefore depends on the solver family. The
 production solvers fall into the classes in @tbl-classification. Of the CD-based
 packages that we surveyed, only **skglm** 0.5 and earlier apply a conservative
-gradient update directly to the original loss. The remaining solvers---**glmnet**,
-**biglasso**, **adelie**, **LIBLINEAR**, **BlitzL1**, **Lasso.jl**, and
-**ncvreg**\ [@breheny2011]---all linearize before running CD, using either IRLS
-or proximal-Newton\ [@lee2014] on a quadratic upper bound.^[Sources for the two
-solvers not in @tbl-classification: **ncvreg** recomputes local weights
-`w[i] = fmax2(mu * (1 - mu), 0.0001)` at each linearization and updates the
-intercept as the weighted-least-squares conditional minimum of the surrogate
-(`b0[l] = xwr / xwx + a0`,
+gradient update directly to the original loss. The remaining
+solvers---**glmnet**, **biglasso**, **adelie**, **LIBLINEAR**, **BlitzL1**,
+**Lasso.jl**, and **ncvreg**\ [@breheny2011]---all linearize before running CD,
+using either IRLS or proximal-Newton\ [@lee2014] on a quadratic upper
+bound.^[Sources for the two solvers not in @tbl-classification: **ncvreg**
+recomputes local weights `w[i] = fmax2(mu * (1 - mu), 0.0001)` at each
+linearization and updates the intercept as the weighted-least-squares
+conditional minimum of the surrogate (`b0[l] = xwr / xwx + a0`,
 <https://github.com/pbreheny/ncvreg/blob/77a3d83/src/glm.c#L198-L237>);
 **Lasso.jl** fits GLMs by **glmnet**-style IRLS, an outer re-linearization loop
 with working weights and residuals around an inner CD solve
@@ -1308,16 +1308,16 @@ variance-reduced stochastic-gradient method outside the CD framework analyzed
 here. **celer**'s L1-logistic estimator does not support an intercept in version
 0.7.4, and its documentation directs users to **skglm** for logistic regression.
 
-  | Solver                                            | Family                | Intercept treatment                                    |
-  | :--------------------------------------------     | :-------------------- | :----------------------------------------------------- |
+  | Solver                                            | Family                | Intercept treatment                                        |
+  | :--------------------------------------------     | :-------------------- | :-----------------------------------------------------     |
   | **skglm** 0.5                                     | Constant-Lipschitz CD | Gradient on original loss (step size $1/4$)                |
-  | **glmnet** (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
-  | **biglasso** (`alg.logistic = "MM"`)              | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
-  | **glmnet** (`type.logistic = "Newton"`)           | Local-IRLS            | Conditional minimum of frozen local quadratic          |
-  | **biglasso** (`alg.logistic = "Newton"`, default) | Local-IRLS            | Conditional minimum of frozen local quadratic          |
-  | **adelie**                                        | Local-IRLS            | Conditional minimum of weighted, centered quadratic    |
-  | **LIBLINEAR** (newGLMNET, L1-LR)                  | Prox-Newton           | Conditional minimum of frozen quadratic; unregularized |
-  | **BlitzL1**                                       | Prox-Newton           | Post-step Newton convergence on original loss          |
+  | **glmnet** (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Conditional minimum of global-majorant quadratic           |
+  | **biglasso** (`alg.logistic = "MM"`)              | MM-IRLS               | Conditional minimum of global-majorant quadratic           |
+  | **glmnet** (`type.logistic = "Newton"`)           | Local-IRLS            | Conditional minimum of frozen local quadratic              |
+  | **biglasso** (`alg.logistic = "Newton"`, default) | Local-IRLS            | Conditional minimum of frozen local quadratic              |
+  | **adelie**                                        | Local-IRLS            | Conditional minimum of weighted, centered quadratic        |
+  | **LIBLINEAR** (newGLMNET, L1-LR)                  | Prox-Newton           | Conditional minimum of frozen quadratic; unregularized     |
+  | **BlitzL1**                                       | Prox-Newton           | Post-step Newton convergence on original loss              |
 
   : Classification of CD-based production solvers by algorithmic family and
     intercept treatment. IRLS and prox-Newton rows conditionally minimize a
@@ -1595,10 +1595,6 @@ original vocabulary of roughly $1.3$ million terms and retains 4,675 features
 after filtering. Agreement between them would suggest that the slowdown is not
 peculiar to w1a.
 
-<!-- This short table uses tabular to avoid longtable's page-height reset
-after a top float. -->
-::: {#tbl-real-logreg-problems layout-ncol=1}
-
   | dataset       | $n$   | $p$   | density | $\pi_+$ | $4\pi_+(1 - \pi_+)$ |
   | :------------ | ----: | ----: | :------ | ------: | ------------------: |
   | w1a           | 2,477 |   300 | sparse  |   0.029 |               0.113 |
@@ -1612,9 +1608,7 @@ after a top float. -->
     marginal, and $4\pi_+(1 - \pi_+)$ is the intercept-only curvature fraction,
     not the fitted $H_{00}/L_0$. news20-3pct is a deterministic 60/1\,940
     subsample of `news20.binary`; after subsampling, features with fewer than 20
-    nonzeros are dropped. {.render-as-tabular}
-
-:::
+    nonzeros are dropped. {#tbl-real-logreg-problems}
 
 ```{julia}
 #| label: fig-real-logreg
@@ -1851,8 +1845,8 @@ The production experiments test two aspects of the curvature explanation. A
 controlled synthetic family tests how **glmnet** and **biglasso** respond to
 increasing response imbalance. Their mode switches change the full IRLS weight
 scheme. A separate comparison of two **skglm** versions changes the intercept
-update and its associated stopping residual. Additional diagnostics examine
-the other production solvers on the shared synthetic problem, w1a, and news20-3pct.
+update and its associated stopping residual. Additional diagnostics examine the
+other production solvers on the shared synthetic problem, w1a, and news20-3pct.
 
 We evaluate every fit on the common objective
 $n^{-1}\sum_i \ell_i + \lambda\lVert\beta\rVert_1$. For each problem, a
@@ -2097,15 +2091,15 @@ draw(
 )
 ```
 
-In **skglm** 0.5, the intercept update takes a conservative gradient step on
-the original loss. Writing $g_0 = \partial_0 F$ for the averaged-loss gradient,
-the implementation subtracts $g_0/4$, whereas our gradient strategy subtracts
+In **skglm** 0.5, the intercept update takes a conservative gradient step on the
+original loss. Writing $g_0 = \partial_0 F$ for the averaged-loss gradient, the
+implementation subtracts $g_0/4$, whereas our gradient strategy subtracts
 $g_0/L_0 = 4g_0$ with $L_0 = 1/4$. The historical step is therefore sixteen
 times smaller than the sharp global-curvature step. It corresponds to an
 effective curvature bound of $4$, so its leading-order coupling correction is
-$H_{00}/4$, rather than $4H_{00}$ (@eq-grad-residual). The tolerance sweep
-shows slow progress under this additional conservatism. We submitted a patch
-to **skglm** replacing this gradient update with a Newton step. Our patch was
+$H_{00}/4$, rather than $4H_{00}$ (@eq-grad-residual). The tolerance sweep shows
+slow progress under this additional conservatism. We submitted a patch to
+**skglm** replacing this gradient update with a Newton step. Our patch was
 merged upstream as commit `8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
@@ -2115,20 +2109,19 @@ merged upstream as commit `8f9cbd77`.[^skglm-pr]
 The **glmnet** and **biglasso** switches change the full IRLS weight scheme, and
 the cross-package panels also reflect implementation differences. We compare two
 **skglm** commits whose runtime code differs only in the intercept callback
-(@fig-skglm-controlled): `b03644fe`, the last pre-fix commit and
-behaviorally identical to the released 0.5, and `8f9cbd77`, the merged Newton
-fix. Running the same `AndersonCD` driver on both yields a controlled 30-cell
-comparison. The callback also defines the intercept component of
-`AndersonCD`'s stopping criterion: it changes from $|g_0|/4$ to
-$|g_0|/H_{00}$. Thus, the common numerical tolerance does not impose the same
-intercept accuracy in the two versions. This comparison measures the effect of
-the historical patch, including its change to stopping semantics; it does not
-isolate Newton against the correctly scaled global-curvature strategy at matched
-accuracy. The patch uses bare Newton, so it does not test the Armijo safeguard.
-The internal-solver experiments compare the correctly scaled gradient strategy
-with safeguarded Newton under a shared objective certificate. Sources for the
-historical callback and its use in the stopping criterion are given in
-Supplement S1.1.
+(@fig-skglm-controlled): `b03644fe`, the last pre-fix commit and behaviorally
+identical to the released 0.5, and `8f9cbd77`, the merged Newton fix. Running
+the same `AndersonCD` driver on both yields a controlled 30-cell comparison. The
+callback also defines the intercept component of `AndersonCD`'s stopping
+criterion: it changes from $|g_0|/4$ to $|g_0|/H_{00}$. Thus, the common
+numerical tolerance does not impose the same intercept accuracy in the two
+versions. This comparison measures the effect of the historical patch, including
+its change to stopping semantics; it does not isolate Newton against the
+correctly scaled global-curvature strategy at matched accuracy. The patch uses
+bare Newton, so it does not test the Armijo safeguard. The internal-solver
+experiments compare the correctly scaled gradient strategy with safeguarded
+Newton under a shared objective certificate. Sources for the historical callback
+and its use in the stopping criterion are given in Supplement S1.1.
 
 As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
 $1/\lambda$, although it is not monotone in every cell. The pre-fix commit needs
@@ -2140,8 +2133,8 @@ Even the smallest ratio is large: the historical gradient step is unusually
 conservative, while the Newton version reaches its native tolerance in fewer
 than 20 outer iterations. These ratios describe the two implementations and
 should not be read as speedups over our sharp global-curvature baseline. Many
-pre-fix runs hit the 5000-iteration cap, making the largest displayed ratios lower bounds
-rather than exact comparisons.
+pre-fix runs hit the 5000-iteration cap, making the largest displayed ratios
+lower bounds rather than exact comparisons.
 
 ```{julia}
 #| label: fig-skglm-controlled
@@ -2150,8 +2143,8 @@ rather than exact comparisons.
 #|   across the same $(\mu_0,\lambda/\lambda_{\max})$ grid as
 #|   @fig-mu-reg-gradient, averaged over three seeds; clipped cells mark runs
 #|   that hit the 5000-iteration cap. The historical gradient step is sixteen
-#|   times smaller than our global-curvature baseline, and the patch also changes
-#|   the intercept stopping residual.
+#|   times smaller than our global-curvature baseline, and the patch also
+#|   changes the intercept stopping residual.
 
 df_sk = DataFrame(CSV.File(@projectroot("results", "skglm-controlled", "results.csv")))
 df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
@@ -2314,14 +2307,14 @@ explanation, not a global iteration-complexity theorem.
 
 The production comparisons test the rule outside our implementation. The
 **glmnet** and **biglasso** switches hold the package fixed but change the full
-IRLS weight scheme, while the before-and-after **skglm** comparison changes
-the intercept callback used for both updating and stopping
+IRLS weight scheme, while the before-and-after **skglm** comparison changes the
+intercept callback used for both updating and stopping
 (@sec-production-solvers). The **skglm** intervention shows the practical effect
 of replacing its unusually conservative historical update with Newton, including
 the change to stopping semantics. It does not quantify the advantage over the
-correctly scaled global-curvature strategy at matched accuracy. The
-other comparisons support the broader prediction about global versus local
-curvature, but they do not isolate that update from the rest of the surrogate or
+correctly scaled global-curvature strategy at matched accuracy. The other
+comparisons support the broader prediction about global versus local curvature,
+but they do not isolate that update from the rest of the surrogate or
 implementation.
 
 The Armijo guard completes the recommendation. It adds little work when the full
@@ -2352,6 +2345,10 @@ across a 30-cell grid, but the **glmnet** and **biglasso** comparison does not
 sweep the regularization axis. Future work should extend that comparison and
 check the multinomial predictions against **glmnet**'s symmetric-multinomial
 path and **adelie**'s multi-response solver.
+
+# Funding {.unnumbered}
+
+This research received no external funding.
 
 ```{=latex}
 \clearpage
@@ -2573,15 +2570,16 @@ for the random matrix products is beyond our present analysis.
 
 The curvature mismatch also appears in @sec-production-solvers. In **glmnet**'s
 `modified.Newton` mode and **biglasso**'s `MM` mode, the first intercept
-correction at each linearization uses the global $L_0 = 1/4$ (@sec-irls). The
+correction at each linearization uses the global $L_0 = 1/4$\ (@sec-irls). The
 runtime ratios in @fig-production-imbalance-time measure the practical effect of
 changing the weight scheme across imbalance levels. The diagnostics in
 @fig-production-imbalance-curvature track both the shrinking curvature fraction
 and the changing coupling; the mode switches also change the coefficient updates
 and the cost per pass. **skglm** (version 0.5) applies a more conservative
-gradient update directly to the original loss. Its slow convergence from suboptimality
-$\approx 10^{-1}$ to $\approx 10^{-5}$ in @fig-real-skglm accompanies the
-intercept's slow climb toward its fitted value at step size $1/4$.
+gradient update directly to the original loss. Its slow convergence from
+suboptimality $\approx 10^{-1}$ to $\approx 10^{-5}$ in @fig-real-skglm
+accompanies the intercept's slow climb toward its fitted value at step size
+$1/4$.
 
 An Armijo line search cannot rescue the gradient strategy when it starts from
 the global-Lipschitz step $-\partial_0 F / L_0$. It can only *shrink* the step,
@@ -2604,12 +2602,12 @@ strategy. It uses no line search.^[The pinned
 returns `mean(-y * sigmoid(-y * Xw)) / 4`.
 [`AndersonCD`](https://github.com/scikit-learn-contrib/skglm/blob/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc/skglm/solvers/anderson_cd.py#L119-L128)
 uses the absolute callback value in its stopping criterion and subtracts the
-callback value in the
-[intercept update](https://github.com/scikit-learn-contrib/skglm/blob/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc/skglm/solvers/anderson_cd.py#L162-L166).]
+callback value in the [intercept
+update](https://github.com/scikit-learn-contrib/skglm/blob/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc/skglm/solvers/anderson_cd.py#L162-L166).]
 The other CD-based production packages we surveyed (**glmnet**, **biglasso**,
-**LIBLINEAR**, and **BlitzL1**) embed the intercept update inside an outer IRLS or proximal-Newton
-linearization (@sec-irls). None of the production CD solvers we surveyed use a
-growth-allowing line search on the intercept alone.
+**LIBLINEAR**, and **BlitzL1**) embed the intercept update inside an outer IRLS
+or proximal-Newton linearization (@sec-irls). None of the production CD solvers
+we surveyed use a growth-allowing line search on the intercept alone.
 
 ## S2. Vector intercepts and multinomial models {#sec-s-multinomial .unnumbered}
 
@@ -2692,15 +2690,15 @@ typical text or image-classification label distributions skew further.
 Consequently, low-curvature intercept modes arise naturally in multinomial
 models and are not confined to extreme class imbalance.
 
-We use coordinate descent for the class coefficients and a block update for
-the intercept. For each feature $j$, we cycle through the $K - 1$ class
-coefficients using elementwise $\ell_1$ soft-thresholding, refreshing the
-softmax probabilities after accepted updates before moving to the next class.
-Each coordinate step therefore uses the current gradient and diagonal
-curvature. We update the intercept vector once
-per pass. An alternative is to cycle through one class at a time while holding
-the others fixed, as in **glmnet**'s symmetric-multinomial path. We return to
-that scheme after presenting the block-CD results.
+We use coordinate descent for the class coefficients and a block update for the
+intercept. For each feature $j$, we cycle through the $K - 1$ class coefficients
+using elementwise $\ell_1$ soft-thresholding, refreshing the softmax
+probabilities after accepted updates before moving to the next class. Each
+coordinate step therefore uses the current gradient and diagonal curvature. We
+update the intercept vector once per pass. An alternative is to cycle through
+one class at a time while holding the others fixed, as in **glmnet**'s
+symmetric-multinomial path. We return to that scheme after presenting the
+block-CD results.
 
 In the synthetic experiments, $\pi_k$ denotes the baseline probability used to
 set $\beta_{0k} = \log(\pi_k/\pi_K)$ in the data generator. The feature effects
@@ -2768,11 +2766,11 @@ correction in at least one intercept eigenmode near stationarity
     for all sweep cells in `results/sim-multinomial-prevalence.csv`.
     {#tbl-multinomial-counts}
 
-Across the three seeds, Newton and exact bring the shared relative
-suboptimality bound below $10^{-8}$ in $33$--$58$ passes. The gradient strategy
-needs $453$ and $640$ passes in two seeds and misses that threshold in the
-third within the thousand-pass budget. Thus, the gradient update requires
-roughly an order of magnitude more outer work on these problems.
+Across the three seeds, Newton and exact bring the shared relative suboptimality
+bound below $10^{-8}$ in $33$--$58$ passes. The gradient strategy needs $453$
+and $640$ passes in two seeds and misses that threshold in the third within the
+thousand-pass budget. Thus, the gradient update requires roughly an order of
+magnitude more outer work on these problems.
 
 The Newton and exact strategies follow the same visible curve. The
 $(K - 1)$-block Newton solve uses the inverse of the current intercept Hessian,
@@ -2890,12 +2888,11 @@ draw(
 On the $p > n$ Yeoh2002 gene-expression problem, the gradient strategy lags in
 the low-curvature modes associated with rare classes, while Newton and exact
 need the same number of passes to reach the $10^{-4}$, $10^{-6}$, and $10^{-8}$
-thresholds (@fig-real-multinomial). Their wall-clock trajectories differ
-because the intercept updates have different costs. The roughly fourfold
-slowdown at a relative suboptimality bound of $10^{-4}$ is milder than the
-order-of-magnitude slowdown of
-@fig-multinomial-imbalance. The realized class prevalences, feature effects,
-and penalty contribution differ between these problems, so the baseline
+thresholds (@fig-real-multinomial). Their wall-clock trajectories differ because
+the intercept updates have different costs. The roughly fourfold slowdown at a
+relative suboptimality bound of $10^{-4}$ is milder than the order-of-magnitude
+slowdown of @fig-multinomial-imbalance. The realized class prevalences, feature
+effects, and penalty contribution differ between these problems, so the baseline
 probabilities alone do not explain the difference.
 
 The same separation appears when the dimensions are reversed. The StatLog
@@ -3021,21 +3018,21 @@ draw(
 ```
 
 Across the grid, the gradient strategy generally stalls more severely as $\pi_K$
-decreases and feature amplitude grows; Newton and exact remain close. Both
-reach a median bound below $10^{-6}$ in every cell. At the replicate level,
-Newton and exact reach that threshold in $41$ of the $48$ seeded problems,
-while gradient reaches it in $14$. The seven remaining problems all lack
-reference-class observations and have weak shared certificates. At
-$\pi_K = 0.005$, the reference-class counts for seeds 1--3 are $(0,7,1)$ at
-amplitude $1.5$ and $(0,8,1)$ at amplitude $2.0$. Thus, the median curves in
-these cells conceal an uncertified replicate.
+decreases and feature amplitude grows; Newton and exact remain close. Both reach
+a median bound below $10^{-6}$ in every cell. At the replicate level, Newton and
+exact reach that threshold in $41$ of the $48$ seeded problems, while gradient
+reaches it in $14$. The seven remaining problems all lack reference-class
+observations and have weak shared certificates. At $\pi_K = 0.005$, the
+reference-class counts for seeds 1--3 are $(0,7,1)$ at amplitude $1.5$ and
+$(0,8,1)$ at amplitude $2.0$. Thus, the median curves in these cells conceal an
+uncertified replicate.
 
 When the reference class is absent, increasing all free-class intercepts
-together strictly decreases the loss at every finite iterate, without
-changing the penalty. There is therefore no finite intercept minimizer for
-those replicates, and the positive-curvature local analysis at a finite
-optimum does not apply. Their weak certificates cannot identify coefficient
-convergence or near-separation as the cause.
+together strictly decreases the loss at every finite iterate, without changing
+the penalty. There is therefore no finite intercept minimizer for those
+replicates, and the positive-curvature local analysis at a finite optimum does
+not apply. Their weak certificates cannot identify coefficient convergence or
+near-separation as the cause.
 
 The class-count cache also flags absent-class replicates elsewhere in the sweep.
 An objective certificate can still bound distance to the infimum in these
@@ -3136,7 +3133,8 @@ followed by a joint Newton refinement on the active coefficients and intercept.
 We evaluate their primal and feasible dual objectives in 128-bit arithmetic to
 avoid loss of certificate accuracy under saturated predictions. Run
 `task production-imbalance` to regenerate these artifacts. We document the other
-commands, tolerance grids, and iterate caps with the repository materials.
+commands, tolerance grids, and iterate caps in
+[the reproduction guide](https://github.com/jolars/intercepts/blob/main/REPRODUCIBILITY.md).
 
 We store all experimental outputs in the repository. We therefore render most
 figures from cached files, and regenerating a panel requires rerunning the

@@ -1,4 +1,4 @@
-# Dev-facing figure inspector. Renders a single labeled chunk of intercepts.qmd
+# Dev-facing figure inspector. Renders a single labeled chunk of main.qmd
 # to PNG and writes a summary table of the data behind it, without a full Quarto
 # render and without competing with a live `quarto preview` for the notebook
 # runner's Julia worker.
@@ -19,7 +19,7 @@
 #
 # Table contents default to the data frames the chunk itself built, capped. A
 # label listed in dev/figure-curators.jl overrides that with a hand-written
-# summary; curation lives here rather than in intercepts.qmd so the paper source
+# summary; curation lives here rather than in main.qmd so the paper source
 # stays free of dev scaffolding.
 
 using AlgebraOfGraphics
@@ -27,7 +27,7 @@ using CairoMakie
 using DataFrames
 using CSV
 
-const QMD = joinpath(@__DIR__, "..", "intercepts.qmd")
+const QMD = joinpath(@__DIR__, "..", "main.qmd")
 const OUTDIR = joinpath(@__DIR__, "..", "results", "figure-tables")
 const PNGDIR = joinpath(OUTDIR, "png")
 const ROWCAP = 200
