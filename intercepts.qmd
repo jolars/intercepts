@@ -2098,9 +2098,9 @@ $g_0/L_0 = 4g_0$ with $L_0 = 1/4$. The historical step is therefore sixteen
 times smaller than the sharp global-curvature step. It corresponds to an
 effective curvature bound of $4$, so its leading-order coupling correction is
 $H_{00}/4$, rather than $4H_{00}$ (@eq-grad-residual). The tolerance sweep
-shows slow progress under this additional conservatism. The slow progress
-motivated a pull request to **skglm** replacing the gradient update with a Newton step; the
-change was merged upstream as commit `8f9cbd77`.[^skglm-pr]
+shows slow progress under this additional conservatism. We submitted a patch
+to **skglm** replacing this gradient update with a Newton step. Our patch was
+merged upstream as commit `8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
     2026-05-13. **skglm** 0.6 is unreleased at the time of writing; the
