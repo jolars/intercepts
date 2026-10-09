@@ -1595,6 +1595,10 @@ original vocabulary of roughly $1.3$ million terms and retains 4,675 features
 after filtering. Agreement between them would suggest that the slowdown is not
 peculiar to w1a.
 
+<!-- This short table uses tabular to avoid longtable's page-height reset
+after a top float. -->
+::: {#tbl-real-logreg-problems layout-ncol=1}
+
   | dataset       | $n$   | $p$   | density | $\pi_+$ | $4\pi_+(1 - \pi_+)$ |
   | :------------ | ----: | ----: | :------ | ------: | ------------------: |
   | w1a           | 2,477 |   300 | sparse  |   0.029 |               0.113 |
@@ -1608,7 +1612,9 @@ peculiar to w1a.
     marginal, and $4\pi_+(1 - \pi_+)$ is the intercept-only curvature fraction,
     not the fitted $H_{00}/L_0$. news20-3pct is a deterministic 60/1\,940
     subsample of `news20.binary`; after subsampling, features with fewer than 20
-    nonzeros are dropped. {#tbl-real-logreg-problems}
+    nonzeros are dropped. {.render-as-tabular}
+
+:::
 
 ```{julia}
 #| label: fig-real-logreg
