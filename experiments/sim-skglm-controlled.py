@@ -9,6 +9,12 @@ of PR #337 introducing the Newton intercept update). The script itself is
 agnostic to the installed version --- the ``--commit`` argument is recorded
 verbatim as a column in the output CSV.
 
+The historical callback returns the averaged-loss intercept gradient divided
+by four, so its step is sixteen times smaller than the sharp global-curvature
+step. AndersonCD also uses this callback for its intercept stopping residual.
+The comparison therefore measures the historical patch, including changed
+stopping semantics, rather than isolating update rules at matched accuracy.
+
 For each cell we record ``n_iter_`` (AndersonCD outer iterations), the
 solver's reported stop criterion, the primal objective at termination,
 wall-clock runtime, and a ``converged`` flag. ``n_iter_`` is the primary

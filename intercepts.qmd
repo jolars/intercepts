@@ -80,8 +80,8 @@ production solvers in @sec-production-solvers use these designs. We explain in
 @sec-theory and @sec-irls when the distinction matters.
 
 [^1]: Among the surveyed solvers, only **skglm**'s intercept update is
-    version-dependent: version 0.5 and earlier take the gradient step described
-    here, while a later patch replaces it with a Newton step
+    version-dependent: version 0.5 and earlier take a conservative gradient step,
+    while a later patch replaces it with a Newton step
     (@sec-production-solvers). We pin the version wherever this behavior
     matters.
 
@@ -326,10 +326,9 @@ For Gaussian data, the framework in @sec-theory reduces to the familiar result:
 the loss has constant curvature, so the gradient and Newton strategies coincide
 on the intercept.
 
-The third thread is majorization--minimization\ (MM). The constant $L_0 = 1/4$,
-which **skglm** uses as its global per-coordinate Lipschitz step, is the binary
-specialization of the quadratic Hessian majorant used by @bohning1992 to build
-an MM algorithm for multinomial logistic regression. @hunter2004 give the
+The third thread is majorization--minimization\ (MM). The binary logistic
+curvature bound $L_0 = 1/4$ is the binary specialization of the quadratic
+Hessian majorant used by @bohning1992 to build an MM algorithm for multinomial logistic regression. @hunter2004 give the
 canonical exposition of MM. @krishnapuram2005 apply Böhning's bound to
 L1-penalized multinomial logistic regression, a direct precedent for our
 multinomial extension.
@@ -1276,8 +1275,8 @@ Changing from local weights to the constant majorant also changes every
 coefficient's curvature and cross-curvature in the surrogate. A within-package
 mode comparison therefore isolates the IRLS weight scheme, not the intercept
 update alone. The intercept correction is the component of that scheme analyzed
-by @eq-grad-residual; @fig-skglm-controlled supplies the intercept-only
-intervention.
+by @eq-grad-residual; @fig-skglm-controlled compares changes to intercept
+handling within a direct-CD solver.
 
 Across IRLS linearizations, the weights $w_i^{(t)}$ change with $\eta^{(t)}$, so
 even a fully resolved inner intercept becomes stale once the weights are
@@ -1286,8 +1285,8 @@ within-pass drift of @eq-intercept-drift, which is specific to direct CD.
 
 The appropriate intercept strategy therefore depends on the solver family. The
 production solvers fall into the classes in @tbl-classification. Of the CD-based
-packages that we surveyed, only **skglm** 0.5 and earlier apply the gradient
-strategy directly to the original loss. The remaining solvers---**glmnet**,
+packages that we surveyed, only **skglm** 0.5 and earlier apply a conservative
+gradient update directly to the original loss. The remaining solvers---**glmnet**,
 **biglasso**, **adelie**, **LIBLINEAR**, **BlitzL1**, **Lasso.jl**, and
 **ncvreg**\ [@breheny2011]---all linearize before running CD, using either IRLS
 or proximal-Newton\ [@lee2014] on a quadratic upper bound.^[Sources for the two
@@ -1311,7 +1310,7 @@ here. **celer**'s L1-logistic estimator does not support an intercept in version
 
   | Solver                                            | Family                | Intercept treatment                                    |
   | :--------------------------------------------     | :-------------------- | :----------------------------------------------------- |
-  | **skglm** 0.5                                     | Constant-Lipschitz CD | Gradient on original loss ($L_0 = 1/4$)                |
+  | **skglm** 0.5                                     | Constant-Lipschitz CD | Gradient on original loss (step size $1/4$)                |
   | **glmnet** (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
   | **biglasso** (`alg.logistic = "MM"`)              | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
   | **glmnet** (`type.logistic = "Newton"`)           | Local-IRLS            | Conditional minimum of frozen local quadratic          |
@@ -1845,9 +1844,9 @@ the coupled mode becomes slowest.
 The production experiments test two aspects of the curvature explanation. A
 controlled synthetic family tests how **glmnet** and **biglasso** respond to
 increasing response imbalance. Their mode switches change the full IRLS weight
-scheme. A separate comparison of two **skglm** versions isolates the intercept
-update itself. Additional diagnostics examine the other production solvers on
-the shared synthetic problem, w1a, and news20-3pct.
+scheme. A separate comparison of two **skglm** versions changes the intercept
+update and its associated stopping residual. Additional diagnostics examine
+the other production solvers on the shared synthetic problem, w1a, and news20-3pct.
 
 We evaluate every fit on the common objective
 $n^{-1}\sum_i \ell_i + \lambda\lVert\beta\rVert_1$. For each problem, a
@@ -2038,10 +2037,10 @@ which the analysis predicts the largest difference between curvature schemes.
 
 The mode switches change coefficient curvatures as well as the intercept
 correction. This experiment tests the sensitivity of the whole curvature scheme
-to imbalance. The following **skglm** comparison supplies the intervention on
-the intercept alone.
+to imbalance. The following **skglm** comparison changes intercept handling
+within one solver.
 
-### An intercept-only comparison in **skglm**
+### A historical update comparison in **skglm**
 
 The remaining solver diagnostics use the shared synthetic problem, w1a, and
 news20-3pct, with $\lambda = 0.05\lambda_{\max}$ in each case. These problems
@@ -2092,10 +2091,15 @@ draw(
 )
 ```
 
-In **skglm** 0.5, the intercept update uses the gradient strategy directly on
-the original loss. The tolerance sweep shows slow progress consistent with the
-Schur-coupling residual (@eq-grad-residual). That diagnosis motivated a pull
-request to **skglm** replacing the gradient update with a Newton step; the
+In **skglm** 0.5, the intercept update takes a conservative gradient step on
+the original loss. Writing $g_0 = \partial_0 F$ for the averaged-loss gradient,
+the implementation subtracts $g_0/4$, whereas our gradient strategy subtracts
+$g_0/L_0 = 4g_0$ with $L_0 = 1/4$. The historical step is therefore sixteen
+times smaller than the sharp global-curvature step. It corresponds to an
+effective curvature bound of $4$, so its leading-order coupling correction is
+$H_{00}/4$, rather than $4H_{00}$ (@eq-grad-residual). The tolerance sweep
+shows slow progress under this additional conservatism. The slow progress
+motivated a pull request to **skglm** replacing the gradient update with a Newton step; the
 change was merged upstream as commit `8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
@@ -2103,12 +2107,22 @@ change was merged upstream as commit `8f9cbd77`.[^skglm-pr]
     controlled comparison below pins the two relevant commits directly.
 
 The **glmnet** and **biglasso** switches change the full IRLS weight scheme, and
-the cross-package panels also reflect implementation differences. To isolate the
-intercept update, we compare two **skglm** commits that differ only in that
-update (@fig-skglm-controlled): `b03644fe`, the last pre-fix commit and
+the cross-package panels also reflect implementation differences. We compare two
+**skglm** commits whose runtime code differs only in the intercept callback
+(@fig-skglm-controlled): `b03644fe`, the last pre-fix commit and
 behaviorally identical to the released 0.5, and `8f9cbd77`, the merged Newton
 fix. Running the same `AndersonCD` driver on both yields a controlled 30-cell
-comparison.
+comparison. The callback also defines the intercept component of
+`AndersonCD`'s stopping criterion: it changes from $|g_0|/4$ to
+$|g_0|/H_{00}$. Thus, the common numerical tolerance does not impose the same
+intercept accuracy in the two versions. This comparison measures the effect of
+the historical patch, including its change to stopping semantics; it does not
+isolate Newton against the correctly scaled global-curvature strategy at matched
+accuracy. The patch uses bare Newton, so it does not test the Armijo safeguard.
+The internal-solver experiments compare the correctly scaled gradient strategy
+with safeguarded Newton under a shared objective certificate. Sources for the
+historical callback and its use in the stopping criterion are given in
+Supplement S1.1.
 
 As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
 $1/\lambda$, although it is not monotone in every cell. The pre-fix commit needs
@@ -2116,10 +2130,11 @@ about $30$ times as many iterations as the post-fix commit even in the cell with
 the smallest difference, and more than $400$ times as many in the most
 imbalanced, weakly regularized corner.
 
-Even the smallest ratio is large because `AndersonCD` reaches its tolerance in
-fewer than 20 outer iterations once the intercept takes a Newton step, so any
-remaining slow movement of the intercept dominates the count. Many pre-fix runs
-hit the 5000-iteration cap, making the largest displayed ratios lower bounds
+Even the smallest ratio is large: the historical gradient step is unusually
+conservative, while the Newton version reaches its native tolerance in fewer
+than 20 outer iterations. These ratios describe the two implementations and
+should not be read as speedups over our sharp global-curvature baseline. Many
+pre-fix runs hit the 5000-iteration cap, making the largest displayed ratios lower bounds
 rather than exact comparisons.
 
 ```{julia}
@@ -2128,7 +2143,9 @@ rather than exact comparisons.
 #|   $\log_{10}(T_{\mathtt{b03644fe}} / T_{\mathtt{8f9cbd77}})$ for `AndersonCD`
 #|   across the same $(\mu_0,\lambda/\lambda_{\max})$ grid as
 #|   @fig-mu-reg-gradient, averaged over three seeds; clipped cells mark runs
-#|   that hit the 5000-iteration cap.
+#|   that hit the 5000-iteration cap. The historical gradient step is sixteen
+#|   times smaller than our global-curvature baseline, and the patch also changes
+#|   the intercept stopping residual.
 
 df_sk = DataFrame(CSV.File(@projectroot("results", "skglm-controlled", "results.csv")))
 df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
@@ -2291,9 +2308,12 @@ explanation, not a global iteration-complexity theorem.
 
 The production comparisons test the rule outside our implementation. The
 **glmnet** and **biglasso** switches hold the package fixed but change the full
-IRLS weight scheme, while the before-and-after **skglm** comparison changes only
-the intercept update (@sec-production-solvers). The **skglm** intervention
-supplies direct causal evidence for the effect of the intercept update. The
+IRLS weight scheme, while the before-and-after **skglm** comparison changes
+the intercept callback used for both updating and stopping
+(@sec-production-solvers). The **skglm** intervention shows the practical effect
+of replacing its unusually conservative historical update with Newton, including
+the change to stopping semantics. It does not quantify the advantage over the
+correctly scaled global-curvature strategy at matched accuracy. The
 other comparisons support the broader prediction about global versus local
 curvature, but they do not isolate that update from the rest of the surrogate or
 implementation.
@@ -2552,10 +2572,10 @@ runtime ratios in @fig-production-imbalance-time measure the practical effect of
 changing the weight scheme across imbalance levels. The diagnostics in
 @fig-production-imbalance-curvature track both the shrinking curvature fraction
 and the changing coupling; the mode switches also change the coefficient updates
-and the cost per pass. **skglm** (version 0.5) applies the gradient strategy
-directly to the original loss. Its slow convergence from suboptimality
+and the cost per pass. **skglm** (version 0.5) applies a more conservative
+gradient update directly to the original loss. Its slow convergence from suboptimality
 $\approx 10^{-1}$ to $\approx 10^{-5}$ in @fig-real-skglm accompanies the
-intercept's slow climb toward its fitted value at step size $1/L_0$.
+intercept's slow climb toward its fitted value at step size $1/4$.
 
 An Armijo line search cannot rescue the gradient strategy when it starts from
 the global-Lipschitz step $-\partial_0 F / L_0$. It can only *shrink* the step,
@@ -2570,11 +2590,18 @@ sufficient-decrease condition on the first attempt, and the line search never
 fires (@fig-mu-extreme).
 
 At the time of these experiments, **skglm**\ (version 0.5)\ [@bertrand2022] used
-constant per-coordinate Lipschitz steps and, on its internal unaveraged loss, an
-intercept step of $4/n$. This is the gradient strategy defined above, with
-$L_0 = 1/4$ on the averaged loss, and it uses no line search. The other CD-based
-production packages we surveyed (**glmnet**, **biglasso**, **LIBLINEAR**, and
-**BlitzL1**) embed the intercept update inside an outer IRLS or proximal-Newton
+constant per-coordinate Lipschitz steps for the coefficients, but an intercept
+step of $1/(4n)$ on the unaveraged loss. On the averaged loss, its update is
+$-g_0/4$, sixteen times smaller than the $-4g_0$ step defined by our gradient
+strategy. It uses no line search.^[The pinned
+[`Logistic.intercept_update_step`](https://github.com/scikit-learn-contrib/skglm/blob/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc/skglm/datafits/single_task.py#L372-L373)
+returns `mean(-y * sigmoid(-y * Xw)) / 4`.
+[`AndersonCD`](https://github.com/scikit-learn-contrib/skglm/blob/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc/skglm/solvers/anderson_cd.py#L119-L128)
+uses the absolute callback value in its stopping criterion and subtracts the
+callback value in the
+[intercept update](https://github.com/scikit-learn-contrib/skglm/blob/b03644feedd6bac26ac0d5a4f8e0dc9a291a41cc/skglm/solvers/anderson_cd.py#L162-L166).]
+The other CD-based production packages we surveyed (**glmnet**, **biglasso**,
+**LIBLINEAR**, and **BlitzL1**) embed the intercept update inside an outer IRLS or proximal-Newton
 linearization (@sec-irls). None of the production CD solvers we surveyed use a
 growth-allowing line search on the intercept alone.
 
