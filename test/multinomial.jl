@@ -3,6 +3,30 @@ using Intercepts
 using LinearAlgebra
 using Random
 
+@testset "Multinomial class updates use current gradients" begin
+    X = reshape(vcat(fill(-1.0, 50), fill(1.0, 50)), :, 1)
+    y = vcat(fill(1, 20), fill(2, 15), fill(3, 15), fill(2, 16), fill(3, 34))
+    f = MultinomialLogisticLoss(K = 3)
+    res = multinomial_cdsolver(
+        X,
+        y,
+        0.025;
+        lossfun = f,
+        intercept_strategy = NoIntercept(),
+        normalization = :none,
+        maxit = 1,
+        tol = 0.0,
+    )
+
+    # The first class update reverses the second class's descent direction.
+    @test res.coef[1, 1] ≈ -0.8775
+    @test res.coef[1, 2] < 0
+    first_coef = [res.coef[1, 1] 0.0]
+    first_objective = loss(f, X * first_coef, y) + res.λ * sum(abs, first_coef)
+    final_objective = loss(f, X * res.coef, y) + res.λ * sum(abs, res.coef)
+    @test final_objective < first_objective
+end
+
 @testset "MultinomialLogisticLoss numerical sanity" begin
     Random.seed!(1)
 
@@ -172,29 +196,33 @@ end
     maxit = 500
 
     # Newton (deterministic): should match exactly across binomial vs K=2 multinomial.
-    res_bin = cdsolver(
-        X,
-        y_bin,
-        reg;
-        lossfun = LogisticLoss(),
-        intercept_strategy = NewtonStrategy(),
-        maxit = maxit,
-        randomize = false,
-        tol = 1.0e-12,
-    )
-    res_mult = multinomial_cdsolver(
-        X,
-        y_mult,
-        reg;
-        lossfun = MultinomialLogisticLoss(K = 2, lipschitz = 0.25),
-        intercept_strategy = NewtonStrategy(),
-        maxit = maxit,
-        randomize = false,
-        tol = 1.0e-12,
-    )
+    for update_freq in (1, 3)
+        res_bin = cdsolver(
+            X,
+            y_bin,
+            reg;
+            lossfun = LogisticLoss(),
+            intercept_strategy = NewtonStrategy(),
+            maxit = maxit,
+            update_freq = update_freq,
+            randomize = false,
+            tol = 1.0e-12,
+        )
+        res_mult = multinomial_cdsolver(
+            X,
+            y_mult,
+            reg;
+            lossfun = MultinomialLogisticLoss(K = 2, lipschitz = 0.25),
+            intercept_strategy = NewtonStrategy(),
+            maxit = maxit,
+            update_freq = update_freq,
+            randomize = false,
+            tol = 1.0e-12,
+        )
 
-    @test isapprox(res_bin.coef, vec(res_mult.coef); atol = 1.0e-4)
-    @test isapprox(res_bin.intercept, res_mult.intercept[1]; atol = 1.0e-4)
+        @test isapprox(res_bin.coef, vec(res_mult.coef); atol = 1.0e-4)
+        @test isapprox(res_bin.intercept, res_mult.intercept[1]; atol = 1.0e-4)
+    end
 end
 
 @testset "Multinomial dual is a valid optimum certificate" begin

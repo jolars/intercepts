@@ -1174,7 +1174,7 @@ On Yeoh2002, the gradient strategy needs roughly four times as many passes as
 Newton to bring the relative suboptimality bound below $10^{-4}$. On Shuttle,
 whose rarest classes contain only ten and thirteen observations, it fails to
 reach $10^{-4}$ within 1,000 passes; Newton and exact reach that threshold in
-about 25 passes.
+$20$--$21$ passes.
 
 ```{julia}
 #| label: fig-multinomial-summary
@@ -2686,12 +2686,15 @@ typical text or image-classification label distributions skew further.
 Consequently, low-curvature intercept modes arise naturally in multinomial
 models and are not confined to extreme class imbalance.
 
-We implement block coordinate descent over classes. For each feature $j$, we
-cycle through the $K - 1$ class coefficients using elementwise $\ell_1$
-soft-thresholding, and we update the intercept vector once per pass. An
-alternative is to cycle through one class at a time while holding the others
-fixed, as in **glmnet**'s symmetric-multinomial path. We return to that scheme
-after presenting the block-CD results.
+We use coordinate descent for the class coefficients and a block update for
+the intercept. For each feature $j$, we cycle through the $K - 1$ class
+coefficients using elementwise $\ell_1$ soft-thresholding, refreshing the
+softmax probabilities after accepted updates before moving to the next class.
+Each coordinate step therefore uses the current gradient and diagonal
+curvature. We update the intercept vector once
+per pass. An alternative is to cycle through one class at a time while holding
+the others fixed, as in **glmnet**'s symmetric-multinomial path. We return to
+that scheme after presenting the block-CD results.
 
 In the synthetic experiments, $\pi_k$ denotes the baseline probability used to
 set $\beta_{0k} = \log(\pi_k/\pi_K)$ in the data generator. The feature effects
@@ -2739,19 +2742,19 @@ The realized counts in @tbl-multinomial-counts differ substantially from the
 baseline probabilities. At intercept stationarity, $\bar p_k = n_k/n$, so the
 observed counts give the relevant bounds, reported here to three significant
 digits. For class 4, the upper bounds in @eq-multinomial-free-rayleigh are
-$0.0328$, $0.0475$, and $0.145$ across the three seeds. For the reference class,
-@eq-multinomial-reference-rayleigh gives $0.00394$, $0.0141$, and $0.0119$.
+$0.0493$, $0.0493$, and $0.128$ across the three seeds. For the reference class,
+@eq-multinomial-reference-rayleigh gives $0.00345$, $0.0119$, and $0.0132$.
 Dividing the latter by the Böhning majorant $L_0 = 1/2$ bounds the smallest
-eigenvalue of $Q$ by $0.00787$, $0.0282$, and $0.0238$, respectively. These
+eigenvalue of $Q$ by $0.00690$, $0.0238$, and $0.0264$, respectively. These
 realized prevalences therefore still imply a strongly attenuated gradient
 correction in at least one intercept eigenmode near stationarity
 (@eq-grad-residual-matrix).
 
   | Seed | Class 1 | Class 2 | Class 3 | Class 4 | Class 5 (reference) |
   | ---: | ------: | ------: | ------: | ------: | ------------------: |
-  |    1 |     417 |      53 |       5 |      17 |                   8 |
-  |    2 |     374 |       7 |      64 |      25 |                  30 |
-  |    3 |     142 |     143 |     102 |      88 |                  25 |
+  |    1 |     397 |      66 |       4 |      26 |                   7 |
+  |    2 |     367 |       7 |      75 |      26 |                  25 |
+  |    3 |     142 |     201 |      54 |      75 |                  28 |
 
   : Realized class counts for @fig-multinomial-imbalance, with $n=500$ and
     baseline probabilities $(0.7,0.1,0.1,0.05,0.05)$. The seeded input
@@ -2759,10 +2762,11 @@ correction in at least one intercept eigenmode near stationarity
     for all sweep cells in `results/sim-multinomial-prevalence.csv`.
     {#tbl-multinomial-counts}
 
-The gradient strategy reaches the same optimum but takes roughly an order of
-magnitude longer. Across the three seeds, Newton and exact converge within
-roughly $50$--$100$ passes, while the gradient strategy takes several hundred
-and, in the slowest run, exhausts the thousand-pass budget.
+Across the three seeds, Newton and exact bring the shared relative
+suboptimality bound below $10^{-8}$ in $33$--$58$ passes. The gradient strategy
+needs $453$ and $640$ passes in two seeds and misses that threshold in the
+third within the thousand-pass budget. Thus, the gradient update requires
+roughly an order of magnitude more outer work on these problems.
 
 The Newton and exact strategies follow the same visible curve. The
 $(K - 1)$-block Newton solve uses the inverse of the current intercept Hessian,
@@ -2778,13 +2782,12 @@ We extend the test to a two-dimensional grid by shrinking the reference-class
 baseline probability $\pi_K$ to $0.005$ and increasing the feature amplitude to
 four times the baseline value. The four corners appear in
 @fig-multinomial-sweep; across the full sweep (@fig-multinomial-sweep-full), the
-Newton and exact trajectories overlap throughout. They reach tight certificates
-in all but the two most extreme cells, while the gradient strategy generally
-slows as $\pi_K$ shrinks and amplitude grows. In those two extreme cells
-($\pi_K = 0.005$ and amplitude at least $1.5$), no strategy obtains a useful
-median certificate within 1,000 passes. Those cells do not isolate the intercept
-update and therefore do not support the comparison. Each has two seeds with no
-reference-class observations, as detailed in Supplement S2.2.
+Newton and exact trajectories remain close. Both bring the median bound below
+$10^{-6}$ in all sixteen cells, while the gradient strategy generally slows as
+$\pi_K$ shrinks and amplitude grows. Seven individual replicates have weak
+certificates and no reference-class observations. Their trajectories do not
+isolate the intercept update, and the cell medians conceal these failures, as
+detailed in Supplement S2.2.
 
 ```{julia}
 #| label: fig-multinomial-sweep
@@ -2880,12 +2883,14 @@ draw(
 
 On the $p > n$ Yeoh2002 gene-expression problem, the gradient strategy lags in
 the low-curvature modes associated with rare classes, while Newton and exact
-follow the same curve (@fig-real-multinomial). This reproduces the synthetic
-pattern. The roughly fourfold slowdown at a relative suboptimality bound of
-$10^{-4}$ is milder than the order-of-magnitude slowdown of
-@fig-multinomial-imbalance. This is consistent with Yeoh2002's higher rare-class
-floor ($6\%$ rather than $5\%$) and may also reflect the penalty contribution
-when $n \ll p$.
+need the same number of passes to reach the $10^{-4}$, $10^{-6}$, and $10^{-8}$
+thresholds (@fig-real-multinomial). Their wall-clock trajectories differ
+because the intercept updates have different costs. The roughly fourfold
+slowdown at a relative suboptimality bound of $10^{-4}$ is milder than the
+order-of-magnitude slowdown of
+@fig-multinomial-imbalance. The realized class prevalences, feature effects,
+and penalty contribution differ between these problems, so the baseline
+probabilities alone do not explain the difference.
 
 The same separation appears when the dimensions are reversed. The StatLog
 Shuttle dataset\ [@michie1994] is a $K = 7$ sensor-data classification with
@@ -2923,7 +2928,7 @@ draw(
 ```
 
 On Shuttle, the Newton and exact strategies bring the relative suboptimality
-bound below $10^{-4}$ in about 25 passes, while the gradient strategy remains
+bound below $10^{-4}$ in $20$--$21$ passes, while the gradient strategy remains
 well above that threshold after the full thousand-pass budget. The slowdown is
 far more severe than the roughly fourfold gap on Yeoh because the rarest Shuttle
 classes are two orders of magnitude rarer. This is consistent with the smaller
@@ -3010,16 +3015,21 @@ draw(
 ```
 
 Across the grid, the gradient strategy generally stalls more severely as $\pi_K$
-decreases and feature amplitude grows; Newton and exact remain nearly
-indistinguishable. In the two cells with $\pi_K = 0.005$ and amplitude at least
-$1.5$, however, their shared median bound remains far from zero. The realized
-reference-class counts for seeds 1--3 are $(0,8,0)$ at amplitude $1.5$ and
-$(0,12,0)$ at amplitude $2.0$. When the reference class is absent, increasing
-all free-class intercepts together strictly decreases the loss at every finite
-iterate, without changing the penalty. There is therefore no finite intercept
-minimizer for those replicates, and the positive-curvature local analysis at a
-finite optimum does not apply. The failed median certificates in these cells
-cannot identify coefficient convergence or near-separation as the cause.
+decreases and feature amplitude grows; Newton and exact remain close. Both
+reach a median bound below $10^{-6}$ in every cell. At the replicate level,
+Newton and exact reach that threshold in $41$ of the $48$ seeded problems,
+while gradient reaches it in $14$. The seven remaining problems all lack
+reference-class observations and have weak shared certificates. At
+$\pi_K = 0.005$, the reference-class counts for seeds 1--3 are $(0,7,1)$ at
+amplitude $1.5$ and $(0,8,1)$ at amplitude $2.0$. Thus, the median curves in
+these cells conceal an uncertified replicate.
+
+When the reference class is absent, increasing all free-class intercepts
+together strictly decreases the loss at every finite iterate, without
+changing the penalty. There is therefore no finite intercept minimizer for
+those replicates, and the positive-curvature local analysis at a finite
+optimum does not apply. Their weak certificates cannot identify coefficient
+convergence or near-separation as the cause.
 
 The class-count cache also flags absent-class replicates elsewhere in the sweep.
 An objective certificate can still bound distance to the infimum in these
@@ -3129,9 +3139,10 @@ corresponding experiment. The illustrative @fig-parametric and
 toolchains in the repository. Except for the controlled production imbalance
 sweep, they use their default **OpenBLAS** builds without thread limits. The
 earlier experiments ran on an x86_64 Linux workstation with an AMD Ryzen 9 7900
-(12 cores, 24 threads) and 64 GB of RAM. The production imbalance sweep ran on
-an Intel Core Ultra 7 155U laptop with 32 GB of RAM. The wall-clock measurements
-describe these machines and software environments.
+(12 cores, 24 threads) and 64 GB of RAM. The production imbalance sweep and the
+multinomial experiments ran on an Intel Core Ultra 7 155U laptop with 32 GB of
+RAM. The wall-clock measurements describe these machines and software
+environments.
 
 ## S4. Robustness analyses {#sec-s-robustness .unnumbered}
 

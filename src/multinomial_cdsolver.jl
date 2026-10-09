@@ -152,10 +152,9 @@ function multinomial_cdsolver(
         ind = randomize ? randperm(p) : (1:p)
 
         loss_eta = loss(lossfun, η, y)
+        ps = softmax_probs(η)
 
         for (inner_it, j) in enumerate(ind)
-            ps = softmax_probs(η) # Jacobi-within-j: probs frozen for all k of this feature
-
             for k in 1:Km1
                 grad_jk = 0.0
                 hess_jk = 0.0
@@ -206,6 +205,8 @@ function multinomial_cdsolver(
                     coef[j, k] = coef_jk + accepted_α * d_jk
                     copyto!(η, η_trial)
                     loss_eta = accepted_loss
+                    # Later coordinates need probabilities at the accepted predictor.
+                    ps = softmax_probs(η)
                 end
             end
 
@@ -222,6 +223,7 @@ function multinomial_cdsolver(
                     @views η[:, k] .+= intercept[k] - intercept_prev[k]
                 end
                 loss_eta = loss(lossfun, η, y)
+                ps = softmax_probs(η)
             end
         end
     end
