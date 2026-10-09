@@ -23,4 +23,7 @@ using Statistics
     @testset "Datasets" begin
         include("datasets.jl")
     end
+    @testset "Synthetic data" begin
+        include("data.jl")
+    end
 end

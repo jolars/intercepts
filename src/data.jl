@@ -65,7 +65,8 @@ function generatedata(
             inds = 1:p
             Σ = Symmetric(ρ.^abs.(inds .- inds'))
             chol = cholesky(Σ)
-            x = x * chol.L
+            # Row-wise observations need U so their covariance is U'U = Σ.
+            x = x * chol.U
         end
     elseif x_type == :binary
         x = Float64.(sprand(Bool, n, p, Float64(x_density)))
