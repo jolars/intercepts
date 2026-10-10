@@ -70,11 +70,10 @@ function irlssolver(
 
     validateresponse(lossfun, y)
 
-    x, x_centers, x_scales = normalizefeatures(x, normalization)
+    fit_intercept = !(intercept_strategy isa NoIntercept)
+    x, x_centers, x_scales = normalizefeatures(x, normalization; center = fit_intercept)
     sparse_norm = issparse(x) && normalization != :none
     x_sparse_offset = x_centers ./ x_scales
-
-    fit_intercept = !(intercept_strategy isa NoIntercept)
 
     λmax = lambdamax(lossfun, x, y)
     λ = reg * λmax

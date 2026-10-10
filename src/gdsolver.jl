@@ -25,13 +25,12 @@ function gdsolver(
 
     validateresponse(lossfun, y)
 
-    x, x_centers, x_scales = normalizefeatures(x, normalization)
+    fit_intercept = !(intercept_strategy isa NoIntercept)
+    x, x_centers, x_scales = normalizefeatures(x, normalization; center = fit_intercept)
 
     if issparse(x) && normalization != :none
         throw(ArgumentError("Sparse matrices with normalization are not supported."))
     end
-
-    fit_intercept = !(intercept_strategy isa NoIntercept)
 
     λmax = lambdamax(lossfun, x, y)
     λ = reg * λmax
@@ -42,11 +41,20 @@ function gdsolver(
     r = residual(lossfun, η, y)
 
     if issparse(x)
-        L = svds(x, nsv = 1)[1].S[1]
+        if min(n, p) <= 1 || iszero(x)
+            # ARPACK requires nsv < min(n, p); these cases have at most rank one.
+            L = sum(abs2, x)
+        else
+            L = svds(x, nsv = 1)[1].S[1]^2
+        end
     else
         L = opnorm(x)^2
     end
 
+    # With zero features, any positive bound permits the intercept-only update.
+    if iszero(L)
+        L = 1.0
+    end
     L *= lossfun.lipschitz
 
     primals = Float64[]

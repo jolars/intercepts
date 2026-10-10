@@ -43,13 +43,12 @@ function cdsolver(
 
     validateresponse(lossfun, y)
 
-    x, x_centers, x_scales = normalizefeatures(x, normalization)
+    fit_intercept = !(intercept_strategy isa NoIntercept)
+    x, x_centers, x_scales = normalizefeatures(x, normalization; center = fit_intercept)
 
     x_sparse_offset = x_centers ./ x_scales
 
     sparse_norm = issparse(x) && normalization != :none
-
-    fit_intercept = !(intercept_strategy isa NoIntercept)
 
     update_freq > 0 || throw(ArgumentError("update_freq must be positive"))
     update_when = max(1, fld(p, update_freq))

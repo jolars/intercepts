@@ -25,7 +25,11 @@ function st(u::Float64, λ::Float64)
     sign(u) * max(abs(u) - λ, 0.0)
 end
 
-"""Return the smallest L1 penalty at which the zero-coefficient fit is optimal."""
+"""
+Return the smallest L1 penalty at which the intercept-only fit is optimal.
+Solvers use this reference scale even when `NoIntercept` fixes the intercept
+at zero.
+"""
 function lambdamax(f::LossFunction, x::AbstractMatrix, y::AbstractVector)
     n = size(x, 1)
     intercept = link(f, mean(y))

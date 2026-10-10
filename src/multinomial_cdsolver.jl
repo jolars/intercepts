@@ -9,7 +9,8 @@ using Random
 function lambdamax_multinomial(
         f::MultinomialLogisticLoss,
         x::AbstractMatrix,
-        y::AbstractVector{<:Integer},
+        y::AbstractVector{<:Integer};
+        feature_offset = nothing,
     )
     n = size(x, 1)
     K = f.K
@@ -24,7 +25,11 @@ function lambdamax_multinomial(
     @inbounds for i in 1:n, k in 1:(K - 1)
         R[i, k] = p_marg[k] - (y[i] == k ? 1.0 : 0.0)
     end
-    return norm(x' * R, Inf)
+    grad = x' * R
+    if feature_offset !== nothing
+        grad .-= vec(feature_offset) .* sum(R; dims = 1)
+    end
+    return norm(grad, Inf)
 end
 
 function rescalecoefs_multinomial(
@@ -82,13 +87,19 @@ function multinomial_cdsolver(
 
     validateresponse(lossfun, y)
 
-    x, x_centers, x_scales = normalizefeatures(x, normalization)
-
     fit_intercept = !(intercept_strategy isa NoIntercept)
+    x, x_centers, x_scales = normalizefeatures(x, normalization; center = fit_intercept)
+    # Sparse normalization preserves structural zeros, so centering stays implicit.
+    sparse_norm = issparse(x) && normalization != :none && fit_intercept
+    x_sparse_offset = x_centers ./ x_scales
+
     update_freq > 0 || throw(ArgumentError("update_freq must be positive"))
     update_when = max(1, fld(p, update_freq))
 
-    λmax = lambdamax_multinomial(lossfun, x, y)
+    λmax = lambdamax_multinomial(
+        lossfun, x, y;
+        feature_offset = sparse_norm ? x_sparse_offset : nothing,
+    )
     λ = reg * λmax
 
     intercept = zeros(Km1)
@@ -124,6 +135,9 @@ function multinomial_cdsolver(
         # feature scaling enforces the penalized-coordinate constraint.
         Θ = _dual_point(lossfun, η, y, fit_intercept)
         grad_outer = x' * Θ
+        if sparse_norm
+            grad_outer .-= vec(x_sparse_offset) .* sum(Θ; dims = 1)
+        end
         dual_scale = _dual_scale(grad_outer, λ)
         Θ ./= dual_scale
         dua = dual(lossfun, Θ, y)
@@ -155,12 +169,13 @@ function multinomial_cdsolver(
         ps = softmax_probs(η)
 
         for (inner_it, j) in enumerate(ind)
+            offset_j = sparse_norm ? x_sparse_offset[j] : 0.0
             for k in 1:Km1
                 grad_jk = 0.0
                 hess_jk = 0.0
                 @inbounds for i in 1:n
                     diff_i = ps[i, k] - (y[i] == k ? 1.0 : 0.0)
-                    xij = x[i, j]
+                    xij = x[i, j] - offset_j
                     grad_jk += xij * diff_i
                     pik = ps[i, k]
                     hess_jk += xij * xij * pik * (1 - pik)
@@ -186,6 +201,9 @@ function multinomial_cdsolver(
                 for _ in 0:armijo_max_backtracks
                     factor = α * d_jk
                     copyto!(η_trial, η)
+                    if sparse_norm
+                        @views η_trial[:, k] .-= factor * offset_j
+                    end
                     @views η_trial[:, k] .+= factor .* x[:, j]
 
                     loss_trial = loss(lossfun, η_trial, y)

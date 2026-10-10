@@ -2,6 +2,77 @@ using Test
 using Intercepts
 using LinearAlgebra
 using Random
+using SparseArrays
+using Statistics
+
+@testset "Sparse multinomial centering preserves the fitted model" begin
+    rng = MersenneTwister(8123)
+    n, p = 90, 4
+    X = sparse((rand(rng, n, p) .< 0.35) .* (0.5 .+ 2 .* rand(rng, n, p)))
+    X_dense = Matrix(X)
+    β = [1.0 -0.5; -0.4 0.8; 0.3 0.2; 0.0 -0.3]
+    probs = softmax_probs(X * β .+ [-0.4 0.25])
+    y = [searchsortedfirst(cumsum(probs[i, :]), rand(rng)) for i in 1:n]
+    f = MultinomialLogisticLoss(K = 3)
+
+    @test nnz(X) < length(X) / 2
+    @test all(vec(mean(X; dims = 1)) .> 0)
+    @test sort(unique(y)) == [1, 2, 3]
+
+    for normalization in (:standardize, :none)
+        scales = normalization == :standardize ?
+            vec(std(X_dense; dims = 1, corrected = false)) : ones(p)
+        objective = (coef, intercept, λ) ->
+        loss(f, X * coef .+ intercept', y) + λ * sum(abs, scales .* coef)
+
+        for strategy in (GradientStrategy(), NewtonStrategy(), ExactStrategy())
+            options = (
+                lossfun = f,
+                intercept_strategy = strategy,
+                normalization = normalization,
+                maxit = 12,
+                tol = 0.0,
+                save_history = true,
+            )
+            sparse_fit = multinomial_cdsolver(X, y, 0.08; options...)
+            dense_fit = multinomial_cdsolver(X_dense, y, 0.08; options...)
+
+            @test sparse_fit.λmax ≈ dense_fit.λmax
+            @test sparse_fit.coef ≈ dense_fit.coef
+            @test sparse_fit.intercept ≈ dense_fit.intercept
+            @test sparse_fit.primals ≈ dense_fit.primals
+            @test sparse_fit.duals ≈ dense_fit.duals
+            @test all(diff(sparse_fit.primals) .<= 1.0e-10)
+
+            # Reconstruct each objective from predictions on the original feature scale.
+            reconstructed = [
+                objective(coef, intercept, sparse_fit.λ)
+                    for (coef, intercept) in zip(sparse_fit.coefs, sparse_fit.intercepts)
+            ]
+            @test reconstructed ≈ sparse_fit.primals
+            @test objective(sparse_fit.coef, sparse_fit.intercept, sparse_fit.λ) <=
+                sparse_fit.primals[end] + 1.0e-10
+        end
+    end
+
+    converged = multinomial_cdsolver(
+        X, y, 0.08;
+        lossfun = f,
+        maxit = 600,
+        tol = 1.0e-10,
+    )
+    scales = vec(std(X_dense; dims = 1, corrected = false))
+    final_objective = loss(f, X * converged.coef .+ converged.intercept', y) +
+        converged.λ * sum(abs, scales .* converged.coef)
+    @test converged.relgaps[end] <= 1.0e-10
+    @test final_objective ≈ converged.primals[end]
+
+    # Missing-class smoothing leaves nonzero residual sums, so λmax needs centering too.
+    y_missing = replace(y, 3 => 2)
+    sparse_missing = multinomial_cdsolver(X, y_missing; lossfun = f, maxit = 0)
+    dense_missing = multinomial_cdsolver(X_dense, y_missing; lossfun = f, maxit = 0)
+    @test sparse_missing.λmax ≈ dense_missing.λmax
+end
 
 @testset "Multinomial class updates use current gradients" begin
     X = reshape(vcat(fill(-1.0, 50), fill(1.0, 50)), :, 1)

@@ -14,6 +14,12 @@ using Statistics
     @testset "Coordinate Descent" begin
         include("cd.jl")
     end
+    @testset "Gradient Descent" begin
+        include("gd.jl")
+    end
+    @testset "Feature normalization" begin
+        include("normalization.jl")
+    end
     @testset "Multinomial" begin
         include("multinomial.jl")
     end

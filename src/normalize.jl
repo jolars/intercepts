@@ -1,14 +1,22 @@
 using Statistics
 
 """
-    normalizefeatures(x, normalization = :standardize)
+    normalizefeatures(x, normalization = :standardize; center = true)
 
 Normalize feature columns and return `(x_out, centers, scales)`. With
 `:standardize`, columns are centered and divided by their population standard
-deviation; with `:none`, `x` is unchanged. Constant columns use a scale of
-one.
+deviation; with `:none`, `x` is unchanged. Set `center = false` to scale without
+centering, as required when fitting a model without an intercept. Constant
+columns use a scale of one.
+
+Sparse matrices retain their sparsity: only scaling is applied to `x_out`,
+and callers must account for `centers ./ scales` implicitly.
 """
-function normalizefeatures(x::AbstractMatrix, normalization::Symbol = :standardize)
+function normalizefeatures(
+        x::AbstractMatrix,
+        normalization::Symbol = :standardize;
+        center::Bool = true,
+    )
     p = size(x, 2)
 
     if normalization == :none
@@ -16,6 +24,9 @@ function normalizefeatures(x::AbstractMatrix, normalization::Symbol = :standardi
     elseif normalization == :standardize
         centers = mean(x; dims = 1)
         scales = stdm(x, centers; corrected = false, dims = 1)
+        if !center
+            centers .= 0
+        end
     else
         throw(ArgumentError("Unsupported normalization method: $normalization"))
     end
@@ -41,15 +52,15 @@ end
 
 Undo feature normalization and return the intercept and coefficients on the
 original feature scale. When `fit_intercept` is false, only the coefficients
-are rescaled.
+are rescaled; feature normalization must omit centering in that case.
 """
 function rescalecoefs(
-    coefs::AbstractVector,
-    intercept::Real,
-    centers::AbstractMatrix,
-    scales::AbstractMatrix;
-    fit_intercept::Bool = true,
-)
+        coefs::AbstractVector,
+        intercept::Real,
+        centers::AbstractMatrix,
+        scales::AbstractMatrix;
+        fit_intercept::Bool = true,
+    )
     p = length(coefs)
     coefs_rescaled = copy(coefs)
     intercept_rescaled = intercept

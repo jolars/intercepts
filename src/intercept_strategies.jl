@@ -3,7 +3,10 @@ using Statistics
 """Abstract type for rules that update an unpenalized model intercept."""
 abstract type InterceptStrategy end
 
-"""Disable intercept updates and fit a model with a zero intercept."""
+"""
+Disable intercept updates and fit a model with a zero intercept.
+Feature standardization scales columns without centering them.
+"""
 struct NoIntercept <: InterceptStrategy end
 
 """Take one intercept gradient step using the loss Lipschitz bound."""
