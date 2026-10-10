@@ -8,9 +8,11 @@ archive on Zenodo and are retrieved with:
 bash experiments/fetch-data.sh
 ```
 
-That script downloads `intercepts-data-v1.tar.gz`, verifies every file against
-`data/MANIFEST.sha256` (committed), unpacks it here, and runs
-`experiments/fetch-yeoh.R` to derive the Yeoh CSV inputs from the shipped RDS.
+That script downloads `intercepts-data-v1.tar.gz` and unpacks the listed inputs
+into a temporary directory. It verifies them against the committed
+`data/MANIFEST.sha256` before installing them here, preserving the repository's
+manifest and documentation. It then runs `experiments/fetch-yeoh.R` to derive
+the Yeoh CSV inputs from the shipped RDS.
 Only `MANIFEST.sha256`, `libsvm/manifest.json`, and this README are tracked in
 git; everything else is gitignored and comes from the archive.
 

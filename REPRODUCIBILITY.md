@@ -63,9 +63,11 @@ phrase-count matrix. To stage them under `data/`, run:
 bash experiments/fetch-data.sh
 ```
 
-This downloads the archive, verifies every file against the committed
-`data/MANIFEST.sha256`, unpacks it, and derives the Yeoh CSV inputs from the
-shipped RDS. See <data/README.md> for the provenance of each dataset.
+This downloads and unpacks the archive into a temporary directory, verifies the
+inputs against the committed `data/MANIFEST.sha256`, and installs them only
+after every checksum passes. It preserves the repository's manifest and
+documentation, then derives the Yeoh CSV inputs from the shipped RDS. See
+<data/README.md> for the provenance of each dataset.
 
 You only need this step to re-run the real-data experiments. The cached results
 in <results/> already render the paper without it.
