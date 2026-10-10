@@ -10,8 +10,7 @@ tasks:
   install:
     desc: Install and instantiate Julia package
     cmds:
-      - "{{.JULIA}} -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd()));
-        Pkg.instantiate()'"
+      - "{{.JULIA}} --project=. -e 'using Pkg; Pkg.instantiate()'"
 
   test:
     desc: Run Julia package tests
