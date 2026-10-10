@@ -195,7 +195,7 @@ primal_values = zeros(size(grid))
 
 for (i, (b0, b)) in enumerate(grid)
     η = b0 .+ X[:, 1] * b
-    primal_values[i] = loss(LogisticLoss(), η, y) + λ * abs(b)
+    primal_values[i] = loss(LogisticLoss(), η, y) + λ * feature_scale * abs(b)
 end
 
 fig = Figure(; size = output_size((480, 300)))
@@ -466,7 +466,7 @@ is unpenalized. The resulting coordinate-descent algorithm appears in @algo-cd.
 \begin{algorithm}
     \caption{Cyclic coordinate descent.}
     \begin{algorithmic}
-        \State \emph{Input:} Data $(X, y)$, $\lambda > 0$, initial intercept and coefficients $(\beta_0, \beta)$
+        \State \textit{Input:} Data $(X, y)$, $\lambda > 0$, initial intercept and coefficients $(\beta_0, \beta)$
         \While{not converged}
             \For{$j$ in $\{1, 2, ..., p\}$}
                 \State $\beta_j \gets \operatorname{prox}_{\gamma_j g_{\lambda,j}}\left( \beta_j - \gamma_j \frac{\partial}{\partial \beta_j} F(\beta_0, \beta) \right)$
@@ -494,7 +494,7 @@ is unpenalized. The resulting coordinate-descent algorithm appears in @algo-cd.
                 \EndIf
             \EndIf
         \EndWhile
-        \State \emph{Output:} $(\beta_0, \beta)$
+        \State \textit{Output:} $(\beta_0, \beta)$
     \end{algorithmic}
 \end{algorithm}
 ```
