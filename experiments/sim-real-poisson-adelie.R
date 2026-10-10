@@ -82,6 +82,7 @@ run_sweep <- function(probdir, problem) {
     ))
     rows[[length(rows) + 1]] <- data.frame(
       problem = problem,
+      solver_version = as.character(packageVersion("adelie")),
       tol = tol,
       primal = primal,
       final_lambda = lam,

@@ -50,11 +50,29 @@ case "${SOURCE}" in
     ;;
 esac
 
-echo "Unpacking into ${REPO_ROOT}"
-tar -xzf "${TARBALL}" -C "${REPO_ROOT}"
+STAGING="${TMP}/staging"
+mkdir "${STAGING}"
+DATA_FILES=()
+while read -r _checksum path; do
+  DATA_FILES+=("${path}")
+done < data/MANIFEST.sha256
+
+# Extract only the committed inputs so archive metadata cannot replace the
+# repository's checksum manifest or documentation.
+echo "Unpacking into temporary staging directory"
+tar -xzf "${TARBALL}" -C "${STAGING}" -- "${DATA_FILES[@]}"
 
 echo "Verifying checksums against data/MANIFEST.sha256"
-sha256sum -c data/MANIFEST.sha256
+(
+  cd "${STAGING}"
+  sha256sum -c "${REPO_ROOT}/data/MANIFEST.sha256"
+)
+
+# Preserve existing inputs until every file has passed verification.
+for path in "${DATA_FILES[@]}"; do
+  mkdir -p "$(dirname "${path}")"
+  cp "${STAGING}/${path}" "${path}"
+done
 
 echo "Deriving Yeoh CSV inputs from the shipped RDS"
 Rscript experiments/fetch-yeoh.R

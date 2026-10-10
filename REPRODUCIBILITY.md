@@ -219,6 +219,14 @@ drivers as follows.
 - **Controlled skglm comparison:** separate locked inputs supply the pre-fix and
   post-fix skglm source trees used by `run-skglm-controlled.sh`.
 
+The adelie path-mode CSVs record their package version in `solver_version` and
+were regenerated with the current pinned version, 1.0.10. The separate
+single-lambda cold-start diagnostic in Supplement S5.2 retains its historical
+adelie 1.0.8 results. That version is pinned by the `devenv.lock` in
+[commit ef4deef](https://github.com/jolars/intercepts/tree/ef4deefe0faa1d9ed6e73e807ad541f0711cd9cc).
+Use that historical environment when reproducing those version-specific
+results; the current environment supplies adelie 1.0.10.
+
 After [installing devenv](https://devenv.sh/getting-started/), enter the
 environment from the root of the project with:
 
