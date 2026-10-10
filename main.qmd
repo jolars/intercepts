@@ -187,6 +187,9 @@ results = [
 
 λ = results[1].λ
 
+# The solver penalizes standardized coefficients but returns original-scale slopes.
+feature_scale = std(X[:, 1]; corrected = false)
+
 β0 = range(-0.5, 3.5, length = 100)
 β = range(-0.5, 1.2, length = 100)
 grid = [(b0, b) for b0 in β0, b in β]
@@ -1749,9 +1752,10 @@ curvature mismatch from BLAS and memory effects.
 #| label: fig-mu-reg-gradient
 #| fig-cap: Gradient-to-Newton pass-count ratios over the $(\mu_0,
 #|   \lambda/\lambda_{\max})$ grid. The heatmap shows
-#|   $\log_{10}(T_{\mathrm{gradient}} / T_{\mathrm{Newton}})$ averaged over
-#|   three seeds on the standardized logistic design; clipped cells mark runs
-#|   that hit the 5000-pass budget.
+#|   the log ratio of mean pass counts,
+#|   $\log_{10}(\bar T_{\mathrm{gradient}} / \bar T_{\mathrm{Newton}})$, with
+#|   each mean taken over three seeds on the standardized logistic design;
+#|   clipped cells mark runs that hit the 5000-pass budget.
 
 dd = JLD2.load(@projectroot("results", "sim-mu-reg-heatmap.jld2"))
 df = DataFrame(dd["results"])
@@ -1780,9 +1784,10 @@ draw(spec_grad * visual(Heatmap), figure = (; size = output_size((400, 250))))
 #| label: fig-mu-reg-exact
 #| fig-cap: Exact-to-Newton pass-count ratios over the $(\mu_0,
 #|   \lambda/\lambda_{\max})$ grid. The heatmap shows
-#|   $\log_{10}(T_{\mathrm{exact}} / T_{\mathrm{Newton}})$ on the same grid and
-#|   seed average as @fig-mu-reg-gradient, using a centered diverging colormap
-#|   with range $\pm 0.1$.
+#|   the log ratio of mean pass counts,
+#|   $\log_{10}(\bar T_{\mathrm{exact}} / \bar T_{\mathrm{Newton}})$, on the
+#|   same grid and with the same three-seed means as @fig-mu-reg-gradient,
+#|   using a centered diverging colormap with range $\pm 0.1$.
 
 spec_exact = data(wide) *
     mapping(
@@ -2139,12 +2144,13 @@ lower bounds rather than exact comparisons.
 ```{julia}
 #| label: fig-skglm-controlled
 #| fig-cap: Within-**skglm** commit comparison. The heatmap shows
-#|   $\log_{10}(T_{\mathtt{b03644fe}} / T_{\mathtt{8f9cbd77}})$ for `AndersonCD`
-#|   across the same $(\mu_0,\lambda/\lambda_{\max})$ grid as
-#|   @fig-mu-reg-gradient, averaged over three seeds; clipped cells mark runs
-#|   that hit the 5000-iteration cap. The historical gradient step is sixteen
-#|   times smaller than our global-curvature baseline, and the patch also
-#|   changes the intercept stopping residual.
+#|   the log ratio of mean iteration counts,
+#|   $\log_{10}(\bar T_{\mathtt{b03644fe}} / \bar T_{\mathtt{8f9cbd77}})$, for
+#|   `AndersonCD` across the same $(\mu_0,\lambda/\lambda_{\max})$ grid as
+#|   @fig-mu-reg-gradient, with each mean taken over three seeds; clipped cells
+#|   mark runs that hit the 5000-iteration cap. The historical gradient step is
+#|   sixteen times smaller than our global-curvature baseline, and the patch
+#|   also changes the intercept stopping residual.
 
 df_sk = DataFrame(CSV.File(@projectroot("results", "skglm-controlled", "results.csv")))
 df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
@@ -2349,10 +2355,6 @@ path and **adelie**'s multi-response solver.
 # Funding {.unnumbered}
 
 This research received no external funding.
-
-```{=latex}
-\clearpage
-```
 
 # Supplementary material {.unnumbered}
 
@@ -3120,11 +3122,13 @@ For the real-data experiments, we use pinned datasets from Zenodo\ (DOI:
 standardize them before fitting. We include in the repository the code needed to
 retrieve these data and generate the shared standardized problem used in the
 additional production-solver diagnostics. Those cached diagnostics use
-**biglasso** 1.6-1 (R), **adelie** 1.0-8 (R), **skglm** 0.5 (Python),
+**biglasso** 1.6-1 (R), **adelie** 1.0-10 (R), **skglm** 0.5 (Python),
 **LIBLINEAR** through **scikit-learn**'s `solver="liblinear"` wrapper, and
 **BlitzL1** at commit `aef8d02`. They record one fit per tolerance setting. The
-controlled imbalance sweep uses **glmnet** 5.0 and **biglasso** 1.6-1, with
-seven warmed timing repetitions per mode and cell. It uses one BLAS/OpenMP
+separate cold-start diagnostic in [Supplement S5.2](#sec-cold-start-diag) uses
+**adelie** 1.0-8. The controlled imbalance sweep uses **glmnet** 5.0 and
+**biglasso** 1.6-1, with seven warmed timing repetitions per mode and cell. It
+uses one BLAS/OpenMP
 thread and the same explicit regularization path for both modes. The benchmark
 stores every calibration result and timing, the reference certificates and
 curvature diagnostics, and the package versions in
@@ -3615,7 +3619,8 @@ stricter.
     reports the intercept estimate, primal objective, and iteration count at
     $\lambda = 0.05\lambda_{\max}$ with inner and outer solver tolerances of
     $10^{-1}$; the iterate cap is swept from $10^1$ to $10^5$, and the path-mode
-    reference primal is $0.0634$ on w1a and $0.0497$ on news20-3pct.
+    reference primal is $0.0634$ on w1a and $0.0497$ on news20-3pct. The
+    **adelie** entries use version 1.0-8.
     {#tbl-cold-start-diag}
 
 In @tbl-cold-start-diag, the global majorant $L_0 = 1/4$ acts as an $X$-free
