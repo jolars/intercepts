@@ -1,0 +1,15 @@
+@media (max-width: 767.98px) {
+  /* Keep wide mathematics and tables within the mobile reading column. */
+  main .math.display,
+  main .quarto-float-tbl > div {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  main :not(pre) > code,
+  main .csl-entry a {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}

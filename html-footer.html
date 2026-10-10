@@ -1,0 +1,15 @@
+<script>
+  // The Computo badge hardcodes its organization; the workflow link uses metadata.
+  for (const badge of document.querySelectorAll('img[alt="Build Status"]')) {
+    const link = badge.closest('a[href]');
+    if (!link) continue;
+    const workflow = new URL(link.href);
+    if (workflow.hostname !== 'github.com') continue;
+    const match = workflow.pathname.match(/^\/([^/]+)\/([^/]+)\/actions\/workflows\/([^/]+)$/);
+    if (!match) continue;
+    const [, owner, repo, filename] = match;
+    const source = new URL(badge.src);
+    source.pathname = `/github/actions/workflow/status/${owner}/${repo}/${filename}`;
+    badge.src = source.href;
+  }
+</script>
