@@ -1,6 +1,6 @@
 # How to Train Your Intercept
 Johan Larsson, Frederik Fabricius Bjerre
-2026-10-09
+2026-10-10
 
 ### Citation
 

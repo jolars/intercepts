@@ -3226,7 +3226,7 @@ then report the first pass at which the shared relative suboptimality bound
 reaches $10^{-8}$. We compare the three strategies under both warm start
 (initialized from the previous-$\lambda$ solution) and cold start
 (re-initialized at zero), and under both cyclic and permuted feature ordering.
-The main-text panels show cyclic CD; @fig-warm-start-full and
+The panels here show cyclic CD; @fig-warm-start-full and
 @fig-warm-start-mechanism-full give the full grid over both orderings.
 
 ```{julia}

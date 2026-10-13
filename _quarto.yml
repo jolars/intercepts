@@ -66,9 +66,7 @@ status: submitted
 license: CC-BY-4.0
 
 format:
-  computo-html:
-    css: styles.css
-    include-after-body: html-footer.html
+  computo-html: default
   computo-pdf: default
 
 engines: ["julia"]

@@ -8,8 +8,8 @@ Cached outputs of the within-skglm controlled comparison driven by
   `n_pos`, `n_neg`) emitted by `sim-skglm-controlled-problem.jl`.
 - `results.csv` — one row per `(commit, cell)` solve: skglm `AndersonCD`'s
   `n_iter`, `stop_crit`, `primal`, `runtime`, `converged`, and `intercept` at
-  the pre-fix (`b03644fe`) and post-fix (`8f9cbd77`) commits of
-  `/home/jola/projects/skglm`.
+  the pre-fix (`b03644fe`) and post-fix (`8f9cbd77`) skglm commits supplied by
+  the source trees pinned in `devenv.lock`.
 
 The per-cell scratch under `cells/` is `.gitignore`d. The wrapper checks every
 indexed cell for nonempty `X.csv`, `y.csv`, and `meta.json` files and regenerates

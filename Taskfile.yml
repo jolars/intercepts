@@ -27,13 +27,11 @@ tasks:
   paper-preview:
     desc: Preview the paper
     cmds:
-      - rm -rf /run/user/1000/julia/Project.toml
       - quarto preview main.qmd
 
   paper-preview-pdf:
     desc: Preview the paper as PDF
     cmds:
-      - rm -rf /run/user/1000/julia/Project.toml
       - quarto preview main.qmd --to computo-pdf
 
   readme:
@@ -101,3 +99,5 @@ tasks:
       - "{{.JULIA}} --project=. experiments/sim-real-logreg.jl"
       - "{{.JULIA}} --project=. experiments/sim-real-multinomial-yeoh.jl"
       - "{{.JULIA}} --project=. experiments/sim-real-multinomial-shuttle.jl"
+      - Rscript experiments/sim-real-poisson-problem.R
+      - "{{.JULIA}} --project=. experiments/sim-real-poisson.jl"

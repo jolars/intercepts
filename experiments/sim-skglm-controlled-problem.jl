@@ -12,7 +12,7 @@ using JSON3
 # pass-count-ratio heatmap (@fig-skglm-controlled) reads as a direct companion
 # to @fig-mu-reg-gradient. Each cell is a standardized logistic problem; the
 # Python driver experiments/sim-skglm-controlled.py loads them by id and runs
-# skglm AndersonCD at two pinned commits of /home/jola/projects/skglm:
+# skglm AndersonCD from the two source trees pinned in devenv.lock:
 #   - b03644fe (pre-fix, gradient intercept update; matches skglm 0.5)
 #   - 8f9cbd77 (post-fix, Newton intercept update; the merge of PR #337)
 #
