@@ -207,6 +207,13 @@ quarto render main.qmd
 This generates `main.html` and `main.pdf` in the repository root.
 To render the paper and template README together, run `quarto render`.
 
+### Prepare the Computo submission
+
+Run `task computo` to freshly render the paper with the default Computo PDF
+format and write `intercepts-computo.pdf` in the repository root. The task also
+exports the abstract from `_quarto.yml` to `computo-abstract.txt` as a single
+plain-text paragraph for the submission form.
+
 ### (Optional) Reproduce using devenv
 
 We provide a [devenv](https://devenv.sh) configuration (`devenv.nix` and

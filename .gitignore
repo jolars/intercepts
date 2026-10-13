@@ -436,4 +436,7 @@ TSWLatexianTemp*
 /intercepts-arxiv.tar.gz
 /intercepts-arxiv.pdf
 
+# Computo submission output
+/intercepts-computo.pdf
+
 /.agents/

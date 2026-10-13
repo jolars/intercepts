@@ -69,6 +69,15 @@ tasks:
     cmds:
       - quarto render main.qmd --to computo-pdf
 
+  computo:
+    desc: Prepare the Computo submission PDF and plain-text abstract
+    cmds:
+      - quarto render main.qmd --to computo-pdf
+      - quarto pandoc /dev/null --metadata-file=_quarto.yml
+        --lua-filter=dev/abstract.lua --from=markdown --to=plain --wrap=none
+        --output=computo-abstract.txt
+      - cp main.pdf intercepts-computo.pdf
+
   arxiv:
     desc: Render and verify the arXiv source tarball and preview PDF
     cmds:
