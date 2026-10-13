@@ -10,8 +10,8 @@
 ## We sweep convergence tolerance `thresh` from loose to tight on path mode
 ## (warm-start from lambda_max down to reg*lambda_max via a 50-point
 ## geometric sequence), with standardize=FALSE since X on disk is already
-## standardised. Output mirrors sim-real-glmnet.R: a (thresh, npasses,
-## primal, runtime) row per tolerance.
+## standardized. Each output row records thresh, npasses, primal, and runtime
+## for one tolerance.
 
 suppressPackageStartupMessages({
   library(glmnet)
