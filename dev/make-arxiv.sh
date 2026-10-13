@@ -2,7 +2,7 @@
 # Build an arXiv-ready source tarball from the rendered paper.
 #
 # Pipeline:
-#   1. (re)render main.qmd to computo-pdf if main.tex is stale,
+#   1. render main.qmd to computo-pdf,
 #      which also refreshes main_files/figure-pdf/
 #   2. stage the .tex plus only the graphics it actually references
 #   3. strip the journal-review furniture from the staged copy: the "submitted"
@@ -16,7 +16,7 @@
 # The Computo extension regenerates main.tex on every render, so step 3
 # edits the staged copy only --- never the working tree.
 #
-# Requires: quarto, latexmk, lualatex. Uses pdftotext for the watermark check
+# Requires: quarto, latexmk, xelatex. Uses pdftotext for the watermark check
 # when available.
 
 set -euo pipefail
@@ -26,24 +26,23 @@ PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &>/dev/null && pwd)
 PAPER="main"
 # Declared in the staged source and used for the verification build, so the two
 # cannot drift apart.
-ENGINE="lualatex"
+ENGINE="xelatex"
 SRC_TEX="$PROJECT_ROOT/$PAPER.tex"
-SRC_QMD="$PROJECT_ROOT/$PAPER.qmd"
 STAGE="$PROJECT_ROOT/.arxiv"
 TARBALL="$PROJECT_ROOT/intercepts-arxiv.tar.gz"
+PREVIEW="$PROJECT_ROOT/intercepts-arxiv.pdf"
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
-# 1. Render only if needed --- a full render costs minutes.
+# 1. Refresh all inputs, including bibliography, metadata, and cached results.
+# Checking only the notebook's timestamp can silently package an old paper.
 if [[ "${ARXIV_SKIP_RENDER:-0}" == 1 ]]; then
     [[ -f "$SRC_TEX" ]] || die "ARXIV_SKIP_RENDER=1 but $PAPER.tex does not exist"
     log "skipping render (ARXIV_SKIP_RENDER=1)"
-elif [[ ! -f "$SRC_TEX" || "$SRC_QMD" -nt "$SRC_TEX" ]]; then
+else
     log "rendering $PAPER.qmd to computo-pdf"
     (cd "$PROJECT_ROOT" && quarto render "$PAPER.qmd" --to computo-pdf -M keep-tex:true)
-else
-    log "$PAPER.tex is up to date"
 fi
 
 # 2. Stage the source.
@@ -97,15 +96,25 @@ linenos=$(grep -c '^\\linenumbers$' "$STAGE/$PAPER.tex" || true)
 sed -i \
     -e 's/^\\DraftwatermarkOptions{stamp=true.*$/\\DraftwatermarkOptions{stamp=false}/' \
     -e '/^\\linenumbers$/d' \
+    -e 's/Date published:/Date:/' \
     "$STAGE/$PAPER.tex"
 log "stripped watermark ($watermarks) and line numbers ($linenos)"
 
-# The document needs LuaLaTeX --- unicode-math, fontspec and libertinus rule out
-# pdflatex. This magic comment is the editor convention (TeXShop, TeXworks,
-# VS Code LaTeX Workshop); arXiv's own lever is a 00README.XXX, so treat this as
-# documentation for whoever opens the source rather than as a guarantee that a
-# build service will honour it. It is a plain comment, so it is free either way.
+# arXiv supports XeLaTeX, but not the journal's LuaLaTeX engine. Its fontconfig
+# database is sparse, so load the TeX Live fonts by filename in the staged copy.
+sed -i \
+    -e 's/\\setmathfont{Libertinus Math}/\\setmathfont{LibertinusMath-Regular.otf}/' \
+    -e 's/\\setmonofont\[Scale=0.92\]{Latin Modern Mono}/\\setmonofont[Scale=0.92,ItalicFont=lmmono10-italic.otf,BoldFont=lmmonolt10-bold.otf,BoldItalicFont=lmmonolt10-boldoblique.otf]{lmmono10-regular.otf}/' \
+    "$STAGE/$PAPER.tex"
 sed -i "1i %!TEX program = $ENGINE" "$STAGE/$PAPER.tex"
+cat > "$STAGE/00README.json" <<EOF
+{
+  "spec_version": 1,
+  "process": {"compiler": "$ENGINE"},
+  "sources": [{"filename": "$PAPER.tex", "usage": "toplevel"}],
+  "texlive_version": 2025
+}
+EOF
 log "declared engine: $ENGINE"
 
 # 4. Prove the staged tree builds on its own, the way arXiv will build it.
@@ -117,7 +126,12 @@ else
     log "test-compiling the staged source with $ENGINE"
     (
         cd "$STAGE"
-        latexmk -lualatex -interaction=nonstopmode -halt-on-error "$PAPER.tex" >build.log 2>&1 ||
+        # File-based font lookup must work without locally registered fonts.
+        fontconfig=$(mktemp)
+        trap 'rm -f "$fontconfig"' EXIT
+        printf '<fontconfig></fontconfig>\n' > "$fontconfig"
+        FONTCONFIG_FILE="$fontconfig" latexmk -xelatex -no-shell-escape \
+            -interaction=nonstopmode -halt-on-error "$PAPER.tex" >build.log 2>&1 ||
             { tail -40 build.log >&2; die "latexmk failed"; }
 
         errors=$(grep -cE '^! ' "$PAPER.log" || true)
@@ -126,8 +140,12 @@ else
         ! grep -q 'There were undefined references' "$PAPER.log" ||
             die "undefined references remain after latexmk"
 
+        ! grep -qE '^\\(DraftwatermarkOptions\{stamp=true|linenumbers)' "$PAPER.tex" ||
+            die "review watermark or line numbers remain in the staged source"
+
         if command -v pdftotext >/dev/null; then
-            stamped=$(pdftotext "$PAPER.pdf" - 2>/dev/null | grep -ci submitted || true)
+            # The body legitimately says that we submitted a skglm patch.
+            stamped=$(pdftotext -f 1 -l 1 "$PAPER.pdf" - 2>/dev/null | grep -ciw submitted || true)
             [[ "$stamped" -eq 0 ]] || die "the built PDF still contains 'submitted' ($stamped hits)"
         fi
 
@@ -135,6 +153,7 @@ else
             log "built $(pdfinfo "$PAPER.pdf" | awk '/^Pages/ {print $2}') pages, no errors"
         fi
     )
+    cp "$STAGE/$PAPER.pdf" "$PREVIEW"
     # Build products are not part of the submission.
     rm -f \
         "$STAGE"/*.log \
@@ -143,6 +162,7 @@ else
         "$STAGE"/*.toc \
         "$STAGE"/*.fls \
         "$STAGE"/*.fdb_latexmk \
+        "$STAGE"/*.xdv \
         "$STAGE/$PAPER.pdf"
 fi
 

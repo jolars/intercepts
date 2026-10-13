@@ -70,7 +70,7 @@ tasks:
       - quarto render main.qmd --to computo-pdf
 
   arxiv:
-    desc: Build the arXiv source tarball (renders first if the TeX is stale)
+    desc: Render and verify the arXiv source tarball and preview PDF
     cmds:
       - bash dev/make-arxiv.sh
 
