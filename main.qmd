@@ -1861,6 +1861,13 @@ $(P_{\mathrm{ref}} - D_{\mathrm{ref}})/P_{\mathrm{ref}}$ is below $10^{-8}$. We
 use these certificates both to match accuracy in the imbalance sweep and to
 bound suboptimality in the remaining diagnostics.
 
+The tolerance sweeps for **skglm**, **LIBLINEAR**, **BlitzL1**, and **adelie**
+use the shared synthetic problem, w1a, and news20-3pct, with
+$\lambda = 0.05\lambda_{\max}$ in each case. These problems cover a dense
+Gaussian design, sparse binary features, and sparse text features. Each plotted
+point reports the endpoint of a fit at one tolerance, evaluated against the
+shared feasible dual reference $D^\star$ for that problem.
+
 ```{julia}
 #| label: define-production-suboptimality
 #| echo: false
@@ -2047,21 +2054,9 @@ within one solver.
 
 ### A historical update comparison in **skglm**
 
-The remaining solver diagnostics use the shared synthetic problem, w1a, and
-news20-3pct, with $\lambda = 0.05\lambda_{\max}$ in each case. These problems
-cover a dense Gaussian design, sparse binary features, and sparse text features.
-The **skglm** tolerance sweep fits the target $\lambda$ directly, while the
-**LIBLINEAR**, **BlitzL1**, and **adelie** comparisons use 50-point
-regularization paths.[^cold-start-footnote] Each plotted point reports the
-endpoint of a fit at one tolerance, evaluated against the shared feasible dual
-reference $D^\star$ for that problem.
-
-[^cold-start-footnote]: At the single-$\lambda$ configuration reported in
-    [Supplement S5.2](#sec-cold-start-diag), **biglasso**
-    `alg.logistic = "Newton"` returns inaccurate fits on both extreme-imbalance
-    real datasets, while **adelie** returns an empty state on w1a. These results
-    use loose solver tolerances and do not describe either package's default
-    configuration.
+We examine the convergence of **skglm** 0.5 with its historical intercept
+update on the three problems described above. The tolerance sweep fits the
+target $\lambda$ directly using `AndersonCD`.
 
 ```{julia}
 #| label: fig-real-skglm
@@ -2183,6 +2178,17 @@ former, while **BlitzL1** implements both. We compare the time they take to
 approach the shared certificate on the same three problems in
 @fig-real-proxnewton, complementing the **skglm** iteration-count comparison and
 the **glmnet** and **biglasso** imbalance sweep.
+
+The **LIBLINEAR**, **BlitzL1**, and **adelie** comparisons use 50-point
+regularization paths, reporting the fit at the target
+$\lambda = 0.05\lambda_{\max}$.[^cold-start-footnote]
+
+[^cold-start-footnote]: At the single-$\lambda$ configuration reported in
+    [Supplement S5.2](#sec-cold-start-diag), **biglasso**
+    `alg.logistic = "Newton"` returns inaccurate fits on both extreme-imbalance
+    real datasets, while **adelie** returns an empty state on w1a. These results
+    use loose solver tolerances and do not describe either package's default
+    configuration.
 
 ```{julia}
 #| label: fig-real-proxnewton
