@@ -303,10 +303,11 @@ After each subproblem, it also runs a capped one-dimensional Newton loop on the
 original loss to bring the intercept gradient within tolerance.^[Source:
 <https://github.com/tbjohns/BlitzL1/blob/aef8d02/src/solver.cpp#L27-L55>. The
 loop is called from `run_prox_newton_iteration` (`solver.cpp:262`) after the
-working-set CD pass and step-size backtracking.] **celer**\ [@massias2018;
-@massias2020] does not support intercepts for $\ell_1$-logistic regression.
-Implementations therefore make varied choices, but previous work has not
-directly analyzed the response distributions for which those choices matter.
+working-set CD pass and step-size backtracking.]
+**celer**\ [@massias2018; @massias2020] does not support intercepts for
+$\ell_1$-logistic regression. Implementations therefore make varied choices, but
+previous work has not directly analyzed the response distributions for which
+those choices matter.
 
 A second thread is the Frisch--Waugh--Lovell tradition of partialling out. In
 linear regression, the intercept can be handled separately: centering the
@@ -1125,13 +1126,23 @@ coupling
 $$
   \kappa = \frac{H_{0A}H_{AA}^{-1}H_{A0}}{H_{00}} \in [0, 1).
 $$ {#eq-collective-coupling}
-If each pass first minimizes the active coefficient block and then updates the
-intercept, Newton contracts the intercept error by $\kappa$, whereas the
-gradient strategy contracts it by $1 - (H_{00}/L_0)(1 - \kappa)$. As
-$\kappa \to 1$, the ratio of the required pass counts approaches $L_0/H_{00}$.
-Thus, coupling determines when the intercept mode controls convergence, and the
-curvature ratio determines how much slower the gradient strategy becomes once it
-does.
+If each pass first minimizes the active coefficient block exactly and then
+updates the intercept, Newton contracts the intercept error by $\kappa$, whereas
+the gradient strategy contracts it by $1 - (H_{00}/L_0)(1 - \kappa)$. For fixed
+$q = H_{00}/L_0 \in (0,1]$ and $0 < \kappa < 1$, let
+$T_{\mathrm{G}}(\varepsilon)$ and $T_{\mathrm{N}}(\varepsilon)$ count passes to
+reduce a nonzero initial intercept error in magnitude by a factor $\varepsilon$.
+Then
+$$
+  \lim_{\varepsilon \to 0} \frac{T_{\mathrm{G}}(\varepsilon)}{T_{\mathrm{N}}(\varepsilon)}
+  = \frac{\log \kappa}{\log \left( 1 - q(1 - \kappa) \right)}
+  \longrightarrow \frac{1}{q}
+  = \frac{L_0}{H_{00}} \quad \text{as } \kappa \to 1.
+$$ {#eq-frozen-block-rate}
+The first limit sends the error tolerance to zero at fixed coupling; the second
+sends $\kappa$ to one at fixed $q$. Thus, coupling determines when the intercept
+mode controls convergence, and the curvature ratio determines how much slower
+the gradient strategy becomes once it does.
 
 This is a local explanation, not a global iteration-complexity theorem. A
 coordinate sweep retains coefficient error modes that the exact block solve
@@ -2416,18 +2427,13 @@ coefficient error, so the only potentially nonzero eigenvalue of each pass is
 its intercept contraction factor. For fixed $0 < \kappa < 1$ and nonzero initial
 intercept error, let $T_{\mathrm{G}}(\varepsilon)$ and
 $T_{\mathrm{N}}(\varepsilon)$ count passes to reduce its magnitude by a factor
-$\varepsilon$. Then
-$$
-  \lim_{\varepsilon \to 0} \frac{T_{\mathrm{G}}(\varepsilon)}{T_{\mathrm{N}}(\varepsilon)}
-  = \frac{\log \kappa}{\log \left( 1 - q(1 - \kappa) \right)}
-  \longrightarrow \frac{1}{q}
-  = \frac{L_0}{H_{00}} \quad \text{as } \kappa \to 1.
-$$ {#eq-frozen-block-rate}
-For fixed $q < 1$, this asymptotic ratio diverges as $\kappa \to 0$. At a fixed
-tolerance, however, Newton needs only one pass once $\kappa \leq \varepsilon$,
-and the gradient pass count stays finite. These are different orders of limits.
-At $\kappa = 0$, Newton solves the decoupled quadratic in one pass. When
-$q = 1$, the two strategies coincide for every $\kappa$.
+$\varepsilon$. Their asymptotic pass-count ratio is given by
+@eq-frozen-block-rate and tends to $1/q$ as $\kappa \to 1$. For fixed $q < 1$,
+this asymptotic ratio diverges as $\kappa \to 0$. At a fixed tolerance, however,
+Newton needs only one pass once $\kappa \leq \varepsilon$, and the gradient pass
+count stays finite. These are different orders of limits. At $\kappa = 0$,
+Newton solves the decoupled quadratic in one pass. When $q = 1$, the two
+strategies coincide for every $\kappa$.
 :::
 
 To see this, let $a$ denote the intercept error. Conditional minimization gives
