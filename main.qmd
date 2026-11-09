@@ -64,10 +64,11 @@ usually include this coordinate to represent the baseline response and to absorb
 constant shifts in the predictors without changing the fitted slopes. It is
 unpenalized and never drops out of the fitted model, yet solvers update it in
 different ways. Research on coordinate descent has examined acceleration,
-parallelization, and convergence rates, but has largely treated the intercept
-update as a routine implementation choice. That choice can dominate convergence
-speed when the response is imbalanced. For direct coordinate descent, a single
-safeguarded Newton step per pass removes this slowdown in our experiments.
+parallelization, and convergence rates\ [@wright2015], but has largely treated
+the intercept update as a routine implementation choice. That choice can
+dominate convergence speed when the response is imbalanced. For direct
+coordinate descent, a single safeguarded Newton step per pass removes this
+slowdown in our experiments.
 
 The disagreement follows a deeper split among implementations. Some solvers,
 including **skglm**[^1]\ [@bertrand2022], run coordinate descent directly on the
@@ -268,10 +269,15 @@ We make four contributions:
 
 # Related work {#sec-related-work}
 
+Coordinate descent has long been used to compute regularization paths for the
+lasso and related penalties\ [@friedman2007].
+
 The choice of intercept update touches three strands of the literature, none of
 which has analyzed it as a separate problem. The first concerns how CD-based GLM
 solvers incorporate the intercept. Existing work generally treats this as a
-routine implementation choice. The **glmnet**
+routine implementation choice. @yuan2010 explicitly formulate an unpenalized
+bias term and compare logistic solvers with and without it. They also note that
+including the bias can affect runtime. The **glmnet**
 literature\ [@friedman2010; @tay2023], for example, describes two schemes for
 weighting the inner logistic solver in iteratively reweighted least squares
 (IRLS): local weights and a global 1/4 upper bound. The software exposes them
@@ -297,10 +303,10 @@ After each subproblem, it also runs a capped one-dimensional Newton loop on the
 original loss to bring the intercept gradient within tolerance.^[Source:
 <https://github.com/tbjohns/BlitzL1/blob/aef8d02/src/solver.cpp#L27-L55>. The
 loop is called from `run_prox_newton_iteration` (`solver.cpp:262`) after the
-working-set CD pass and step-size backtracking.] **celer**\ [@massias2020] does
-not support intercepts for $\ell_1$-logistic regression. Implementations
-therefore make varied choices, but previous work has not directly analyzed the
-response distributions for which those choices matter.
+working-set CD pass and step-size backtracking.] **celer**\ [@massias2018;
+@massias2020] does not support intercepts for $\ell_1$-logistic regression.
+Implementations therefore make varied choices, but previous work has not
+directly analyzed the response distributions for which those choices matter.
 
 A second thread is the Frisch--Waugh--Lovell tradition of partialling out. In
 linear regression, the intercept can be handled separately: centering the
@@ -503,12 +509,12 @@ is unpenalized. The resulting coordinate-descent algorithm appears in @algo-cd.
 ```
 
 In the implementation, every coefficient update in @algo-cd uses a Tseng--Yun
-Armijo backtracking line search based on the proximal model decrease, so each
-pass satisfies the descent condition by construction. The pseudocode omits this
-guard for readability. The Newton branch likewise backtracks only when the full
-step overshoots, and the exact branch enforces the residual criterion described
-above. [Supplement S3](#sec-s-methodology) gives the constants, iteration caps,
-and numerical tolerances.
+Armijo backtracking line search\ [@tseng2009] based on the proximal model
+decrease, so each pass satisfies the descent condition by construction. The
+pseudocode omits this guard for readability. The Newton branch likewise
+backtracks only when the full step overshoots, and the exact branch enforces the
+residual criterion described above. [Supplement S3](#sec-s-methodology) gives
+the constants, iteration caps, and numerical tolerances.
 
 ## What sets the intercept apart
 
