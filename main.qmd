@@ -893,29 +893,7 @@ $1/\tilde H_{jj}$, the step size for $\tilde F$'s local quadratic model along
 $e_j$.
 :::
 
-::: {.proof}
-Let $\beta_0^\star(\beta)$ be the conditional minimizer near $\beta^{(t)}$. It
-exists at $\beta^{(t)}$ by assumption and is unique by strict convexity. Since
-$H_{00} > 0$ there, the implicit function theorem applied to $\partial_0 F = 0$
-makes $\beta_0^\star$ differentiable locally. Thus
-$\tilde F(\beta) = F(\beta_0^\star(\beta), \beta)$ near $\beta^{(t)}$.
-Differentiating through $\beta_0^\star$ and using the stationarity condition
-$\partial_0 F(\beta_0^\star(\beta), \beta) = 0$,
-$$
-  \partial_j \tilde F(\beta)
-  = \partial_j F(\beta_0^\star(\beta), \beta)
-    + \partial_0 F\big(\beta_0^\star(\beta), \beta\big)\partial_j \beta_0^\star(\beta)
-  = \partial_j F\big(\beta_0^\star(\beta), \beta\big).
-$$
-At the conditional minimizer, $\partial_0 F = 0$, so the intercept's dependence
-on $\beta$ contributes nothing to the derivative. Evaluating at
-$\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives the gradient equality. For
-the step size, $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$, so
-$1/H_{jj} \leq 1/\tilde H_{jj}$\ (@eq-schur-diag). The update therefore uses a
-step size no larger than the profiled local model's $1/\tilde H_{jj}$. This
-local comparison alone does not guarantee descent of $\tilde F$ after a finite
-update.
-:::
+The proof is in [Supplement S1.2](#sec-profile-proof).
 
 The proposition establishes a gradient identity at the current coefficients. It
 does not turn a whole coordinate sweep into optimization of $\tilde F$: the
@@ -2073,39 +2051,6 @@ We examine the convergence of **skglm** 0.5 with its historical intercept update
 on the three problems described above. The tolerance sweep fits the target
 $\lambda$ directly using `AndersonCD`.
 
-```{julia}
-#| label: fig-real-skglm
-#| fig-cap: >-
-#|   **skglm** 0.5 on three imbalanced logistic problems. The panels show a
-#|   suboptimality bound versus `AndersonCD` outer iterations on the shared
-#|   synthetic problem, w1a, and news20-3pct, using the common feasible dual
-#|   reference $D^\star$ for each problem.
-
-df = vcat(
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
-    DataFrame(CSV.File(
-        @projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"),
-    )),
-)
-df = add_production_suboptimality(df, "logistic")
-df = df[df.n_iter .> 0, :]
-sort!(df, [:problem, :n_iter])
-
-spec = data(df) *
-    mapping(:n_iter, :subopt, col = :problem => sorter("synthetic", "w1a", "news20-3pct"))
-draw(
-    visual(Lines) * spec + visual(Scatter) * spec,
-    axis = (
-        # xscale = log10,
-        yscale = log10,
-        xlabel = "AndersonCD outer iterations",
-        ylabel = "Suboptimality",
-    ),
-    figure = (; size = output_size((700, 300))),
-)
-```
-
 In **skglm** 0.5, the intercept update takes a conservative gradient step on the
 original loss. Writing $g_0 = \partial_0 F$ for the averaged-loss gradient, the
 implementation subtracts $g_0/4$, whereas our gradient strategy subtracts
@@ -2119,7 +2064,8 @@ merged upstream as commit `8f9cbd77`.[^skglm-pr]
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
     2026-05-13. **skglm** 0.6 is unreleased at the time of writing; the
-    controlled comparison below pins the two relevant commits directly.
+    controlled comparison in Supplement S5.3 pins the two relevant commits
+    directly.
 
 The **glmnet** and **biglasso** switches change the full IRLS weight scheme, and
 the cross-package panels also reflect implementation differences. We compare two
@@ -2138,180 +2084,11 @@ experiments compare the correctly scaled gradient strategy with safeguarded
 Newton under a shared objective certificate. Sources for the historical callback
 and its use in the stopping criterion are given in Supplement S1.1.
 
-As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
-$1/\lambda$, although it is not monotone in every cell. The pre-fix commit needs
-about $30$ times as many iterations as the post-fix commit even in the cell with
-the smallest difference, and more than $400$ times as many in the most
-imbalanced, weakly regularized corner.
-
-Even the smallest ratio is large: the historical gradient step is unusually
-conservative, while the Newton version reaches its native tolerance in fewer
-than 20 outer iterations. These ratios describe the two implementations and
-should not be read as speedups over our sharp global-curvature baseline. Many
-pre-fix runs hit the 5000-iteration cap, making the largest displayed ratios
-lower bounds rather than exact comparisons.
-
-```{julia}
-#| label: fig-skglm-controlled
-#| fig-cap: Within-**skglm** commit comparison. The heatmap shows the log ratio
-#|   of mean iteration counts, $\log_{10}(\bar T_{\mathtt{b03644fe}} / \bar
-#|   T_{\mathtt{8f9cbd77}})$, for `AndersonCD` across the same
-#|   $(\mu_0,\lambda/\lambda_{\max})$ grid as @fig-mu-reg-gradient, with each
-#|   mean taken over three seeds; clipped cells mark runs that hit the
-#|   5000-iteration cap. The historical gradient step is sixteen times smaller
-#|   than our global-curvature baseline, and the patch also changes the
-#|   intercept stopping residual.
-
-df_sk = DataFrame(CSV.File(@projectroot("results", "skglm-controlled", "results.csv")))
-df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
-
-agg_sk = combine(groupby(df_sk, [:mu0, :reg, :strategy]), :n_iter => mean => :n_iter)
-wide_sk = unstack(agg_sk, [:mu0, :reg], :strategy, :n_iter)
-wide_sk.skglm_ratio = wide_sk.gradient ./ wide_sk.newton
-wide_sk.reg_str = string.(wide_sk.reg)
-wide_sk.μ0_str = string.(wide_sk.mu0)
-
-spec_sk = data(wide_sk) *
-    mapping(
-        :reg_str =>
-            sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") =>
-            L"$\lambda / \lambda_{\max}$",
-        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
-        :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{pre}}/T_{\mathrm{post}})$",
-    )
-
-draw(spec_sk * visual(Heatmap), figure = (; size = output_size((400, 250))))
-```
-
-### Other production solvers
-
-The prox-Newton solvers provide a complementary test. Resolving the intercept
-with local curvature inside each quadratic should avoid the stall caused by a
-global majorant. An additional correction on the original loss may improve the
-intercept at the subproblem boundary. **LIBLINEAR**\ (newGLMNET) implements the
-former, while **BlitzL1** implements both. We compare the time they take to
-approach the shared certificate on the same three problems in
-@fig-real-proxnewton, complementing the **skglm** iteration-count comparison and
-the **glmnet** and **biglasso** imbalance sweep.
-
-The **LIBLINEAR**, **BlitzL1**, and **adelie** comparisons use 50-point
-regularization paths, reporting the fit at the target
-$\lambda = 0.05\lambda_{\max}$.[^cold-start-footnote]
-
-[^cold-start-footnote]: At the single-$\lambda$ configuration reported in
-    [Supplement S5.2](#sec-cold-start-diag), **biglasso**
-    `alg.logistic = "Newton"` returns inaccurate fits on both extreme-imbalance
-    real datasets, while **adelie** returns an empty state on w1a. These results
-    use loose solver tolerances and do not describe either package's default
-    configuration.
-
-```{julia}
-#| label: fig-real-proxnewton
-#| fig-cap: Prox-Newton solvers on three imbalanced logistic problems. The
-#|   panels show a suboptimality bound versus wall-clock time for **LIBLINEAR**
-#|   and **BlitzL1** on the shared synthetic problem, w1a, and news20-3pct.
-#|   **LIBLINEAR** runs that hit the internal `max_iter` cap without further
-#|   progress are omitted. Both solvers use the common feasible dual reference
-#|   $D^\star$ for each problem. Each point is an independent fit at one
-#|   tolerance; the single-run timings are indicative.
-
-df = vcat(
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "proxnewton.csv"))),
-    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "proxnewton.csv"))),
-    DataFrame(CSV.File(
-        @projectroot("results", "real-solvers", "news20-3pct", "proxnewton.csv"),
-    )),
-)
-df = add_production_suboptimality(df, "logistic")
-df = df[.!(df.solver .== "LIBLINEAR" .&& df.n_iter .>= 5000), :]
-sort!(df, [:problem, :solver, :runtime])
-
-spec = data(df) *
-    mapping(
-        :runtime,
-        :subopt,
-        color = :solver,
-        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
-    )
-draw(
-    visual(Lines) * spec + visual(Scatter) * spec,
-    axis = (
-        yscale = log10,
-        xlabel = "Time (s)",
-        ylabel = "Suboptimality",
-        xticklabelrotation = π / 4,
-    ),
-    figure = (; size = output_size((800, 300))),
-    facet = (; linkxaxes = false),
-)
-```
-
-We test the same prediction in **adelie**. It builds the same weighted Gaussian
-surrogate as **glmnet** `Newton`, but it handles the intercept implicitly:
-rather than updating $\beta_0$ as a coordinate inside the inner CD pass, it
-centers the features using weighted means at the start of each surrogate and
-tracks the residual mean, reconstructing
-$\beta_0 = \bar{y} + \overline{\mathrm{resid}}$ at the end of the inner solve.
-By construction, the intercept therefore reaches the surrogate optimum on every
-outer pass, with no separate update step.
-
-That places **adelie** in the same class as **glmnet** `Newton` and **biglasso**
-`Newton`. In @fig-real-adelie, we sweep its convergence tolerance across the
-same three problems used above. The curves are flat for `tol` values above
-roughly $10^{-4}$: path mode warm-starts each of the 50 lambdas from its
-predecessor, and those warm starts alone land within $10^{-5}$ of the optimum,
-already meeting the tolerance. Below that plateau, **adelie**'s final objectives
-lie within the shared reference certificate: the suboptimality bounds are on the
-order of $10^{-11}$ and then become limited by the certificate. Each fit
-completes in well under a second, and **adelie** shows no stall or failed solve.
-
-```{julia}
-#| label: fig-real-adelie
-#| fig-cap: >-
-#|   **adelie** on three imbalanced logistic problems. The panels show a
-#|   suboptimality bound versus convergence tolerance on the same three problems
-#|   used for **skglm**, **LIBLINEAR**, and **BlitzL1**. The horizontal axis is
-#|   the coupled outer and inner tolerance (`tol = irls_tol`), and the bound
-#|   uses the common feasible dual reference $D^\star$ for each problem.
-
-solverroot = @projectroot("results", "real-solvers")
-df = reduce(
-    vcat,
-    DataFrame(CSV.File(joinpath(solverroot, d, "adelie.csv")))
-        for d in ("", "w1a", "news20-3pct")
-)
-df = add_production_suboptimality(df, "logistic")
-sort!(df, [:problem, :tol])
-
-spec = data(df) *
-    mapping(:tol, :subopt, col = :problem => sorter("synthetic", "w1a", "news20-3pct"))
-draw(
-    visual(Lines) * spec + visual(Scatter) * spec,
-    axis = (
-        xreversed = true,
-        xscale = log10,
-        yscale = log10,
-        xlabel = "Convergence tolerance (tol = irls_tol)",
-        ylabel = "Suboptimality",
-    ),
-    figure = (; size = output_size((800, 300))),
-)
-```
-
-### Additional solver diagnostics
-
-Poisson loss provides a structural check: because $f''(\eta) = e^\eta$ is
-unbounded, the constant-majorant modes have no Poisson analogue. The production
-solvers that support Poisson here use local IRLS or prox-Newton curvature and
-converge without the gradient-strategy stall ([Supplement
-S5.1](#sec-production-poisson)).
-
-A separate single-$\lambda$ diagnostic probes the opposite risk: local Newton
-curvature can be unstable at a cold start when solver tolerances are
-deliberately loose. The observed **biglasso** and **adelie** failures depend on
-the dataset and do not describe their default path-mode calls. We therefore
-treat them as evidence for safeguarding the Newton direction, not as a package
-ranking ([Supplement S5.2](#sec-cold-start-diag)).
+The trajectories and iteration-cap diagnostics are in [Supplement
+S5.3](#sec-skglm-history). The **LIBLINEAR**, **BlitzL1**, and **adelie**
+comparisons are in [Supplement S5.4](#sec-other-production). The Poisson and
+single-$\lambda$ diagnostics are in [Supplements S5.1](#sec-production-poisson)
+and [S5.2](#sec-cold-start-diag).
 
 # Discussion
 
@@ -2331,18 +2108,6 @@ frozen quadratic model, the fraction is exact. That model then explains how the
 one-step mismatch becomes the late-stage $L_0/H_{00}$ rate plateau under strong
 collective coupling (@prp-frozen-block-rate, @fig-rho-frozen). This is a local
 explanation, not a global iteration-complexity theorem.
-
-The production comparisons test the rule outside our implementation. The
-**glmnet** and **biglasso** switches hold the package fixed but change the full
-IRLS weight scheme, while the before-and-after **skglm** comparison changes the
-intercept callback used for both updating and stopping
-(@sec-production-solvers). The **skglm** intervention shows the practical effect
-of replacing its unusually conservative historical update with Newton, including
-the change to stopping semantics. It does not quantify the advantage over the
-correctly scaled global-curvature strategy at matched accuracy. The other
-comparisons support the broader prediction about global versus local curvature,
-but they do not isolate that update from the rest of the surrogate or
-implementation.
 
 The Armijo guard completes the recommendation. It adds little work when the full
 Newton step is acceptable and prevents the Poisson cold-start overshoot in
@@ -2627,6 +2392,34 @@ The other CD-based production packages we surveyed (**glmnet**, **biglasso**,
 or proximal-Newton linearization (@sec-irls). None of the production CD solvers
 we surveyed use a growth-allowing line search on the intercept alone.
 
+### S1.2 Profile-gradient identity {#sec-profile-proof .unnumbered}
+
+The following proves @prp-profile-equiv.
+
+::: {.proof}
+Let $\beta_0^\star(\beta)$ be the conditional minimizer near $\beta^{(t)}$. It
+exists at $\beta^{(t)}$ by assumption and is unique by strict convexity. Since
+$H_{00} > 0$ there, the implicit function theorem applied to $\partial_0 F = 0$
+makes $\beta_0^\star$ differentiable locally. Thus
+$\tilde F(\beta) = F(\beta_0^\star(\beta), \beta)$ near $\beta^{(t)}$.
+Differentiating through $\beta_0^\star$ and using the stationarity condition
+$\partial_0 F(\beta_0^\star(\beta), \beta) = 0$,
+$$
+  \partial_j \tilde F(\beta)
+  = \partial_j F(\beta_0^\star(\beta), \beta)
+    + \partial_0 F\big(\beta_0^\star(\beta), \beta\big)\partial_j \beta_0^\star(\beta)
+  = \partial_j F\big(\beta_0^\star(\beta), \beta\big).
+$$
+At the conditional minimizer, $\partial_0 F = 0$, so the intercept's dependence
+on $\beta$ contributes nothing to the derivative. Evaluating at
+$\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives the gradient equality. For
+the step size, $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$, so
+$1/H_{jj} \leq 1/\tilde H_{jj}$\ (@eq-schur-diag). The update therefore uses a
+step size no larger than the profiled local model's $1/\tilde H_{jj}$. This
+local comparison alone does not guarantee descent of $\tilde F$ after a finite
+update.
+:::
+
 ## S2. Vector intercepts and multinomial models {#sec-s-multinomial .unnumbered}
 
 ### S2.1 Derivation and experiments {#sec-vector-intercepts .unnumbered}
@@ -2879,39 +2672,15 @@ low-curvature directions in the intercept block (@eq-multinomial-free-rayleigh).
 The gradient strategy should make little progress along those directions
 (@eq-grad-residual-matrix).
 
-```{julia}
-#| label: fig-real-multinomial
-#| fig-cap: Multinomial logistic regression on Yeoh2002. The plot shows a
-#|   relative suboptimality bound versus time at $\lambda = 0.05\lambda_{\max}$
-#|   under cyclic CD for $n = 248$, $p = 12\,625$, and $K = 6$. Suboptimality is
-#|   bounded using the strongest shared feasible dual point.
-
-dd = JLD2.load(@projectroot("results", "real-multinomial-yeoh.jld2"))
-df = DataFrame(dd["results"])
-df = flatten(df, [:time, :relgaps, :gaps, :primals])
-
-df.relgaps .= max.(df.relgaps, 1.0e-10)
-df.strategy = strategy_label.(df.strategy)
-
-spec = data(df) *
-    mapping(:time => "Time (s)", :relgaps => "Relative suboptimality", color = :strategy)
-
-draw(
-    visual(Lines) * spec,
-    axis = (yscale = log10,),
-    figure = (; size = output_size((420, 260))),
-)
-```
-
 On the $p > n$ Yeoh2002 gene-expression problem, the gradient strategy lags in
 the low-curvature modes associated with rare classes, while Newton and exact
 need the same number of passes to reach the $10^{-4}$, $10^{-6}$, and $10^{-8}$
-thresholds (@fig-real-multinomial). Their wall-clock trajectories differ because
-the intercept updates have different costs. The roughly fourfold slowdown at a
-relative suboptimality bound of $10^{-4}$ is milder than the order-of-magnitude
-slowdown of @fig-multinomial-imbalance. The realized class prevalences, feature
-effects, and penalty contribution differ between these problems, so the baseline
-probabilities alone do not explain the difference.
+thresholds (@fig-multinomial-summary). Their wall-clock trajectories differ
+because the intercept updates have different costs. The roughly fourfold
+slowdown at a relative suboptimality bound of $10^{-4}$ is milder than the
+order-of-magnitude slowdown of @fig-multinomial-imbalance. The realized class
+prevalences, feature effects, and penalty contribution differ between these
+problems, so the baseline probabilities alone do not explain the difference.
 
 The same separation appears when the dimensions are reversed. The StatLog
 Shuttle dataset\ [@michie1994] is a $K = 7$ sensor-data classification with
@@ -2922,32 +2691,6 @@ only ten, thirteen, and fifty samples. Here the reference class is itself among
 the rarest, so the Rayleigh quotients fall much further below $L_0$ than in
 Yeoh2002 (@eq-multinomial-free-rayleigh--@eq-multinomial-reference-rayleigh).
 
-```{julia}
-#| label: fig-real-multinomial-shuttle
-#| fig-cap: Multinomial logistic regression on StatLog Shuttle. The plot shows a
-#|   relative suboptimality bound versus time at $\lambda = 0.05\lambda_{\max}$
-#|   under cyclic CD for $n = 58\,000$, $p = 9$, and $K = 7$. Suboptimality is
-#|   bounded using the strongest shared feasible dual point.
-
-dd_sh = JLD2.load(@projectroot("results", "real-multinomial-shuttle.jld2"))
-df_sh = DataFrame(dd_sh["results"])
-df_sh = flatten(df_sh, [:time, :relgaps, :primals])
-df_sh.relgaps .= max.(df_sh.relgaps, 1.0e-10)
-df_sh.strategy = strategy_label.(df_sh.strategy)
-
-draw(
-    visual(Lines) *
-        data(df_sh) *
-        mapping(
-            :time => "Time (s)",
-            :relgaps => "Relative suboptimality",
-            color = :strategy,
-        ),
-    axis = (yscale = log10,),
-    figure = (; size = output_size((420, 260))),
-)
-```
-
 On Shuttle, the Newton and exact strategies bring the relative suboptimality
 bound below $10^{-4}$ in $20$--$21$ passes, while the gradient strategy remains
 well above that threshold after the full thousand-pass budget. The slowdown is
@@ -2956,7 +2699,7 @@ classes are two orders of magnitude rarer. This is consistent with the smaller
 eigenmode correction factors in @eq-grad-residual-matrix; it is not a claim that
 a single Hessian diagonal controls the block solve. The rare-class slowdown
 therefore appears both when $p \gg n$ in the gene-expression data and when
-$n \gg p$ in the sensor data (@fig-real-multinomial-shuttle).
+$n \gg p$ in the sensor data (@fig-multinomial-summary).
 
 The class-by-class scheme of **glmnet**'s symmetric-multinomial path leads to a
 parallel conclusion. Holding all $\eta_{il}$ for $l \neq k$ fixed, the marginal
@@ -3656,6 +3399,204 @@ $\ell_1$ penalty pulls many entries to zero before the linear predictor reaches
 extreme values, damping the IRLS weight collapse. The diagnostic does not
 establish behavior at other values of $\lambda$, under other stopping
 tolerances, or for the packages' otherwise default calls.
+
+### S5.3 Historical skglm comparison {#sec-skglm-history .unnumbered}
+
+The figures below give the diagnostics for the comparison in
+@sec-production-solvers.
+
+```{julia}
+#| label: fig-real-skglm
+#| fig-cap: >-
+#|   **skglm** 0.5 on three imbalanced logistic problems. The panels show a
+#|   suboptimality bound versus `AndersonCD` outer iterations on the shared
+#|   synthetic problem, w1a, and news20-3pct, using the common feasible dual
+#|   reference $D^\star$ for each problem.
+
+df = vcat(
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "skglm.csv"))),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "skglm.csv"))),
+    DataFrame(CSV.File(
+        @projectroot("results", "real-solvers", "news20-3pct", "skglm.csv"),
+    )),
+)
+df = add_production_suboptimality(df, "logistic")
+df = df[df.n_iter .> 0, :]
+sort!(df, [:problem, :n_iter])
+
+spec = data(df) *
+    mapping(:n_iter, :subopt, col = :problem => sorter("synthetic", "w1a", "news20-3pct"))
+draw(
+    visual(Lines) * spec + visual(Scatter) * spec,
+    axis = (
+        # xscale = log10,
+        yscale = log10,
+        xlabel = "AndersonCD outer iterations",
+        ylabel = "Suboptimality",
+    ),
+    figure = (; size = output_size((700, 300))),
+)
+```
+
+As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
+$1/\lambda$, although it is not monotone in every cell. The pre-fix commit needs
+about $30$ times as many iterations as the post-fix commit even in the cell with
+the smallest difference, and more than $400$ times as many in the most
+imbalanced, weakly regularized corner.
+
+Even the smallest ratio is large: the historical gradient step is unusually
+conservative, while the Newton version reaches its native tolerance in fewer
+than 20 outer iterations. These ratios describe the two implementations and
+should not be read as speedups over our sharp global-curvature baseline. Many
+pre-fix runs hit the 5000-iteration cap, making the largest displayed ratios
+lower bounds rather than exact comparisons.
+
+```{julia}
+#| label: fig-skglm-controlled
+#| fig-cap: Within-**skglm** commit comparison. The heatmap shows the log ratio
+#|   of mean iteration counts, $\log_{10}(\bar T_{\mathtt{b03644fe}} / \bar
+#|   T_{\mathtt{8f9cbd77}})$, for `AndersonCD` across the same
+#|   $(\mu_0,\lambda/\lambda_{\max})$ grid as @fig-mu-reg-gradient, with each
+#|   mean taken over three seeds; clipped cells mark runs that hit the
+#|   5000-iteration cap. The historical gradient step is sixteen times smaller
+#|   than our global-curvature baseline, and the patch also changes the
+#|   intercept stopping residual.
+
+df_sk = DataFrame(CSV.File(@projectroot("results", "skglm-controlled", "results.csv")))
+df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
+
+agg_sk = combine(groupby(df_sk, [:mu0, :reg, :strategy]), :n_iter => mean => :n_iter)
+wide_sk = unstack(agg_sk, [:mu0, :reg], :strategy, :n_iter)
+wide_sk.skglm_ratio = wide_sk.gradient ./ wide_sk.newton
+wide_sk.reg_str = string.(wide_sk.reg)
+wide_sk.μ0_str = string.(wide_sk.mu0)
+
+spec_sk = data(wide_sk) *
+    mapping(
+        :reg_str =>
+            sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") =>
+            L"$\lambda / \lambda_{\max}$",
+        :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
+        :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{pre}}/T_{\mathrm{post}})$",
+    )
+
+draw(spec_sk * visual(Heatmap), figure = (; size = output_size((400, 250))))
+```
+
+### S5.4 Other production solvers {#sec-other-production .unnumbered}
+
+The prox-Newton solvers provide a complementary test. Resolving the intercept
+with local curvature inside each quadratic should avoid the stall caused by a
+global majorant. An additional correction on the original loss may improve the
+intercept at the subproblem boundary. **LIBLINEAR**\ (newGLMNET) implements the
+former, while **BlitzL1** implements both. We compare the time they take to
+approach the shared certificate on the same three problems in
+@fig-real-proxnewton, complementing the **skglm** iteration-count comparison and
+the **glmnet** and **biglasso** imbalance sweep.
+
+The **LIBLINEAR**, **BlitzL1**, and **adelie** comparisons use 50-point
+regularization paths, reporting the fit at the target
+$\lambda = 0.05\lambda_{\max}$.[^cold-start-footnote]
+
+[^cold-start-footnote]: At the single-$\lambda$ configuration reported in
+    [Supplement S5.2](#sec-cold-start-diag), **biglasso**
+    `alg.logistic = "Newton"` returns inaccurate fits on both extreme-imbalance
+    real datasets, while **adelie** returns an empty state on w1a. These results
+    use loose solver tolerances and do not describe either package's default
+    configuration.
+
+```{julia}
+#| label: fig-real-proxnewton
+#| fig-cap: Prox-Newton solvers on three imbalanced logistic problems. The
+#|   panels show a suboptimality bound versus wall-clock time for **LIBLINEAR**
+#|   and **BlitzL1** on the shared synthetic problem, w1a, and news20-3pct.
+#|   **LIBLINEAR** runs that hit the internal `max_iter` cap without further
+#|   progress are omitted. Both solvers use the common feasible dual reference
+#|   $D^\star$ for each problem. Each point is an independent fit at one
+#|   tolerance; the single-run timings are indicative.
+
+df = vcat(
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "proxnewton.csv"))),
+    DataFrame(CSV.File(@projectroot("results", "real-solvers", "w1a", "proxnewton.csv"))),
+    DataFrame(CSV.File(
+        @projectroot("results", "real-solvers", "news20-3pct", "proxnewton.csv"),
+    )),
+)
+df = add_production_suboptimality(df, "logistic")
+df = df[.!(df.solver .== "LIBLINEAR" .&& df.n_iter .>= 5000), :]
+sort!(df, [:problem, :solver, :runtime])
+
+spec = data(df) *
+    mapping(
+        :runtime,
+        :subopt,
+        color = :solver,
+        col = :problem => sorter("synthetic", "w1a", "news20-3pct"),
+    )
+draw(
+    visual(Lines) * spec + visual(Scatter) * spec,
+    axis = (
+        yscale = log10,
+        xlabel = "Time (s)",
+        ylabel = "Suboptimality",
+        xticklabelrotation = π / 4,
+    ),
+    figure = (; size = output_size((800, 300))),
+    facet = (; linkxaxes = false),
+)
+```
+
+We test the same prediction in **adelie**. It builds the same weighted Gaussian
+surrogate as **glmnet** `Newton`, but it handles the intercept implicitly:
+rather than updating $\beta_0$ as a coordinate inside the inner CD pass, it
+centers the features using weighted means at the start of each surrogate and
+tracks the residual mean, reconstructing
+$\beta_0 = \bar{y} + \overline{\mathrm{resid}}$ at the end of the inner solve.
+By construction, the intercept therefore reaches the surrogate optimum on every
+outer pass, with no separate update step.
+
+That places **adelie** in the same class as **glmnet** `Newton` and **biglasso**
+`Newton`. In @fig-real-adelie, we sweep its convergence tolerance across the
+same three problems used above. The curves are flat for `tol` values above
+roughly $10^{-4}$: path mode warm-starts each of the 50 lambdas from its
+predecessor, and those warm starts alone land within $10^{-5}$ of the optimum,
+already meeting the tolerance. Below that plateau, **adelie**'s final objectives
+lie within the shared reference certificate: the suboptimality bounds are on the
+order of $10^{-11}$ and then become limited by the certificate. Each fit
+completes in well under a second, and **adelie** shows no stall or failed solve.
+
+```{julia}
+#| label: fig-real-adelie
+#| fig-cap: >-
+#|   **adelie** on three imbalanced logistic problems. The panels show a
+#|   suboptimality bound versus convergence tolerance on the same three problems
+#|   used for **skglm**, **LIBLINEAR**, and **BlitzL1**. The horizontal axis is
+#|   the coupled outer and inner tolerance (`tol = irls_tol`), and the bound
+#|   uses the common feasible dual reference $D^\star$ for each problem.
+
+solverroot = @projectroot("results", "real-solvers")
+df = reduce(
+    vcat,
+    DataFrame(CSV.File(joinpath(solverroot, d, "adelie.csv")))
+        for d in ("", "w1a", "news20-3pct")
+)
+df = add_production_suboptimality(df, "logistic")
+sort!(df, [:problem, :tol])
+
+spec = data(df) *
+    mapping(:tol, :subopt, col = :problem => sorter("synthetic", "w1a", "news20-3pct"))
+draw(
+    visual(Lines) * spec + visual(Scatter) * spec,
+    axis = (
+        xreversed = true,
+        xscale = log10,
+        yscale = log10,
+        xlabel = "Convergence tolerance (tol = irls_tol)",
+        ylabel = "Suboptimality",
+    ),
+    figure = (; size = output_size((800, 300))),
+)
+```
 
 # References {.unnumbered}
 
