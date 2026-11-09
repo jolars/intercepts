@@ -3212,7 +3212,7 @@ single Newton step is then essentially exact at the start, so $k_0 \in \{1, 2\}$
 in the exact strategy and the $k_0 - 1$ per-pass overhead evaporates. The
 gradient-strategy slowdown should also lessen because the iterate is close to
 optimum and the $H_{00}/L_0$ shrinkage acts on an already-small residual
-(@eq-newton-coupling).
+(@eq-grad-residual).
 
 We test this by solving an $\ell_1$-logistic path on two problems---a simulated
 standardized design ($n = 500$, $p = 1000$, $s = 10$, $\mu_0 = 0.9$,
