@@ -1400,6 +1400,11 @@ curvature rather than a global Lipschitz bound.
 
 ## Methodology and reproducibility {#sec-methodology}
 
+The [project repository](https://github.com/jolars/intercepts) contains the
+**Intercepts** Julia package, experiment scripts, and cached results. The
+[reproduction guide](https://github.com/jolars/intercepts/blob/main/REPRODUCIBILITY.md)
+lists the inputs and commands needed to regenerate each figure.
+
 We run the internal experiments using our Julia implementations of the solvers
 and report outer passes as the primary measure of work. Unless otherwise noted,
 synthetic designs use cyclic ordering, fixed seeds, standardized features, and
