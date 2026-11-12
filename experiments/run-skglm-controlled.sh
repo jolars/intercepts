@@ -1,33 +1,27 @@
 #!/usr/bin/env bash
-# Orchestrate the skglm pre-fix vs post-fix controlled comparison
+# Compare correctly scaled gradient and Newton intercept updates in skglm
 # (@fig-skglm-controlled in main.qmd).
 #
 # Pipeline:
 #   1. (re)generate the problem family via sim-skglm-controlled-problem.jl
-#   2. for each source tree pinned by devenv.lock, run sim-skglm-controlled.py
-#      with PYTHONPATH pointing at that tree
+#   2. run both strategies against the same source tree pinned by devenv.lock
 #
 # Requires:
-#   - the devenv shell, which exports both pinned source-tree paths
+#   - the devenv shell, which exports SKGLM_POST_FIX_SOURCE
 
 set -euo pipefail
 
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." &>/dev/null && pwd)"
 
-PRE_FIX_SHA="b03644fe"
-POST_FIX_SHA="8f9cbd77"
-
 RESULTS_DIR="$PROJECT_ROOT/results/skglm-controlled"
 RESULTS_CSV="$RESULTS_DIR/results.csv"
 INDEX_CSV="$RESULTS_DIR/index.csv"
 
-for source_var in SKGLM_PRE_FIX_SOURCE SKGLM_POST_FIX_SOURCE; do
-    source_dir="${!source_var:-}"
-    if [[ ! -f "$source_dir/skglm/__init__.py" ]]; then
-        echo "error: $source_var is unavailable; run this script inside 'devenv shell'" >&2
-        exit 1
-    fi
-done
+source_dir="${SKGLM_POST_FIX_SOURCE:-}"
+if [[ ! -f "$source_dir/skglm/__init__.py" ]]; then
+    echo "error: SKGLM_POST_FIX_SOURCE is unavailable; run inside 'devenv shell'" >&2
+    exit 1
+fi
 
 problem_family_complete() {
     python - "$INDEX_CSV" <<'PY'
@@ -65,20 +59,14 @@ if ! problem_family_complete; then
     exit 1
 fi
 
-# 2. start with a fresh results.csv so the run is reproducible
-rm -f "$RESULTS_CSV"
-
-for spec in \
-    "$PRE_FIX_SHA:$SKGLM_PRE_FIX_SOURCE" \
-    "$POST_FIX_SHA:$SKGLM_POST_FIX_SOURCE"; do
-    sha="${spec%%:*}"
-    source_dir="${spec#*:}"
-    echo
-    echo "=== Running skglm at $sha ==="
+# Replace the committed cache only after the comparison completes successfully.
+skglm_results_tmp="$(mktemp "$RESULTS_DIR/results.XXXXXX.csv")"
+trap 'rm -f -- "$skglm_results_tmp"' EXIT
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
     PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$source_dir" \
-        python "$PROJECT_ROOT/experiments/sim-skglm-controlled.py" \
-        --commit "$sha" --out "$RESULTS_CSV" --index "$INDEX_CSV"
-done
+    python "$PROJECT_ROOT/experiments/sim-skglm-controlled.py" \
+    --out "$skglm_results_tmp" --index "$INDEX_CSV"
+mv -- "$skglm_results_tmp" "$RESULTS_CSV"
 
 echo
 echo "Done. Wrote $RESULTS_CSV"

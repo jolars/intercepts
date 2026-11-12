@@ -7,14 +7,14 @@ using CSV
 using DataFrames
 using JSON3
 
-# Problem family for the skglm pre-fix vs post-fix controlled comparison.
+# Problem family for the certified gradient vs Newton comparison inside skglm.
 # Mirrors the (μ0, reg, seed) grid of sim-mu-reg-heatmap.jl so the resulting
-# pass-count-ratio heatmap (@fig-skglm-controlled) reads as a direct companion
+# runtime-ratio heatmap (@fig-skglm-controlled) reads as a direct companion
 # to @fig-mu-reg-gradient. Each cell is a standardized logistic problem; the
 # Python driver experiments/sim-skglm-controlled.py loads them by id and runs
-# skglm AndersonCD from the two source trees pinned in devenv.lock:
-#   - b03644fe (pre-fix, gradient intercept update; matches skglm 0.5)
-#   - 8f9cbd77 (post-fix, Newton intercept update; the merge of PR #337)
+# skglm AndersonCD at the single revision pinned in devenv.lock (8f9cbd77,
+# the merge of PR #337). A custom Logistic datafit supplies the correctly
+# scaled gradient update; the native datafit supplies Newton.
 #
 # Standardization and λ_max convention match sim-real-problem.jl exactly so
 # both experiments speak the same penalty scale.

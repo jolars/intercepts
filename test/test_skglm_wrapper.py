@@ -43,10 +43,10 @@ class SkglmWrapperTests(unittest.TestCase):
         )
         generator.chmod(0o755)
         (self.experiments / "sim-skglm-controlled.py").write_text(
-            "import argparse, csv\n"
+            "import argparse, csv, os\n"
             "from pathlib import Path\n"
             "parser = argparse.ArgumentParser()\n"
-            "for flag in ['--commit', '--out', '--index']:\n"
+            "for flag in ['--out', '--index']:\n"
             "    parser.add_argument(flag, required=True)\n"
             "args = parser.parse_args()\n"
             "index = Path(args.index)\n"
@@ -56,7 +56,9 @@ class SkglmWrapperTests(unittest.TestCase):
             "            path = index.parent / 'cells' / row['cell_name'] / file\n"
             "            assert path.read_text()\n"
             "with Path(args.out).open('a') as stream:\n"
-            "    stream.write(args.commit + '\\n')\n"
+            "    stream.write('gradient,newton\\n')\n"
+            "if os.environ.get('FAIL_SOLVER'):\n"
+            "    raise RuntimeError('simulated comparison failure')\n"
         )
         source = self.root / "source" / "skglm"
         source.mkdir(parents=True)
@@ -64,7 +66,6 @@ class SkglmWrapperTests(unittest.TestCase):
         self.env = {
             **os.environ,
             "PATH": f"{self.bin}{os.pathsep}{os.environ['PATH']}",
-            "SKGLM_PRE_FIX_SOURCE": str(source.parent),
             "SKGLM_POST_FIX_SOURCE": str(source.parent),
         }
 
@@ -89,7 +90,7 @@ class SkglmWrapperTests(unittest.TestCase):
         self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
         self.assertEqual(
             (self.results / "results.csv").read_text(),
-            "b03644fe\n8f9cbd77\n",
+            "gradient,newton\n",
         )
 
     def test_missing_index_generates_inputs(self):
@@ -123,6 +124,14 @@ class SkglmWrapperTests(unittest.TestCase):
         (self.results / "index.csv").write_text(INDEX)
         (self.results / "results.csv").write_text("cached results\n")
         self.env["INCOMPLETE_GENERATION"] = "1"
+        run = self.run_wrapper()
+        self.assertNotEqual(run.returncode, 0)
+        self.assertEqual((self.results / "results.csv").read_text(), "cached results\n")
+
+    def test_failed_comparison_preserves_cached_results(self):
+        self.seed_inputs()
+        (self.results / "results.csv").write_text("cached results\n")
+        self.env["FAIL_SOLVER"] = "1"
         run = self.run_wrapper()
         self.assertNotEqual(run.returncode, 0)
         self.assertEqual((self.results / "results.csv").read_text(), "cached results\n")

@@ -2,9 +2,10 @@
 
 skglm 0.5 AndersonCD uses constant per-coordinate Lipschitz steps with the
 global 1/4 upper bound on the logistic Hessian. The intercept is updated with
-the fixed Lipschitz step ``mean(-y*sigmoid(-y*Xw))/4``, i.e. exactly the
-gradient strategy with ``L_0 = n/4``. Lemma 3.3 predicts this stalls under
-imbalance, which is what this figure documents.
+the step ``mean(-y*sigmoid(-y*Xw))/4``. This is sixteen times smaller than
+the correctly scaled gradient step for the averaged loss (``L_0 = 1/4``).
+This historical diagnostic therefore includes the effect of that under-step;
+sim-skglm-controlled.py compares the correctly scaled step with Newton.
 
 skglm 0.6 (merged after these experiments were run, PR
 https://github.com/scikit-learn-contrib/skglm/pull/337) replaces this with a

@@ -1847,17 +1847,20 @@ the coupled mode becomes slowest.
 The production experiments test two aspects of the curvature explanation. A
 controlled synthetic family tests how **glmnet** and **biglasso** respond to
 increasing response imbalance. Their mode switches change the full IRLS weight
-scheme. A separate comparison of two **skglm** versions changes the intercept
-update and its associated stopping residual. Additional diagnostics examine the
-other production solvers on the shared synthetic problem, w1a, and news20-3pct.
+scheme. A separate comparison inside **skglm** tests correctly scaled gradient
+and Newton intercept updates at matched certified accuracy. Additional
+diagnostics examine the other production solvers on the shared synthetic
+problem, w1a, and news20-3pct.
 
 We evaluate every fit on the common objective
-$n^{-1}\sum_i \ell_i + \lambda\lVert\beta\rVert_1$. For each problem, a
-high-accuracy fit supplies a reference primal $P_{\mathrm{ref}}$ and a feasible
-dual lower bound $D_{\mathrm{ref}}$. The relative certificate width
+$n^{-1}\sum_i \ell_i + \lambda\lVert\beta\rVert_1$. For the production imbalance
+sweep and the shared-problem diagnostics, a high-accuracy fit supplies a
+reference primal $P_{\mathrm{ref}}$ and a feasible dual lower bound
+$D_{\mathrm{ref}}$. The relative certificate width
 $(P_{\mathrm{ref}} - D_{\mathrm{ref}})/P_{\mathrm{ref}}$ is below $10^{-8}$. We
 use these certificates both to match accuracy in the imbalance sweep and to
-bound suboptimality in the remaining diagnostics.
+bound suboptimality in the remaining diagnostics. The within-**skglm** control
+instead evaluates a feasible dual certificate at each fit's endpoint.
 
 The tolerance sweeps for **skglm**, **LIBLINEAR**, **BlitzL1**, and **adelie**
 use the shared synthetic problem, w1a, and news20-3pct, with
@@ -2050,46 +2053,46 @@ correction. This experiment tests the sensitivity of the whole curvature scheme
 to imbalance. The following **skglm** comparison changes intercept handling
 within one solver.
 
-### A historical update comparison in **skglm**
+### Intercept updates inside **skglm**
 
-We examine the convergence of **skglm** 0.5 with its historical intercept update
-on the three problems described above. The tolerance sweep fits the target
-$\lambda$ directly using `AndersonCD`.
-
-In **skglm** 0.5, the intercept update takes a conservative gradient step on the
-original loss. Writing $g_0 = \partial_0 F$ for the averaged-loss gradient, the
-implementation subtracts $g_0/4$, whereas our gradient strategy subtracts
-$g_0/L_0 = 4g_0$ with $L_0 = 1/4$. The historical step is therefore sixteen
-times smaller than the sharp global-curvature step. It corresponds to an
-effective curvature bound of $4$, so its leading-order coupling correction is
-$H_{00}/4$, rather than $4H_{00}$ (@eq-grad-residual). The tolerance sweep shows
-slow progress under this additional conservatism. We submitted a patch to
-**skglm** replacing this gradient update with a Newton step. Our patch was
-merged upstream as commit `8f9cbd77`.[^skglm-pr]
+We compare two intercept updates in **skglm**'s `AndersonCD`. Both variants
+retain its Lipschitz coefficient steps, working-set selection, and Anderson
+acceleration. Both use commit `8f9cbd77`, which contains our upstream Newton
+intercept update.[^skglm-pr] A custom `Logistic` datafit replaces only the
+intercept step with $g_0/L_0 = 4g_0$, where $g_0$ is the averaged-loss intercept
+gradient and $L_0 = 1/4$. The native datafit subtracts $g_0/H_{00}$. This tests
+the correctly scaled gradient strategy against Newton within the same production
+solver.
 
 [^skglm-pr]: <https://github.com/scikit-learn-contrib/skglm/pull/337>, merged
-    2026-05-13. **skglm** 0.6 is unreleased at the time of writing; the
-    controlled comparison in Supplement S5.3 pins the two relevant commits
-    directly.
+    2026-05-13. The experiment pins the source commit directly.
 
-The **glmnet** and **biglasso** switches change the full IRLS weight scheme, and
-the cross-package panels also reflect implementation differences. We compare two
-**skglm** commits whose runtime code differs only in the intercept callback
-(@fig-skglm-controlled): `b03644fe`, the last pre-fix commit and behaviorally
-identical to the released 0.5, and `8f9cbd77`, the merged Newton fix. Running
-the same `AndersonCD` driver on both yields a controlled 30-cell comparison. The
-callback also defines the intercept component of `AndersonCD`'s stopping
-criterion: it changes from $|g_0|/4$ to $|g_0|/H_{00}$. Thus, the common
-numerical tolerance does not impose the same intercept accuracy in the two
-versions. This comparison measures the effect of the historical patch, including
-its change to stopping semantics; it does not isolate Newton against the
-correctly scaled global-curvature strategy at matched accuracy. The patch uses
-bare Newton, so it does not test the Armijo safeguard. The internal-solver
-experiments compare the correctly scaled gradient strategy with safeguarded
-Newton under a shared objective certificate. Sources for the historical callback
-and its use in the stopping criterion are given in Supplement S1.1.
+We reuse the $(\mu_0,\lambda/\lambda_{\max})$ grid of @fig-mu-reg-gradient, with
+three seeds per cell. Each fit starts from zero at the target $\lambda$. We
+select each strategy's loosest native tolerance on a half-decade grid from
+$10^{-3}$ to $10^{-13.5}$ whose endpoint satisfies the externally evaluated
+relative primal-dual gap $(P - D)/P \le 10^{-6}$. The dual point uses the
+construction in [Supplement S3](#sec-s-methodology). This matches certified
+accuracy despite the update-dependent native stopping residual. We warm each
+selected fit and time five repetitions in an interleaved, seeded random order,
+excluding input loading, calibration, warm-up, and certificate evaluation. Every
+timed endpoint must meet the same target.
 
-The trajectories and iteration-cap diagnostics are in [Supplement
+All 900 timed fits meet the certificate target. At
+$\lambda = 0.05\lambda_{\max}$, the gradient-to-Newton runtime ratio rises from
+about $0.9$ at $\mu_0 = 0.5$ to $1.7$, $2.6$, and $5.6$ at $\mu_0 = 0.9$,
+$0.95$, and $0.99$, respectively (@fig-skglm-controlled). The ratio is not
+monotone in the penalty: at $\mu_0 = 0.99$, it falls to about $2.0$ for
+$\lambda = 0.01\lambda_{\max}$. Newton's advantage under imbalance therefore
+persists with Lipschitz coefficient steps, working sets, and Anderson
+acceleration, but its size depends on the problem and penalty.
+
+The historical **skglm** 0.5 update subtracted $g_0/4$, sixteen times less than
+the correctly scaled step tested here. Its separate tolerance sweep remains in
+Supplement S5.3. The native Newton update is unguarded, so this comparison does
+not test the Armijo safeguard.
+
+The runtime comparison and historical convergence diagnostics are in [Supplement
 S5.3](#sec-skglm-history). The **LIBLINEAR**, **BlitzL1**, and **adelie**
 comparisons are in [Supplement S5.4](#sec-other-production). The Poisson and
 single-$\lambda$ diagnostics are in [Supplements S5.1](#sec-production-poisson)
@@ -3405,7 +3408,7 @@ extreme values, damping the IRLS weight collapse. The diagnostic does not
 establish behavior at other values of $\lambda$, under other stopping
 tolerances, or for the packages' otherwise default calls.
 
-### S5.3 Historical skglm comparison {#sec-skglm-history .unnumbered}
+### S5.3 skglm comparisons {#sec-skglm-history .unnumbered}
 
 The figures below give the diagnostics for the comparison in
 @sec-production-solvers.
@@ -3443,36 +3446,41 @@ draw(
 )
 ```
 
-As in @fig-mu-reg-gradient, the ratio generally grows with $\mu_0$ and with
-$1/\lambda$, although it is not monotone in every cell. The pre-fix commit needs
-about $30$ times as many iterations as the post-fix commit even in the cell with
-the smallest difference, and more than $400$ times as many in the most
-imbalanced, weakly regularized corner.
-
-Even the smallest ratio is large: the historical gradient step is unusually
-conservative, while the Newton version reaches its native tolerance in fewer
-than 20 outer iterations. These ratios describe the two implementations and
-should not be read as speedups over our sharp global-curvature baseline. Many
-pre-fix runs hit the 5000-iteration cap, making the largest displayed ratios
-lower bounds rather than exact comparisons.
+The controlled comparison in @fig-skglm-controlled uses the correctly scaled
+gradient step and Newton at the same skglm revision. Each strategy's runtime is
+the median of five warmed repetitions for each problem. We then average these
+medians over the three seeds and form the gradient-to-Newton ratio. Every fit
+included in a ratio meets the externally evaluated relative primal-dual gap
+target of $10^{-6}$. All 30 cells contain three certified pairs.
 
 ```{julia}
 #| label: fig-skglm-controlled
-#| fig-cap: Within-**skglm** commit comparison. The heatmap shows the log ratio
-#|   of mean iteration counts, $\log_{10}(\bar T_{\mathtt{b03644fe}} / \bar
-#|   T_{\mathtt{8f9cbd77}})$, for `AndersonCD` across the same
-#|   $(\mu_0,\lambda/\lambda_{\max})$ grid as @fig-mu-reg-gradient, with each
-#|   mean taken over three seeds; clipped cells mark runs that hit the
-#|   5000-iteration cap. The historical gradient step is sixteen times smaller
-#|   than our global-curvature baseline, and the patch also changes the
-#|   intercept stopping residual.
+#| fig-cap: Correctly scaled gradient versus Newton intercept updates inside
+#|   **skglm** `AndersonCD` at matched certified accuracy. Both variants use
+#|   commit `8f9cbd77`, retaining Lipschitz coefficient steps, working sets, and
+#|   Anderson acceleration. The heatmap shows the log runtime ratio
+#|   $\log_{10}(\bar T_{\mathrm{G}}/\bar T_{\mathrm{N}})$, averaging the
+#|   per-seed median of five warmed fits over three seeds. Every fit meets the
+#|   externally evaluated relative primal-dual gap target of $10^{-6}$. Positive
+#|   values favor Newton.
 
 df_sk = DataFrame(CSV.File(@projectroot("results", "skglm-controlled", "results.csv")))
-df_sk.strategy = ifelse.(df_sk.commit .== "b03644fe", "gradient", "newton")
-
-agg_sk = combine(groupby(df_sk, [:mu0, :reg, :strategy]), :n_iter => mean => :n_iter)
-wide_sk = unstack(agg_sk, [:mu0, :reg], :strategy, :n_iter)
-wide_sk.skglm_ratio = wide_sk.gradient ./ wide_sk.newton
+agg_sk = combine(
+    groupby(df_sk[df_sk.converged, :], [:cell_id, :mu0, :reg, :seed, :strategy]),
+    :runtime => median => :runtime,
+)
+paired_sk = dropmissing(unstack(agg_sk, [:cell_id, :mu0, :reg, :seed], :strategy, :runtime))
+wide_sk = combine(
+    groupby(paired_sk, [:mu0, :reg]),
+    :gradient => mean => :gradient,
+    :newton => mean => :newton,
+    nrow => :n_seeds,
+)
+wide_sk.skglm_ratio = ifelse.(
+    wide_sk.n_seeds .== 3,
+    wide_sk.gradient ./ wide_sk.newton,
+    NaN,
+)
 wide_sk.reg_str = string.(wide_sk.reg)
 wide_sk.μ0_str = string.(wide_sk.mu0)
 
@@ -3482,7 +3490,7 @@ spec_sk = data(wide_sk) *
             sorter("0.5", "0.2", "0.1", "0.05", "0.02", "0.01") =>
             L"$\lambda / \lambda_{\max}$",
         :μ0_str => sorter("0.5", "0.7", "0.9", "0.95", "0.99") => L"$\mu_0$",
-        :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{pre}}/T_{\mathrm{post}})$",
+        :skglm_ratio => log10 => L"$\log_{10}(T_{\mathrm{G}}/T_{\mathrm{N}})$",
     )
 
 draw(spec_sk * visual(Heatmap), figure = (; size = output_size((400, 250))))
@@ -3496,8 +3504,8 @@ global majorant. An additional correction on the original loss may improve the
 intercept at the subproblem boundary. **LIBLINEAR**\ (newGLMNET) implements the
 former, while **BlitzL1** implements both. We compare the time they take to
 approach the shared certificate on the same three problems in
-@fig-real-proxnewton, complementing the **skglm** iteration-count comparison and
-the **glmnet** and **biglasso** imbalance sweep.
+@fig-real-proxnewton, complementing the **skglm** comparisons and the **glmnet**
+and **biglasso** imbalance sweep.
 
 The **LIBLINEAR**, **BlitzL1**, and **adelie** comparisons use 50-point
 regularization paths, reporting the fit at the target
