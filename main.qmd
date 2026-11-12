@@ -872,84 +872,79 @@ The three strategies differ in how closely the gradient response in
 
 #### What exact intercept optimization achieves
 
-Exact minimization provides the reference for comparing the strategies. It gives
-the next coefficient update the profiled gradient, but the update still uses the
-curvature with the intercept held fixed. The following proposition makes this
-distinction precise.
+After an exact intercept solve, the next coefficient update uses the same
+gradient as the profiled objective. To see why, suppose $F$ is twice
+continuously differentiable and strictly convex in $\beta_0$. Assume that the
+conditional minimizer $\beta_0^\star(\beta)$ is finite and has positive
+curvature, $H_{00} > 0$.
 
-::: {.proposition #prp-profile-equiv}
-(First-update profile equivalence.) Let $F$ be twice continuously differentiable
-and strictly convex in $\beta_0$ for every $\beta$, and let
-$\tilde F(\beta) = \min_{\beta_0} F(\beta_0, \beta)$. Suppose the exact strategy
-has driven $\beta_0$ to the conditional minimizer
-$\beta_0^{(t)} = \arg\min_{\beta_0} F(\beta_0, \beta^{(t)})$, and suppose
-$H_{00} > 0$ and $\tilde H_{jj} > 0$ there. Then the *first* coefficient update
-of the next pass uses the gradient
-$\partial_j F(\beta_0^{(t)}, \beta^{(t)}) = \partial_j \tilde F(\beta^{(t)})$,
-so its update direction agrees with the corresponding coordinate direction for
-$\tilde F$ at $\beta^{(t)}$. Its diagonal step size remains $1/H_{jj}$. Because
-$\tilde H_{jj} \leq H_{jj}$ by @eq-schur-diag, this step size is no larger than
-$1/\tilde H_{jj}$, the step size for $\tilde F$'s local quadratic model along
-$e_j$.
-:::
+At this minimizer, the intercept gradient $\partial_0 F$ is zero. When we
+differentiate $\tilde F(\beta) = F(\beta_0^\star(\beta),\beta)$, the chain-rule
+term involving $\partial_j\beta_0^\star$ therefore vanishes. This leaves
+$$
+  \partial_j \tilde F(\beta) = \partial_j F(\beta_0^\star(\beta), \beta).
+$$ {#eq-profile-gradient}
+The implicit function theorem justifies this differentiation because
+$H_{00} > 0$.
 
-The proof is in [Supplement S1.2](#sec-profile-proof).
-
-The proposition establishes a gradient identity at the current coefficients. It
-does not turn a whole coordinate sweep into optimization of $\tilde F$: the
-coefficient steps still use $H_{jj}$, and later updates can move the intercept
-away from its conditional optimum. Before examining that drift, we ask how
-closely one Newton step reproduces the benefit of an exact solve.
+The coefficient update still uses the curvature $H_{jj}$ with the intercept held
+fixed. Its step size, $1/H_{jj}$, is therefore no larger than $1/\tilde H_{jj}$
+when the profiled curvature $\tilde H_{jj}$ is positive (@eq-schur-diag). Also,
+a coefficient update can move the intercept away from its conditional optimum.
+Exact intercept optimization thus supplies the profiled gradient for the first
+coefficient update, but need not do so for later updates in the same sweep.
 
 #### How closely one Newton step matches an exact solve
 
-A full Newton step leaves an intercept error that is quadratic in the current
-error, provided the curvature is positive and varies smoothly nearby. Write
-$g(t) = \partial_0 F(t, \beta)$, let $\beta_0^* = \beta_0^*(\beta)$ satisfy
-$g(\beta_0^*) = 0$, and set $H_{00} = g'(\beta_0)$. Taylor-expanding
-$g(\beta_0^*)$ around the current iterate $\beta_0$ gives
-$$
-  \partial_0 F(\beta_0, \beta)
-  = H_{00}(\beta_0 - \beta_0^*)
-    - \tfrac{1}{2}\partial_{000} F(\xi)(\beta_0 - \beta_0^*)^2,
-$$ {#eq-intercept-taylor}
-for some $\xi$ between $\beta_0$ and $\beta_0^*(\beta)$. Dividing by $H_{00}$
-and recognizing $\beta_0^{\text{Newton}} = \beta_0 - \partial_0 F/H_{00}$ on the
-left rewrites @eq-intercept-taylor as the standard Newton identity for the
-iterate error:
-$$
-  \bigl|\beta_0^{\text{Newton}} - \beta_0^*(\beta)\bigr|
-  = \frac{|\partial_{000} F(\xi)|}{2 |H_{00}|}(\beta_0 - \beta_0^*)^2.
-$$ {#eq-newton-iterate}
-For a local bound, suppose that $g'(t) \ge m > 0$ and $|g''(t)| \le M$ between
-$\beta_0$ and $\beta_0^*$. The mean-value theorem gives
-$m|\beta_0 - \beta_0^*| \le |g(\beta_0)|$, so @eq-newton-iterate yields
-$$
-  \bigl|\beta_0^{\text{Newton}} - \beta_0^*(\beta)\bigr|
-  \le \frac{M}{2m^3} \bigl|\partial_0 F(\beta_0, \beta)\bigr|^2.
-$$ {#eq-newton-error}
-Here we may take $M$ as a bound on
-$|\partial_{000}F| = |(1/n)\sum_i f'''(\eta_i)|$, and hence as no larger than
-$\sup |f'''|$. For squared loss, $f''' \equiv 0$ and the Newton step is exact.
-For logistic regression, $|f'''|$ is bounded by a small constant. Thus, wherever
-the intercept curvature stays bounded away from zero, the residual shrinks
-quadratically as the current intercept gradient vanishes.
+We now ask how much intercept error remains after one Newton step. Keep the
+coefficients fixed and write their conditional intercept loss as
+$\phi(a) = F(a,\beta)$. Let $a^\star = \beta_0^\star(\beta)$ be its minimizer,
+which we assume is finite. At the current intercept $a = \beta_0$, the error
+before the update has magnitude $E = |a - a^\star|$.
 
-A small intercept error matters only through its effect on the coefficient
-update. We therefore carry this bound into the coefficient gradient. Let
-$r_0 = \beta_0^{\text{Newton}} - \beta_0^*(\beta)$ be the Newton residual, with
-$|r_0|$ bounded by @eq-newton-error. Taylor-expanding $\partial_j F$ in
-$\beta_0$ around the conditional minimizer $\beta_0^*(\beta)$, using
-$\partial_j F(\beta_0^*, \beta) = \partial_j \tilde F(\beta)$ and
-$H_{j0}^* = \partial_{0j} F(\beta_0^*, \beta)$, yields
+Logistic and Poisson losses have a useful property: their curvature and its rate
+of change satisfy $|\phi'''(a)| \le \phi''(a)$. Thus, when curvature is small,
+its absolute rate of change is small too. This relationship lets us control how
+much curvature changes relative to its current value. It is a standard
+generalized self-concordance condition\ [@bach2010; @sun2019].
+
+Write $h = \phi''(a) > 0$ for the current curvature. The full Newton update is
+$\beta_0^{\text{Newton}} = a - \phi'(a)/h$. Its remaining error is
+$r_0 = \beta_0^{\text{Newton}} - a^\star$, which obeys
+$$
+  |r_0| \le \exp(E) - 1 - E = \tfrac12 E^2 + O(E^3).
+$$ {#eq-newton-error}
+The inequality holds for any starting intercept. When $E$ is small, its
+right-hand side is approximately $E^2/2$, so one full Newton step leaves an
+error of second order in the starting error. This local approximation does not
+require the curvature to stay above a separate positive constant. Small
+curvature, by itself, therefore does not make the approximation worse.
+
+The starting error $E$ is unknown unless we have already found $a^\star$. We can
+instead examine the normalized gradient $t = |\phi'(a)|/\phi''(a)$, which is the
+magnitude of the Newton step. If $t$ is small, it certifies that the intercept
+is close to its conditional optimum. [Supplement S1.2](#sec-scalar-newton)
+proves these claims and gives a bound in terms of $t$. For squared loss,
+curvature is constant, and one Newton step solves the intercept subproblem
+exactly.
+
+To understand what the remaining intercept error means for the next coefficient
+update, compare its gradient with the profiled gradient. After an exact solve,
+the two gradients agree by @eq-profile-gradient. After a Newton step, the
+intercept is displaced from the conditional minimizer by $r_0$. Expanding the
+coefficient gradient around that minimizer gives
 $$
   \partial_j F\bigl(\beta_0^{\text{Newton}}, \beta\bigr)
   = \partial_j \tilde F(\beta) + H_{j0}^*r_0 + O(r_0^2),
 $$ {#eq-newton-coupling}
-The coefficient gradient differs from the profiled gradient by
-$b_j = H_{j0}^*r_0 + O(r_0^2)$. For a penalized problem, we also need to know
-how this difference changes the actual coordinate step. We isolate its effect by
-comparing both steps at the same positive curvature $h_j$. Write
+where $H_{j0}^* = \partial_{0j}F(\beta_0^\star(\beta),\beta)$ is the
+cross-curvature at the conditional minimizer. To first order, this
+cross-curvature converts the intercept error into a coefficient-gradient error
+$b_j = H_{j0}^*r_0 + O(r_0^2)$.
+
+For a penalized problem, we also need to know how this gradient error changes
+the actual coordinate step. We isolate its effect by comparing both steps at the
+same positive curvature $h_j$. Write
 $G_\lambda(\beta) = \sum_j G_{\lambda,j}(\beta_j)$ and define the profiled step
 $$
   d_j^{\mathrm{prof}}
@@ -962,36 +957,39 @@ proximal map gives
 $$
   |d_j^{\mathrm{N}} - d_j^{\mathrm{prof}}| \leq \frac{|b_j|}{h_j},
   \qquad
-  |b_j| \ll h_j |d_j^{\mathrm{prof}}|
+  |b_j| \ll h_j |d_j^{\mathrm{prof}}|.
 $$ {#eq-newton-good-enough}
-as an absolute perturbation bound and a sufficient criterion for a small
-relative step error, respectively. The relevant comparison is with the composite
-coordinate residual $h_j d_j^{\mathrm{prof}}$. At an active lasso optimum,
+The first inequality bounds how much the coordinate step changes. The second
+states when that change is small relative to the profiled step: the gradient
+error $|b_j|$ must be much smaller than $h_j|d_j^{\mathrm{prof}}|$. This is the
+relevant comparison for the penalized update. At an active lasso optimum,
 $\partial_j\tilde F = -\lambda\operatorname{sign}(\beta_j)$, so the smooth
 gradient itself generally does not vanish.
 
-Under the local conditions of @eq-newton-error, $b_j$ is $O(|\partial_0 F|^2)$
-when the cross derivatives remain bounded. If $h_j$ stays bounded away from
-zero, the profiled coordinate step remains first order in the iterate error, and
-$\partial_0 F$ vanishes at least linearly, the Newton perturbation is second
-order and becomes negligible relative to that step. This is a conditional local
-comparison: when the profiled step is zero or vanishes faster, the absolute
-bound in @eq-newton-good-enough still applies, but it supplies no relative
-guarantee.
+When $E$ is small and the cross derivatives remain bounded, @eq-newton-error
+gives $b_j = O(E^2)$. Suppose also that $h_j$ stays bounded away from zero and
+the profiled step shrinks only to first order in the overall iterate error. Then
+the error introduced by the Newton intercept update shrinks faster than the
+profiled step, so its relative effect becomes negligible. This conclusion
+depends on the size of the profiled step. If that step is zero or shrinks
+faster, @eq-newton-good-enough still bounds the absolute change, but does not
+guarantee a small relative change.
 
-Far from the optimum, the full-step approximation can fail when the third
-derivative is large, the intercept curvature approaches zero, or the intercept
-gradient is large. Poisson regression, where $f''' = e^\eta$, can exhibit this
-cold-start behavior. Armijo backtracking safeguards descent, but a damped step
-has a different error bound from a full Newton step. With
-$e_0 = \beta_0 - \beta_0^*(\beta)$ and accepted step fraction
-$\alpha \in (0,1]$, the damped intercept error is
+Far from the conditional optimum, a full Newton step can overshoot. Our
+implementation then uses Armijo backtracking to shorten the step until it
+provides sufficient decrease. Let $\alpha \in (0,1]$ be the fraction of the
+Newton step that the line search accepts, and let
+$e_0 = \beta_0 - \beta_0^\star(\beta)$ be the signed error before the update.
+The error after this damped step is
 $$
   \beta_0^+ - \beta_0^*(\beta) = (1 - \alpha)e_0 + \alpha r_0.
 $$ {#eq-damped-newton-error}
-The quadratic error bound applies when the full step is accepted. For
-$\alpha < 1$, sufficient decrease alone does not remove the first-order term
-$(1 - \alpha)e_0$.
+When the full step is accepted, $\alpha = 1$ and only the second-order residual
+$r_0$ remains. Damping can leave some of the original error through the term
+$(1 - \alpha)e_0$. A step that decreases the loss therefore need not be as
+accurate as a full Newton step near the optimum. [Section
+S1.2](#sec-scalar-newton) provides the corresponding error bound and describes
+an explicit damping rule that guarantees descent from any starting intercept.
 
 The error bound and coupling correction describe a single Newton step at the
 current iterate (@eq-newton-error--@eq-newton-coupling). The experiments in
@@ -1049,8 +1047,8 @@ $$
   = H_{0j}\delta_j + O(\delta_j^2).
 $$ {#eq-intercept-drift}
 When this change is nonzero, the intercept is no longer conditionally optimal,
-and @prp-profile-equiv no longer guarantees the profiled gradient for the next
-coefficient update. The drift depends on both the coupling and the coefficient
+and @eq-profile-gradient no longer identifies its coefficient gradients with the
+profiled gradient. The drift depends on both the coupling and the coefficient
 step; it need not occur after every update.
 
 The exact strategy spends extra work optimizing an intercept that the next
@@ -1104,19 +1102,33 @@ coupling
 $$
   \kappa = \frac{H_{0A}H_{AA}^{-1}H_{A0}}{H_{00}} \in [0, 1).
 $$ {#eq-collective-coupling}
-If each pass first minimizes the active coefficient block exactly and then
-updates the intercept, Newton contracts the intercept error by $\kappa$, whereas
-the gradient strategy contracts it by $1 - (H_{00}/L_0)(1 - \kappa)$. For fixed
-$q = H_{00}/L_0 \in (0,1]$ and $0 < \kappa < 1$, let
-$T_{\mathrm{G}}(\varepsilon)$ and $T_{\mathrm{N}}(\varepsilon)$ count passes to
-reduce a nonzero initial intercept error in magnitude by a factor $\varepsilon$.
-Then
+
+::: {.proposition #prp-frozen-block-rate}
+*(Frozen two-block rate.)* Consider a pass that first minimizes the active
+coefficient block exactly and then updates the intercept. Write
+$q = H_{00}/L_0 \in (0,1]$ for the ratio of local intercept curvature to its
+global upper bound. After each pass, the Newton and gradient strategies multiply
+the intercept error by
+$$
+  r_{\mathrm{N}} = \kappa, \qquad r_{\mathrm{G}} = 1 - q(1 - \kappa),
+$$
+respectively.
+
+Suppose $0 < \kappa < 1$ and the initial intercept error is nonzero. Let
+$T_{\mathrm{N}}(\varepsilon)$ be the number of Newton passes needed to reduce
+the magnitude of that error to a fraction $\varepsilon$ of its initial value.
+Define $T_{\mathrm{G}}(\varepsilon)$ in the same way for the gradient strategy.
+Their ratio satisfies
 $$
   \lim_{\varepsilon \to 0} \frac{T_{\mathrm{G}}(\varepsilon)}{T_{\mathrm{N}}(\varepsilon)}
   = \frac{\log \kappa}{\log \left( 1 - q(1 - \kappa) \right)}
   \longrightarrow \frac{1}{q}
   = \frac{L_0}{H_{00}} \quad \text{as } \kappa \to 1.
 $$ {#eq-frozen-block-rate}
+At $\kappa = 0$, Newton solves the quadratic in one pass. At $q = 1$, both
+strategies use the same step and therefore coincide.
+:::
+
 The first limit sends the error tolerance to zero at fixed coupling; the second
 sends $\kappa$ to one at fixed $q$. Thus, coupling determines when the intercept
 mode controls convergence, and the curvature ratio determines how much slower
@@ -1131,18 +1143,15 @@ intercept curvature fixed, exposing the transition to the $L_0/H_{00}$ plateau.
 
 ### A safe Newton variant
 
-The Newton-coupling bias (@eq-newton-coupling) identifies the cold-start
-regime---large $|\partial_0 F|$ combined with rapidly varying $f''$---as the
-setting where an unguarded Newton step on the intercept perturbs the next
-coefficient pass enough to matter. The fix is to wrap the Newton direction
-$-\partial_0 F / H_{00}$ in an Armijo backtracking line search: accept the full
-step ($\alpha = 1$) if it decreases $F$ enough. Otherwise, halve $\alpha$ until
-it does. Our Newton strategy includes this safeguard. When it accepts the full
-step, the safeguard adds constant work; when the linear model is inadequate, the
-number of backtracking trials grows logarithmically. To isolate the effect of
-the guard, we compare the guarded variant directly with a bare Newton step in
-@fig-cold-start and @fig-cold-start-poisson and show when the guard changes the
-result.
+Far from the conditional intercept optimum, a full Newton step can overshoot. We
+safeguard the Newton direction $-\partial_0 F / H_{00}$ in an Armijo
+backtracking line search: accept the full step ($\alpha = 1$) if it decreases
+$F$ enough. Otherwise, halve $\alpha$ until it does. Our Newton strategy
+includes this safeguard. When it accepts the full step, the safeguard adds
+constant work; when the linear model is inadequate, the number of backtracking
+trials grows logarithmically. To isolate the effect of the guard, we compare the
+guarded variant directly with a bare Newton step in @fig-cold-start and
+@fig-cold-start-poisson and show when the guard changes the result.
 
 ### Extension to vector intercepts {#sec-multinomial-main}
 
@@ -1306,16 +1315,16 @@ variance-reduced stochastic-gradient method outside the CD framework analyzed
 here. **celer**'s L1-logistic estimator does not support an intercept in version
 0.7.4, and its documentation directs users to **skglm** for logistic regression.
 
-  | Solver                                            | Family                | Intercept treatment                                        |
-  | :--------------------------------------------     | :-------------------- | :-----------------------------------------------------     |
-  | **skglm** 0.5                                     | Constant-Lipschitz CD | Gradient on original loss (step size $1/4$)                |
-  | **glmnet** (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Conditional minimum of global-majorant quadratic           |
-  | **biglasso** (`alg.logistic = "MM"`)              | MM-IRLS               | Conditional minimum of global-majorant quadratic           |
-  | **glmnet** (`type.logistic = "Newton"`)           | Local-IRLS            | Conditional minimum of frozen local quadratic              |
-  | **biglasso** (`alg.logistic = "Newton"`, default) | Local-IRLS            | Conditional minimum of frozen local quadratic              |
-  | **adelie**                                        | Local-IRLS            | Conditional minimum of weighted, centered quadratic        |
-  | **LIBLINEAR** (newGLMNET, L1-LR)                  | Prox-Newton           | Conditional minimum of frozen quadratic; unregularized     |
-  | **BlitzL1**                                       | Prox-Newton           | Post-step Newton convergence on original loss              |
+  | Solver                                            | Family                | Intercept treatment                                    |
+  | :--------------------------------------------     | :-------------------- | :----------------------------------------------------- |
+  | **skglm** 0.5                                     | Constant-Lipschitz CD | Gradient on original loss (step size $1/4$)            |
+  | **glmnet** (`type.logistic = "modified.Newton"`)  | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
+  | **biglasso** (`alg.logistic = "MM"`)              | MM-IRLS               | Conditional minimum of global-majorant quadratic       |
+  | **glmnet** (`type.logistic = "Newton"`)           | Local-IRLS            | Conditional minimum of frozen local quadratic          |
+  | **biglasso** (`alg.logistic = "Newton"`, default) | Local-IRLS            | Conditional minimum of frozen local quadratic          |
+  | **adelie**                                        | Local-IRLS            | Conditional minimum of weighted, centered quadratic    |
+  | **LIBLINEAR** (newGLMNET, L1-LR)                  | Prox-Newton           | Conditional minimum of frozen quadratic; unregularized |
+  | **BlitzL1**                                       | Prox-Newton           | Post-step Newton convergence on original loss          |
 
   : Classification of CD-based production solvers by algorithmic family and
     intercept treatment. IRLS and prox-Newton rows conditionally minimize a
@@ -1402,8 +1411,9 @@ curvature rather than a global Lipschitz bound.
 
 The [project repository](https://github.com/jolars/intercepts) contains the
 **Intercepts** Julia package, experiment scripts, and cached results. The
-[reproduction guide](https://github.com/jolars/intercepts/blob/main/REPRODUCIBILITY.md)
-lists the inputs and commands needed to regenerate each figure.
+[reproduction
+guide](https://github.com/jolars/intercepts/blob/main/REPRODUCIBILITY.md) lists
+the inputs and commands needed to regenerate each figure.
 
 We run the internal experiments using our Julia implementations of the solvers
 and report outer passes as the primary measure of work. Unless otherwise noted,
@@ -2129,13 +2139,15 @@ long-tailed label distributions, the mechanism that affects the scalar intercept
 in binary models therefore routinely affects the intercept block in multinomial
 models.
 
-Our analysis has two main limitations. First, our results for the Newton
-strategy are *local*. @eq-newton-error and @eq-newton-coupling are Taylor
-identities for a single Newton step, and @prp-frozen-block-rate freezes the
-Hessian and solves the active coefficient block exactly. The frozen products of
-permuted coordinate passes reproduce the nonlinear rates, but we do not prove a
-general theorem for their Lyapunov exponents or a global convergence rate for CD
-with a Newton-updated intercept.
+Our analysis has two main limitations. First, the scalar error bound in
+@eq-newton-error is valid from any starting intercept, but it gives a useful
+second-order approximation only near the conditional optimum. The coupling
+expansion in @eq-newton-coupling also describes local behavior. To study how
+errors accumulate over passes, @prp-frozen-block-rate holds the Hessian fixed
+and assumes that each pass solves the active coefficient block exactly. The
+frozen products of permuted coordinate passes reproduce the nonlinear rates, but
+we do not prove a general theorem for their Lyapunov exponents or a global
+convergence rate for CD with a Newton-updated intercept.
 
 Second, the production-solver imbalance sweep fixes the design family and
 $\lambda/\lambda_{\max} = 0.05$. It includes three seeds at five prevalence
@@ -2187,34 +2199,25 @@ the coefficient block gives the Schur complement
 $H_{00} - H_{0A}H_{AA}^{-1}H_{A0} = H_{00}(1 - \kappa)$, the intercept curvature
 after the coefficients have adjusted.
 
-::: {.proposition #prp-frozen-block-rate}
-*(Frozen two-block rate.)* Let $q = H_{00}/L_0 \in (0,1]$. On the frozen
-quadratic, suppose $H$ is positive definite and each pass first minimizes over
-the active coefficient block and then updates the intercept. The Newton and
-gradient strategies contract the intercept error by
+To prove @prp-frozen-block-rate, let $a$ denote the intercept error at the start
+of a pass. Minimizing the quadratic over the coefficient block gives
+$\beta_A^+ = -H_{AA}^{-1}H_{A0}a$. At these coefficients, the intercept gradient
+is
 $$
-  r_{\mathrm{N}} = \kappa, \qquad r_{\mathrm{G}} = 1 - q(1 - \kappa),
+  H_{00}a + H_{0A}\beta_A^+ = H_{00}(1 - \kappa)a.
 $$
-respectively. Exact coefficient-block minimization erases the incoming
-coefficient error, so the only potentially nonzero eigenvalue of each pass is
-its intercept contraction factor. For fixed $0 < \kappa < 1$ and nonzero initial
-intercept error, let $T_{\mathrm{G}}(\varepsilon)$ and
-$T_{\mathrm{N}}(\varepsilon)$ count passes to reduce its magnitude by a factor
-$\varepsilon$. Their asymptotic pass-count ratio is given by
-@eq-frozen-block-rate and tends to $1/q$ as $\kappa \to 1$. For fixed $q < 1$,
-this asymptotic ratio diverges as $\kappa \to 0$. At a fixed tolerance, however,
-Newton needs only one pass once $\kappa \leq \varepsilon$, and the gradient pass
-count stays finite. These are different orders of limits. At $\kappa = 0$,
-Newton solves the decoupled quadratic in one pass. When $q = 1$, the two
-strategies coincide for every $\kappa$.
-:::
+A Newton update divides this gradient by $H_{00}$ and subtracts the result from
+$a$, leaving $\kappa a$. The gradient strategy instead divides by $L_0$, leaving
+$[1 - q(1 - \kappa)]a$. These are the two contraction factors in the
+proposition.
 
-To see this, let $a$ denote the intercept error. Conditional minimization gives
-$\beta_A^+ = -H_{AA}^{-1}H_{A0}a$, after which the intercept gradient is
-$H_{00}(1 - \kappa)a$. Newton therefore leaves error $\kappa a$, whereas the
-gradient strategy leaves $[1 - q(1 - \kappa)]a$. Taking logarithms gives
-@eq-frozen-block-rate; expanding both logarithms at $\kappa = 1$ gives the
-limit.
+The coefficient-block solve also removes any dependence on the incoming
+coefficient error: the new coefficient values depend only on the incoming
+intercept error. We can therefore describe the repeated iteration through this
+one scalar error, which each pass multiplies by the same factor. Taking
+logarithms of these factors gives the asymptotic pass-count ratio in
+@eq-frozen-block-rate. Expanding both logarithms as $\kappa$ tends to one gives
+the strong-coupling limit $1/q$.
 
 We test the role of coupling by holding $\mu_0$ fixed and shifting the feature
 means. For the horizontal axis of @fig-rho-centering, we summarize the
@@ -2400,33 +2403,114 @@ The other CD-based production packages we surveyed (**glmnet**, **biglasso**,
 or proximal-Newton linearization (@sec-irls). None of the production CD solvers
 we surveyed use a growth-allowing line search on the intercept alone.
 
-### S1.2 Profile-gradient identity {#sec-profile-proof .unnumbered}
+### S1.2 Scalar Newton bounds {#sec-scalar-newton .unnumbered}
 
-The following proves @prp-profile-equiv.
+We first bound the error left by a full Newton step, then examine how damping
+changes that error. Throughout this derivation, the coefficients $\beta$ stay
+fixed, and $\phi(a) = F(a,\beta)$ is the loss as a function of the intercept
+alone. Write $a^\star$ for its conditional minimizer and assume that this
+minimizer is finite.
 
-::: {.proof}
-Let $\beta_0^\star(\beta)$ be the conditional minimizer near $\beta^{(t)}$. It
-exists at $\beta^{(t)}$ by assumption and is unique by strict convexity. Since
-$H_{00} > 0$ there, the implicit function theorem applied to $\partial_0 F = 0$
-makes $\beta_0^\star$ differentiable locally. Thus
-$\tilde F(\beta) = F(\beta_0^\star(\beta), \beta)$ near $\beta^{(t)}$.
-Differentiating through $\beta_0^\star$ and using the stationarity condition
-$\partial_0 F(\beta_0^\star(\beta), \beta) = 0$,
+The key property is that the third derivative is controlled by the second. For
+logistic loss, with fitted probability $p$, these derivatives are
+$f''' = p(1 - p)(1 - 2p)$ and $f'' = p(1 - p)$. Since $|1 - 2p| \le 1$, we have
+$|f'''| \le f''$. For canonical Poisson loss, the two derivatives are equal:
+$f''' = f'' = \exp(\eta)$. In both cases, averaging over observations gives
+$|\phi'''| \le \phi''$.
+
+This inequality controls the relative change in curvature. To see this,
+differentiate the logarithm of the curvature:
+$|(\log\phi'')'| = |\phi'''/\phi''| \le 1$. Let $h = \phi''(a) > 0$ be the
+curvature at the current intercept. Integrating from $a$ to $a + u$ gives
 $$
-  \partial_j \tilde F(\beta)
-  = \partial_j F(\beta_0^\star(\beta), \beta)
-    + \partial_0 F\big(\beta_0^\star(\beta), \beta\big)\partial_j \beta_0^\star(\beta)
-  = \partial_j F\big(\beta_0^\star(\beta), \beta\big).
+  \exp(-|u|)h \le \phi''(a + u) \le \exp(|u|)h, \qquad h = \phi''(a) > 0.
+$$ {#eq-relative-curvature}
+Thus a displacement of size $|u|$ can change the curvature by at most a factor
+$\exp(|u|)$ in either direction. This is the scalar relative curvature bound of
+@bach2010 [Proposition 1].
+
+Now let $e = a - a^\star$ be the signed error before the Newton step, and let
+$E = |e|$ be its magnitude. The gradient is zero at the minimizer, so
+$\phi'(a) = \int_{a^\star}^a\phi''(v)\,dv$. We can therefore express the error
+after the full Newton step as
 $$
-At the conditional minimizer, $\partial_0 F = 0$, so the intercept's dependence
-on $\beta$ contributes nothing to the derivative. Evaluating at
-$\beta_0^{(t)} = \beta_0^\star(\beta^{(t)})$ gives the gradient equality. For
-the step size, $\tilde H_{jj} = H_{jj}(1 - \rho_{0j}^2) \leq H_{jj}$, so
-$1/H_{jj} \leq 1/\tilde H_{jj}$\ (@eq-schur-diag). The update therefore uses a
-step size no larger than the profiled local model's $1/\tilde H_{jj}$. This
-local comparison alone does not guarantee descent of $\tilde F$ after a finite
-update.
-:::
+  r_0 = e - \frac{\phi'(a)}{h}
+      = \int_{a^\star}^a\left( 1 - \frac{\phi''(v)}{h} \right)\,dv.
+$$
+The integrand measures how much curvature differs from its value at the starting
+intercept. By @eq-relative-curvature, its absolute value is at most
+$\exp(|v - a|) - 1$. Integrating this bound over the interval between $a$ and
+$a^\star$ gives
+$$
+  |r_0| \le \int_0^E\bigl(\exp(s) - 1\bigr)\,ds = \exp(E) - 1 - E,
+$$
+which proves @eq-newton-error.
+
+For a damped step, write $d = -\phi'(a)/h$ for the full Newton direction and let
+$a^+ = a + \alpha d$, where $\alpha \in (0,1]$. The identity in
+@eq-damped-newton-error expresses the new error as the sum of the remaining
+fraction of the old error and the accepted fraction of the full Newton residual.
+Taking absolute values gives
+$$
+  |a^+ - a^\star| \le (1 - \alpha)E + \alpha\bigl(\exp(E) - 1 - E\bigr).
+$$
+The first term explains why damping can reduce accuracy even when it ensures
+descent. To retain second-order accuracy as $E$ tends to zero, it suffices for
+$1 - \alpha$ to be $O(E)$, so that this first term is also $O(E^2)$.
+
+The bounds so far use $E$, which depends on the unknown minimizer. We can obtain
+a computable check by using the Newton displacement $t = |\phi'(a)|/h = |d|$.
+Applying the relative curvature bounds to the integral for $\phi'(a)$ gives
+$$
+  1 - \exp(-E) \le t \le \exp(E) - 1.
+$$
+The upper bound implies $E \ge \log(1 + t)$. When $t < 1$, the lower bound also
+implies $E \le -\log(1 - t)$. These inequalities place the unknown error $E$ in
+an interval determined by $t$.
+
+Since $\phi$ is strictly convex, its gradient has the same sign as
+$a - a^\star$. The Newton step therefore moves toward the minimizer by a
+distance $t$, leaving an error of magnitude $|E - t|$. The largest possible
+distance from $t$ to either end of the interval for $E$ gives
+$$
+  |r_0| \le \max\{t - \log(1 + t),-\log(1 - t) - t\} = -\log(1 - t) - t.
+$$ {#eq-normalized-newton-error}
+For small $t$, the right-hand side is $t^2/2 + O(t^3)$. A small normalized
+gradient thus certifies both proximity to the conditional optimum and a
+second-order error after the Newton step.
+
+A small raw gradient cannot provide the same reassurance when curvature is
+small. For example, consider the Poisson loss $\phi(a) = \exp(a) - ya$ with
+$y > 0$. Its minimizer is $a^\star = \log y$. At $a = \log y + 1$, the intercept
+error is always $E = 1$, but the gradient $(\exp(1) - 1)y$ tends to zero as $y$
+tends to zero.
+
+Generalized self-concordance also gives an explicit way to damp Newton steps so
+that they decrease the loss from any starting intercept. Integrating
+@eq-relative-curvature twice bounds the loss after a displacement $u$:
+$$
+  \phi(a + u) \le \phi(a) + \phi'(a)u + h\bigl(\exp(|u|) - 1 - |u|\bigr).
+$$
+To choose a step, substitute $u = \alpha d$ into this upper bound and minimize
+it over $\alpha$. The minimizing displacement has magnitude $\log(1 + t)$. Since
+the full Newton displacement has magnitude $t$, the corresponding step fraction
+is $\alpha_{\mathrm{sc}} = \log(1 + t)/t$. We set $\alpha_{\mathrm{sc}} = 1$ at
+$t = 0$, where the Newton direction is zero. Substituting this choice into the
+bound gives
+$$
+  \phi(a + \alpha_{\mathrm{sc}}d) \le \phi(a)
+                                      - h\bigl[(1 + t)\log(1 + t) - t\bigr].
+$$ {#eq-self-concordant-decrease}
+This is the scalar case of the $\nu = 2$ damping rule in @sun2019. The quantity
+subtracted on the right is positive whenever $t > 0$, so the step strictly
+decreases the loss unless the intercept gradient is already zero. Our
+experiments use Armijo backtracking to choose the step fraction. The explicit
+rule shows how the same relative curvature bound can establish a global descent
+guarantee.
+
+The comparisons with $a^\star$ require a finite conditional minimizer. For
+finite offsets, this exists when the observed response mean satisfies
+$0 < \bar y < 1$ in logistic regression and $\bar y > 0$ in Poisson regression.
 
 ## S2. Vector intercepts and multinomial models {#sec-s-multinomial .unnumbered}
 
@@ -2445,7 +2529,7 @@ is a $(K - 1) \times (K - 1)$ matrix.
 
 The Newton strategy therefore becomes a small block solve
 $\delta = -H_{00}^{-1}\nabla_0 F$ followed by Armijo backtracking on the loss
-along that direction. The gradient identity in @prp-profile-equiv, the
+along that direction. The gradient identity in @eq-profile-gradient, the
 within-pass drift (@eq-intercept-drift), and the Newton-coupling bias
 (@eq-newton-coupling) all carry through with matrix-valued $H_{00}$ in place of
 the scalar.
