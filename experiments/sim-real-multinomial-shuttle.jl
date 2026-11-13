@@ -39,7 +39,7 @@ for k in 1:K
     )
 end
 
-param_dict = Dict{String, Any}("reg" => [0.05], "strategy" => [:gradient, :newton, :exact])
+param_dict = Dict{String, Any}("reg" => [0.05], "strategy" => [:bohning, :newton, :exact])
 
 params = dict_list(param_dict)
 
@@ -49,8 +49,8 @@ for (i, d) in enumerate(params)
     @unpack reg, strategy = d
     println("Running strategy=$strategy ...")
 
-    intercept_strategy = if strategy == :gradient
-        GradientStrategy()
+    intercept_strategy = if strategy == :bohning
+        BohningStrategy()
     elseif strategy == :newton
         NewtonStrategy()
     elseif strategy == :exact

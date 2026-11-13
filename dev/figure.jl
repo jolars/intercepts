@@ -26,6 +26,17 @@ using AlgebraOfGraphics
 using CairoMakie
 using DataFrames
 using CSV
+using QuartoNotebookRunner
+
+# The paper's setup reads the output format from Quarto's notebook worker.
+# Supply an HTML context when this inspector runs outside a Quarto session.
+if !isdefined(Main, :QuartoNotebookWorker)
+    push!(LOAD_PATH, joinpath(pkgdir(QuartoNotebookRunner), "src", "QuartoNotebookWorker"))
+    @eval import QuartoNotebookWorker
+    QuartoNotebookWorker.NotebookState.OPTIONS[] = Dict(
+        "format" => Dict("pandoc" => Dict("to" => "html")),
+    )
+end
 
 const QMD = joinpath(@__DIR__, "..", "main.qmd")
 const OUTDIR = joinpath(@__DIR__, "..", "results", "figure-tables")

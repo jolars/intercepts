@@ -22,6 +22,7 @@ export MajorizedWeights
 export NoIntercept
 export InterceptStrategy
 export GradientStrategy
+export BohningStrategy
 export NewtonStrategy
 export UnguardedNewtonStrategy
 export BacktrackingGradientStrategy

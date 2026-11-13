@@ -7,8 +7,8 @@ using JLD2
 Random.seed!(1234)
 
 # Sweep the reference-class baseline probability and feature amplitude to
-# assess the Newton/exact agreement beyond the baseline experiment. The
-# resulting marginal probabilities also depend on the feature effects.
+# compare Böhning, Newton, and exact intercept updates. The resulting marginal
+# probabilities also depend on the feature effects.
 #
 # class_probs is built so the anchor cell (p_K = 0.05) reproduces the
 # single-config experiment exactly: [0.7 + (0.05 - p_K), 0.1, 0.1, 0.05, p_K].
@@ -30,7 +30,7 @@ param_dict = Dict{String, Any}(
     "K" => [5],
     "p_K" => P_K_LEVELS,
     "amplitude" => AMP_LEVELS,
-    "strategy" => [:gradient, :newton, :exact],
+    "strategy" => [:bohning, :newton, :exact],
 )
 
 params = dict_list(param_dict)
@@ -70,7 +70,8 @@ for (i, d) in enumerate(params)
     d_exp["relgaps"] = res.relgaps
     d_exp["primals"] = res.primals
     d_exp["duals"] = res.duals
-    d_exp["pass"] = collect(1:length(res.relgaps))
+    # The first diagnostic precedes the first completed coordinate pass.
+    d_exp["pass"] = collect(0:(length(res.relgaps) - 1))
 
     push!(results, d_exp)
 end
@@ -86,7 +87,7 @@ for d_exp in results
     relgaps = d_exp["relgaps"]
     idx_tol = findfirst(g -> g <= TOL, relgaps)
     reached = idx_tol !== nothing
-    d_exp["passes"] = reached ? idx_tol : length(relgaps)
+    d_exp["passes"] = reached ? idx_tol - 1 : length(relgaps)
     d_exp["reached_tol"] = reached
     d_exp["final_relgap"] = max(relgaps[end], 1.0e-20)
     println(
