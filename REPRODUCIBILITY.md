@@ -125,6 +125,12 @@ inputs; "none" means that the producer generates its own synthetic data. The
 shared `production-reference.jl` script certifies both logistic and Poisson
 problems, so either production comparison requires both problem generators.
 
+The multinomial experiments compare Böhning, Newton, and exact intercept
+updates. Regenerate the four JLD2 caches with the producer commands below, then
+refresh the corresponding `results/figure-tables/` exports and numerical
+comparisons in the manuscript. The initial diagnostic records zero completed
+passes.
+
   | Manuscript output                                                                                        | Committed input                                                                                                                            | Producer command                                                                                                                                                                                                                                                                                                                     | Environment            | Extra data |
   | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- | ---------- |
   | `@fig-parametric`, `@fig-schur-example`                                                                  | None; computed during render                                                                                                               | `quarto render main.qmd`                                                                                                                                                                                                                                                                                                             | Quarto and Julia       | None       |
@@ -186,14 +192,16 @@ with `task caches`, and the real-data ones (after staging the archive) with
 `task caches-real`. The latter also uses R to prepare the Poisson inputs. On a
 laptop-class machine (see the hardware note in Supplement S3 of the manuscript),
 the single-$\lambda$ synthetic scripts (`sim-mu-extreme`, `sim-irls-comparison`,
-`sim-cold-start`, `sim-cold-start-poisson`, `sim-per-pass-cost`,
-`first-example`, and the multinomial scripts) each finish in roughly one to five
-minutes, including Julia startup. The larger sweeps---`sim-mu-reg-heatmap`,
-`sim-warmstart-path`, and especially the `sim-rho-*` rate diagnostics, which run
-to pass budgets of 40,000--120,000---take substantially longer, up to a few
-hours in total. The real-data scripts additionally require the staged archive
-and, for the production-solver comparisons, the pinned R and Python
-environments.
+`sim-cold-start`, `sim-cold-start-poisson`, `sim-per-pass-cost`, and
+`first-example`) each finish in roughly one to five minutes, including Julia
+startup. On the Ryzen 9 7900 workstation, the multinomial example and Yeoh2002
+run each finish in under a minute, the multinomial sweep takes about eight
+minutes, and Shuttle takes about eleven minutes with default thread settings.
+The larger sweeps---`sim-mu-reg-heatmap`, `sim-warmstart-path`, and especially
+the `sim-rho-*` rate diagnostics, which run to pass budgets of
+40,000--120,000---take substantially longer, up to a few hours in total. The
+real-data scripts additionally require the staged archive and, for the
+production-solver comparisons, the pinned R and Python environments.
 
 ### Render the Quarto document
 

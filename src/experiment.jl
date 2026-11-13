@@ -19,6 +19,8 @@ end
 function get_intercept_strategy(strategy)
     if strategy == :gradient
         return GradientStrategy()
+    elseif strategy == :bohning
+        return BohningStrategy()
     elseif strategy == :newton
         return NewtonStrategy()
     elseif strategy == :unguarded_newton

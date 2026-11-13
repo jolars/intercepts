@@ -3,7 +3,7 @@
 ## n = 248 samples, p = 12 625 genes, K = 6 subtypes with class marginals
 ## (BCR=6%, MLL=8%, E2A=11%, T=17%, Hyperdip=26%, TEL=32%). The rare classes
 ## BCR and MLL induce low-Rayleigh directions in the intercept Hessian, so the
-## attenuation operator H_00/L_0 predicts that the synthetic-imbalance story of
+## attenuation operator H_00 B⁻¹ predicts that the synthetic-imbalance story of
 ## @fig-multinomial-imbalance has a direct empirical analogue here.
 ##
 ## Fetch the data first via `Rscript experiments/fetch-yeoh.R`.
@@ -46,7 +46,7 @@ for k in 1:K
     )
 end
 
-param_dict = Dict{String, Any}("reg" => [0.05], "strategy" => [:gradient, :newton, :exact])
+param_dict = Dict{String, Any}("reg" => [0.05], "strategy" => [:bohning, :newton, :exact])
 
 params = dict_list(param_dict)
 
@@ -56,8 +56,8 @@ for (i, d) in enumerate(params)
     @unpack reg, strategy = d
     println("Running strategy=$strategy ...")
 
-    intercept_strategy = if strategy == :gradient
-        GradientStrategy()
+    intercept_strategy = if strategy == :bohning
+        BohningStrategy()
     elseif strategy == :newton
         NewtonStrategy()
     elseif strategy == :exact

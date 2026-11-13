@@ -8,8 +8,8 @@ Random.seed!(1234)
 
 # Imbalanced K=5 multinomial logistic. A rare free class gives a low-Rayleigh
 # coordinate direction, while the rare reference class gives a low-Rayleigh
-# common-shift direction. The gradient strategy attenuates both through
-# H_00/L_0.
+# common-shift direction. Compare Böhning's matrix majorant with the two
+# updates based on current curvature.
 class_probs = [0.7, 0.1, 0.1, 0.05, 0.05]
 
 param_dict = Dict{String, Any}(
@@ -19,7 +19,7 @@ param_dict = Dict{String, Any}(
     "s" => [5],
     "reg" => [0.05],
     "K" => [5],
-    "strategy" => [:gradient, :newton, :exact],
+    "strategy" => [:bohning, :newton, :exact],
 )
 
 params = dict_list(param_dict)

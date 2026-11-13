@@ -25,7 +25,7 @@ using Statistics
         objective = (coef, intercept, λ) ->
         loss(f, X * coef .+ intercept', y) + λ * sum(abs, scales .* coef)
 
-        for strategy in (GradientStrategy(), NewtonStrategy(), ExactStrategy())
+        for strategy in (GradientStrategy(), BohningStrategy(), NewtonStrategy(), ExactStrategy())
             options = (
                 lossfun = f,
                 intercept_strategy = strategy,
@@ -201,6 +201,12 @@ end
     s_vec = update_intercept(GradientStrategy(), fmult, β0_vec, η_mat, y_mult)
     @test isapprox(s_scalar, s_vec[1]; atol = 1.0e-12)
 
+    # The matrix bound recovers the binary 1/4 bound with the default multinomial loss.
+    s_bohning = update_intercept(
+        BohningStrategy(), MultinomialLogisticLoss(K = 2), β0_vec, η_mat, y_mult,
+    )
+    @test isapprox(s_scalar, s_bohning[1]; atol = 1.0e-12)
+
     # NewtonStrategy
     s_scalar = update_intercept(NewtonStrategy(), fbin, β0_scalar, η_scalar, y_bin)
     s_vec = update_intercept(NewtonStrategy(), fmult, β0_vec, η_mat, y_mult)
@@ -210,6 +216,31 @@ end
     s_scalar = update_intercept(ExactStrategy(), fbin, β0_scalar, η_scalar, y_bin)
     s_vec = update_intercept(ExactStrategy(), fmult, β0_vec, η_mat, y_mult)
     @test isapprox(s_scalar, s_vec[1]; atol = 1.0e-10)
+end
+
+@testset "Böhning intercept minimizes the majorant and decreases the loss" begin
+    rng = MersenneTwister(1992)
+    for K in (2, 3, 5), scale in (0.1, 1.0, 20.0)
+        n, q = 30, K - 1
+        f = MultinomialLogisticLoss(K = K)
+        intercept = randn(rng, q)
+        η = scale .* randn(rng, n, q) .+ intercept'
+        y = rand(rng, 1:K, n)
+        g = vec(mean(gradient(f, η, y); dims = 1))
+        B = (Matrix{Float64}(I, q, q) .- ones(q, q) ./ K) ./ 2
+
+        updated = update_intercept(BohningStrategy(), f, intercept, η, y)
+        δ = updated - intercept
+        @test norm(g + B * δ) < 1.0e-12
+        @test loss(f, η .+ δ', y) <=
+            loss(f, η, y) + n * (dot(g, δ) + dot(δ, B * δ) / 2) + 1.0e-10
+        @test loss(f, η .+ δ', y) <= loss(f, η, y) + 1.0e-10
+
+        duplicated = update_intercept(
+            BohningStrategy(), f, intercept, repeat(η, 2), repeat(y, 2),
+        )
+        @test duplicated ≈ updated
+    end
 end
 
 @testset "Multinomial per-coord Armijo gives monotone primal" begin
@@ -230,7 +261,7 @@ end
         amplitude = 1.0,
     )
 
-    for s in (NewtonStrategy(), ExactStrategy(), GradientStrategy())
+    for s in (NewtonStrategy(), ExactStrategy(), GradientStrategy(), BohningStrategy())
         res = multinomial_cdsolver(
             X,
             y,

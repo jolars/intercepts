@@ -12,6 +12,14 @@ struct NoIntercept <: InterceptStrategy end
 """Take one intercept gradient step using the loss Lipschitz bound."""
 struct GradientStrategy <: InterceptStrategy end
 
+"""
+Take one multinomial intercept step using Böhning's matrix majorant.
+For `K` classes in reference-class coordinates, the mean-loss Hessian is bounded
+by `B = (I - ones(K - 1, K - 1) / K) / 2`. The update applies `B⁻¹` to the
+mean intercept gradient without forming a matrix.
+"""
+struct BohningStrategy <: InterceptStrategy end
+
 """Take one Armijo-guarded Newton step for the intercept."""
 struct NewtonStrategy <: InterceptStrategy end
 
@@ -280,6 +288,17 @@ function update_intercept(
     n = size(η, 1)
     g = _intercept_grad(f, η, y)
     return intercept .- g ./ (f.lipschitz * n)
+end
+
+function update_intercept(
+        ::BohningStrategy,
+        f::MultinomialLogisticLoss,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        y::AbstractVector{<:Integer},
+    )
+    g = _intercept_grad(f, η, y) ./ size(η, 1)
+    return intercept .- 2 .* (g .+ sum(g))
 end
 
 function update_intercept(
