@@ -41,7 +41,7 @@ function run_solver(
         maxit,
         maxtime,
         randomize,
-        update_freq,
+        k,
         K::Int = 3,
     )
     intercept_strategy = if response == :multinomial && strategy == :exact
@@ -61,13 +61,14 @@ function run_solver(
             maxit = maxit,
             maxtime = maxtime,
             randomize = randomize,
-            update_freq = update_freq,
+            k = k,
         )
         # The multinomial solver maintains a domain-safe dual-feasible point, so
         # report the true relative duality gap rather than a run-local
         # primal-suboptimality proxy.
         return (
             time = res.time,
+            passes = res.passes,
             gaps = res.gaps,
             relgaps = max.(res.relgaps, 1.0e-20),
             primals = res.primals,
@@ -85,11 +86,12 @@ function run_solver(
         maxit = maxit,
         maxtime = maxtime,
         randomize = randomize,
-        update_freq = update_freq,
+        k = k,
     )
 
     return (
         time = res.time,
+        passes = res.passes,
         gaps = res.gaps,
         relgaps = res.relgaps,
         primals = res.primals,
@@ -176,8 +178,8 @@ the paper's experiment scripts. The `response` keyword selects `:binomial`,
 update. Remaining keywords control data generation, regularization, coordinate
 ordering, and solver budgets.
 
-Return a named tuple containing time, gap, relative-gap, primal, and dual
-histories.
+Return a named tuple containing time, pass-count, gap, relative-gap, primal,
+and dual histories.
 """
 function simulated_experiment(
         n = 100,
@@ -188,7 +190,7 @@ function simulated_experiment(
         s = 10,
         reg = 0.01,
         randomize = false,
-        update_freq = 1,
+        k = nothing,
         maxit = 1000,
         maxtime = Inf,
         ρ = 0.6,
@@ -223,32 +225,22 @@ function simulated_experiment(
         maxit = maxit,
         maxtime = maxtime,
         randomize = randomize,
-        update_freq = update_freq,
+        k = k,
         K = K,
     )
 end;
 
 """
-    real_experiment(dataset="w1a"; kwargs...)
+    prepare_real_data(dataset; response, n_positive, n_negative, seed, min_nnz_per_column)
 
-Load a staged dataset and run the coordinate-descent solver used by the paper's
-real-data experiment scripts. For binary responses, the largest label is mapped
-to the positive class. `n_positive` and `n_negative` optionally construct a
-seeded class-imbalanced subset; `min_nnz_per_column` removes features without
-enough retained support.
-
-Return a named tuple containing time, gap, relative-gap, primal, and dual
-histories.
+Load a shipped dataset and apply the response encoding, optional class
+subsampling and low-support column filtering that `real_experiment` uses, and
+return the resulting `(X, y)`. Split out so a sweep that solves the same
+dataset many times can pay the load and preprocessing once.
 """
-function real_experiment(
+function prepare_real_data(
         dataset = "w1a";
         response = :binomial,
-        strategy = :gradient,
-        reg = 0.01,
-        randomize = false,
-        update_freq = 1,
-        maxit = 1000,
-        maxtime = Inf,
         n_positive::Union{Nothing, Int} = nothing,
         n_negative::Union{Nothing, Int} = nothing,
         seed::Int = 42,
@@ -306,6 +298,45 @@ function real_experiment(
         X = X[:, keep]
     end
 
+    return X, y
+end;
+
+"""
+    real_experiment(dataset="w1a"; kwargs...)
+
+Load a staged dataset and run the coordinate-descent solver used by the paper's
+real-data experiment scripts. For binary responses, the largest label is mapped
+to the positive class. `n_positive` and `n_negative` optionally construct a
+seeded class-imbalanced subset; `min_nnz_per_column` removes features without
+enough retained support.
+
+Return a named tuple containing time, pass-count, gap, relative-gap, primal,
+and dual histories.
+"""
+function real_experiment(
+        dataset = "w1a";
+        response = :binomial,
+        strategy = :gradient,
+        reg = 0.01,
+        randomize = false,
+        k = nothing,
+        maxit = 1000,
+        maxtime = Inf,
+        n_positive::Union{Nothing, Int} = nothing,
+        n_negative::Union{Nothing, Int} = nothing,
+        seed::Int = 42,
+        min_nnz_per_column::Int = 1,
+    )
+
+    X, y = prepare_real_data(
+        dataset;
+        response = response,
+        n_positive = n_positive,
+        n_negative = n_negative,
+        seed = seed,
+        min_nnz_per_column = min_nnz_per_column,
+    )
+
     return run_solver(
         X,
         y;
@@ -315,6 +346,6 @@ function real_experiment(
         maxit = maxit,
         maxtime = maxtime,
         randomize = randomize,
-        update_freq = update_freq,
+        k = k,
     )
 end;

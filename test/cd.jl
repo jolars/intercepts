@@ -6,16 +6,82 @@ using GLM
     X = [1.0 0.0; 0.0 1.0; 1.0 1.0; -1.0 -1.0]
     y = [0.0, 0.0, 0.0, 1.0]
 
-    res = cdsolver(X, y; lossfun = LogisticLoss(), update_freq = 3, maxit = 2)
+    # p = 2, so k = 1 (every coordinate) and k = 2 (once per pass) are the
+    # only admissible strides.
+    for k in (1, 2)
+        res = cdsolver(X, y; lossfun = LogisticLoss(), k = k, maxit = 2)
+        @test all(isfinite, res.primals)
+        @test res.intercept != 0.0
+    end
 
-    @test all(isfinite, res.primals)
-    @test res.intercept != 0.0
-    @test_throws ArgumentError cdsolver(
-        X,
-        y;
-        lossfun = LogisticLoss(),
-        update_freq = 0,
+    # Default is k = p: one update per pass, at its end.
+    res_default = cdsolver(X, y; lossfun = LogisticLoss(), maxit = 2)
+    res_kp = cdsolver(X, y; lossfun = LogisticLoss(), k = 2, maxit = 2)
+    @test res_default.intercept == res_kp.intercept
+    @test res_default.coef == res_kp.coef
+
+    @test_throws ArgumentError cdsolver(X, y; lossfun = LogisticLoss(), k = 0)
+    @test_throws ArgumentError cdsolver(X, y; lossfun = LogisticLoss(), k = 3)
+
+    # Non-divisor stride is rejected even when k < p.
+    X4 = [
+        1.0 0.0 0.5 -0.5
+        0.0 1.0 -1.0 0.5
+        1.0 1.0 0.0 1.0
+        -1.0 -1.0 1.0 0.0
+    ]
+    @test_throws ArgumentError cdsolver(X4, y; lossfun = LogisticLoss(), k = 3)
+end
+
+# A counting strategy that leaves the intercept where it is: the solve still
+# runs, and `calls` records exactly how often the intercept fired.
+mutable struct CountingIntercept <: InterceptStrategy
+    calls::Int
+end
+
+function Intercepts.update_intercept(
+        s::CountingIntercept,
+        ::Intercepts.LossFunction,
+        intercept::Real,
+        ::AbstractVector{<:Real},
+        ::AbstractVector{<:Real},
     )
+    s.calls += 1
+    return intercept
+end
+
+@testset "Intercept stride schedule and optimum" begin
+    # Deterministic design, p = 12 so every stride below divides it.
+    n, p = 40, 12
+    X = [sinpi((i * j) / 7) for i in 1:n, j in 1:p]
+    y = Float64.([isodd(i ÷ 3) for i in 1:n])
+
+    # The stride controls how often the intercept fires, not whether the solve
+    # is right: p / k updates per pass, over exactly maxit passes (tol = 0
+    # disables the convergence break).
+    maxit = 3
+    for k in (1, 2, 3, 4, 6, 12)
+        s = CountingIntercept(0)
+        cdsolver(
+            X, y, 0.05;
+            lossfun = LogisticLoss(), intercept_strategy = s,
+            k = k, maxit = maxit, tol = 0.0, randomize = false,
+        )
+        @test s.calls == maxit * (p ÷ k)
+    end
+
+    # Changing the stride changes the path, not the solution it converges to.
+    solve(k) = cdsolver(
+        X, y, 0.05;
+        lossfun = LogisticLoss(), intercept_strategy = NewtonStrategy(),
+        k = k, maxit = 20_000, tol = 1.0e-12, randomize = false,
+    )
+    ref = solve(p)
+    for k in (1, 2, 3, 4, 6)
+        res = solve(k)
+        @test isapprox(res.coef, ref.coef; atol = 1.0e-6)
+        @test isapprox(res.intercept, ref.intercept; atol = 1.0e-6)
+    end
 end
 
 @testset "Dual certificates respect conjugate domains" begin

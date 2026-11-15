@@ -64,8 +64,13 @@ descent. The final class is the reference class, so `coef` has size
 `(p, K - 1)` and `intercept` has length `K - 1`. The result contains fitted
 values, primal-dual diagnostics, `λ`, `λmax`, and optional histories. Iteration
 stops at relative primal-dual gap `tol`, after `maxit` passes, or after
-`maxtime` seconds. `update_freq` is the requested number of intercept updates
-per pass, capped at one update per coordinate, and must be positive.
+`maxtime` seconds. `k` is the coordinate stride between intercept updates: the
+intercept is updated after every `k`th coordinate, so a pass performs `p / k`
+updates. `k = p` (the default) updates once per pass, at its end; `k = 1`
+updates after every coordinate. `k` must satisfy `1 <= k <= p` and must divide
+`p`. Note that `k` indexes coordinates, not classes; the class index in this
+file is a loop variable of the same name, so the stride is bound to a separate
+local before it is used.
 """
 function multinomial_cdsolver(
         x::AbstractMatrix,
@@ -73,7 +78,7 @@ function multinomial_cdsolver(
         reg::Real = 0.1;
         lossfun::MultinomialLogisticLoss,
         intercept_strategy::InterceptStrategy = NewtonStrategy(),
-        update_freq::Int = 1,
+        k::Union{Nothing, Int} = nothing,
         tol::Real = 1.0e-10,
         maxit::Int = 1000,
         maxtime::Real = Inf,
@@ -93,8 +98,13 @@ function multinomial_cdsolver(
     sparse_norm = issparse(x) && normalization != :none && fit_intercept
     x_sparse_offset = x_centers ./ x_scales
 
-    update_freq > 0 || throw(ArgumentError("update_freq must be positive"))
-    update_when = max(1, fld(p, update_freq))
+    # Bind the stride to its own local. `k` is the public keyword, but it is
+    # also the conventional class index in this package, so the fire site below
+    # reads `stride` rather than whatever `k` happens to name at that point.
+    stride = k === nothing ? p : k
+    stride > 0 || throw(ArgumentError("k must be positive, got $stride"))
+    stride <= p || throw(ArgumentError("k must not exceed p = $p, got $stride"))
+    p % stride == 0 || throw(ArgumentError("k must divide p = $p, got $stride"))
 
     λmax = lambdamax_multinomial(
         lossfun, x, y;
@@ -228,7 +238,7 @@ function multinomial_cdsolver(
                 end
             end
 
-            if inner_it % update_when == 0 && fit_intercept
+            if inner_it % stride == 0 && fit_intercept
                 intercept_prev = copy(intercept)
                 intercept = update_intercept(
                     intercept_strategy,

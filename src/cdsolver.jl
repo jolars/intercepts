@@ -9,8 +9,10 @@ Fit an L1-regularized generalized linear model by proximal coordinate descent.
 Features are normalized according to `normalization`, while returned
 coefficients and the intercept are on the original scale. `reg` is the
 regularization strength as a fraction of `lambdamax(lossfun, x, y)`.
-`update_freq` is the requested number of intercept updates per pass, capped at
-one update per coordinate, and must be positive.
+`k` is the coordinate stride between intercept updates: the intercept is
+updated after every `k`th coordinate, so a pass performs `p / k` updates.
+`k = p` (the default) updates once per pass, at its end; `k = 1` updates after
+every coordinate. `k` must satisfy `1 <= k <= p` and must divide `p`.
 
 Iteration stops at relative primal-dual gap `tol`, after `maxit` passes, or
 when `maxtime` is reached. Experiments with an independently computed feasible
@@ -26,7 +28,7 @@ function cdsolver(
         reg::Real = 0.1;
         lossfun::LossFunction = QuadraticLoss(),
         intercept_strategy::InterceptStrategy = NewtonStrategy(),
-        update_freq::Int = 1,
+        k::Union{Nothing, Int} = nothing,
         tol::Real = 1.0e-10,
         maxit::Int = 1000,
         maxtime::Real = Inf,
@@ -50,8 +52,13 @@ function cdsolver(
 
     sparse_norm = issparse(x) && normalization != :none
 
-    update_freq > 0 || throw(ArgumentError("update_freq must be positive"))
-    update_when = max(1, fld(p, update_freq))
+    # Bind the stride to its own local, matching multinomial_cdsolver, where
+    # `k` is also the class loop index and the fire site must not pick that up.
+    # There is no class index here, so this is for consistency, not safety.
+    stride = k === nothing ? p : k
+    stride > 0 || throw(ArgumentError("k must be positive, got $stride"))
+    stride <= p || throw(ArgumentError("k must not exceed p = $p, got $stride"))
+    p % stride == 0 || throw(ArgumentError("k must divide p = $p, got $stride"))
 
     λmax = lambdamax(lossfun, x, y)
     λ = reg * λmax
@@ -218,7 +225,7 @@ function cdsolver(
                 end
             end
 
-            if inner_it % update_when == 0 && fit_intercept
+            if inner_it % stride == 0 && fit_intercept
                 intercept_prev = intercept
                 intercept, k0 = update_intercept_with_count(
                     intercept_strategy,

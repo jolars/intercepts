@@ -267,7 +267,8 @@ end
     maxit = 500
 
     # Newton (deterministic): should match exactly across binomial vs K=2 multinomial.
-    for update_freq in (1, 3)
+    # p = 30: k = 30 is once per pass, k = 10 is three updates per pass.
+    for k in (30, 10)
         res_bin = cdsolver(
             X,
             y_bin,
@@ -275,7 +276,7 @@ end
             lossfun = LogisticLoss(),
             intercept_strategy = NewtonStrategy(),
             maxit = maxit,
-            update_freq = update_freq,
+            k = k,
             randomize = false,
             tol = 1.0e-12,
         )
@@ -286,7 +287,7 @@ end
             lossfun = MultinomialLogisticLoss(K = 2, lipschitz = 0.25),
             intercept_strategy = NewtonStrategy(),
             maxit = maxit,
-            update_freq = update_freq,
+            k = k,
             randomize = false,
             tol = 1.0e-12,
         )
@@ -412,4 +413,43 @@ end
         dual(fmult, reshape(θ, n, 1), y_mult);
         atol = 1.0e-10,
     )
+end
+
+# Counts intercept updates without moving the intercept. The multinomial solver
+# takes `k` as the coordinate stride while `k` is also the conventional class
+# index in that file, so this pins the firing schedule against a future edit
+# that lets the two be confused.
+mutable struct CountingMultinomialIntercept <: InterceptStrategy
+    calls::Int
+end
+
+function Intercepts.update_intercept(
+        s::CountingMultinomialIntercept,
+        ::Intercepts.LossFunction,
+        intercept::AbstractVector{<:Real},
+        ::AbstractMatrix{<:Real},
+        ::AbstractVector{<:Integer},
+    )
+    s.calls += 1
+    return intercept
+end
+
+@testset "Multinomial intercept stride schedule" begin
+    n, p, K = 60, 30, 3
+    X = [sinpi((i * j) / 11) for i in 1:n, j in 1:p]
+    y = Int.(1 .+ (0:(n - 1)) .% K)
+
+    maxit = 3
+    for k in (1, 2, 5, 10, 15, 30)
+        s = CountingMultinomialIntercept(0)
+        multinomial_cdsolver(
+            X, y, 0.05;
+            lossfun = MultinomialLogisticLoss(K = K, lipschitz = 0.5),
+            intercept_strategy = s,
+            k = k, maxit = maxit, tol = 0.0, randomize = false,
+        )
+        # p / k updates per pass; a stride that read the class index instead
+        # would fire K - 1 = 2 times per pass regardless of k.
+        @test s.calls == maxit * (p ÷ k)
+    end
 end

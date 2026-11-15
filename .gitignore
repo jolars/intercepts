@@ -114,6 +114,16 @@ devenv.local.yaml
 # Upload-ready data archive produced by experiments/build-data-archive.jl.
 /intercepts-data-*.tar.gz
 
+# Per-dataset checkpoints for the real-data stride sweep; the assembled
+# results/sim-stride-real.jld2 and .csv are the tracked artifacts.
+/results/sim-stride-real/cells/
+
+# Dev-facing previews from the dev/plot-* and dev/analyze-* stride scripts. The
+# CSV summaries beside them are tracked on purpose --- their diffs show which
+# numbers moved after a re-run --- but the PNGs are binary churn.
+/results/sim-stride-*.png
+/results/sim-update-frequency.png
+
 # Dev-facing figure previews from `task fig`. The CSV summaries next to them are
 # tracked on purpose --- their diffs show which figures moved after a re-run ---
 # but the PNGs are binary churn.
