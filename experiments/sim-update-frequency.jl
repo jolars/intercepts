@@ -180,6 +180,24 @@ suboptimality_against_shared_dual!(
     ),
 )
 
+# The per-pass histories above exist so the shared dual certificate can score
+# every run of an instance against the same bound. Once that has run they are
+# dead weight: nothing downstream reads them, and keeping them makes the cached
+# artifact ~20 MB instead of ~200 KB. Drop them and keep the final values.
+const HISTORY_KEYS = [
+    "primals", "duals", "gaps", "relgaps", "pass", "time",
+    "inner_steps", "cum_inner_steps", "primal_relgaps", "dual_relgaps",
+]
+
+for r in results
+    r["final_relgap"] = last(r["relgaps"])
+    r["final_gap"] = last(r["gaps"])
+    r["final_primal_relgap"] = last(r["primal_relgaps"])
+    r["final_dual_relgap"] = last(r["dual_relgaps"])
+    r["total_inner_steps"] = isempty(r["inner_steps"]) ? 0 : last(r["cum_inner_steps"])
+    foreach(key -> delete!(r, key), HISTORY_KEYS)
+end
+
 outfile = @projectroot("results", "sim-update-frequency.jld2")
 @save outfile results
 println("Saved results to $outfile")
