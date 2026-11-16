@@ -298,7 +298,8 @@ end
     maxit = 500
 
     # Newton (deterministic): should match exactly across binomial vs K=2 multinomial.
-    for update_freq in (1, 3)
+    # Include a short final block to check that both solvers end each pass alike.
+    for k in (30, 10, 7)
         res_bin = cdsolver(
             X,
             y_bin,
@@ -306,7 +307,7 @@ end
             lossfun = LogisticLoss(),
             intercept_strategy = NewtonStrategy(),
             maxit = maxit,
-            update_freq = update_freq,
+            k = k,
             randomize = false,
             tol = 1.0e-12,
         )
@@ -317,7 +318,7 @@ end
             lossfun = MultinomialLogisticLoss(K = 2, lipschitz = 0.25),
             intercept_strategy = NewtonStrategy(),
             maxit = maxit,
-            update_freq = update_freq,
+            k = k,
             randomize = false,
             tol = 1.0e-12,
         )
@@ -443,4 +444,73 @@ end
         dual(fmult, reshape(θ, n, 1), y_mult);
         atol = 1.0e-10,
     )
+end
+
+# Counts intercept updates without moving the intercept. The multinomial solver
+# takes `k` as the coordinate stride while `k` is also the conventional class
+# index in that file, so this pins the firing schedule against a future edit
+# that lets the two be confused.
+mutable struct CountingMultinomialIntercept <: InterceptStrategy
+    calls::Int
+    predictors::Vector{Matrix{Float64}}
+end
+
+CountingMultinomialIntercept(calls) = CountingMultinomialIntercept(calls, Matrix{Float64}[])
+
+function Intercepts.update_intercept(
+        s::CountingMultinomialIntercept,
+        ::Intercepts.LossFunction,
+        intercept::AbstractVector{<:Real},
+        η::AbstractMatrix{<:Real},
+        ::AbstractVector{<:Integer},
+    )
+    s.calls += 1
+    push!(s.predictors, copy(η))
+    return intercept
+end
+
+@testset "Multinomial intercept stride schedule" begin
+    n, K = 60, 3
+    y = Int.(1 .+ (0:(n - 1)) .% K)
+
+    maxit = 3
+    for p in (30, 31), randomize in (false, true), k in (1, 2, 5, 10, p - 1, p)
+        X = [sinpi((i * j) / 11) for i in 1:n, j in 1:p]
+        s = CountingMultinomialIntercept(0)
+        res = multinomial_cdsolver(
+            X, y, 0.05;
+            lossfun = MultinomialLogisticLoss(K = K, lipschitz = 0.5),
+            intercept_strategy = s,
+            k = k, maxit = maxit, tol = 0.0, randomize = randomize,
+        )
+        @test s.calls == maxit * cld(p, k)
+        @test s.predictors[end] ≈ X * res.coef .+ res.intercept'
+    end
+end
+
+@testset "Multinomial stride bounds and optimum" begin
+    Random.seed!(179)
+    n, p, K = 60, 7, 3
+    X = randn(n, p)
+    y = [fill(1, 40); fill(2, 15); fill(3, 5)]
+    solve(; kwargs...) = multinomial_cdsolver(
+        X, y, 0.2;
+        lossfun = MultinomialLogisticLoss(K = K, lipschitz = 0.5),
+        maxit = 2000, tol = 1.0e-10, kwargs...,
+    )
+
+    ref = solve(; k = p)
+    @test ref.relgaps[end] <= 1.0e-10
+    default = solve()
+    @test default.coef == ref.coef
+    @test default.intercept == ref.intercept
+    for k in (0, -1, p + 1)
+        @test_throws ArgumentError solve(; k = k)
+    end
+    for k in (1, 2, 3, p - 1)
+        res = solve(; k = k)
+        @test res.relgaps[end] <= 1.0e-10
+        @test isapprox(res.coef, ref.coef; atol = 1.0e-6)
+        @test isapprox(res.intercept, ref.intercept; atol = 1.0e-6)
+    end
 end

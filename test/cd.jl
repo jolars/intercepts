@@ -6,16 +6,91 @@ using GLM
     X = [1.0 0.0; 0.0 1.0; 1.0 1.0; -1.0 -1.0]
     y = [0.0, 0.0, 0.0, 1.0]
 
-    res = cdsolver(X, y; lossfun = LogisticLoss(), update_freq = 3, maxit = 2)
+    # p = 2, so k = 1 (every coordinate) and k = 2 (once per pass) are the
+    # only admissible strides.
+    for k in (1, 2)
+        res = cdsolver(X, y; lossfun = LogisticLoss(), k = k, maxit = 2)
+        @test all(isfinite, res.primals)
+        @test res.intercept != 0.0
+    end
 
+    # Default is k = p: one update per pass, at its end.
+    res_default = cdsolver(X, y; lossfun = LogisticLoss(), maxit = 2)
+    res_kp = cdsolver(X, y; lossfun = LogisticLoss(), k = 2, maxit = 2)
+    @test res_default.intercept == res_kp.intercept
+    @test res_default.coef == res_kp.coef
+
+    @test_throws ArgumentError cdsolver(X, y; lossfun = LogisticLoss(), k = 0)
+    @test_throws ArgumentError cdsolver(X, y; lossfun = LogisticLoss(), k = 3)
+
+    # A short final block still updates the intercept at the end of the pass.
+    X4 = [
+        1.0 0.0 0.5 -0.5
+        0.0 1.0 -1.0 0.5
+        1.0 1.0 0.0 1.0
+        -1.0 -1.0 1.0 0.0
+    ]
+    res = cdsolver(X4, y; lossfun = LogisticLoss(), k = 3, maxit = 2)
     @test all(isfinite, res.primals)
     @test res.intercept != 0.0
-    @test_throws ArgumentError cdsolver(
-        X,
-        y;
-        lossfun = LogisticLoss(),
-        update_freq = 0,
+    @test_throws ArgumentError cdsolver(X4, y; lossfun = LogisticLoss(), k = -1)
+end
+
+# A counting strategy that leaves the intercept where it is: the solve still
+# runs, and `calls` records exactly how often the intercept fired.
+mutable struct CountingIntercept <: InterceptStrategy
+    calls::Int
+    predictors::Vector{Vector{Float64}}
+end
+
+CountingIntercept(calls) = CountingIntercept(calls, Vector{Float64}[])
+
+function Intercepts.update_intercept(
+        s::CountingIntercept,
+        ::Intercepts.LossFunction,
+        intercept::Real,
+        η::AbstractVector{<:Real},
+        ::AbstractVector{<:Real},
     )
+    s.calls += 1
+    push!(s.predictors, copy(η))
+    return intercept
+end
+
+@testset "Intercept stride schedule and optimum" begin
+    n = 40
+    y = Float64.([isodd(i ÷ 3) for i in 1:n])
+    maxit = 3
+    # Prime feature counts and shuffled coordinates must retain the pass-end
+    # update, while divisible strides must not update twice at the boundary.
+    for p in (12, 13), randomize in (false, true), k in (1, 2, 3, 5, p - 1, p)
+        X = [sinpi((i * j) / 7) for i in 1:n, j in 1:p]
+        s = CountingIntercept(0)
+        res = cdsolver(
+            X, y, 0.05;
+            lossfun = LogisticLoss(), intercept_strategy = s,
+            k = k, maxit = maxit, tol = 0.0, randomize = randomize,
+        )
+        @test s.calls == maxit * cld(p, k)
+        @test s.predictors[end] ≈ X * res.coef .+ res.intercept
+    end
+
+    # Changing the stride changes the path, not the solution it converges to.
+    p = 12
+    X = [sinpi((i * j) / 7) for i in 1:n, j in 1:p]
+    solve(k) = cdsolver(
+        X, y, 0.05;
+        lossfun = LogisticLoss(), intercept_strategy = NewtonStrategy(),
+        k = k, maxit = 20_000, tol = 1.0e-12, randomize = false,
+    )
+    ref = solve(p)
+    @test ref.relgaps[end] <= 1.0e-12
+    for k in (1, 2, 3, 4, 5, 6, 7, 11)
+        res = solve(k)
+        @test res.relgaps[end] <= 1.0e-12
+        @test isapprox(res.coef, ref.coef; atol = 1.0e-6)
+        @test isapprox(res.intercept, ref.intercept; atol = 1.0e-6)
+    end
 end
 
 @testset "Dual certificates respect conjugate domains" begin
