@@ -9,14 +9,12 @@
 #
 #   w1a           pi+ = 0.029   severely imbalanced  -> predict a large payoff
 #   news20-imb    pi+ = 0.030   imbalanced, wide     -> predict a large payoff
-#   a4a           pi+ = 0.249   moderate             -> baseline only, see below
+#   a4a           pi+ = 0.249   moderate             -> predict a smaller payoff
 #   gisette_scale pi+ = 0.500   balanced             -> predict no payoff
 #
 # gisette is the control: if striding speeds it up, the mechanism is not the
-# one claimed. a4a runs at the baseline only because `k` must divide `p` and
-# p = 123 = 3 * 41 admits just {1, 3, 41} updates per pass, which cannot
-# resolve the optimum the other datasets place near p/k = 10. It still
-# contributes a handicap measurement at the shared baseline.
+# one claimed. A short final coordinate block lets a4a use the same stride
+# targets despite its feature count p = 123.
 #
 # The solver is deterministic here (randomize = false, fixed data), so pass
 # counts repeat exactly across reps and only wall time carries noise; REPS
@@ -36,7 +34,8 @@ const REPS = 5
 const STRATEGIES = [:gradient, :newton]
 const TARGET_RATIOS = [1, 2, 5, 10, 25, 50]
 
-const CELLDIR = @projectroot("results", "sim-stride-real", "cells")
+# Old checkpoints cover only divisors of p, so they cannot resume this ladder.
+const CELLDIR = @projectroot("results", "sim-stride-real", "cells", "partial-blocks")
 mkpath(CELLDIR)
 
 # name => (loader kwargs..., sweep). "news20-imb" is the subsampled
@@ -45,7 +44,7 @@ mkpath(CELLDIR)
 # stays stable. `sweep = false` runs the k = p baseline only.
 const DATASETS = [
     ("w1a", (sweep = true,)),
-    ("a4a", (sweep = false,)),
+    ("a4a", (sweep = true,)),
     ("gisette_scale", (sweep = true,)),
     (
         "news20-imb",
@@ -56,19 +55,16 @@ const DATASETS = [
     ),
 ]
 
-divisors(p) = sort(unique(vcat([[d, p ÷ d] for d in 1:isqrt(p) if p % d == 0]...)))
-
 """
 Strides to sweep for a dataset with `p` features.
 
-`k` must divide `p`, so the targets in `TARGET_RATIOS` are generally not
-attainable exactly; take the divisor closest to `p / r` for each target and
-report the ratio actually achieved. `k = p` (one update per pass, at its end)
-is the baseline and is always present.
+Round `p / r` up to an integer stride for each target in `TARGET_RATIOS`.
+Report both the achieved stride density `p / k` and the actual update count
+`cld(p, k)`, which includes a possible short final block. `k = p` (one update
+per pass, at its end) is the baseline and is always present.
 """
 function stride_ladder(p)
-    divs = divisors(p)
-    return sort(unique([divs[argmin(abs.(divs .- p / r))] for r in TARGET_RATIOS]); rev = true)
+    return sort(unique([p; cld.(p, TARGET_RATIOS)]); rev = true)
 end
 
 "Curvature ratio H00/L0 at the fitted model; L0 = 1/4 for the logistic loss."
@@ -105,6 +101,7 @@ function run_dataset(name, kw)
             (
                 dataset = name, n = n, p = p, pi_plus = π₊,
                 strategy = String(strategy), k = k, ratio = p / k, rep = rep,
+                updates_per_pass = cld(p, k),
                 passes = res.passes, wall_time = res.time[end],
                 h00_l0 = curvature_ratio(X, y, res),
                 final_relgap = res.relgaps[end],

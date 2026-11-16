@@ -5,8 +5,8 @@ using CairoMakie
 using ProjectRoot
 
 # Figure for the intercept update-stride sweep: median over seeds of passes and
-# wall time against the number of intercept updates per pass (p/k). The band is
-# the min--max spread across seeds.
+# wall time against the number of intercept updates per pass (ceil(p/k)). The
+# band is the min--max spread across seeds.
 
 @load @projectroot("results", "sim-update-frequency.jld2") results
 
@@ -125,7 +125,7 @@ end
 
 Label(
     fig[length(rows) + 1, 1:length(panel_order)],
-    "Intercept updates per pass   (p / k)";
+    "Intercept updates per pass   (⌈p / k⌉)";
     fontsize = 14,
     padding = (0, 0, 2, 0),
 )

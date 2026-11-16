@@ -10,9 +10,10 @@ Features are normalized according to `normalization`, while returned
 coefficients and the intercept are on the original scale. `reg` is the
 regularization strength as a fraction of `lambdamax(lossfun, x, y)`.
 `k` is the coordinate stride between intercept updates: the intercept is
-updated after every `k`th coordinate, so a pass performs `p / k` updates.
+updated after every `k`th coordinate and at the end of each pass, including
+after a shorter final block. A pass performs `cld(p, k)` updates.
 `k = p` (the default) updates once per pass, at its end; `k = 1` updates after
-every coordinate. `k` must satisfy `1 <= k <= p` and must divide `p`.
+every coordinate. `k` must satisfy `1 <= k <= p`.
 
 Iteration stops at relative primal-dual gap `tol`, after `maxit` passes, or
 when `maxtime` is reached. Experiments with an independently computed feasible
@@ -58,7 +59,6 @@ function cdsolver(
     stride = k === nothing ? p : k
     stride > 0 || throw(ArgumentError("k must be positive, got $stride"))
     stride <= p || throw(ArgumentError("k must not exceed p = $p, got $stride"))
-    p % stride == 0 || throw(ArgumentError("k must divide p = $p, got $stride"))
 
     λmax = lambdamax(lossfun, x, y)
     λ = reg * λmax
@@ -225,7 +225,7 @@ function cdsolver(
                 end
             end
 
-            if inner_it % stride == 0 && fit_intercept
+            if fit_intercept && (inner_it % stride == 0 || inner_it == p)
                 intercept_prev = intercept
                 intercept, k0 = update_intercept_with_count(
                     intercept_strategy,

@@ -11,9 +11,10 @@ using Statistics
 #
 # Question 1 (parameterization). Is the best stride constant in p/k (a fraction
 # of the features) or constant in k (an absolute number of coordinates)? The
-# ladder below is specified in p/k and k is derived as p/(p/k), so every panel
-# is sampled at the same relative strides while p varies 8x. If the optimum is
-# relative, the argmin lines up across rows; if absolute, it drifts by 8x.
+# ladder below specifies target p/k ratios, rounding k up to an integer and
+# reporting the achieved p/k. The chosen feature counts hit every target
+# exactly while p varies 8x. If the optimum is relative, the argmin lines up
+# across rows; if absolute, it drifts by 8x.
 #
 # Rows (n, p) are chosen so that n/p and p are not fully confounded:
 #   (1000,  250)  n/p = 4     reference
@@ -48,10 +49,6 @@ const TOL = 1.0e-10
 strategy_object(s) = s === :gradient ? GradientStrategy() :
     s === :newton ? NewtonStrategy() : error("Unknown strategy: $s")
 
-for (n, p) in CONFIGS, r in STRIDE_RATIOS
-    p % r == 0 || error("stride ratio $r does not divide p = $p")
-end
-
 """
 Solve one cell and return the run plus diagnostics evaluated at the fit.
 `k` is the coordinate stride; the data are regenerated from `seed` inside the
@@ -78,9 +75,9 @@ function solve_cell(n, p, μ0, strategy, k, seed; maxit = MAXIT)
 end
 
 params = [
-    (n = cfg.n, p = cfg.p, μ0 = μ0, strategy = strat, ratio = r, k = cfg.p ÷ r, seed = seed)
+    (n = cfg.n, p = cfg.p, μ0 = μ0, strategy = strat, ratio = cfg.p / k, k = k, seed = seed)
         for cfg in CONFIGS for μ0 in MU0 for strat in STRATEGIES
-        for r in STRIDE_RATIOS for seed in SEEDS
+        for k in sort(unique(cld.(cfg.p, STRIDE_RATIOS)); rev = true) for seed in SEEDS
 ]
 
 # Warm up each strategy so JIT does not land on the timed runs.
@@ -102,6 +99,7 @@ for (i, d) in enumerate(params)
         (
             n = d.n, p = d.p, np_ratio = d.n / d.p, μ0 = d.μ0,
             strategy = String(d.strategy), ratio = d.ratio, k = d.k, seed = d.seed,
+            updates_per_pass = cld(d.p, d.k),
             passes = res.passes, wall_time = res.time[end],
             h00_l0 = h00_l0, pi_plus = pi_plus,
             final_relgap = res.relgaps[end], converged = converged,

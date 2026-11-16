@@ -111,7 +111,7 @@ for (ri, cfg) in enumerate(eachrow(configs)), (ci, μ) in enumerate(mus)
         fig[ri, ci];
         title = ri == 1 ? "μ₀ = $μ" : "",
         ylabel = ci == 1 ? "n = $(cfg.n), p = $(cfg.p)\n(n/p = $(cfg.np_ratio))  wall time (s)" : "",
-        xlabel = ri == nrow(configs) ? "Intercept updates per pass  (p / k)" : "",
+        xlabel = ri == nrow(configs) ? "Inverse relative stride  (p / k)" : "",
         xscale = log10, yscale = log10, xgridvisible = false, ygridvisible = false,
     )
     for (strat, _, color) in styles
@@ -173,7 +173,7 @@ CSV.write(@projectroot("results", "sim-stride-logistic-theory.csv"), theory)
 println("\n=== Q1: per-seed best stride (p/k), median [min-max] over seeds ===")
 for r in eachrow(sort(argmin_summ, [:strategy, :μ0, :p, :n]))
     @printf(
-        "  %-8s μ₀=%-5s n=%-5d p=%-5d  best p/k = %5.0f [%3.0f-%4.0f]   best k = %5.0f\n",
+        "  %-8s μ₀=%-5s n=%-5d p=%-5d  best p/k = %6.2f [%6.2f-%6.2f]   best k = %5.0f\n",
         r.strategy, r.μ0, r.n, r.p, r.med_best_ratio,
         r.min_best_ratio, r.max_best_ratio, r.med_best_k
     )
@@ -191,7 +191,7 @@ println("\n=== Paired speedup vs stride k=p, gradient, by cell (sign test) ===")
 g = sort(summ[(summ.strategy .== "gradient"), :], [:μ0, :p, :n, :ratio])
 for r in eachrow(g[g.ratio .∈ Ref([10, 20, 25, 50]), :])
     @printf(
-        "  μ₀=%-5s n=%-5d p=%-5d p/k=%-4d  speedup %5.2fx [%4.2f-%5.2f]  %d/%d seeds faster\n",
+        "  μ₀=%-5s n=%-5d p=%-5d p/k=%-6.2f  speedup %5.2fx [%4.2f-%5.2f]  %d/%d seeds faster\n",
         r.μ0, r.n, r.p, r.ratio, r.speedup_med, r.speedup_min, r.speedup_max,
         r.n_faster, r.n_seeds
     )

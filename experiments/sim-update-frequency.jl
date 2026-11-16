@@ -12,10 +12,10 @@ using JLD2
 # the intercept update every k coordinates recovers that staleness, and whether
 # frequent cheap 1/L0 steps substitute for one Newton step per pass.
 #
-# k is the coordinate stride: a pass performs p/k updates, each costing O(n)
-# against an O(np) pass, so the overhead is 1/k of a pass. k = p is the paper's
-# baseline (one update per pass, at its end); k = 1 updates after every
-# coordinate. k must divide p.
+# k is the coordinate stride: a pass performs cld(p, k) updates, each costing
+# O(n) against an O(np) pass, so the overhead is roughly 1/k of a pass. k = p
+# is the paper's baseline (one update per pass, at its end); k = 1 updates
+# after every coordinate. A shorter final block still updates the intercept.
 #
 # What each family contributes:
 #   normal       L0 = H00 = 1 exactly, so the 1/L0 step IS the Newton step and
@@ -44,10 +44,9 @@ const TOL = 1.0e-10
 # and the heap is collected before every timed run.
 const SEEDS = collect(1:5)
 
-# k is a coordinate stride, so it must divide p. The ladder below is filtered
-# to the divisors of each p, with k = p (the paper's baseline) always included.
+# Include the once-per-pass baseline even when p is outside the fixed ladder.
 const K_LADDER = [1, 5, 10, 50, 100, 250, 500, 1000]
-k_ladder(p) = sort(unique([filter(k -> k <= p && p % k == 0, K_LADDER); p]))
+k_ladder(p) = sort(unique([filter(k -> k <= p, K_LADDER); p]))
 
 const MULTINOMIAL_CLASS_PROBS = Dict(
     :balanced => [0.2, 0.2, 0.2, 0.2, 0.2],
@@ -154,7 +153,7 @@ for (i, d) in enumerate(params)
     d_exp = Dict{String, Any}(
         "family" => family, "n" => n, "p" => p, "s" => s, "reg" => reg,
         "μ0" => μ0, "regime" => regime, "strategy" => String(strategy),
-        "k" => k, "updates_per_pass" => p ÷ k, "seed" => seed,
+        "k" => k, "updates_per_pass" => cld(p, k), "seed" => seed,
         "primals" => res.primals, "duals" => res.duals,
         "gaps" => res.gaps, "relgaps" => res.relgaps,
         "pass" => collect(1:T), "time" => res.time[1:T],
@@ -166,7 +165,7 @@ for (i, d) in enumerate(params)
 
     println(
         "[$i/$(length(params))] $family/$regime μ0=$μ0 $strategy k=$k " *
-            "(p/k=$(p ÷ k)) passes=$(res.passes) " *
+            "(updates/pass=$(cld(p, k))) passes=$(res.passes) " *
             "t=$(round(res.time[end], digits = 2))s relgap=$(res.relgaps[end])",
     )
 

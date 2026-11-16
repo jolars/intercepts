@@ -65,12 +65,11 @@ descent. The final class is the reference class, so `coef` has size
 values, primal-dual diagnostics, `λ`, `λmax`, and optional histories. Iteration
 stops at relative primal-dual gap `tol`, after `maxit` passes, or after
 `maxtime` seconds. `k` is the coordinate stride between intercept updates: the
-intercept is updated after every `k`th coordinate, so a pass performs `p / k`
-updates. `k = p` (the default) updates once per pass, at its end; `k = 1`
-updates after every coordinate. `k` must satisfy `1 <= k <= p` and must divide
-`p`. Note that `k` indexes coordinates, not classes; the class index in this
-file is a loop variable of the same name, so the stride is bound to a separate
-local before it is used.
+intercept is updated after every `k`th coordinate and at the end of each pass,
+including after a shorter final block. A pass performs `cld(p, k)` updates.
+`k = p` (the default) updates once per pass, at its end; `k = 1` updates after
+every coordinate. `k` must satisfy `1 <= k <= p` and indexes feature rows of
+`coef`, not classes.
 """
 function multinomial_cdsolver(
         x::AbstractMatrix,
@@ -104,7 +103,6 @@ function multinomial_cdsolver(
     stride = k === nothing ? p : k
     stride > 0 || throw(ArgumentError("k must be positive, got $stride"))
     stride <= p || throw(ArgumentError("k must not exceed p = $p, got $stride"))
-    p % stride == 0 || throw(ArgumentError("k must divide p = $p, got $stride"))
 
     λmax = lambdamax_multinomial(
         lossfun, x, y;
@@ -238,7 +236,7 @@ function multinomial_cdsolver(
                 end
             end
 
-            if inner_it % stride == 0 && fit_intercept
+            if fit_intercept && (inner_it % stride == 0 || inner_it == p)
                 intercept_prev = copy(intercept)
                 intercept = update_intercept(
                     intercept_strategy,
