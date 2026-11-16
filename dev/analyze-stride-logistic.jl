@@ -62,23 +62,38 @@ argmin_summ = combine(
 # ----------------------------------------------------- theory check (Eq. 16)
 # T_G / T_N -> L0 / H00 as the coupling grows. Compare at the baseline stride,
 # where the intercept mode is least masked by in-pass updates.
-gn = unstack(
-    select(d[d.ratio .== 1, :], [:n, :p, :μ0, :seed, :strategy, :passes]),
-    [:n, :p, :μ0, :seed], :strategy, :passes,
+THEORY_KEY = [:n, :p, :μ0, :seed]
+baseline = df[df.ratio .== 1, :]
+# A theory ratio requires both strategies to converge on the same seed.
+gn = innerjoin(
+    rename(
+        select(baseline[baseline.strategy .== "gradient", :], [THEORY_KEY; :passes; :h00_l0]),
+        :passes => :gradient,
+    ),
+    rename(
+        select(baseline[baseline.strategy .== "newton", :], [THEORY_KEY; :passes]),
+        :passes => :newton,
+    );
+    on = THEORY_KEY,
 )
-hl = combine(groupby(df[df.ratio .== 1, :], [:n, :p, :μ0, :seed]), :h00_l0 => first => :h00_l0)
-gn = innerjoin(gn, hl; on = [:n, :p, :μ0, :seed])
 gn.observed = gn.gradient ./ gn.newton
 gn.predicted = 1.0 ./ gn.h00_l0
 
-theory = combine(
-    groupby(gn, [:n, :p, :μ0]),
-    :observed => median => :obs_med,
-    :observed => minimum => :obs_min,
-    :observed => maximum => :obs_max,
-    :predicted => median => :pred_med,
-    :h00_l0 => median => :h00_l0,
-)
+theory = if isempty(gn)
+    DataFrame(
+        n = Int[], p = Int[], μ0 = Float64[], obs_med = Float64[],
+        obs_min = Float64[], obs_max = Float64[], pred_med = Float64[], h00_l0 = Float64[],
+    )
+else
+    combine(
+        groupby(gn, [:n, :p, :μ0]),
+        :observed => median => :obs_med,
+        :observed => minimum => :obs_min,
+        :observed => maximum => :obs_max,
+        :predicted => median => :pred_med,
+        :h00_l0 => median => :h00_l0,
+    )
+end
 theory.rel_error = (theory.obs_med .- theory.pred_med) ./ theory.pred_med
 
 # ------------------------------------------------------------------- figure 1
@@ -126,25 +141,29 @@ Label(
 save(@projectroot("results", "sim-stride-logistic.png"), fig; px_per_unit = 2)
 
 # ------------------------------------------------------- figure 2 (Eq. 16)
-fig2 = Figure(; size = (560, 500))
-ax2 = Axis(
-    fig2[1, 1];
-    xlabel = "Predicted  L₀ / H₀₀  (measured at the fit)",
-    ylabel = "Observed  gradient passes / Newton passes",
-    xscale = log10, yscale = log10, xgridvisible = false, ygridvisible = false,
-    title = "Eq. 16 against the sweep (stride k = p)",
-)
-lims = (0.9 * minimum(min.(theory.pred_med, theory.obs_med)),
-        1.1 * maximum(max.(theory.pred_med, theory.obs_med)))
-lines!(ax2, [lims...], [lims...]; color = :gray60, linestyle = :dash)
-for (ci, μ) in enumerate(mus)
-    t = theory[theory.μ0 .== μ, :]
-    isempty(t) && continue
-    scatter!(ax2, t.pred_med, t.obs_med; markersize = 13, label = "μ₀ = $μ")
-    rangebars!(ax2, t.pred_med, t.obs_min, t.obs_max; whiskerwidth = 8)
+if isempty(theory)
+    @warn "skipping theory plot: no seeds have both converged baselines"
+else
+    fig2 = Figure(; size = (560, 500))
+    ax2 = Axis(
+        fig2[1, 1];
+        xlabel = "Predicted  L₀ / H₀₀  (measured at the fit)",
+        ylabel = "Observed  gradient passes / Newton passes",
+        xscale = log10, yscale = log10, xgridvisible = false, ygridvisible = false,
+        title = "Eq. 16 against the sweep (stride k = p)",
+    )
+    lims = (0.9 * minimum(min.(theory.pred_med, theory.obs_med)),
+            1.1 * maximum(max.(theory.pred_med, theory.obs_med)))
+    lines!(ax2, [lims...], [lims...]; color = :gray60, linestyle = :dash)
+    for (ci, μ) in enumerate(mus)
+        t = theory[theory.μ0 .== μ, :]
+        isempty(t) && continue
+        scatter!(ax2, t.pred_med, t.obs_med; markersize = 13, label = "μ₀ = $μ")
+        rangebars!(ax2, t.pred_med, t.obs_min, t.obs_max; whiskerwidth = 8)
+    end
+    axislegend(ax2; position = :lt, framevisible = false)
+    save(@projectroot("results", "sim-stride-logistic-theory.png"), fig2; px_per_unit = 2)
 end
-axislegend(ax2; position = :lt, framevisible = false)
-save(@projectroot("results", "sim-stride-logistic-theory.png"), fig2; px_per_unit = 2)
 
 # -------------------------------------------------------------------- tables
 CSV.write(@projectroot("results", "sim-stride-logistic-summary.csv"), summ)

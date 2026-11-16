@@ -8,7 +8,7 @@
 # here, and overlays them on the simulated points.
 
 using DrWatson
-@quickactivate "intercepts"
+@quickactivate "Intercepts"
 using DataFrames, JLD2, Statistics, Printf, ProjectRoot, CairoMakie, CSV
 
 @load @projectroot("results", "sim-stride-real.jld2") df
@@ -35,9 +35,22 @@ println("handicap  = gradient / Newton at the shared k = p baseline")
 println("best p/k  = stride minimising gradient wall time")
 println("remaining = strided gradient / Newton baseline  (1.0 = parity)\n")
 
-rows = NamedTuple[]
+# Keep the output schema even when every dataset lacks a usable comparison.
+summ = DataFrame(
+    dataset = String[], n = Int[], p = Int[], pi_plus = Float64[], h00_l0 = Float64[],
+    handicap = Float64[], handicap_passes = Float64[], best_ratio = Float64[],
+    remaining = Float64[], remaining_passes = Float64[], speedup = Float64[],
+)
 for g in groupby(sort(cell, :pi_plus), :dataset)
     ds = first(g.dataset)
+    missing_baselines = [
+        s for s in ("gradient", "newton")
+            if !any((g.strategy .== s) .& (g.ratio .== 1.0))
+    ]
+    if !isempty(missing_baselines)
+        @warn "skipping dataset without both converged baselines" dataset = ds missing_baselines
+        continue
+    end
     gr = g[g.strategy .== "gradient", :]
     gb, nb = base(g, "gradient"), base(g, "newton")
     gbp, nbp = basep(g, "gradient"), basep(g, "newton")
@@ -45,7 +58,7 @@ for g in groupby(sort(cell, :pi_plus), :dataset)
     best, bestp, bestr = gr.wall[i], gr.passes[i], gr.ratio[i]
 
     push!(
-        rows,
+        summ,
         (
             dataset = ds, n = first(g.n), p = first(g.p),
             pi_plus = first(g.pi_plus), h00_l0 = first(g.h00_l0),
@@ -59,7 +72,6 @@ for g in groupby(sort(cell, :pi_plus), :dataset)
         ds, first(g.pi_plus), first(g.h00_l0), gb / nb, gbp, nbp, bestr, best / nb, gb / best
     )
 end
-summ = DataFrame(rows)
 CSV.write(@projectroot("results", "sim-stride-real-summary.csv"), summ)
 
 # --- the simulated points, computed the same way, for the overlay ----------

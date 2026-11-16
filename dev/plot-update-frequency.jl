@@ -20,7 +20,16 @@ df = DataFrame(
     seed = [r["seed"] for r in results],
     passes = [r["passes"] for r in results],
     wall = [r["wall_time"] for r in results],
+    final_dual_relgap = [r["final_dual_relgap"] for r in results],
 )
+
+# Shared-dual rescoring can improve the gap of a capped run, so use the
+# run's own duality gap to decide whether it reached the solver tolerance.
+df.converged = df.final_dual_relgap .<= 1.0e-10
+n_censored = count(!, df.converged)
+n_censored > 0 && @warn "dropping capped runs from the stride ranking" n_censored total = nrow(df)
+df = df[df.converged, :]
+isempty(df) && error("No runs reached the relative-gap tolerance of 1e-10.")
 
 function panel_label(family, regime, μ0)
     family == "normal" && return "Gaussian"
@@ -132,7 +141,7 @@ Legend(
 Label(
     fig[0, 1:(length(panel_order) + 1)],
     "Intercept update stride: dashed line is k = p, the once-per-pass baseline; " *
-        "line is the median over $(maximum(agg.n_seeds)) seeds, band the min-max across them";
+        "line is the median over up to $(maximum(agg.n_seeds)) converged seeds, band the min-max across them";
     fontsize = 15,
     padding = (0, 0, 6, 0),
 )
@@ -148,8 +157,10 @@ best = combine(groupby(agg, [:panel, :strategy])) do g
     (
         best_k = g.k[i], best_upp = g.upp[i],
         best_passes = g.passes_med[i], best_wall = round(g.wall_med[i], digits = 3),
+        best_n_seeds = g.n_seeds[i],
         base_passes = isempty(base) ? missing : base.passes_med[1],
         base_wall = isempty(base) ? missing : round(base.wall_med[1], digits = 3),
+        base_n_seeds = isempty(base) ? 0 : base.n_seeds[1],
         wall_speedup = isempty(base) ? missing :
             round(base.wall_med[1] / g.wall_med[i], digits = 2),
     )

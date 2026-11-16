@@ -25,7 +25,7 @@
 # starting over; the assembled JLD2 and CSV are the tracked artifacts.
 
 using DrWatson
-@quickactivate "intercepts"
+@quickactivate "Intercepts"
 using Intercepts, DataFrames, JLD2, Statistics, Printf, ProjectRoot, CSV
 
 const REG = 0.05

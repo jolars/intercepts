@@ -4,7 +4,7 @@
 # if striding closes the gap they still land on the parity line.
 
 using DrWatson
-@quickactivate "intercepts"
+@quickactivate "Intercepts"
 using DataFrames, JLD2, Statistics, ProjectRoot, CairoMakie
 
 @load @projectroot("results", "sim-stride-logistic.jld2") df

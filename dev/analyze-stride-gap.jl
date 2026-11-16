@@ -11,7 +11,7 @@
 # strategies are measured against.
 
 using DrWatson
-@quickactivate "intercepts"
+@quickactivate "Intercepts"
 using DataFrames, JLD2, Statistics, ProjectRoot, CSV
 
 @load @projectroot("results", "sim-stride-logistic.jld2") df
