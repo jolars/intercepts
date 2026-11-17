@@ -1449,10 +1449,10 @@ S3](#sec-s-methodology).
 
 ## Simulated data
 
-We begin with the simplest consequence of @sec-theory. The gradient strategy's
-intercept step is the local Newton direction scaled by $H_{00}/L_0$. As
-imbalance pushes $\mu_0$ toward one, $H_{00}$ shrinks while $L_0 = 1/4$ remains
-fixed. We therefore expect the intercept update to slow.
+We begin with a simple prediction from @sec-theory. As the response becomes more
+imbalanced, the intercept curvature $H_{00}$ can shrink while $L_0 = 1/4$ stays
+fixed. The gradient step then becomes a smaller fraction $H_{00}/L_0$ of the
+local Newton step. We therefore expect the gradient intercept update to slow.
 
 ### Synthetic trajectories and safeguards
 
@@ -1597,38 +1597,40 @@ cached.
 ## Real data
 
 We next examine whether the same scaling appears on real problems. We run the
-three strategies on six LIBSVM benchmark problems at
+three strategies on seven LIBSVM benchmark problems at
 $\lambda = 0.05\lambda_{\max}$. @tbl-real-logreg-problems lists the problems in
 order of the reciprocal intercept-only curvature fraction
 $[4 \pi_+ (1 - \pi_+)]^{-1}$. The table lists the curvature fraction itself,
-$4 \pi_+ (1 - \pi_+)$. The six problems span a ninefold range in this quantity
-and include sparse and dense designs in both dimensional regimes.
+$4 \pi_+ (1 - \pi_+)$. The seven problems span a ninefold range in this quantity
+and include sparse and dense designs in both dimensional regimes. We also report
+the fitted curvature fraction $H_{00}/L_0$ from one accurate Newton reference
+per problem.
 
-The two most imbalanced problems, w1a and news20-3pct, are especially useful.
-They have nearly the same $\pi_+$ but very different sparse designs: w1a has 300
-web-indicator features, while news20-3pct is drawn from a text corpus with an
-original vocabulary of roughly $1.3$ million terms and retains 4,675 features
-after filtering. Agreement between them would suggest that the slowdown is not
-peculiar to w1a.
+The three most imbalanced problems, w1a, w8a, and news20-3pct, have nearly the
+same $\pi_+$. w1a and w8a have 300 web-indicator features, while news20-3pct is
+drawn from a text corpus with an original vocabulary of roughly $1.3$ million
+terms and retains 4,675 features after filtering.
 
-  | dataset       | $n$   | $p$   | density | $\pi_+$ | $4\pi_+(1 - \pi_+)$ |
-  | :------------ | ----: | ----: | :------ | ------: | ------------------: |
-  | w1a           | 2,477 |   300 | sparse  |   0.029 |               0.113 |
-  | news20-3pct   | 2,000 | 4,675 | sparse  |   0.030 |               0.116 |
-  | a4a           | 4,781 |   123 | sparse  |   0.248 |               0.747 |
-  | leukemia      |    38 | 7,129 | dense   |   0.711 |               0.823 |
-  | breast-cancer |   683 |    10 | dense   |   0.350 |               0.910 |
-  | gisette       | 6,000 | 5,000 | dense   |   0.500 |               1.000 |
+  | dataset       | $n$    | $p$   | density | $\pi_+$ | $4\pi_+(1 - \pi_+)$ | $H_{00}/L_0$ |
+  | :------------ | -----: | ----: | :------ | ------: | ------------------: | -----------: |
+  | w1a           |  2,477 |   300 | sparse  |   0.029 |               0.113 |        0.054 |
+  | w8a           | 49,749 |   300 | sparse  |   0.030 |               0.115 |        0.059 |
+  | news20-3pct   |  2,000 | 4,675 | sparse  |   0.030 |               0.116 |        0.047 |
+  | a4a           |  4,781 |   123 | sparse  |   0.248 |               0.747 |        0.494 |
+  | leukemia      |     38 | 7,129 | dense   |   0.711 |               0.823 |        0.097 |
+  | breast-cancer |    683 |    10 | dense   |   0.350 |               0.910 |        0.189 |
+  | gisette       |  6,000 | 5,000 | dense   |   0.500 |               1.000 |        0.328 |
 
-  : LIBSVM problems used in @fig-real-logreg. $\pi_+$ is the positive-class
-    marginal, and $4\pi_+(1 - \pi_+)$ is the intercept-only curvature fraction,
-    not the fitted $H_{00}/L_0$. news20-3pct is a deterministic 60/1\,940
-    subsample of `news20.binary`; after subsampling, features with fewer than 20
-    nonzeros are dropped. {#tbl-real-logreg-problems}
+  : LIBSVM problems used in @fig-real-logreg. $\pi_+$ is the observed
+    positive-class fraction, $4\pi_+(1 - \pi_+)$ is the intercept-only curvature
+    fraction, and $H_{00}/L_0$ is the fitted fraction at $\lambda =
+    0.05\lambda_{\max}$. news20-3pct is a deterministic 60/1\,940 subsample of
+    `news20.binary`; after subsampling, features with fewer than 20 nonzeros are
+    dropped. {#tbl-real-logreg-problems}
 
 ```{julia}
 #| label: fig-real-logreg
-#| fig-cap: Real-data logistic convergence on six LIBSVM problems. The panels
+#| fig-cap: Real-data logistic convergence on seven LIBSVM problems. The panels
 #|   show a relative suboptimality bound versus time for the three intercept
 #|   strategies at $\lambda = 0.05\lambda_{\max}$, in the problem order of
 #|   @tbl-real-logreg-problems.
@@ -1645,7 +1647,7 @@ df.dataset = replace.(
     "news20-imb" => "news20-3pct",
 )
 
-dataset_order = ["w1a", "news20-3pct", "a4a", "leukemia", "breast-cancer", "gisette"]
+dataset_order = ["w1a", "w8a", "news20-3pct", "a4a", "leukemia", "breast-cancer", "gisette"]
 
 spec = data(df) *
     mapping(
@@ -1659,24 +1661,28 @@ draw(
     visual(Lines) * spec,
     axis = (yscale = log10,),
     facet = (; linkxaxes = :none),
-    figure = (; size = output_size((800, 500))),
+    figure = (; size = output_size((800, 650))),
+    legend = (; position = :bottom),
 )
 ```
 
-The two severely imbalanced datasets reproduce both predicted patterns on very
-different sparse designs. The gradient strategy takes about six times as long as
-Newton to reach $10^{-6}$ on w1a and about nine times as long to reach $10^{-4}$
-on news20-3pct, before the latter reaches its wall-time cap. Both datasets have
-small intercept-only curvature fractions. Their large slowdowns across different
-designs support the response-imbalance mechanism, although the fitted curvature
-and collective coupling determine the local rate.
+The gradient strategy takes about seven times as long as Newton to reach
+$10^{-10}$ on w1a and about twice as long on w8a. On w8a, Newton and exact reach
+this bound in 175 passes and about 50 seconds, compared with 359 passes and
+102.5 seconds for gradient. On news20-3pct, gradient takes about nine times as
+long as Newton to reach $10^{-4}$ before reaching its wall-time cap. All three
+problems have small fitted curvature fractions. Their slowdowns across different
+sparse designs support the response-imbalance mechanism, although the fitted
+curvature and collective coupling determine the local rate.
 
 For the moderately imbalanced a4a and breast-cancer data, the gap between the
 gradient and Newton strategies is modest---less than threefold---consistent with
 their larger intercept-only curvature fractions. Leukemia ($n \ll p$,
 penalty-dominated) and gisette (dense and balanced) serve as negative controls:
-both show comparatively little separation in time. The exact strategy tracks
-Newton on every panel, consistent with @eq-intercept-drift at this tolerance.
+both show comparatively little separation in time. Leukemia's fitted curvature
+fraction is also small\ ($0.097$), illustrating why curvature alone does not
+determine the slowdown. The exact strategy tracks Newton on every panel,
+consistent with @eq-intercept-drift at this tolerance.
 
 Poisson data offer a sharper version of the same test. The Poisson loss has no
 global upper bound on $f''(\eta) = e^\eta$, so $L_0 = \infty$ and the
@@ -1942,18 +1948,18 @@ reaching the reporting threshold. The displayed average ratio in that cell is
 therefore uninformative rather than small. We return to it below.
 
 At $\lambda = 0.05\lambda_{\max}$, the regime most relevant to the production
-path experiments, the empirical ratio grows from nearly one under balance to
+path experiments, the empirical ratio grows from nearly one at $\mu_0 = 0.5$ to
 about eight at $\mu_0 = 0.99$. The corresponding fitted curvature ratio
 $L_0/H_{00}(\hat\eta)$ rises from about three to twelve. This ratio gives the
 strong-coupling limit in @eq-frozen-block-rate. It need not equal the pass-count
 ratio at a finite tolerance when other convergence modes contribute.
 
-As $\lambda$ shrinks, the active set grows, $H_{00}$ falls to or below
-$\mu_0(1 - \mu_0)$, and the gradient strategy takes more passes relative to
-Newton. At $\lambda = 0.01\lambda_{\max}$, for example, the ratio rises from
-about two under balance to about ten at $\mu_0 = 0.95$. We omit the
-$\mu_0 = 0.99$ corner because all three strategies reach the cap in one seed,
-making the average uninformative.
+As $\lambda$ shrinks, the active set grows, the fitted intercept curvature
+decreases, and the gradient strategy takes more passes relative to Newton. At
+$\lambda = 0.01\lambda_{\max}$, for example, the ratio rises from about two at
+$\mu_0 = 0.5$ to about ten at $\mu_0 = 0.95$. We omit the $\mu_0 = 0.99$ corner
+because all three strategies reach the cap in one seed, making the average
+uninformative.
 
 By contrast, @fig-mu-reg-exact stays nearly flat at zero: the ratio of exact to
 Newton pass counts is approximately one across the grid, and no cell departs
@@ -3034,14 +3040,38 @@ sweeps, each with its own intercept update. The comparison in
 direct-CD pass and an IRLS outer iteration represent different amounts of work.
 Unless noted, "passes to tolerance" means the number of completed direct-CD
 passes needed to bring the shared relative suboptimality bound below $10^{-8}$.
-Direct-CD pass budgets (`maxit`) are 1000 for the single-$\lambda$ figures and
-5000 for the heatmap of @sec-imbalance-reg; cells that miss tolerance are shown
-at the cap. We standardize the synthetic designs, use cyclic coordinate ordering
-unless noted, and set the default AR(1) feature correlation to $\rho = 0.6$. We
-fix the seeds per script. We average three seeds per cell in the heatmap of
-@sec-imbalance-reg, show three seeds in @fig-irls-comparison, and show five in
-the safeguard experiments. We use one fixed seed for the remaining
-single-trajectory figures.
+Unless otherwise specified, direct-CD pass budgets (`maxit`) are 1000 for the
+single-$\lambda$ figures and 5000 for the heatmap of @sec-imbalance-reg; cells
+that miss tolerance are shown at the cap. We standardize the synthetic designs,
+use cyclic coordinate ordering unless noted, and set the default AR(1) feature
+correlation to $\rho = 0.6$. We fix the seeds per script. We average three seeds
+per cell in the heatmap of @sec-imbalance-reg, show three seeds in
+@fig-irls-comparison, and show five in the safeguard experiments. We use one
+fixed seed for the remaining single-trajectory figures.
+
+For the binary-logistic experiments, we distinguish the baseline generator
+probability $\mu_0$ from the realized fraction $\pi_+ = n^{-1}\sum_i y_i$.
+Nonzero feature effects change the marginal response probability, and random
+feature means can widen the variation across seeds. Standardizing the design
+after generating the responses does not remove this difference.
+@tbl-logistic-prevalence gives the observed ranges for the three-seed sweeps.
+The committed `results/logistic-prevalence.csv` records the counts for each seed
+in these sweeps and the single-trajectory, safeguard, IRLS, per-pass-cost, and
+warm-start examples. Its producer reconstructs seeded responses or reads the
+saved skglm counts without rerunning the optimization paths.
+
+  | $\mu_0$ | Internal-CD heatmap $\pi_+$ | Controlled skglm $\pi_+$ |
+  | ------: | :-------------------------- | :----------------------- |
+  |     0.5 | 0.324--0.538                | 0.474--0.502             |
+  |     0.7 | 0.428--0.632                | 0.568--0.612             |
+  |     0.9 | 0.580--0.782                | 0.708--0.726             |
+  |    0.95 | 0.668--0.838                | 0.778--0.796             |
+  |    0.99 | 0.806--0.932                | 0.890--0.906             |
+
+  : Realized positive-class fractions across three seeds in @fig-mu-reg-gradient
+    and @fig-skglm-controlled. The internal-CD generator uses random feature
+    means; the controlled skglm generator uses zero means. Both include nonzero
+    slope effects. {#tbl-logistic-prevalence}
 
 Every coefficient update is accepted through a Tseng--Yun Armijo backtrack on
 the proximal model decrease, with slope constant $10^{-4}$, step-halving, and at
@@ -3096,20 +3126,26 @@ strategy as soon as its primal reaches the corresponding shared-bound threshold.
 This changes neither its iterates nor its reported crossing; it only avoids
 running beyond the point used in the figure.
 
-For the real-data experiments, we use pinned datasets from Zenodo\ (DOI:
-[10.5281/zenodo.20315625](https://doi.org/10.5281/zenodo.20315625)) and
-standardize them before fitting. We include in the repository the code needed to
-retrieve these data and generate the shared standardized problem used in the
-additional production-solver diagnostics. Those cached diagnostics use
-**biglasso** 1.6-1 (R), **adelie** 1.0-10 (R), **skglm** 0.5 (Python),
-**LIBLINEAR** through **scikit-learn**'s `solver="liblinear"` wrapper, and
-**BlitzL1** at commit `aef8d02`. They record one fit per tolerance setting. The
-separate cold-start diagnostic in [Supplement S5.2](#sec-cold-start-diag) uses
-**adelie** 1.0-8. The controlled imbalance sweep uses **glmnet** 5.0 and
-**biglasso** 1.6-1, with seven warmed timing repetitions per mode and cell. It
-uses one BLAS/OpenMP thread and the same explicit regularization path for both
-modes. The benchmark stores every calibration result and timing, the reference
-certificates and curvature diagnostics, and the package versions in
+We verify the real-data inputs against committed checksums and standardize the
+features before fitting. The [data
+guide](https://github.com/jolars/intercepts/blob/main/data/README.md) records
+their sources and retrieval commands. We evaluate
+$H_{00}/L_0 = (4/n)\sum_i \hat p_i(1 - \hat p_i)$ at the fitted probabilities of
+a Newton reference with relative primal-dual gap at most $10^{-10}$ for each
+binary problem (@tbl-real-logreg-problems). The binary-logistic comparison uses
+a relative primal-dual gap tolerance of $10^{-10}$. Curvature references allow
+up to 10,000 passes. We include in the repository the code needed to retrieve
+these data and generate the shared standardized problem used in the additional
+production-solver diagnostics. Those cached diagnostics use **biglasso** 1.6-1
+(R), **adelie** 1.0-10 (R), **skglm** 0.5 (Python), **LIBLINEAR** through
+**scikit-learn**'s `solver="liblinear"` wrapper, and **BlitzL1** at commit
+`aef8d02`. They record one fit per tolerance setting. The separate cold-start
+diagnostic in [Supplement S5.2](#sec-cold-start-diag) uses **adelie** 1.0-8. The
+controlled imbalance sweep uses **glmnet** 5.0 and **biglasso** 1.6-1, with
+seven warmed timing repetitions per mode and cell. It uses one BLAS/OpenMP
+thread and the same explicit regularization path for both modes. The benchmark
+stores every calibration result and timing, the reference certificates and
+curvature diagnostics, and the package versions in
 `results/production-imbalance/`. Its reference fits use guarded-Newton CD
 followed by a joint Newton refinement on the active coefficients and intercept.
 We evaluate their primal and feasible dual objectives in 128-bit arithmetic to
@@ -3123,12 +3159,12 @@ figures from cached files, and regenerating a panel requires rerunning the
 corresponding experiment. The illustrative @fig-parametric and
 @fig-schur-example are computed at render time. We pin the Julia, R, and Python
 toolchains in the repository and use their default **OpenBLAS** builds. Except
-for the controlled production imbalance and skglm comparisons, the experiments
-use no thread limits. The internal-solver experiments ran on an x86_64 Linux
-workstation with an AMD Ryzen 9 7900 (12 cores, 24 threads) and 64 GB of RAM.
-The production imbalance sweep ran on an Intel Core Ultra 7 155U laptop with 32
-GB of RAM. The wall-clock measurements describe these machines and software
-environments.
+for w8a and the controlled production imbalance and skglm comparisons, the
+experiments use no thread limits. The internal-solver experiments ran on an
+x86_64 Linux workstation with an AMD Ryzen 9 7900 (12 cores, 24 threads) and 64
+GB of RAM. The production imbalance sweep ran on an Intel Core Ultra 7 155U
+laptop with 32 GB of RAM. The wall-clock measurements describe these machines
+and software environments.
 
 ## S4. Robustness analyses {#sec-s-robustness .unnumbered}
 

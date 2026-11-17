@@ -12,6 +12,25 @@
 
 const CURATORS = Dict{String, Function}(
 
+    "fig-real-logreg" => function (mod)
+        rows = NamedTuple[]
+        for r in mod.dd["results"]
+            crossing = findfirst(<=(1.0e-10), r["relgaps"])
+            push!(
+                rows, (
+                    dataset = replace(r["dataset"], "news20-imb" => "news20-3pct", "gisette_scale" => "gisette"),
+                    strategy = string(r["strategy"]), target = 1.0e-10,
+                    reached = crossing !== nothing,
+                    passes = crossing === nothing ? missing : crossing - 1,
+                    time = crossing === nothing ? missing : round(r["time"][crossing]; digits = 3),
+                    pi_plus = round(r["pi_plus"]; digits = 4),
+                    H00_over_L0 = round(r["H00_over_L0"]; digits = 4),
+                )
+            )
+        end
+        return sort!(DataFrame(rows), [:dataset, :strategy])
+    end,
+
     "fig-intercept-stride" => function (mod)
         df = copy(mod.df_stride)
         for column in [:passes_med, :passes_lo, :passes_hi, :wall_med, :wall_lo, :wall_hi]

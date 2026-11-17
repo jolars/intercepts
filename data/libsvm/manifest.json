@@ -31,6 +31,14 @@
         "n_features": 300,
         "type": "binary"
     },
+    "w8a": {
+        "n_samples": 49749,
+        "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/w8a",
+        "ncls": 2,
+        "file": "w8a",
+        "n_features": 300,
+        "type": "binary"
+    },
     "a4a": {
         "n_samples": 4781,
         "source": "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/a4a",

@@ -2,15 +2,15 @@
 ## archive (`intercepts-data-<version>.tar.gz`) for deposit on Zenodo, and write
 ## the committed manifest/checksum files that reproducers verify against.
 ##
-## This is the ONLY step that fetches data from upstream mirrors. Run it once,
-## upload the resulting tarball to Zenodo, then fill the minted DOI into
+## Run this script to assemble the inputs. Upload the tarball to Zenodo, then
+## fill the minted DOI into
 ## `experiments/fetch-data.sh` and the README. Reproducers never run this; they
-## run `experiments/fetch-data.sh`, which downloads the pinned archive instead.
+## run `experiments/fetch-data.sh` to retrieve and verify the inputs.
 ##
 ##   julia --project=. experiments/build-data-archive.jl
 ##
 ## Inputs gathered:
-##   - LIBSVM datasets (w1a, news20.binary, shuttle.scale[.t], a4a, leukemia,
+##   - LIBSVM datasets (w1a, w8a, news20.binary, shuttle.scale[.t], a4a, leukemia,
 ##     breast-cancer, gisette_scale), fetched + decompressed via LIBSVMdata and
 ##     copied verbatim into data/libsvm/.
 ##   - Yeoh2002.rds (pediatric ALL gene-expression panel) under data/yeoh/.
@@ -21,12 +21,13 @@ using LIBSVMdata
 using ProjectRoot
 using JSON3
 
-const ARCHIVE_VERSION = "v1"
+const ARCHIVE_VERSION = "v2"
 
 # Dataset name (as passed to load_local_dataset in the experiments) => filename
 # shipped under data/libsvm/. Names match the keys used at every call site.
 const LIBSVM_DATASETS = [
     "w1a" => "w1a",
+    "w8a" => "w8a",
     "news20.binary" => "news20.binary",
     "shuttle.scale" => "shuttle.scale",
     "shuttle.scale.t" => "shuttle.scale.t",
@@ -101,9 +102,9 @@ println("Wrote data/libsvm/manifest.json")
 yeoh_rds = joinpath(datadir, "yeoh", "Yeoh2002.rds")
 isfile(yeoh_rds) ||
     error(
-        "data/yeoh/Yeoh2002.rds is missing. Stage it once from the IowaBiostat " *
-            "collection (Yeoh2002.rds) before building the archive.",
-    )
+    "data/yeoh/Yeoh2002.rds is missing. Stage it once from the IowaBiostat " *
+        "collection (Yeoh2002.rds) before building the archive.",
+)
 println("Using data/yeoh/Yeoh2002.rds")
 
 # congress109: snapshot the textir phrase-count matrix into data/congress109/.
@@ -115,7 +116,6 @@ archived = String[
     "data/yeoh/Yeoh2002.rds",
     "data/congress109/counts.mtx",
     "data/congress109/phrases.txt",
-    "data/libsvm/manifest.json",
 ]
 for (_, shipped) in LIBSVM_DATASETS
     push!(archived, "data/libsvm/$shipped")
@@ -133,7 +133,7 @@ println("Wrote data/MANIFEST.sha256")
 
 # Build the upload-ready tarball at the repository root (gitignored).
 tarball = "intercepts-data-$(ARCHIVE_VERSION).tar.gz"
-members = vcat(archived, ["data/MANIFEST.sha256", "data/README.md"])
+members = vcat(archived, ["data/libsvm/manifest.json", "data/MANIFEST.sha256", "data/README.md"])
 existing = filter(m -> isfile(joinpath(repo, m)), members)
 run(Cmd(`tar -czf $tarball $existing`; dir = repo))
 println(

@@ -53,14 +53,33 @@ esac
 STAGING="${TMP}/staging"
 mkdir "${STAGING}"
 DATA_FILES=()
+ARCHIVE_FILES=()
 while read -r _checksum path; do
   DATA_FILES+=("${path}")
+  # Extract inputs supplied by the pinned archive.
+  if [[ "${path}" != data/libsvm/w8a ]]; then
+    ARCHIVE_FILES+=("${path}")
+  fi
 done < data/MANIFEST.sha256
 
 # Extract only the committed inputs so archive metadata cannot replace the
 # repository's checksum manifest or documentation.
 echo "Unpacking into temporary staging directory"
-tar -xzf "${TARBALL}" -C "${STAGING}" -- "${DATA_FILES[@]}"
+tar -xzf "${TARBALL}" -C "${STAGING}" -- "${ARCHIVE_FILES[@]}"
+
+if [[ " ${DATA_FILES[*]} " == *" data/libsvm/w8a "* ]]; then
+  if tar -tzf "${TARBALL}" -- data/libsvm/w8a >/dev/null 2>&1; then
+    tar -xzf "${TARBALL}" -C "${STAGING}" -- data/libsvm/w8a
+  else
+    echo "Retrieving w8a"
+    W8A_SOURCE="${INTERCEPTS_W8A_SOURCE:-https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary/w8a}"
+    mkdir -p "${STAGING}/data/libsvm"
+    case "${W8A_SOURCE}" in
+      http://* | https://*) curl -fL --retry 3 -o "${STAGING}/data/libsvm/w8a" "${W8A_SOURCE}" ;;
+      *) cp "${W8A_SOURCE}" "${STAGING}/data/libsvm/w8a" ;;
+    esac
+  fi
+fi
 
 echo "Verifying checksums against data/MANIFEST.sha256"
 (

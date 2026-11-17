@@ -52,10 +52,9 @@ environment with the required dependencies.
 
 ### (Optional) Retrieve the real-data inputs
 
-The real-data experiments read their inputs from a pinned archive deposited on
-Zenodo (DOI: `10.5281/zenodo.20315625`), rather than fetching datasets at run
-time. The archive holds the exact inputs behind the real-data figures: the
-Yeoh2002 gene-expression panel, the LIBSVM datasets (w1a, news20.binary,
+The real-data experiments use checksum-pinned inputs from Zenodo (DOI:
+`10.5281/zenodo.20315625`) and LIBSVM. These include the Yeoh2002
+gene-expression panel, the LIBSVM datasets (w1a, w8a, news20.binary,
 shuttle.scale, a4a, leukemia, breast-cancer, gisette), and the congress109
 phrase-count matrix. This step requires R with `jsonlite`, available in the
 pinned devenv environment described below. To stage them under `data/`, run:
@@ -64,11 +63,11 @@ pinned devenv environment described below. To stage them under `data/`, run:
 bash experiments/fetch-data.sh
 ```
 
-This downloads and unpacks the archive into a temporary directory, verifies the
-inputs against the committed `data/MANIFEST.sha256`, and installs them only
-after every checksum passes. It preserves the repository's manifest and
-documentation, then derives the Yeoh CSV inputs from the shipped RDS. See
-<data/README.md> for the provenance of each dataset.
+This retrieves the inputs into a temporary directory, verifies them against the
+committed `data/MANIFEST.sha256`, and installs them only after every checksum
+passes. It preserves the repository's manifest and documentation, then derives
+the Yeoh CSV inputs from the shipped RDS. See <data/README.md> for the
+provenance of each dataset.
 
 You only need this step to re-run the real-data experiments. The cached results
 in <results/> already render the paper without it.
@@ -83,6 +82,40 @@ the <experiments/> directory. For example, to reproduce the results for the
 ```bash
 julia --project=. experiments/sim-mu-extreme.jl
 ```
+
+Run the real-data logistic experiment with:
+
+```bash
+task real-logreg
+```
+
+Use `task real-logreg -- --resume` to reuse completed runs. The producer stores
+the curves in `results/real-logreg.jld2` and the fitted-curvature references in
+`results/real-logreg-diagnostics.csv`. It computes the fitted-curvature
+diagnostics from accurate Newton references, whose objectives must agree with
+the cached primal and dual bounds.
+
+Use `--rerun=DATASET` together with `--resume` to refresh one dataset while
+reusing the other completed runs.
+
+All strategies use a relative primal-dual gap tolerance of `1e-10`. Newton
+references allow up to 10,000 passes; other trajectories allow 1,000 passes,
+with a 120-second limit on news20-3pct. The task warms all three strategies,
+limits Julia, BLAS, and OpenMP to one thread, and records one trajectory per
+strategy and dataset.
+
+Recover the realized class proportions of the main synthetic logistic examples,
+the imbalance heatmap, and the controlled skglm comparison without rerunning
+their optimization paths with:
+
+```bash
+task logistic-prevalence
+```
+
+The producer reconstructs the seeded responses used by each Julia script and
+reuses counts from the controlled skglm input index. It writes
+`results/logistic-prevalence.csv`, preserving the distinction between the
+generator's baseline probability `mu0` and the observed positive-class fraction.
 
 The controlled glmnet and biglasso comparison varies response imbalance on
 synthetic designs. Generate its inputs, reference certificates, and repeated
@@ -117,12 +150,12 @@ Rscript experiments/sim-cold-start-real.R
 
 The intercept-update frequency experiment (`@fig-intercept-stride`) uses the
 Newton strategy throughout. The simulations vary three baseline means over five
-seeds at fixed dimensions $n=500$ and $p=1000$. The real-data experiments use
-w1a, a4a, gisette, and imbalanced news20, with three timing repetitions per
+seeds at fixed dimensions $n = 500$ and $p = 1000$. The real-data experiments
+use w1a, a4a, gisette, and imbalanced news20, with three timing repetitions per
 frequency. Each problem uses seven coordinate strides, spaced logarithmically
-from $k=1$ to $k=p$ and rounded to integers. Fits run to a relative duality-gap
-tolerance of $10^{-8}$ without a wall-clock limit. Run the experiment after
-staging the real-data archive:
+from $k = 1$ to $k = p$ and rounded to integers. Fits run to a relative
+duality-gap tolerance of $10^{-8}$ without a wall-clock limit. Run the
+experiment after staging the real-data archive:
 
 ```bash
 task update-frequency
@@ -158,7 +191,7 @@ passes.
   | `@fig-mu-extreme`                                                                                        | `results/sim-mu-extreme.jld2`                                                                                                              | `julia --project=. experiments/sim-mu-extreme.jl`                                                                                                                                                                                                                                                                                    | Julia                  | None       |
   | `@fig-cold-start`                                                                                        | `results/sim-cold-start.jld2`                                                                                                              | `julia --project=. experiments/sim-cold-start.jl`                                                                                                                                                                                                                                                                                    | Julia                  | None       |
   | `@fig-cold-start-poisson`                                                                                | `results/sim-cold-start-poisson.jld2`                                                                                                      | `julia --project=. experiments/sim-cold-start-poisson.jl`                                                                                                                                                                                                                                                                            | Julia                  | None       |
-  | `@fig-real-logreg`                                                                                       | `results/real-logreg.jld2`                                                                                                                 | `julia --project=. experiments/sim-real-logreg.jl`                                                                                                                                                                                                                                                                                   | Julia                  | Archive    |
+  | `@fig-real-logreg`, `@tbl-real-logreg-problems`                                                          | `results/real-logreg.jld2`, `results/real-logreg-diagnostics.csv`                                                                          | `task real-logreg` (use `-- --resume` to retain completed runs)                                                                                                                                                                                                                                                                      | Julia                  | Archive    |
   | `@fig-real-poisson`                                                                                      | `results/real-poisson.jld2`                                                                                                                | `Rscript experiments/sim-real-poisson-problem.R`, then `julia --project=. experiments/sim-real-poisson.jl`                                                                                                                                                                                                                           | R and Julia            | Archive    |
   | `@fig-mu-reg-gradient`, `@fig-mu-reg-exact`                                                              | `results/sim-mu-reg-heatmap.jld2`                                                                                                          | `julia --project=. experiments/sim-mu-reg-heatmap.jl`                                                                                                                                                                                                                                                                                | Julia                  | None       |
   | `@fig-production-imbalance-time`, `@fig-production-imbalance-curvature`                                  | `results/production-imbalance/{problems,ratios,timings,calibration,configurations}.csv`                                                    | `task production-imbalance`                                                                                                                                                                                                                                                                                                          | Julia and R            | None       |
@@ -172,7 +205,8 @@ passes.
   | `@fig-first-example-ordering`                                                                            | `results/first-example-ordering.jld2`                                                                                                      | `julia --project=. experiments/sim-first-example-ordering.jl`                                                                                                                                                                                                                                                                        | Julia                  | Archive    |
   | `@fig-warm-start`, `@fig-warm-start-mechanism`, `@fig-warm-start-full`, `@fig-warm-start-mechanism-full` | `results/sim-warmstart-path.jld2`                                                                                                          | `julia --project=. experiments/sim-warmstart-path.jl`                                                                                                                                                                                                                                                                                | Julia                  | Archive    |
   | `@fig-per-pass-cost`, `@fig-per-pass-progress`                                                           | `results/sim-per-pass-cost.jld2`                                                                                                           | `julia --project=. experiments/sim-per-pass-cost.jl`                                                                                                                                                                                                                                                                                 | Julia                  | None       |
-  | `@fig-intercept-stride` | `results/sim-update-frequency.csv` | `task update-frequency` | Julia | Archive |
+  | `@fig-intercept-stride`                                                                                  | `results/sim-update-frequency.csv`                                                                                                         | `task update-frequency`                                                                                                                                                                                                                                                                                                              | Julia                  | Archive    |
+  | `@tbl-logistic-prevalence`; seeded binary response counts                                                | `results/logistic-prevalence.csv`                                                                                                          | `task logistic-prevalence` (reconstructs inputs and reads cached counts; no solvers run)                                                                                                                                                                                                                                             | Julia                  | None       |
   | `@fig-real-poisson-production`                                                                           | `glmnet.csv`, `adelie.csv`, and `proxnewton.csv` under `results/real-solvers-poisson/congress109/`; `results/production-references.csv`    | `julia --project=. experiments/sim-real-problem.jl`;<br>`Rscript experiments/sim-real-poisson-problem.R`;<br>`Rscript experiments/sim-real-poisson-glmnet.R`;<br>`Rscript experiments/sim-real-poisson-adelie.R`;<br>`python experiments/sim-real-poisson-proxnewton.py`;<br>`julia --project=. experiments/production-reference.jl` | Julia, R, and Python   | Archive    |
   | `@tbl-cold-start-diag`                                                                                   | `results/real-solvers/cold-start-diag.csv`                                                                                                 | `julia --project=. experiments/sim-real-problem.jl`, then `Rscript experiments/sim-cold-start-real.R`                                                                                                                                                                                                                                | Julia and historical R | Archive    |
 

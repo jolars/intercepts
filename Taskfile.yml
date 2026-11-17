@@ -111,13 +111,28 @@ tasks:
     cmds:
       - "{{.JULIA}} --project=. experiments/sim-update-frequency.jl"
 
+  real-logreg:
+    desc: Run the real-data logistic comparison and fitted-curvature diagnostics
+    env:
+      JULIA_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    cmds:
+      - "{{.JULIA}} --project=. experiments/sim-real-logreg.jl {{.CLI_ARGS}}"
+
+  logistic-prevalence:
+    desc: Recover seeded logistic response counts without rerunning solvers
+    cmds:
+      - "{{.JULIA}} --project=. experiments/sim-logistic-prevalence.jl"
+
   caches-real:
     desc: Regenerate the real-data Julia caches (requires the staged archive)
     cmds:
       - "{{.JULIA}} --project=. experiments/first-example.jl"
       - "{{.JULIA}} --project=. experiments/sim-first-example-ordering.jl"
       - "{{.JULIA}} --project=. experiments/sim-warmstart-path.jl"
-      - "{{.JULIA}} --project=. experiments/sim-real-logreg.jl"
+      - task: real-logreg
       - "{{.JULIA}} --project=. experiments/sim-real-multinomial-yeoh.jl"
       - "{{.JULIA}} --project=. experiments/sim-real-multinomial-shuttle.jl"
       - Rscript experiments/sim-real-poisson-problem.R
