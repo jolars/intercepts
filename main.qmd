@@ -233,8 +233,8 @@ fig
 In @fig-first-example, we compare how quickly the three strategies converge when
 fitting $\ell_1$-regularized logistic regression to the w1a
 dataset\ [@platt1998]. The Newton and exact strategies bring the relative
-suboptimality bound below $10^{-8}$ after roughly 45 passes, while the gradient
-strategy takes more than seven times as many.
+suboptimality bound below $10^{-8}$ in about one second, while the gradient
+strategy takes about $8.5$ seconds.
 
 ```{julia}
 #| label: fig-first-example
@@ -1377,7 +1377,9 @@ $\mu_0$ need not equal the empirical response mean.
 #|   a relative suboptimality bound versus time for $\mu_0 = 0.99$, $n = 500$,
 #|   $p = 1000$, $s = 10$, $\lambda = 0.05\lambda_{\max}$, and three random
 #|   seeds. The Local-IRLS curve is shown once because the three intercept
-#|   strategies coincide on the inner quadratic.
+#|   strategies coincide on the inner quadratic. Each IRLS outer iteration forms
+#|   a new quadratic surrogate and runs up to 30 inner CD sweeps; a direct-CD
+#|   pass contains one coordinate sweep and an intercept update.
 
 dd = JLD2.load(@projectroot("results", "sim-irls-comparison.jld2"))
 df = DataFrame(dd["results"])
@@ -1397,14 +1399,13 @@ draw(
 ```
 
 Local-IRLS converges fastest under $\mu_0 = 0.99$, crossing the $10^{-8}$ bound
-in about 25 passes across the three seeds (@fig-irls-comparison). Direct-CD with
-Newton takes roughly twice as many passes, while Direct-CD with the gradient
-strategy takes several hundred. MM-IRLS remains above $10^{-4}$ after 200
-passes. Within Local-IRLS, the three strategies coincide exactly: once
-$L_0^{\text{inner}} = H_{00}$, they share the single inner update
-$-\partial_0 \tilde F^{(t)} / H_{00}$ and produce identical iterates. The figure
-therefore plots only one curve. Unit tests verify exact agreement of the
-intercept and coefficient paths.
+in about $0.4$--$0.7$ seconds across the three seeds (@fig-irls-comparison).
+Direct-CD with Newton takes about $0.8$--$1.2$ seconds, while Direct-CD with the
+gradient strategy takes about $5.5$--$7.6$ seconds. MM-IRLS remains above
+$10^{-4}$ after its budget of 200 outer iterations. Within Local-IRLS, the three
+strategies coincide exactly: once $L_0^{\text{inner}} = H_{00}$, they share the
+single inner update $-\partial_0 \tilde F^{(t)} / H_{00}$ and produce identical
+iterates. The figure therefore plots only one curve.
 
 Local-IRLS also outpaces Direct-CD with the Newton strategy on this problem.
 This difference concerns the two algorithmic families rather than their
@@ -1428,19 +1429,22 @@ The [project repository](https://github.com/jolars/intercepts) contains the
 guide](https://github.com/jolars/intercepts/blob/main/REPRODUCIBILITY.md) lists
 the inputs and commands needed to regenerate each figure.
 
-We run the internal experiments using our Julia implementations of the solvers
-and report outer passes as the primary measure of work. Unless otherwise noted,
-synthetic designs use cyclic ordering, fixed seeds, standardized features, and
-an AR(1) correlation of $\rho = 0.6$. We evaluate comparable trajectories
-against the strongest feasible dual value found for their shared problem
-instance, so the displayed suboptimality bound does not depend on which strategy
-produced the primal iterate. We use pinned datasets in the real-data experiments
-and follow the same shared-reference principle in the production comparison. We
-load cached outputs for computationally expensive experiments. The toy examples
-in @fig-parametric and @fig-schur-example run when the notebook renders. We pin
-the Julia, R, and Python environments in the repository and document the problem
-construction, tolerances, budgets, data preparation, hardware, and reproduction
-protocol in [Supplement S3](#sec-s-methodology).
+We run the internal experiments using our Julia implementations of the solvers.
+Wall-clock time is our primary measure of computational cost: it captures
+differences in the cost of intercept updates and the inner solves in IRLS. We
+also report pass counts to diagnose convergence and compare with the theory.
+Unless otherwise noted, synthetic designs use cyclic ordering, fixed seeds,
+standardized features, and an AR(1) correlation of $\rho = 0.6$. We evaluate
+comparable trajectories against the strongest feasible dual value found for
+their shared problem instance, so the displayed suboptimality bound does not
+depend on which strategy produced the primal iterate. We use pinned datasets in
+the real-data experiments and follow the same shared-reference principle in the
+production comparison. We load cached outputs for computationally expensive
+experiments. The toy examples in @fig-parametric and @fig-schur-example run when
+the notebook renders. We pin the Julia, R, and Python environments in the
+repository and document the problem construction, tolerances, budgets, data
+preparation, hardware, and reproduction protocol in [Supplement
+S3](#sec-s-methodology).
 
 ## Simulated data
 
@@ -1482,11 +1486,11 @@ draw(
 
 The Schur-coupling residual (@eq-grad-residual) predicts that the gradient
 strategy will slow as $H_{00}/L_0$ approaches zero when $\mu_0$ approaches one.
-At $\mu_0 = 0.99$, the gradient strategy needs about fifteen times as many
-passes as Newton to reach $10^{-8}$ in our experiment, whereas the Newton and
-exact strategies remain close across the sweep (@fig-mu-extreme). Their
-agreement supports the prediction that exact profiling adds little progress in
-the outer solve beyond one Newton step (@eq-intercept-drift); [Supplement
+At $\mu_0 = 0.99$, the gradient strategy takes about twelve times as long as
+Newton to reach $10^{-8}$ in our experiment, whereas the Newton and exact
+strategies remain close across the sweep (@fig-mu-extreme). Their agreement
+supports the prediction that exact profiling adds little progress in the outer
+solve beyond one Newton step (@eq-intercept-drift); [Supplement
 S4.3](#sec-per-pass-cost) compares their inner work.
 
 ```{julia}
@@ -1659,20 +1663,19 @@ draw(
 ```
 
 The two severely imbalanced datasets reproduce both predicted patterns on very
-different sparse designs. The gradient strategy takes about six times as many
-passes as Newton to reach $10^{-6}$ on w1a and about ten times as many to reach
-$10^{-4}$ on news20-3pct, before the latter reaches its wall-time cap. Both
-datasets have small intercept-only curvature fractions. Their large slowdowns
-across different designs support the response-imbalance mechanism, although the
-fitted curvature and collective coupling determine the local rate.
+different sparse designs. The gradient strategy takes about six times as long as
+Newton to reach $10^{-6}$ on w1a and about nine times as long to reach $10^{-4}$
+on news20-3pct, before the latter reaches its wall-time cap. Both datasets have
+small intercept-only curvature fractions. Their large slowdowns across different
+designs support the response-imbalance mechanism, although the fitted curvature
+and collective coupling determine the local rate.
 
 For the moderately imbalanced a4a and breast-cancer data, the gap between the
 gradient and Newton strategies is modest---less than threefold---consistent with
 their larger intercept-only curvature fractions. Leukemia ($n \ll p$,
 penalty-dominated) and gisette (dense and balanced) serve as negative controls:
-leukemia shows little separation, and the gisette pass counts are identical. The
-exact strategy tracks Newton on every panel, consistent with @eq-intercept-drift
-at this tolerance.
+both show comparatively little separation in time. The exact strategy tracks
+Newton on every panel, consistent with @eq-intercept-drift at this tolerance.
 
 Poisson data offer a sharper version of the same test. The Poisson loss has no
 global upper bound on $f''(\eta) = e^\eta$, so $L_0 = \infty$ and the
@@ -3019,11 +3022,18 @@ problems, while Böhning does not.
 ## S3. Experimental methods and reproducibility {#sec-s-methodology .unnumbered}
 
 We run all internal-solver experiments with the **Intercepts** Julia package on
-Julia 1.11 and the default **OpenBLAS**. Our primary measure of work is the
-number of outer passes. One pass consists of a sweep through all $p$ coordinates
-and an intercept update. Unless noted, "passes to tolerance" means the number of
-completed passes needed to bring the shared relative suboptimality bound below
-$10^{-8}$. Pass budgets (`maxit`) are 1000 for the single-$\lambda$ figures and
+Julia 1.11. Our primary measure of computational cost is elapsed solver time,
+including convergence diagnostics but excluding data loading and initial feature
+standardization. We also report pass counts to diagnose convergence. One
+direct-CD pass consists of a sweep through all $p$ coordinates, with one
+intercept update at its end unless noted otherwise. An IRLS outer iteration
+forms a new quadratic surrogate and approximately minimizes it through inner CD
+sweeps, each with its own intercept update. The comparison in
+@fig-irls-comparison allows up to 30 inner sweeps per outer iteration, so a
+direct-CD pass and an IRLS outer iteration represent different amounts of work.
+Unless noted, "passes to tolerance" means the number of completed direct-CD
+passes needed to bring the shared relative suboptimality bound below $10^{-8}$.
+Direct-CD pass budgets (`maxit`) are 1000 for the single-$\lambda$ figures and
 5000 for the heatmap of @sec-imbalance-reg; cells that miss tolerance are shown
 at the cap. We standardize the synthetic designs, use cyclic coordinate ordering
 unless noted, and set the default AR(1) feature correlation to $\rho = 0.6$. We
