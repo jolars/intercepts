@@ -16,12 +16,8 @@ Random.seed!(42);
 # under four intercept strategies, and saves convergence trajectories to
 # results/real-poisson.jld2 for the paper's fig-real-poisson chunk.
 #
-# Includes :unguarded_newton so the real-data panel can show the same
-# Armijo-load-bearing story as the synthetic sim-cold-start-poisson.jl
-# experiment: the unguarded Newton intercept update at cold start lands near
-# ybar - 1 ~ 10.8 while the exact intercept is log(ybar) ~ 2.5, a ~50000x
-# loss-value overshoot that the guarded variant absorbs monotonically and
-# the unguarded variant must recover from.
+# Includes :unguarded_newton to isolate the effect of the intercept guard.
+# The guarded and unguarded Newton trajectories coincide on this problem.
 
 probdir = @projectroot("results", "real-solvers-poisson", "congress109")
 X = Matrix(CSV.read(joinpath(probdir, "X.csv"), DataFrame; header = false))

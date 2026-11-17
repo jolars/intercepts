@@ -8,11 +8,12 @@ Random.seed!(1234);
 
 # Cold-start cyclic CD on Poisson regression at extreme rates.
 # Poisson with log link has f''(η) = e^η and f'''(η) = e^η, both unbounded as
-# η grows. At cold start (β₀ = 0) on a regime with mean rate μ₀, the unguarded
-# Newton intercept step lands near μ̄_y - 1 ≈ μ₀ - 1; the exact intercept is
-# log(μ̄_y) ≈ log(μ₀). For μ₀ = 100 that is an ~22x overshoot, evaluating the
-# loss at η ~ 99 where e^η ≈ 10^43. The Armijo guard inside NewtonStrategy
-# should backtrack many times; the unguarded variant should diverge.
+# η grows. At a zero linear predictor, the unguarded Newton intercept-only
+# step would land at ȳ - 1, while the exact intercept would be log(ȳ).
+# In the full CD runs, the coefficient sweep precedes the
+# intercept update. The unguarded strategy shows an early objective excursion
+# at high rates but recovers within a few passes; the guard prevents that
+# excursion.
 param_dict = Dict{String, Any}(
     "it" => collect(1:5),
     "n" => [500],

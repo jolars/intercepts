@@ -1153,17 +1153,15 @@ validates the full frozen coordinate-sweep model against nonlinear convergence
 rates. The centering experiment there varies coupling while holding the
 intercept curvature fixed, exposing the transition to the $L_0/H_{00}$ plateau.
 
-### A safe Newton variant
+### Safeguarding the Newton step
 
 Far from the conditional intercept optimum, a full Newton step can overshoot. We
 safeguard the Newton direction $-\partial_0 F / H_{00}$ in an Armijo
 backtracking line search: accept the full step ($\alpha = 1$) if it decreases
 $F$ enough. Otherwise, halve $\alpha$ until it does. Our Newton strategy
-includes this safeguard. When it accepts the full step, the safeguard adds
-constant work; when the linear model is inadequate, the number of backtracking
-trials grows logarithmically. To isolate the effect of the guard, we compare the
-guarded variant directly with a bare Newton step in @fig-cold-start and
-@fig-cold-start-poisson and show when the guard changes the result.
+includes this safeguard as cheap insurance against objective-increasing steps.
+The guard requires additional loss evaluations, with further backtracking trials
+only when the full step fails the sufficient-decrease condition.
 
 ### Extension to vector intercepts {#sec-multinomial-main}
 
@@ -1530,21 +1528,15 @@ and the remaining pairs begin to differ only late in the solve, never at cold
 start. Every guarded and bare Newton pair crosses the shared $10^{-8}$ bound on
 the same pass. The exact strategy differs from them by only a handful of passes.
 
-Thus, the Armijo safeguard does not improve the logistic cold starts tested
-here: the full Newton step is accepted at the initial iterate, and the few later
-differences do not systematically favor either variant. Logistic curvature is
-bounded, $f'' = \mu(1 - \mu) \le 1/4$, but bounded curvature alone does not
-guarantee that an undamped Newton step decreases the objective at every iterate.
-These experiments establish the narrower empirical result for the
-zero-initialized problem family above.
-
-Losses with unbounded curvature behave differently. For Poisson regression with
-the canonical log link, $f''(\eta) = e^\eta$ and $f'''(\eta) = e^\eta$ both grow
-without bound, so the Newton linearization is loose far from the optimum and the
-unguarded step can overshoot by an arbitrary factor. We repeat the cold-start
-experiment on synthetic Poisson data with $n = 500$, $p = 1000$, $s = 10$,
-$\lambda = 0.1\lambda_{\max}$, and baseline rates
-$\mu_0 \in \{10, 30, 100, 300\}$.
+Logistic curvature is bounded, $f'' = \mu(1 - \mu) \le 1/4$, but bounded
+curvature alone does not guarantee that an undamped Newton step decreases the
+objective at every iterate. Losses with unbounded curvature behave differently.
+For Poisson regression with the canonical log link, $f''(\eta) = e^\eta$ and
+$f'''(\eta) = e^\eta$ both grow without bound, so the Newton linearization is
+loose far from the optimum and the unguarded step can overshoot by an arbitrary
+factor. We repeat the cold-start experiment on synthetic Poisson data with
+$n = 500$, $p = 1000$, $s = 10$, $\lambda = 0.1\lambda_{\max}$, and baseline
+rates $\mu_0 \in \{10, 30, 100, 300\}$.
 
 ```{julia}
 #| label: fig-cold-start-poisson
@@ -1585,26 +1577,17 @@ draw(
 )
 ```
 
-At $\mu_0 = 300$, the first bare Newton step moves the cold-start intercept from
-zero to $\bar{y} - 1 \approx 300$, although the intercept-only optimum is only
-$\log(\bar{y}) \approx 6$. Because the log link exponentiates the intercept,
-this step implies a fitted rate near $e^{300}$ and makes the loss astronomical
-at that intermediate iterate. The safeguard prevents this overshoot
-(@fig-cold-start-poisson): the unguarded bound jumps several-fold after the
-first pass, while the guarded bound falls immediately.
-
-The overshoot is nonetheless recoverable. The outer CD loop's own per-coordinate
-Armijo guard absorbs it over the next few passes, and the final primal values
+At $\mu_0 = 300$, the bare Newton strategy increases the primal objective and
+the plotted suboptimality bound after the first pass, while the guarded strategy
+decreases both (@fig-cold-start-poisson). The unguarded strategy recovers
+through subsequent coordinate and intercept updates, and the final primal values
 agree to numerical precision. The three strategies return to nearly the same
-trajectory within a few passes.
-
-The guard therefore keeps the iterates numerically reasonable but provides no
-visible improvement in the convergence rate here. The exact strategy is
-competitive in both experiments but incurs the cost of within-pass drift
-identified in @eq-intercept-drift. It applies the same Armijo safeguard to every
-inner Newton direction. Every returned scalar update satisfies
-$|\partial_0 F| \le 10^{-10}$. Reaching the iteration cap would stop the
-experiment before the result could be cached.
+trajectory within a few passes. The exact strategy is competitive in both
+experiments but incurs the cost of within-pass drift identified in
+@eq-intercept-drift. It applies the same Armijo safeguard to every inner Newton
+direction. Every returned scalar update satisfies $|\partial_0 F| \le 10^{-10}$.
+Reaching the iteration cap would stop the experiment before the result could be
+cached.
 
 ## Real data
 
@@ -1736,12 +1719,8 @@ draw(
 
 In @fig-real-poisson, the gradient strategy leaves the intercept unchanged
 because $L_0 = \infty$. This failure follows from the loss family rather than
-from tuning or a problem-specific imbalance level. Newton and exact follow the
-same trajectory because the CD solver's per-coordinate Armijo loop (Tseng--Yun
-sufficient decrease, @algo-cd) absorbs the cold-start overshoot before the first
-intercept update occurs. The synthetic suboptimality curves expose the unguarded
-first-pass excursion, but they rejoin the guarded curves within a few passes at
-every baseline rate we ran (@fig-cold-start-poisson).
+from tuning or a problem-specific imbalance level. The guarded and bare Newton
+trajectories coincide, and exact minimization tracks them closely.
 
 ## Robustness and computational cost {#sec-robustness}
 
@@ -2247,10 +2226,10 @@ and [S5.2](#sec-cold-start-diag).
 # Discussion
 
 Our analysis yields a practical decision rule: direct coordinate descent on a
-smooth GLM loss should update the intercept with one Newton block step and an
-Armijo safeguard. Repeatedly optimizing the intercept adds inner work whose
-benefit is usually erased by the next coefficient sweep. Warm-started paths are
-the main case in which that work becomes cheap enough to reconsider ([Supplement
+smooth GLM loss should update the intercept with one Newton block step.
+Repeatedly optimizing the intercept adds inner work whose benefit is usually
+erased by the next coefficient sweep. Warm-started paths are the main case in
+which that work becomes cheap enough to reconsider ([Supplement
 S4.2](#sec-warmstart-path)). Solvers that freeze a local IRLS or proximal-Newton
 quadratic should instead resolve the intercept within that surrogate, where the
 quadratic curvature is already available.
@@ -2262,11 +2241,6 @@ frozen quadratic model, the fraction is exact. That model then explains how the
 one-step mismatch becomes the late-stage $L_0/H_{00}$ rate plateau under strong
 collective coupling (@prp-frozen-block-rate, @fig-rho-frozen). This is a local
 explanation, not a global iteration-complexity theorem.
-
-The Armijo guard completes the recommendation. It adds little work when the full
-Newton step is acceptable and prevents the Poisson cold-start overshoot in
-@fig-cold-start-poisson. Using it by default avoids relying on a loss-specific
-global descent claim.
 
 For multinomial problems, rare nonreference classes and rare reference classes
 create low-curvature intercept directions of different forms
@@ -3589,15 +3563,14 @@ our survey therefore uses local Newton curvature, as the analysis recommends.
 
 ### S5.2 Single-lambda cold start {#sec-cold-start-diag .unnumbered}
 
-The path-mode protocol used above lets inner CD avoid the transient at
-$\beta = 0$. When we instead solve a single $\lambda$ from scratch, an unguarded
-Newton intercept update can become unstable (@eq-newton-coupling). We examine
-this possibility in @tbl-cold-start-diag at $\lambda = 0.05\lambda_{\max}$ with
-loose inner and outer solver tolerances of $10^{-1}$, sweeping the iterate cap
-from $10^1$ to $10^5$; the path-mode reference primal is $0.0634$ on w1a and
-$0.0497$ on news20-3pct. These settings form a targeted diagnostic rather than a
-test of either package's default configuration, whose convergence tolerances are
-stricter.
+The path-mode protocol used above warm-starts each problem from the solution at
+the preceding $\lambda$. To examine sensitivity to initialization, we compare
+single-$\lambda$ cold starts in @tbl-cold-start-diag at
+$\lambda = 0.05\lambda_{\max}$ with loose inner and outer solver tolerances of
+$10^{-1}$, sweeping the iterate cap from $10^1$ to $10^5$; the path-mode
+reference primal is $0.0634$ on w1a and $0.0497$ on news20-3pct. These settings
+form a targeted diagnostic rather than a test of either package's default
+configuration, whose convergence tolerances are stricter.
 
   | dataset          | solver                     | $\beta_0$     | primal       | iterations                        |
   | :--------------- | :------------------------- | ------------: | -----------: | :-------------------------------- |
@@ -3617,22 +3590,17 @@ stricter.
     intercept oscillates over $[-1722,-291]$. The **adelie** entries use version
     1.0-8. {#tbl-cold-start-diag}
 
-In @tbl-cold-start-diag, the global majorant $L_0 = 1/4$ acts as an $X$-free
-safeguard on the intercept: two scalars ($n$ and $\bar y$) determine the step,
-and that is enough to absorb the cold-start transient at trivial cost on the
-unpenalized coordinate. The analogous safeguard for a coefficient would require
-column-norm information.
-
 Under this specific configuration, **biglasso**'s default Newton mode returns
 inaccurate fits on both datasets: it reaches the iteration cap while oscillating
 on w1a and stops prematurely on news20-3pct. Adelie, whose only mode uses local
 Newton curvature, returns an empty state on w1a but converges on news20-3pct.
-The contrast between the datasets, despite their matched $\bar y$, is consistent
-with the failure depending on more than the cold-start gradient magnitude. A
-plausible explanation is that, on news20-3pct's wider sparse design, the
-$\ell_1$ penalty pulls many entries to zero before the linear predictor reaches
-extreme values, damping the IRLS weight collapse. The diagnostic does not
-establish behavior at other values of $\lambda$, under other stopping
+
+Changing **biglasso**'s mode changes the curvature used throughout the IRLS
+subproblem, including coefficient updates. The diagnostic therefore does not
+isolate the intercept step or establish that an intercept safeguard would
+prevent the failures. In particular, it cannot distinguish intercept overshoot
+from instability in the working responses or weights. The diagnostic also does
+not establish behavior at other values of $\lambda$, under other stopping
 tolerances, or for the packages' otherwise default calls.
 
 ### S5.3 skglm comparisons {#sec-skglm-history .unnumbered}

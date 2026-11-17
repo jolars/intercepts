@@ -1,13 +1,10 @@
 ## Single-lambda cold-start diagnostic on real imbalanced logistic problems
-## (w1a and news20-3pct). Tests whether the
-## unguarded-Newton intercept overshoot that affects biglasso in path mode at
-## the cold-start step also bites at single-lambda with a loose eps, and
-## whether it reproduces across both datasets (matched on ybar = 0.03, very
-## different X structure: 300-feature web indicators vs 4675-feature bag of
-## words). The argument the paper would make from this: the intercept-specific
-## fix (MM majorant w = 1/4) is X-free and converges in O(1) iterations on
-## the same problem, so its absence in production solvers is a missed
-## opportunity, not a fundamental limitation.
+## (w1a and news20-3pct). Compares single-lambda cold starts under loose
+## tolerances across datasets with similar ybar and different designs.
+## Switching biglasso between Newton and MM changes the curvature model for
+## the entire IRLS subproblem, including coefficient updates. These runs do
+## not isolate the intercept step, identify the cause of a failure, or test
+## whether an intercept safeguard would prevent it.
 ##
 ## Setup:
 ##   - Single target lambda = reg * lambda_max from meta.json (no path
