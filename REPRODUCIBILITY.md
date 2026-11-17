@@ -115,6 +115,23 @@ julia --project=. experiments/sim-real-problem.jl
 Rscript experiments/sim-cold-start-real.R
 ```
 
+The intercept-update frequency experiment (`@fig-intercept-stride`) uses the
+Newton strategy throughout. The simulations vary three baseline means over five
+seeds at fixed dimensions $n=500$ and $p=1000$. The real-data experiments use
+w1a, a4a, gisette, and imbalanced news20, with three timing repetitions per
+frequency. Each problem uses seven coordinate strides, spaced logarithmically
+from $k=1$ to $k=p$ and rounded to integers. Fits run to a relative duality-gap
+tolerance of $10^{-8}$ without a wall-clock limit. Run the experiment after
+staging the real-data archive:
+
+```bash
+task update-frequency
+```
+
+The script records pass counts, wall times, and final relative duality gaps in
+`results/sim-update-frequency.csv`. The notebook plots paired pass-count and
+wall-time ratios relative to one intercept update per pass.
+
 #### Figure and table reproduction map
 
 The table below maps every empirical figure and cached table in the manuscript
@@ -155,6 +172,7 @@ passes.
   | `@fig-first-example-ordering`                                                                            | `results/first-example-ordering.jld2`                                                                                                      | `julia --project=. experiments/sim-first-example-ordering.jl`                                                                                                                                                                                                                                                                        | Julia                  | Archive    |
   | `@fig-warm-start`, `@fig-warm-start-mechanism`, `@fig-warm-start-full`, `@fig-warm-start-mechanism-full` | `results/sim-warmstart-path.jld2`                                                                                                          | `julia --project=. experiments/sim-warmstart-path.jl`                                                                                                                                                                                                                                                                                | Julia                  | Archive    |
   | `@fig-per-pass-cost`, `@fig-per-pass-progress`                                                           | `results/sim-per-pass-cost.jld2`                                                                                                           | `julia --project=. experiments/sim-per-pass-cost.jl`                                                                                                                                                                                                                                                                                 | Julia                  | None       |
+  | `@fig-intercept-stride` | `results/sim-update-frequency.csv` | `task update-frequency` | Julia | Archive |
   | `@fig-real-poisson-production`                                                                           | `glmnet.csv`, `adelie.csv`, and `proxnewton.csv` under `results/real-solvers-poisson/congress109/`; `results/production-references.csv`    | `julia --project=. experiments/sim-real-problem.jl`;<br>`Rscript experiments/sim-real-poisson-problem.R`;<br>`Rscript experiments/sim-real-poisson-glmnet.R`;<br>`Rscript experiments/sim-real-poisson-adelie.R`;<br>`python experiments/sim-real-poisson-proxnewton.py`;<br>`julia --project=. experiments/production-reference.jl` | Julia, R, and Python   | Archive    |
   | `@tbl-cold-start-diag`                                                                                   | `results/real-solvers/cold-start-diag.csv`                                                                                                 | `julia --project=. experiments/sim-real-problem.jl`, then `Rscript experiments/sim-cold-start-real.R`                                                                                                                                                                                                                                | Julia and historical R | Archive    |
 

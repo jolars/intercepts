@@ -12,6 +12,14 @@
 
 const CURATORS = Dict{String, Function}(
 
+    "fig-intercept-stride" => function (mod)
+        df = copy(mod.df_stride)
+        for column in [:passes_med, :passes_lo, :passes_hi, :wall_med, :wall_lo, :wall_hi]
+            df[!, column] = round.(df[!, column]; digits = 3)
+        end
+        return df
+    end,
+
     # The empirical-to-limit ratio shows where the pass counts approach the
     # strong-coupling plateau; the curvature fraction checks that centering
     # preserves the intercept curvature.

@@ -98,8 +98,18 @@ tasks:
       - "{{.JULIA}} --project=. experiments/sim-multinomial-imbalance-sweep.jl"
       - "{{.JULIA}} --project=. experiments/sim-multinomial-prevalence.jl"
       - "{{.JULIA}} --project=. experiments/sim-per-pass-cost.jl"
+
+  update-frequency:
+    desc: >-
+      Run the intercept-update frequency experiment
+      (requires staged real data)
+    env:
+      JULIA_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+    cmds:
       - "{{.JULIA}} --project=. experiments/sim-update-frequency.jl"
-      - "{{.JULIA}} --project=. experiments/sim-stride-logistic.jl"
 
   caches-real:
     desc: Regenerate the real-data Julia caches (requires the staged archive)
@@ -112,4 +122,4 @@ tasks:
       - "{{.JULIA}} --project=. experiments/sim-real-multinomial-shuttle.jl"
       - Rscript experiments/sim-real-poisson-problem.R
       - "{{.JULIA}} --project=. experiments/sim-real-poisson.jl"
-      - "{{.JULIA}} --project=. experiments/sim-stride-real.jl"
+      - task: update-frequency

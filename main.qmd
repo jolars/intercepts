@@ -1760,6 +1760,127 @@ Most of that overhead occurs in the first cold-start passes. Warm starts largely
 avoid it ([Supplement S4.3](#sec-per-pass-cost)). The full ordering, path, and
 per-pass trajectories appear in [Supplement S4](#sec-s-robustness).
 
+```{julia}
+#| label: fig-intercept-stride
+#| fig-cap: >-
+#|   Intercept-update frequency with the Newton strategy fixed. An update
+#|   follows every $k$ coefficient coordinates. The left panels show medians
+#|   over five synthetic seeds at fixed $n=500$, $p=1\,000$, $s=10$, and
+#|   predictor correlation $\rho=0.6$, varying only the baseline mean $\mu_0$.
+#|   The right panels show medians over three timing repetitions on w1a, a4a,
+#|   gisette, and the news20 subset. Bands show the minimum and maximum paired
+#|   ratios. All fits use cyclic coordinate descent,
+#|   $\lambda=0.05\lambda_{\max}$, and run to a relative duality-gap tolerance
+#|   of $10^{-8}$.
+
+stride_runs = DataFrame(CSV.File(@projectroot("results", "sim-update-frequency.csv")))
+all(stride_runs.converged) || error("Frequency comparison requires converged fits")
+stride_runs.series = [
+    ismissing(r.μ0) ? r.dataset : string(r.μ0)
+    for r in eachrow(stride_runs)
+]
+stride_runs.instance = [
+    r.dataset == "simulated" ? r.seed : r.rep
+    for r in eachrow(stride_runs)
+]
+stride_keys = [:dataset, :series, :instance]
+stride_base = rename(
+    select(
+        filter(r -> r.k == r.p && r.converged, stride_runs),
+        [stride_keys; :passes; :wall_time],
+    ),
+    :passes => :base_passes,
+    :wall_time => :base_wall_time,
+)
+stride_runs = innerjoin(stride_runs, stride_base; on = stride_keys)
+stride_runs.pass_ratio = stride_runs.passes ./ stride_runs.base_passes
+stride_runs.wall_ratio = stride_runs.wall_time ./ stride_runs.base_wall_time
+
+df_stride = combine(
+    groupby(stride_runs, [:dataset, :series, :k, :updates_per_pass]),
+    :pass_ratio => median => :passes_med,
+    :pass_ratio => minimum => :passes_lo,
+    :pass_ratio => maximum => :passes_hi,
+    :wall_ratio => median => :wall_med,
+    :wall_ratio => minimum => :wall_lo,
+    :wall_ratio => maximum => :wall_hi,
+    nrow => :n_runs,
+)
+sort!(df_stride, [:dataset, :series, :k])
+
+let
+    fig = Figure(; size = output_size((800, 510)))
+    colors = [:steelblue, :darkorange, :firebrick, :seagreen]
+    panels = [
+        (
+            "Synthetic logistic (n = 500, p = 1000)",
+            ["0.5", "0.9", "0.99"],
+            [L"\mu_0 = 0.5", L"\mu_0 = 0.9", L"\mu_0 = 0.99"],
+        ),
+        (
+            "Real logistic datasets",
+            ["w1a", "a4a", "gisette_scale", "news20-imb"],
+            ["w1a", "a4a", "gisette", "news20-imb"],
+        ),
+    ]
+    metrics = [
+        (:passes_med, :passes_lo, :passes_hi, "Passes relative to baseline"),
+        (:wall_med, :wall_lo, :wall_hi, "Time relative to baseline"),
+    ]
+    axes = Matrix{Axis}(undef, 2, 2)
+    for (column, (title, groups, labels)) in enumerate(panels)
+        for (row, (med, lo, hi, ylabel)) in enumerate(metrics)
+            ax = Axis(
+                fig[row, column];
+                title = row == 1 ? title : "",
+                xlabel = row == 2 ? "Coordinates between intercept updates (k)" : "",
+                ylabel = column == 1 ? ylabel : "",
+                xscale = log10,
+                yscale = row == 1 ? identity : log10,
+                xticks = ([1, 10, 100, 1000, 10000], ["1", "10", "100", "1000", "10000"]),
+                yticks = row == 1 ?
+                    Makie.automatic :
+                    (
+                        [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100],
+                        ["0.1", "0.2", "0.5", "1", "2", "5", "10", "20", "50", "100"],
+                    ),
+            )
+            axes[row, column] = ax
+            hlines!(ax, [1.0]; color = :gray50, linestyle = :dash)
+            for (i, group) in enumerate(groups)
+                points = filter(:series => ==(group), df_stride)
+                band!(ax, points.k, points[!, lo], points[!, hi]; color = (colors[i], 0.12))
+                scatterlines!(
+                    ax,
+                    points.k,
+                    points[!, med];
+                    color = colors[i],
+                    markersize = 5,
+                    linewidth = 2,
+                )
+            end
+            ylims!(
+                ax,
+                min(0.5, 0.9 * minimum(df_stride[!, lo])),
+                max(1.1, 1.1 * maximum(df_stride[!, hi])),
+            )
+        end
+        linkxaxes!(axes[:, column]...)
+        Legend(
+            fig[3, column],
+            [LineElement(; color = colors[i]) for i in eachindex(groups)],
+            labels;
+            orientation = :horizontal,
+            nbanks = column == 2 ? 2 : 1,
+            framevisible = false,
+        )
+    end
+    linkyaxes!(axes[1, :]...)
+    linkyaxes!(axes[2, :]...)
+    fig
+end
+```
+
 ## Imbalance and regularization {#sec-imbalance-reg}
 
 The preceding single-$\lambda$ experiments vary one quantity at a time. Both
