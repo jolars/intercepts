@@ -1408,16 +1408,17 @@ single inner update $-\partial_0 \tilde F^{(t)} / H_{00}$ and produce identical
 iterates. The figure therefore plots only one curve.
 
 Local-IRLS also outpaces Direct-CD with the Newton strategy on this problem.
-This difference concerns the two algorithmic families rather than their
-intercept strategies: IRLS-CD uses a constant inner Hessian and has locally
-quadratic outer convergence, which favors it on canonical-link GLMs where the
-linearization is tight. Direct-CD has the edge when $f'''$ is large (e.g.\
-Poisson with extreme rates, where each linearization is loose far from the
-current iterate), when saturation makes the working response unstable, or when
-screening and working-set methods (standard in modern $\ell_1$ solvers) work
-poorly with re-linearization\ [@bertrand2022]. This family-level difference does
-not change the intercept recommendation: within either family, use local Newton
-curvature rather than a global Lipschitz bound.
+This difference concerns the solver families. Local-weight IRLS builds a joint
+quadratic model, retaining the off-diagonal curvature that couples the intercept
+and coefficients. Inner CD approximates a joint proximal-Newton step through
+repeated coordinate updates on this fixed quadratic\ [@lee2014]. Direct CD
+instead refreshes the derivatives of the original loss after each coordinate
+update and responds to coupling through successive updates. IRLS reuses fixed
+curvature within its inner solves, while direct CD avoids those solves and their
+stopping tolerances. Direct CD can therefore be attractive when only a few
+sweeps are needed; the faster family depends on the problem and requested
+accuracy. Our intercept recommendation remains one Newton step in direct CD and
+a conditional solve within each IRLS surrogate.
 
 # Results {#sec-results}
 
