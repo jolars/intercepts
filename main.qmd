@@ -1749,6 +1749,17 @@ Most of that overhead occurs in the first cold-start passes. Warm starts largely
 avoid it ([Supplement S4.3](#sec-per-pass-cost)). The full ordering, path, and
 per-pass trajectories appear in [Supplement S4](#sec-s-robustness).
 
+More frequent intercept updates could limit the within-pass drift described by
+@eq-intercept-drift, at a cost of $O(n)$ per update. In @fig-intercept-stride,
+we apply a Newton update after every $k$ coefficient coordinates. Updating
+after every coordinate took 2.8--3.7 times as long as updating once per pass
+across the settings tested. The largest gain came on the news20 subset 
+(with $p=4675$), where updating every 280 coordinates reduced both the pass 
+count and median wall-clock time by about $21\%$. Median time savings were 
+below $5\%$ in all other settings. Updating once per pass is therefore a 
+reasonable default.
+
+
 ```{julia}
 #| label: fig-intercept-stride
 #| fig-cap: >-
